@@ -17,4 +17,3 @@ internal object PrefsOptionLists {
         "THUDM/GLM-4-9B-0414"
     )
 }
-

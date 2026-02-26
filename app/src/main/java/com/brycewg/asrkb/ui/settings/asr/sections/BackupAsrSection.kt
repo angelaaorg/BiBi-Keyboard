@@ -16,7 +16,9 @@ internal class BackupAsrSection : AsrSettingsSection {
         val switchBackupAsrEnabled = binding.view<MaterialSwitch>(R.id.switchBackupAsrEnabled)
         val groupBackupAsr = binding.view<View>(R.id.groupBackupAsr)
         val tvBackupAsrVendor = binding.view<TextView>(R.id.tvBackupAsrVendorValue)
-        val tvBackupAsrTimeoutSensitivity = binding.view<TextView>(R.id.tvBackupAsrTimeoutSensitivityValue)
+        val tvBackupAsrTimeoutSensitivity = binding.view<TextView>(
+            R.id.tvBackupAsrTimeoutSensitivityValue
+        )
 
         fun updateVendorSummary() {
             val vendorOrder = AsrVendorUi.ordered()
@@ -128,4 +130,3 @@ internal class BackupAsrSection : AsrSettingsSection {
         }
     }
 }
-

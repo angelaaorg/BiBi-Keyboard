@@ -6,11 +6,11 @@ import android.util.Log
 import androidx.core.content.edit
 import com.brycewg.asrkb.asr.AsrVendor
 import com.brycewg.asrkb.store.debug.DebugLogManager
+import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import java.io.File
 
 /**
  * Prefs 初始化阶段的“迁移/清理/调试监听”任务（从 [Prefs] 中拆出）。
@@ -23,9 +23,13 @@ internal object PrefsInitTasks {
     private const val TAG = "Prefs"
 
     @Volatile private var toggleListenerRegistered: Boolean = false
+
     @Volatile private var fnLegacyCleanupStarted: Boolean = false
 
-    private val globalToggleListener = SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
+    private val globalToggleListener = SharedPreferences.OnSharedPreferenceChangeListener {
+            prefs,
+            key
+        ->
         try {
             if (!prefs.contains(key)) return@OnSharedPreferenceChangeListener
             val v = try {
@@ -72,7 +76,9 @@ internal object PrefsInitTasks {
                 null
             }
             val fromLong: Int? =
-                currentLong?.takeIf { it in Int.MIN_VALUE.toLong()..Int.MAX_VALUE.toLong() }?.toInt()
+                currentLong?.takeIf {
+                    it in Int.MIN_VALUE.toLong()..Int.MAX_VALUE.toLong()
+                }?.toInt()
 
             val fromString = if (fromLong == null) {
                 val s = try {
@@ -136,7 +142,8 @@ internal object PrefsInitTasks {
                 putInt(KEY_FN_KEEP_ALIVE_MINUTES, sp.getInt(KEY_SV_KEEP_ALIVE_MINUTES, -1))
                 // 若当前选择为 SenseVoice 且使用 nano 变体，自动迁移到 FunASR Nano
                 val currentVendor =
-                    sp.getString(KEY_ASR_VENDOR, AsrVendor.SiliconFlow.id) ?: AsrVendor.SiliconFlow.id
+                    sp.getString(KEY_ASR_VENDOR, AsrVendor.SiliconFlow.id)
+                        ?: AsrVendor.SiliconFlow.id
                 if (currentVendor == AsrVendor.SenseVoice.id) {
                     putString(KEY_ASR_VENDOR, AsrVendor.FunAsrNano.id)
                     putString(KEY_SV_MODEL_VARIANT, "small-int8")

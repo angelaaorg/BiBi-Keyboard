@@ -252,7 +252,8 @@ class OtherSettingsViewModel(private val prefs: Prefs) : ViewModel() {
         viewModelScope.launch {
             try {
                 prefs.syncClipboardAutoPullEnabled = enabled
-                _syncClipboardState.value = _syncClipboardState.value.copy(autoPullEnabled = enabled)
+                _syncClipboardState.value =
+                    _syncClipboardState.value.copy(autoPullEnabled = enabled)
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to update sync clipboard auto pull enabled", e)
             }
@@ -264,7 +265,8 @@ class OtherSettingsViewModel(private val prefs: Prefs) : ViewModel() {
             try {
                 val coerced = intervalSec.coerceIn(1, 600)
                 prefs.syncClipboardPullIntervalSec = coerced
-                _syncClipboardState.value = _syncClipboardState.value.copy(pullIntervalSec = coerced)
+                _syncClipboardState.value =
+                    _syncClipboardState.value.copy(pullIntervalSec = coerced)
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to update sync clipboard pull interval", e)
             }

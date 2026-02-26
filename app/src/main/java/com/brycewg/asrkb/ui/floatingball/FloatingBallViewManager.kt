@@ -8,16 +8,15 @@ import android.graphics.Outline
 import android.graphics.PixelFormat
 import android.os.Build
 import android.util.Log
+import android.view.ContextThemeWrapper
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
-import android.view.WindowManager
-import android.view.WindowInsets
 import android.view.ViewOutlineProvider
+import android.view.WindowInsets
+import android.view.WindowManager
 import android.view.animation.DecelerateInterpolator
 import android.widget.ImageView
-import androidx.core.graphics.toColorInt
-import android.view.ContextThemeWrapper
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.UiColors
 import com.brycewg.asrkb.store.Prefs
@@ -56,7 +55,7 @@ class FloatingBallViewManager(
     private var lp: WindowManager.LayoutParams? = null
 
     // 动画
-    
+
     private var rippleAnimators: MutableList<Animator> = mutableListOf()
     private var edgeAnimator: ValueAnimator? = null
     private var edgeHandleVisible: Boolean = false
@@ -68,7 +67,7 @@ class FloatingBallViewManager(
     private var completionResetPosted: Boolean = false
     private var monetContext: Context? = null
     private var currentState: FloatingBallState = FloatingBallState.Idle
-    
+
     // 贴边半隐时仅显示“箭头把手”的宽度（需与布局一致）
 
     // 记录“旋转前”的贴边锚点，用于横竖屏切换时的位置映射
@@ -81,11 +80,21 @@ class FloatingBallViewManager(
     fun getLayoutParams(): WindowManager.LayoutParams? = lp
 
     /** 显示悬浮球 */
-    fun showBall(onClickListener: (View) -> Unit, onTouchListener: View.OnTouchListener, initialState: FloatingBallState): Boolean {
+    fun showBall(
+        onClickListener: (View) -> Unit,
+        onTouchListener: View.OnTouchListener,
+        initialState: FloatingBallState
+    ): Boolean {
         if (ballView != null) {
             applyBallAlpha()
             applyBallSize()
-            try { updateStateVisual(currentState) } catch (e: Throwable) { Log.w(TAG, "Failed to refresh state on existing view", e) }
+            try {
+                updateStateVisual(currentState)
+            } catch (
+                e: Throwable
+            ) {
+                Log.w(TAG, "Failed to refresh state on existing view", e)
+            }
             return true
         }
 
@@ -121,14 +130,24 @@ class FloatingBallViewManager(
             // 将相对更重的初始化（波纹背景/自定义进度指示器）延后到下一帧，
             // 以降低 addView 当帧的主线程压力，避免与 IME 显示竞争导致掉帧。
             view.post {
-                try { setupRippleBackgrounds(colorSecondary) } catch (e: Throwable) {
+                try {
+                    setupRippleBackgrounds(colorSecondary)
+                } catch (e: Throwable) {
                     Log.w(TAG, "Deferred ripple setup failed", e)
                 }
-                try { setupProcessingSpinner(ballContainer, colorSecondary) } catch (e: Throwable) {
+                try {
+                    setupProcessingSpinner(ballContainer, colorSecondary)
+                } catch (e: Throwable) {
                     Log.w(TAG, "Deferred spinner setup failed", e)
                 }
                 // 延后初始化完成后，根据当前状态刷新一次，以确保 Processing 时能立刻显示动画
-                try { updateStateVisual(currentState) } catch (e: Throwable) { Log.w(TAG, "Failed to apply state after deferred init", e) }
+                try {
+                    updateStateVisual(currentState)
+                } catch (
+                    e: Throwable
+                ) {
+                    Log.w(TAG, "Failed to apply state after deferred init", e)
+                }
             }
 
             // 绑定点击和拖动监听
@@ -147,7 +166,13 @@ class FloatingBallViewManager(
             applyBallAlpha()
             applyBallSize()
             // 应用初始状态
-            try { updateStateVisual(initialState) } catch (e: Throwable) { Log.w(TAG, "Failed to apply initial state", e) }
+            try {
+                updateStateVisual(initialState)
+            } catch (
+                e: Throwable
+            ) {
+                Log.w(TAG, "Failed to apply initial state", e)
+            }
             Log.d(TAG, "Ball view added successfully")
             return true
         } catch (e: Throwable) {
@@ -268,14 +293,26 @@ class FloatingBallViewManager(
 
         when (state) {
             is FloatingBallState.Recording -> {
-                try { ballIcon?.setImageResource(R.drawable.microphone_floatingball) } catch (e: Throwable) { Log.w(TAG, "Failed to set ball icon (recording)", e) }
+                try {
+                    ballIcon?.setImageResource(R.drawable.microphone_floatingball)
+                } catch (
+                    e: Throwable
+                ) {
+                    Log.w(TAG, "Failed to set ball icon (recording)", e)
+                }
                 processingSpinner?.visibility = View.GONE
                 stopProcessingSpinner()
                 startRippleAnimation()
                 startRecordingBreathAnimation()
             }
             is FloatingBallState.Processing -> {
-                try { ballIcon?.setImageResource(R.drawable.microphone_floatingball) } catch (e: Throwable) { Log.w(TAG, "Failed to set ball icon (processing)", e) }
+                try {
+                    ballIcon?.setImageResource(R.drawable.microphone_floatingball)
+                } catch (
+                    e: Throwable
+                ) {
+                    Log.w(TAG, "Failed to set ball icon (processing)", e)
+                }
                 stopRippleAnimation()
                 stopRecordingBreathAnimation()
                 processingSpinner?.visibility = View.VISIBLE
@@ -290,7 +327,13 @@ class FloatingBallViewManager(
             }
             else -> {
                 // Idle, MoveMode
-                try { ballIcon?.setImageResource(R.drawable.microphone_floatingball) } catch (e: Throwable) { Log.w(TAG, "Failed to set ball icon (idle/move)", e) }
+                try {
+                    ballIcon?.setImageResource(R.drawable.microphone_floatingball)
+                } catch (
+                    e: Throwable
+                ) {
+                    Log.w(TAG, "Failed to set ball icon (idle/move)", e)
+                }
                 stopRippleAnimation()
                 stopRecordingBreathAnimation()
                 processingSpinner?.visibility = View.GONE
@@ -579,7 +622,12 @@ class FloatingBallViewManager(
         val icon = ballIcon ?: return
 
         applyEdgeHandleDockVisual(dock)
-        if (edgeHandleVisible && handle.visibility == View.VISIBLE && icon.visibility != View.VISIBLE) return
+        if (edgeHandleVisible &&
+            handle.visibility == View.VISIBLE &&
+            icon.visibility != View.VISIBLE
+        ) {
+            return
+        }
 
         edgeHandleVisible = true
 
@@ -629,7 +677,12 @@ class FloatingBallViewManager(
         val handle = edgeHandleIcon ?: return
         val icon = ballIcon ?: return
 
-        if (!edgeHandleVisible && handle.visibility != View.VISIBLE && icon.visibility == View.VISIBLE) return
+        if (!edgeHandleVisible &&
+            handle.visibility != View.VISIBLE &&
+            icon.visibility == View.VISIBLE
+        ) {
+            return
+        }
 
         edgeHandleVisible = false
 
@@ -788,11 +841,12 @@ class FloatingBallViewManager(
             56
         }
         val params = WindowManager.LayoutParams(
-            dp(size), dp(size),
+            dp(size),
+            dp(size),
             type,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                    WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
-                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             PixelFormat.TRANSLUCENT
         )
         params.gravity = Gravity.TOP or Gravity.START
@@ -827,7 +881,14 @@ class FloatingBallViewManager(
             Log.w(TAG, "Failed to restore ball anchor, using default", e)
             computeDockAnchorFromLegacyPosition(defaultX, defaultY, screenW, screenH, vw, vh)
         }
-        val (rx, ry) = positionForDockAnchor(anchor, screenW, screenH, vw, vh, visibleXHint = legacyX)
+        val (rx, ry) = positionForDockAnchor(
+            anchor,
+            screenW,
+            screenH,
+            vw,
+            vh,
+            visibleXHint = legacyX
+        )
         params.x = rx
         params.y = ry
         cachedDockAnchor = anchor
@@ -867,7 +928,14 @@ class FloatingBallViewManager(
             val (screenW, screenH) = getUsableScreenSize()
             val vw = (v.width.takeIf { it > 0 }) ?: p.width
             val vh = (v.height.takeIf { it > 0 }) ?: p.height
-            val (nx, ny) = positionForDockAnchor(anchor, screenW, screenH, vw, vh, visibleXHint = p.x)
+            val (nx, ny) = positionForDockAnchor(
+                anchor,
+                screenW,
+                screenH,
+                vw,
+                vh,
+                visibleXHint = p.x
+            )
             p.x = nx
             p.y = ny
             windowManager.updateViewLayout(v, p)
@@ -927,28 +995,20 @@ class FloatingBallViewManager(
 
     private enum class DockSide { LEFT, RIGHT, BOTTOM, NONE }
 
-    private data class DockAnchor(
-        val side: DockSide,
-        val fraction: Float,
-        val hidden: Boolean
-    )
+    private data class DockAnchor(val side: DockSide, val fraction: Float, val hidden: Boolean)
 
-    private fun dockSideToPrefValue(side: DockSide): Int {
-        return when (side) {
-            DockSide.LEFT -> 1
-            DockSide.RIGHT -> 2
-            DockSide.BOTTOM -> 3
-            DockSide.NONE -> 0
-        }
+    private fun dockSideToPrefValue(side: DockSide): Int = when (side) {
+        DockSide.LEFT -> 1
+        DockSide.RIGHT -> 2
+        DockSide.BOTTOM -> 3
+        DockSide.NONE -> 0
     }
 
-    private fun dockSideFromPrefValue(value: Int): DockSide {
-        return when (value) {
-            1 -> DockSide.LEFT
-            2 -> DockSide.RIGHT
-            3 -> DockSide.BOTTOM
-            else -> DockSide.NONE
-        }
+    private fun dockSideFromPrefValue(value: Int): DockSide = when (value) {
+        1 -> DockSide.LEFT
+        2 -> DockSide.RIGHT
+        3 -> DockSide.BOTTOM
+        else -> DockSide.NONE
     }
 
     private fun readDockAnchorFromPrefs(): DockAnchor? {
@@ -1076,7 +1136,13 @@ class FloatingBallViewManager(
                     (minX - (vw - visibleW))
                 } else {
                     val candidateX = visibleXHint?.coerceIn(minX, maxX)
-                    if (candidateX != null && candidateX <= minX + edgeThresholdX) candidateX else minX
+                    if (candidateX != null &&
+                        candidateX <= minX + edgeThresholdX
+                    ) {
+                        candidateX
+                    } else {
+                        minX
+                    }
                 }
                 x to y
             }
@@ -1087,7 +1153,13 @@ class FloatingBallViewManager(
                     (screenW - visibleW - margin)
                 } else {
                     val candidateX = visibleXHint?.coerceIn(minX, maxX)
-                    if (candidateX != null && candidateX >= fullX - edgeThresholdX) candidateX else fullX
+                    if (candidateX != null &&
+                        candidateX >= fullX - edgeThresholdX
+                    ) {
+                        candidateX
+                    } else {
+                        fullX
+                    }
                 }
                 x to y
             }
@@ -1181,26 +1253,24 @@ class FloatingBallViewManager(
      * 获取可用的屏幕宽高（排除系统状态栏/导航栏/切口），用于限制悬浮球不被放置到不可见区域。
      * 说明：横向半隐依赖 FLAG_LAYOUT_NO_LIMITS，仅在 X 轴允许越界；Y 轴一律限制在可见范围内。
      */
-    private fun getUsableScreenSize(): Pair<Int, Int> {
-        return try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                val metrics = windowManager.currentWindowMetrics
-                val bounds = metrics.bounds
-                val insets = metrics.windowInsets.getInsetsIgnoringVisibility(
-                    WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout()
-                )
-                val w = (bounds.width() - insets.left - insets.right).coerceAtLeast(0)
-                val h = (bounds.height() - insets.top - insets.bottom).coerceAtLeast(0)
-                w to h
-            } else {
-                val dm = context.resources.displayMetrics
-                dm.widthPixels to dm.heightPixels
-            }
-        } catch (e: Throwable) {
-            Log.w(TAG, "Failed to get usable screen size, fallback to displayMetrics", e)
+    private fun getUsableScreenSize(): Pair<Int, Int> = try {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val metrics = windowManager.currentWindowMetrics
+            val bounds = metrics.bounds
+            val insets = metrics.windowInsets.getInsetsIgnoringVisibility(
+                WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout()
+            )
+            val w = (bounds.width() - insets.left - insets.right).coerceAtLeast(0)
+            val h = (bounds.height() - insets.top - insets.bottom).coerceAtLeast(0)
+            w to h
+        } else {
             val dm = context.resources.displayMetrics
             dm.widthPixels to dm.heightPixels
         }
+    } catch (e: Throwable) {
+        Log.w(TAG, "Failed to get usable screen size, fallback to displayMetrics", e)
+        val dm = context.resources.displayMetrics
+        dm.widthPixels to dm.heightPixels
     }
 
     private fun persistBallPosition() {
@@ -1238,7 +1308,9 @@ class FloatingBallViewManager(
         val dy = RIPPLE_ORIGIN_Y_FRACTION - 0.5f
         val offset = sqrt((dx * dx + dy * dy).toDouble()).toFloat()
         val clipRadiusFraction = (1f - 2f * RIPPLE_CLIP_INSET_FRACTION).coerceIn(0.1f, 1f)
-        val maxScale = (clipRadiusFraction + 2f * offset + RIPPLE_MAX_SCALE_EXTRA).coerceAtLeast(clipRadiusFraction)
+        val maxScale = (clipRadiusFraction + 2f * offset + RIPPLE_MAX_SCALE_EXTRA).coerceAtLeast(
+            clipRadiusFraction
+        )
 
         val ripples = listOf(ripple1, ripple2, ripple3)
         ripples.forEachIndexed { index, ripple ->

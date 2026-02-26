@@ -10,13 +10,13 @@ import android.util.Base64
 import android.util.Log
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.store.Prefs
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
-import java.util.concurrent.TimeUnit
 
 /**
  * 使用 Google Gemini generateContent 的非流式 ASR 引擎（通过提示词进行转录）。
@@ -28,7 +28,8 @@ class GeminiFileAsrEngine(
     listener: StreamingAsrEngine.Listener,
     onRequestDuration: ((Long) -> Unit)? = null,
     httpClient: OkHttpClient? = null
-) : BaseFileAsrEngine(context, scope, prefs, listener, onRequestDuration), PcmBatchRecognizer {
+) : BaseFileAsrEngine(context, scope, prefs, listener, onRequestDuration),
+    PcmBatchRecognizer {
 
     companion object {
         private const val TAG = "GeminiFileAsrEngine"
@@ -58,7 +59,9 @@ class GeminiFileAsrEngine(
             val apiKey = apiKeys.random()
             val endpoint = prefs.gemEndpoint
             val model = prefs.gemModel.ifBlank { Prefs.DEFAULT_GEM_MODEL }
-            val basePrompt = prefs.gemPrompt.ifBlank { context.getString(R.string.prompt_default_gem) }
+            val basePrompt = prefs.gemPrompt.ifBlank {
+                context.getString(R.string.prompt_default_gem)
+            }
             val prompt = basePrompt
 
             val body = buildGeminiRequestBody(b64, prompt, model)
@@ -82,7 +85,9 @@ class GeminiFileAsrEngine(
                 val text = parseGeminiText(str)
                 if (text.isNotBlank()) {
                     val dt = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - t0)
-                    try { onRequestDuration?.invoke(dt) } catch (_: Throwable) {}
+                    try {
+                        onRequestDuration?.invoke(dt)
+                    } catch (_: Throwable) {}
                     listener.onFinal(text)
                 } else {
                     listener.onError(context.getString(R.string.error_asr_empty_result))
@@ -95,46 +100,63 @@ class GeminiFileAsrEngine(
         }
     }
 
-    override suspend fun recognizeFromPcm(pcm: ByteArray) { recognize(pcm) }
+    override suspend fun recognizeFromPcm(pcm: ByteArray) {
+        recognize(pcm)
+    }
 
     /**
      * 构建 Gemini API 请求体
      */
     private fun buildGeminiRequestBody(base64Wav: String, prompt: String, model: String): String {
         val inlineAudio = JSONObject().apply {
-            put("inline_data", JSONObject().apply {
-                put("mime_type", "audio/wav")
-                put("data", base64Wav)
-            })
+            put(
+                "inline_data",
+                JSONObject().apply {
+                    put("mime_type", "audio/wav")
+                    put("data", base64Wav)
+                }
+            )
         }
         val systemInstruction = JSONObject().apply {
-            put("parts", org.json.JSONArray().apply {
-                put(JSONObject().apply { put("text", prompt) })
-            })
+            put(
+                "parts",
+                org.json.JSONArray().apply {
+                    put(JSONObject().apply { put("text", prompt) })
+                }
+            )
         }
         val user = JSONObject().apply {
             put("role", "user")
-            put("parts", org.json.JSONArray().apply {
-                put(inlineAudio)
-            })
+            put(
+                "parts",
+                org.json.JSONArray().apply {
+                    put(inlineAudio)
+                }
+            )
         }
         return JSONObject().apply {
             put("system_instruction", systemInstruction)
             put("contents", org.json.JSONArray().apply { put(user) })
-            put("generation_config", JSONObject().apply {
-                put("temperature", 0)
-                if (prefs.geminiDisableThinking) {
-                    // 根据模型类型设置合适的 thinkingBudget
-                    val budget = when {
-                        model.contains("2.5-pro", ignoreCase = true) -> 128
-                        model.contains("2.5-flash", ignoreCase = true) -> 0  // Flash 可以为 0
-                        else -> 0 // 其他情况默认为 0
+            put(
+                "generation_config",
+                JSONObject().apply {
+                    put("temperature", 0)
+                    if (prefs.geminiDisableThinking) {
+                        // 根据模型类型设置合适的 thinkingBudget
+                        val budget = when {
+                            model.contains("2.5-pro", ignoreCase = true) -> 128
+                            model.contains("2.5-flash", ignoreCase = true) -> 0 // Flash 可以为 0
+                            else -> 0 // 其他情况默认为 0
+                        }
+                        put(
+                            "thinkingConfig",
+                            JSONObject().apply {
+                                put("thinkingBudget", budget)
+                            }
+                        )
                     }
-                    put("thinkingConfig", JSONObject().apply {
-                        put("thinkingBudget", budget)
-                    })
                 }
-            })
+            )
         }.toString()
     }
 
@@ -169,7 +191,9 @@ class GeminiFileAsrEngine(
                 val msg = e?.optString("message").orEmpty()
                 val status = e?.optString("status").orEmpty()
                 listOf(status, msg).filter { it.isNotBlank() }.joinToString(": ")
-            } else body.take(200).trim()
+            } else {
+                body.take(200).trim()
+            }
         } catch (t: Throwable) {
             Log.e(TAG, "Failed to parse Gemini error", t)
             body.take(200).trim()
@@ -192,7 +216,10 @@ class GeminiFileAsrEngine(
             for (i in 0 until parts.length()) {
                 val p = parts.optJSONObject(i) ?: continue
                 val t = p.optString("text").trim()
-                if (t.isNotEmpty()) { txt = t; break }
+                if (t.isNotEmpty()) {
+                    txt = t
+                    break
+                }
             }
             txt
         } catch (t: Throwable) {

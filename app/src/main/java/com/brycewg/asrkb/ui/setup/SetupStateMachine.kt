@@ -88,7 +88,8 @@ class SetupStateMachine(private val context: Context) {
                         SetupState.Completed
                     }
                 } else if (state.waitingSince > 0 &&
-                           System.currentTimeMillis() - state.waitingSince > IME_PICKER_TIMEOUT_MS) {
+                    System.currentTimeMillis() - state.waitingSince > IME_PICKER_TIMEOUT_MS
+                ) {
                     // 超时，中止流程
                     Log.w(TAG, "IME selection timeout")
                     SetupState.Aborted("选择输入法超时")
@@ -155,7 +156,9 @@ class SetupStateMachine(private val context: Context) {
                 if (!state.askedOnce) {
                     // 唤起输入法选择器
                     try {
-                        val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                        val imm = context.getSystemService(
+                            Context.INPUT_METHOD_SERVICE
+                        ) as InputMethodManager
                         imm.showInputMethodPicker()
                         // 更新状态：标记已唤起，并记录开始等待的时间
                         currentState = SetupState.SelectingIme(
@@ -314,30 +317,22 @@ class SetupStateMachine(private val context: Context) {
      * 是否存在缺失的“可选权限”。
      * 目前仅包含 Android 13+ 的通知权限，用于在一键设置中补询。
      */
-    private fun hasMissingOptionalPermissions(): Boolean {
-        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !hasNotificationPermission()
-    }
+    private fun hasMissingOptionalPermissions(): Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !hasNotificationPermission()
 
-    private fun hasMicrophonePermission(): Boolean {
-        return ContextCompat.checkSelfPermission(
+    private fun hasMicrophonePermission(): Boolean = ContextCompat.checkSelfPermission(
+        context,
+        Manifest.permission.RECORD_AUDIO
+    ) == PackageManager.PERMISSION_GRANTED
+
+    private fun hasOverlayPermission(): Boolean = Settings.canDrawOverlays(context)
+
+    private fun hasNotificationPermission(): Boolean = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        ContextCompat.checkSelfPermission(
             context,
-            Manifest.permission.RECORD_AUDIO
+            Manifest.permission.POST_NOTIFICATIONS
         ) == PackageManager.PERMISSION_GRANTED
-    }
-
-    private fun hasOverlayPermission(): Boolean {
-        return Settings.canDrawOverlays(context)
-    }
-
-    private fun hasNotificationPermission(): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.POST_NOTIFICATIONS
-            ) == PackageManager.PERMISSION_GRANTED
-        } else {
-            true // Android 13 以下默认已授予
-        }
+    } else {
+        true // Android 13 以下默认已授予
     }
 
     private fun hasAccessibilityPermission(): Boolean {
@@ -387,18 +382,16 @@ class SetupStateMachine(private val context: Context) {
         }
     }
 
-    private fun isOurImeCurrent(): Boolean {
-        return try {
-            val current = Settings.Secure.getString(
-                context.contentResolver,
-                Settings.Secure.DEFAULT_INPUT_METHOD
-            )
-            val ids = getOurImeIdCandidates()
-            current != null && ids.contains(current)
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to check current IME", e)
-            false
-        }
+    private fun isOurImeCurrent(): Boolean = try {
+        val current = Settings.Secure.getString(
+            context.contentResolver,
+            Settings.Secure.DEFAULT_INPUT_METHOD
+        )
+        val ids = getOurImeIdCandidates()
+        current != null && ids.contains(current)
+    } catch (e: Exception) {
+        Log.e(TAG, "Failed to check current IME", e)
+        false
     }
 
     private fun getOurImeIdCandidates(): Set<String> {
@@ -413,15 +406,11 @@ class SetupStateMachine(private val context: Context) {
      * 提供给 UI 层用于判断当前输入法是否已切换为本应用。
      * 仅暴露只读查询，不改变状态机状态。
      */
-    fun isOurImeCurrentForUi(): Boolean {
-        return isOurImeCurrent()
-    }
+    fun isOurImeCurrentForUi(): Boolean = isOurImeCurrent()
 
     /**
      * 获取当前状态对应的 RequestingPermissions，如果不是则返回 null
      * 用于从 Activity 的 onRequestPermissionsResult 回调中更新状态
      */
-    fun getCurrentPermissionState(): SetupState.RequestingPermissions? {
-        return currentState as? SetupState.RequestingPermissions
-    }
+    fun getCurrentPermissionState(): SetupState.RequestingPermissions? = currentState as? SetupState.RequestingPermissions
 }

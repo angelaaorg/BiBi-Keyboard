@@ -2,6 +2,8 @@ package com.brycewg.asrkb.ui.update
 
 import android.content.Context
 import android.util.Log
+import java.util.Locale
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -9,8 +11,6 @@ import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
-import java.util.Locale
-import java.util.concurrent.TimeUnit
 
 /**
  * 更新检查器
@@ -60,9 +60,9 @@ class UpdateChecker(private val context: Context) {
      * 提示级别
      */
     enum class NoticeLevel {
-        INFO,       // 普通信息（使用 tertiary 颜色）
-        WARNING,    // 警告信息（使用 secondary 颜色）
-        CRITICAL    // 重要信息（使用 error 颜色）
+        INFO, // 普通信息（使用 tertiary 颜色）
+        WARNING, // 警告信息（使用 secondary 颜色）
+        CRITICAL // 重要信息（使用 error 颜色）
     }
 
     /**
@@ -119,26 +119,22 @@ class UpdateChecker(private val context: Context) {
     /**
      * 创建 HTTP 客户端
      */
-    private fun createHttpClient(): OkHttpClient {
-        return OkHttpClient.Builder()
-            .connectTimeout(10, TimeUnit.SECONDS)
-            .readTimeout(10, TimeUnit.SECONDS)
-            .build()
-    }
+    private fun createHttpClient(): OkHttpClient = OkHttpClient.Builder()
+        .connectTimeout(10, TimeUnit.SECONDS)
+        .readTimeout(10, TimeUnit.SECONDS)
+        .build()
 
     /**
      * 获取当前应用版本号
      */
-    private fun getCurrentVersion(): String {
-        return try {
-            val versionName = context.packageManager
-                .getPackageInfo(context.packageName, 0)
-                .versionName ?: "unknown"
-            normalizeVersion(versionName)
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to get current version", e)
-            "unknown"
-        }
+    private fun getCurrentVersion(): String = try {
+        val versionName = context.packageManager
+            .getPackageInfo(context.packageName, 0)
+            .versionName ?: "unknown"
+        normalizeVersion(versionName)
+    } catch (e: Exception) {
+        Log.e(TAG, "Failed to get current version", e)
+        "unknown"
     }
 
     /**
@@ -226,18 +222,23 @@ class UpdateChecker(private val context: Context) {
 
             Log.d(TAG, "Successfully fetched version $version from $url")
 
-            return RemoteVersion(version, downloadUrl, updateTime, releaseNotes, importantNotice, noticeLevel)
+            return RemoteVersion(
+                version,
+                downloadUrl,
+                updateTime,
+                releaseNotes,
+                importantNotice,
+                noticeLevel
+            )
         }
     }
 
     /**
      * 从多个远程版本中选择版本号最高的
      */
-    private fun selectLatestVersion(versions: List<RemoteVersion>): RemoteVersion {
-        return versions.maxWithOrNull { v1, v2 ->
-            compareVersions(v1.version, v2.version)
-        } ?: versions.first()
-    }
+    private fun selectLatestVersion(versions: List<RemoteVersion>): RemoteVersion = versions.maxWithOrNull { v1, v2 ->
+        compareVersions(v1.version, v2.version)
+    } ?: versions.first()
 
     /**
      * 标准化版本号字符串

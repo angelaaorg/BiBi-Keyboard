@@ -3,10 +3,10 @@ package com.brycewg.asrkb.ui.settings.asr.sections
 import android.widget.EditText
 import android.widget.TextView
 import com.brycewg.asrkb.R
-import com.brycewg.asrkb.ui.settings.asr.bindString
 import com.brycewg.asrkb.ui.installExplainedSwitch
 import com.brycewg.asrkb.ui.settings.asr.AsrSettingsBinding
 import com.brycewg.asrkb.ui.settings.asr.AsrSettingsSection
+import com.brycewg.asrkb.ui.settings.asr.bindString
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.materialswitch.MaterialSwitch
 
@@ -47,7 +47,9 @@ internal class OpenAiAsrSettingsSection : AsrSettingsSection {
 
         binding.view<MaterialButton>(R.id.btnOpenAiGetKey).setOnClickListener { v ->
             binding.hapticTapIfEnabled(v)
-            binding.openUrlSafely("https://bibidocs.brycewg.com/getting-started/asr-providers.html#openai-%E5%85%BC%E5%AE%B9%E6%8E%A5%E5%8F%A3")
+            binding.openUrlSafely(
+                "https://bibidocs.brycewg.com/getting-started/asr-providers.html#openai-%E5%85%BC%E5%AE%B9%E6%8E%A5%E5%8F%A3"
+            )
         }
     }
 
@@ -78,7 +80,11 @@ internal class OpenAiAsrSettingsSection : AsrSettingsSection {
         tvOpenAiLanguage.setOnClickListener { v ->
             binding.hapticTapIfEnabled(v)
             val cur = langCodes.indexOf(binding.prefs.oaAsrLanguage).coerceAtLeast(0)
-            binding.showSingleChoiceDialog(R.string.label_openai_language, langLabels.toTypedArray(), cur) { which ->
+            binding.showSingleChoiceDialog(
+                R.string.label_openai_language,
+                langLabels.toTypedArray(),
+                cur
+            ) { which ->
                 val code = langCodes.getOrNull(which) ?: ""
                 if (code != binding.prefs.oaAsrLanguage) binding.prefs.oaAsrLanguage = code
                 updateOaLangSummary()

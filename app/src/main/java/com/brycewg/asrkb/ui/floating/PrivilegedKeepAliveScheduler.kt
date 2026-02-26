@@ -60,7 +60,14 @@ internal object PrivilegedKeepAliveScheduler {
         if (result != JobScheduler.RESULT_SUCCESS) {
             Log.w(TAG, "schedule privileged keep-alive job not success: $result")
         }
-        DebugLogManager.logPersistent(context, "keepalive", "scheduler_schedule", mapOf("result" to result))
+        DebugLogManager.logPersistent(
+            context,
+            "keepalive",
+            "scheduler_schedule",
+            mapOf(
+                "result" to result
+            )
+        )
     }
 
     fun cancel(context: Context) {

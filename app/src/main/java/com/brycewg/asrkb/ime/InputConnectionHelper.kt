@@ -11,9 +11,7 @@ import android.view.inputmethod.InputConnection
  * 由于输入法宿主应用千差万别，InputConnection 的行为并不可靠。
  * 为所有操作添加详细日志，以便在特定应用中功能静默失败时能够快速定位问题。
  */
-class InputConnectionHelper(
-    private val tag: String = "InputConnectionHelper"
-) {
+class InputConnectionHelper(private val tag: String = "InputConnectionHelper") {
     /**
      * 提交文本到输入框
      * @param ic InputConnection 实例
@@ -38,7 +36,11 @@ class InputConnectionHelper(
     /**
      * 设置组合文本（预览状态，通常用于实时显示 ASR 中间结果）
      */
-    fun setComposingText(ic: InputConnection?, text: CharSequence, newCursorPosition: Int = 1): Boolean {
+    fun setComposingText(
+        ic: InputConnection?,
+        text: CharSequence,
+        newCursorPosition: Int = 1
+    ): Boolean {
         if (ic == null) {
             Log.w(tag, "setComposingText: InputConnection is null")
             return false
@@ -248,7 +250,7 @@ class InputConnectionHelper(
             val imeOptions = editorInfo?.imeOptions ?: 0
             val action = imeOptions and EditorInfo.IME_MASK_ACTION
             val isMultiLine = (editorInfo?.inputType ?: 0) and
-                    android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE != 0
+                android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE != 0
             val flagNoEnterAction = (imeOptions and EditorInfo.IME_FLAG_NO_ENTER_ACTION) != 0
 
             // 根据 action 类型和输入框特性决定行为
@@ -257,11 +259,11 @@ class InputConnectionHelper(
                 isMultiLine && flagNoEnterAction -> false
                 // 特定的 action 类型需要执行 performEditorAction
                 action == EditorInfo.IME_ACTION_SEND ||
-                action == EditorInfo.IME_ACTION_GO ||
-                action == EditorInfo.IME_ACTION_SEARCH ||
-                action == EditorInfo.IME_ACTION_DONE ||
-                action == EditorInfo.IME_ACTION_NEXT ||
-                action == EditorInfo.IME_ACTION_PREVIOUS -> true
+                    action == EditorInfo.IME_ACTION_GO ||
+                    action == EditorInfo.IME_ACTION_SEARCH ||
+                    action == EditorInfo.IME_ACTION_DONE ||
+                    action == EditorInfo.IME_ACTION_NEXT ||
+                    action == EditorInfo.IME_ACTION_PREVIOUS -> true
                 // 其他情况发送普通回车
                 else -> false
             }

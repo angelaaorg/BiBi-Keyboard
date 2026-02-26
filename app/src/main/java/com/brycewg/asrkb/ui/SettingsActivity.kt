@@ -26,41 +26,40 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
 import com.brycewg.asrkb.R
-import com.brycewg.asrkb.UiColors
 import com.brycewg.asrkb.UiColorTokens
+import com.brycewg.asrkb.UiColors
+import com.brycewg.asrkb.analytics.AnalyticsManager
 import com.brycewg.asrkb.store.Prefs
-import com.brycewg.asrkb.ui.setup.SetupState
-import com.brycewg.asrkb.ui.setup.SetupStateMachine
-import com.brycewg.asrkb.ui.update.UpdateChecker
-import com.brycewg.asrkb.ui.update.ApkDownloadService
 import com.brycewg.asrkb.ui.about.AboutActivity
-import com.brycewg.asrkb.ui.settings.input.InputSettingsActivity
-import com.brycewg.asrkb.ui.settings.asr.AsrSettingsActivity
 import com.brycewg.asrkb.ui.settings.ai.AiPostSettingsActivity
-import com.brycewg.asrkb.ui.settings.other.OtherSettingsActivity
-import com.brycewg.asrkb.ui.settings.floating.FloatingSettingsActivity
+import com.brycewg.asrkb.ui.settings.asr.AsrSettingsActivity
 import com.brycewg.asrkb.ui.settings.backup.BackupSettingsActivity
+import com.brycewg.asrkb.ui.settings.floating.FloatingSettingsActivity
+import com.brycewg.asrkb.ui.settings.input.InputSettingsActivity
+import com.brycewg.asrkb.ui.settings.other.OtherSettingsActivity
 import com.brycewg.asrkb.ui.settings.search.SettingsSearchActivity
 import com.brycewg.asrkb.ui.setup.OnboardingActionExecutor
 import com.brycewg.asrkb.ui.setup.OnboardingGuideActivity
-import com.brycewg.asrkb.analytics.AnalyticsManager
+import com.brycewg.asrkb.ui.setup.SetupState
+import com.brycewg.asrkb.ui.setup.SetupStateMachine
+import com.brycewg.asrkb.ui.update.ApkDownloadService
+import com.brycewg.asrkb.ui.update.UpdateChecker
 import com.brycewg.asrkb.util.HapticFeedbackHelper
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import java.io.File
-import androidx.core.content.FileProvider
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * 主设置页面
@@ -86,7 +85,11 @@ class SettingsActivity : BaseActivity() {
     // 更新检查器（可按渠道禁用）
     private var updateChecker: UpdateChecker? = null
     private val updatesEnabled: Boolean by lazy {
-        try { resources.getBoolean(R.bool.enable_update_checker) } catch (_: Throwable) { true }
+        try {
+            resources.getBoolean(R.bool.enable_update_checker)
+        } catch (_: Throwable) {
+            true
+        }
     }
 
     // 无障碍服务状态（用于检测服务刚刚被启用）
@@ -326,10 +329,16 @@ class SettingsActivity : BaseActivity() {
         findViewById<Button>(R.id.btnOpenAsrHistory)?.setOnClickListener { v ->
             hapticTapIfEnabled(v)
             try {
-                startActivity(Intent(this, com.brycewg.asrkb.ui.history.AsrHistoryActivity::class.java))
+                startActivity(
+                    Intent(this, com.brycewg.asrkb.ui.history.AsrHistoryActivity::class.java)
+                )
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to open AsrHistoryActivity", e)
-                Toast.makeText(this, getString(R.string.toast_debug_failed), Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    this,
+                    getString(R.string.toast_debug_failed),
+                    Toast.LENGTH_SHORT
+                ).show()
             }
         }
     }
@@ -624,7 +633,6 @@ class SettingsActivity : BaseActivity() {
      * 显示更新对话框
      */
     private fun showUpdateDialog(result: UpdateChecker.UpdateCheckResult) {
-
         // OSS 版本显示标准更新对话框（提供 APK 下载）
         val messageBuilder = StringBuilder()
         messageBuilder.append(
@@ -674,24 +682,34 @@ class SettingsActivity : BaseActivity() {
             val start = length
             append(getString(R.string.btn_view_release_page))
             val end = length
-            setSpan(object : android.text.style.ClickableSpan() {
-                override fun onClick(widget: android.view.View) {
-                    try {
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(result.downloadUrl))
-                        startActivity(intent)
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Failed to open release page", e)
-                        Toast.makeText(
-                            this@SettingsActivity,
-                            getString(R.string.error_open_browser),
-                            Toast.LENGTH_SHORT
-                        ).show()
+            setSpan(
+                object : android.text.style.ClickableSpan() {
+                    override fun onClick(widget: android.view.View) {
+                        try {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(result.downloadUrl))
+                            startActivity(intent)
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Failed to open release page", e)
+                            Toast.makeText(
+                                this@SettingsActivity,
+                                getString(R.string.error_open_browser),
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
                     }
-                }
-            }, start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                },
+                start,
+                end,
+                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
             // 加粗并着色以示为操作项（使用默认链接样式即可，避免直接取主题色）
             setSpan(StyleSpan(Typeface.BOLD), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-            setSpan(android.text.style.UnderlineSpan(), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            setSpan(
+                android.text.style.UnderlineSpan(),
+                start,
+                end,
+                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
         }
 
         val dialog = MaterialAlertDialogBuilder(this)
@@ -930,18 +948,16 @@ class SettingsActivity : BaseActivity() {
      *
      * 尝试解析 ISO 8601 格式并转换为本地时间，失败则返回原始字符串
      */
-    private fun formatUpdateTime(updateTime: String): String {
-        return try {
-            val utcFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.getDefault())
-            utcFormat.timeZone = java.util.TimeZone.getTimeZone("UTC")
-            val date = utcFormat.parse(updateTime)
+    private fun formatUpdateTime(updateTime: String): String = try {
+        val utcFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.getDefault())
+        utcFormat.timeZone = java.util.TimeZone.getTimeZone("UTC")
+        val date = utcFormat.parse(updateTime)
 
-            val localFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
-            if (date != null) localFormat.format(date) else updateTime
-        } catch (e: Exception) {
-            Log.w(TAG, "Failed to parse update time: $updateTime", e)
-            updateTime
-        }
+        val localFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+        if (date != null) localFormat.format(date) else updateTime
+    } catch (e: Exception) {
+        Log.w(TAG, "Failed to parse update time: $updateTime", e)
+        updateTime
     }
 
     /**
@@ -1237,9 +1253,15 @@ class SettingsActivity : BaseActivity() {
      */
     private fun showModelSelectionGuide() {
         val dialogView = layoutInflater.inflate(R.layout.dialog_model_selection, null, false)
-        val cardSfFree = dialogView.findViewById<com.google.android.material.card.MaterialCardView>(R.id.cardSiliconFlowFree)
-        val cardLocal = dialogView.findViewById<com.google.android.material.card.MaterialCardView>(R.id.cardLocalModel)
-        val cardOnline = dialogView.findViewById<com.google.android.material.card.MaterialCardView>(R.id.cardOnlineModel)
+        val cardSfFree = dialogView.findViewById<com.google.android.material.card.MaterialCardView>(
+            R.id.cardSiliconFlowFree
+        )
+        val cardLocal = dialogView.findViewById<com.google.android.material.card.MaterialCardView>(
+            R.id.cardLocalModel
+        )
+        val cardOnline = dialogView.findViewById<com.google.android.material.card.MaterialCardView>(
+            R.id.cardOnlineModel
+        )
         val actionExecutor = OnboardingActionExecutor(this)
 
         // 设置初始选中状态（硅基流动免费服务为默认）
@@ -1478,9 +1500,15 @@ class SettingsActivity : BaseActivity() {
                 if (!isFinishing && !isDestroyed) {
                     finish()
                     try {
-                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                        if (android.os.Build.VERSION.SDK_INT >=
+                            android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+                        ) {
                             // Android 14+ 使用新的过渡覆盖 API，替代已废弃的 overridePendingTransition
-                            overrideActivityTransition(android.app.Activity.OVERRIDE_TRANSITION_CLOSE, 0, 0)
+                            overrideActivityTransition(
+                                android.app.Activity.OVERRIDE_TRANSITION_CLOSE,
+                                0,
+                                0
+                            )
                         } else {
                             @Suppress("DEPRECATION")
                             overridePendingTransition(0, 0)

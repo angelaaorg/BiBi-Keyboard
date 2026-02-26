@@ -5,10 +5,10 @@ import android.widget.EditText
 import android.widget.TextView
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.store.Prefs
-import com.brycewg.asrkb.ui.settings.asr.bindString
 import com.brycewg.asrkb.ui.installExplainedSwitch
 import com.brycewg.asrkb.ui.settings.asr.AsrSettingsBinding
 import com.brycewg.asrkb.ui.settings.asr.AsrSettingsSection
+import com.brycewg.asrkb.ui.settings.asr.bindString
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.materialswitch.MaterialSwitch
 
@@ -43,7 +43,9 @@ internal class DashScopeAsrSettingsSection : AsrSettingsSection {
 
         binding.view<MaterialButton>(R.id.btnDashGetKey).setOnClickListener { v ->
             binding.hapticTapIfEnabled(v)
-            binding.openUrlSafely("https://bibidocs.brycewg.com/getting-started/asr-providers.html#%E9%98%BF%E9%87%8C%E4%BA%91%E7%99%BE%E7%82%BC-dashscope-qwen")
+            binding.openUrlSafely(
+                "https://bibidocs.brycewg.com/getting-started/asr-providers.html#%E9%98%BF%E9%87%8C%E4%BA%91%E7%99%BE%E7%82%BC-dashscope-qwen"
+            )
         }
     }
 
@@ -60,8 +62,8 @@ internal class DashScopeAsrSettingsSection : AsrSettingsSection {
         )
         val tvDashModel = binding.view<TextView>(R.id.tvDashModelValue)
 
-        fun normalizeModel(model: String): String {
-            return model.trim().ifBlank { Prefs.DEFAULT_DASH_MODEL }
+        fun normalizeModel(model: String): String = model.trim().ifBlank {
+            Prefs.DEFAULT_DASH_MODEL
         }
 
         fun updateModelSummary() {
@@ -76,7 +78,11 @@ internal class DashScopeAsrSettingsSection : AsrSettingsSection {
             binding.hapticTapIfEnabled(v)
             val cur = normalizeModel(binding.prefs.dashAsrModel)
             val curIdx = modelValues.indexOf(cur).coerceAtLeast(0)
-            binding.showSingleChoiceDialog(R.string.label_dash_model, modelLabels.toTypedArray(), curIdx) { which ->
+            binding.showSingleChoiceDialog(
+                R.string.label_dash_model,
+                modelLabels.toTypedArray(),
+                curIdx
+            ) { which ->
                 val value = modelValues.getOrNull(which) ?: Prefs.DEFAULT_DASH_MODEL
                 if (value != binding.prefs.dashAsrModel) binding.prefs.dashAsrModel = value
                 updateModelSummary()
@@ -84,7 +90,10 @@ internal class DashScopeAsrSettingsSection : AsrSettingsSection {
         }
     }
 
-    private fun updateDashPromptVisibility(binding: AsrSettingsBinding, model: String = binding.prefs.dashAsrModel) {
+    private fun updateDashPromptVisibility(
+        binding: AsrSettingsBinding,
+        model: String = binding.prefs.dashAsrModel
+    ) {
         val isFunAsr = model.startsWith("fun-asr", ignoreCase = true)
 
         val til = binding.view<View>(R.id.tilDashPrompt)
@@ -93,7 +102,11 @@ internal class DashScopeAsrSettingsSection : AsrSettingsSection {
 
         val switchSemanticPunct = binding.view<View>(R.id.switchDashFunAsrSemanticPunct)
         val semanticVis = if (isFunAsr) View.VISIBLE else View.GONE
-        if (switchSemanticPunct.visibility != semanticVis) switchSemanticPunct.visibility = semanticVis
+        if (switchSemanticPunct.visibility !=
+            semanticVis
+        ) {
+            switchSemanticPunct.visibility = semanticVis
+        }
     }
 
     private fun bindLanguageSelection(binding: AsrSettingsBinding) {
@@ -123,7 +136,11 @@ internal class DashScopeAsrSettingsSection : AsrSettingsSection {
         tvDashLanguage.setOnClickListener { v ->
             binding.hapticTapIfEnabled(v)
             val cur = langCodes.indexOf(binding.prefs.dashLanguage).coerceAtLeast(0)
-            binding.showSingleChoiceDialog(R.string.label_dash_language, langLabels.toTypedArray(), cur) { which ->
+            binding.showSingleChoiceDialog(
+                R.string.label_dash_language,
+                langLabels.toTypedArray(),
+                cur
+            ) { which ->
                 val code = langCodes.getOrNull(which) ?: ""
                 if (code != binding.prefs.dashLanguage) binding.prefs.dashLanguage = code
                 updateDashLangSummary()
@@ -140,15 +157,27 @@ internal class DashScopeAsrSettingsSection : AsrSettingsSection {
         val tvDashRegion = binding.view<TextView>(R.id.tvDashRegionValue)
 
         fun updateRegionSummary() {
-            val idx = regionValues.indexOf(binding.prefs.dashRegion.ifBlank { "cn" }).coerceAtLeast(0)
+            val idx = regionValues.indexOf(
+                binding.prefs.dashRegion.ifBlank {
+                    "cn"
+                }
+            ).coerceAtLeast(0)
             tvDashRegion.text = regionLabels[idx]
         }
 
         updateRegionSummary()
         tvDashRegion.setOnClickListener { v ->
             binding.hapticTapIfEnabled(v)
-            val cur = regionValues.indexOf(binding.prefs.dashRegion.ifBlank { "cn" }).coerceAtLeast(0)
-            binding.showSingleChoiceDialog(R.string.label_dash_region, regionLabels.toTypedArray(), cur) { which ->
+            val cur = regionValues.indexOf(
+                binding.prefs.dashRegion.ifBlank {
+                    "cn"
+                }
+            ).coerceAtLeast(0)
+            binding.showSingleChoiceDialog(
+                R.string.label_dash_region,
+                regionLabels.toTypedArray(),
+                cur
+            ) { which ->
                 val value = regionValues.getOrNull(which) ?: "cn"
                 if (value != binding.prefs.dashRegion) binding.prefs.dashRegion = value
                 updateRegionSummary()

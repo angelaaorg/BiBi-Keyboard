@@ -15,7 +15,7 @@ internal class NumpadPanelController(
     private val performKeyHaptic: (View?) -> Unit,
     private val inputConnectionProvider: () -> android.view.inputmethod.InputConnection?,
     private val editorInfoProvider: () -> android.view.inputmethod.EditorInfo?,
-    private val onRequestShowAiEditPanel: () -> Unit,
+    private val onRequestShowAiEditPanel: () -> Unit
 ) {
     var isVisible: Boolean = views.layoutNumpadPanel?.visibility == View.VISIBLE
         private set
@@ -62,7 +62,12 @@ internal class NumpadPanelController(
         if (isVisible) return
         this.returnToAiPanel = returnToAiPanel
         val mainHeight = views.layoutMainKeyboard?.height?.takeIf { it > 0 }
-            ?: ((views.rootView.height - views.rootView.paddingTop - views.rootView.paddingBottom).takeIf { it > 0 })
+            ?: (
+                (views.rootView.height - views.rootView.paddingTop - views.rootView.paddingBottom).takeIf {
+                    it >
+                        0
+                }
+                )
         views.layoutAiEditPanel?.visibility = View.GONE
         views.layoutMainKeyboard?.visibility = View.GONE
         val panel = views.layoutNumpadPanel
@@ -126,7 +131,9 @@ internal class NumpadPanelController(
     private fun applyPunctMode() {
         val root = views.layoutNumpadPanel ?: return
         val cn = prefs.numpadCnPunctEnabled
-        views.btnNumpadPunctToggle?.setImageResource(if (cn) R.drawable.translate_fill else R.drawable.translate)
+        views.btnNumpadPunctToggle?.setImageResource(
+            if (cn) R.drawable.translate_fill else R.drawable.translate
+        )
 
         val row1 = root.findViewById<View>(R.id.rowPunct1) as? android.view.ViewGroup
         val row2 = root.findViewById<View>(R.id.rowPunct2) as? android.view.ViewGroup

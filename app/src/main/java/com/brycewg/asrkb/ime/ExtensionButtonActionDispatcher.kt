@@ -17,23 +17,21 @@ internal class ExtensionButtonActionDispatcher(
     fun dispatch(
         action: ExtensionButtonAction,
         ic: InputConnection?
-    ): KeyboardActionHandler.ExtensionButtonActionResult {
-        return when (action) {
-            ExtensionButtonAction.NONE -> KeyboardActionHandler.ExtensionButtonActionResult.SUCCESS
-            ExtensionButtonAction.SELECT -> KeyboardActionHandler.ExtensionButtonActionResult.NEED_TOGGLE_SELECTION
-            ExtensionButtonAction.SELECT_ALL -> selectAll(ic)
-            ExtensionButtonAction.COPY -> copy(ic)
-            ExtensionButtonAction.PASTE -> paste(ic)
-            ExtensionButtonAction.CURSOR_LEFT -> KeyboardActionHandler.ExtensionButtonActionResult.NEED_CURSOR_LEFT
-            ExtensionButtonAction.CURSOR_RIGHT -> KeyboardActionHandler.ExtensionButtonActionResult.NEED_CURSOR_RIGHT
-            ExtensionButtonAction.MOVE_START -> moveStart(ic)
-            ExtensionButtonAction.MOVE_END -> moveEnd(ic)
-            ExtensionButtonAction.NUMPAD -> KeyboardActionHandler.ExtensionButtonActionResult.NEED_SHOW_NUMPAD
-            ExtensionButtonAction.CLIPBOARD -> KeyboardActionHandler.ExtensionButtonActionResult.NEED_SHOW_CLIPBOARD
-            ExtensionButtonAction.SILENCE_AUTOSTOP_TOGGLE -> toggleSilenceAutoStop()
-            ExtensionButtonAction.UNDO -> undo(ic)
-            ExtensionButtonAction.HIDE_KEYBOARD -> KeyboardActionHandler.ExtensionButtonActionResult.NEED_HIDE_KEYBOARD
-        }
+    ): KeyboardActionHandler.ExtensionButtonActionResult = when (action) {
+        ExtensionButtonAction.NONE -> KeyboardActionHandler.ExtensionButtonActionResult.SUCCESS
+        ExtensionButtonAction.SELECT -> KeyboardActionHandler.ExtensionButtonActionResult.NEED_TOGGLE_SELECTION
+        ExtensionButtonAction.SELECT_ALL -> selectAll(ic)
+        ExtensionButtonAction.COPY -> copy(ic)
+        ExtensionButtonAction.PASTE -> paste(ic)
+        ExtensionButtonAction.CURSOR_LEFT -> KeyboardActionHandler.ExtensionButtonActionResult.NEED_CURSOR_LEFT
+        ExtensionButtonAction.CURSOR_RIGHT -> KeyboardActionHandler.ExtensionButtonActionResult.NEED_CURSOR_RIGHT
+        ExtensionButtonAction.MOVE_START -> moveStart(ic)
+        ExtensionButtonAction.MOVE_END -> moveEnd(ic)
+        ExtensionButtonAction.NUMPAD -> KeyboardActionHandler.ExtensionButtonActionResult.NEED_SHOW_NUMPAD
+        ExtensionButtonAction.CLIPBOARD -> KeyboardActionHandler.ExtensionButtonActionResult.NEED_SHOW_CLIPBOARD
+        ExtensionButtonAction.SILENCE_AUTOSTOP_TOGGLE -> toggleSilenceAutoStop()
+        ExtensionButtonAction.UNDO -> undo(ic)
+        ExtensionButtonAction.HIDE_KEYBOARD -> KeyboardActionHandler.ExtensionButtonActionResult.NEED_HIDE_KEYBOARD
     }
 
     private fun selectAll(ic: InputConnection?): KeyboardActionHandler.ExtensionButtonActionResult {
@@ -117,9 +115,10 @@ internal class ExtensionButtonActionDispatcher(
         return if (ok) {
             KeyboardActionHandler.ExtensionButtonActionResult.SUCCESS
         } else {
-            uiListenerProvider()?.onStatusMessage(context.getString(R.string.status_nothing_to_undo))
+            uiListenerProvider()?.onStatusMessage(
+                context.getString(R.string.status_nothing_to_undo)
+            )
             KeyboardActionHandler.ExtensionButtonActionResult.FAILED
         }
     }
 }
-

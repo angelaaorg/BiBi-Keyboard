@@ -3,16 +3,12 @@ package com.brycewg.asrkb.ui.floating
 import android.view.View
 import com.brycewg.asrkb.ui.floatingball.FloatingMenuHelper
 
-internal class FloatingMenuController(
-    private val menuHelper: FloatingMenuHelper,
-) {
+internal class FloatingMenuController(private val menuHelper: FloatingMenuHelper) {
     private var radialMenuView: View? = null
     private var vendorMenuView: View? = null
     private var radialDragSession: FloatingMenuHelper.DragRadialMenuSession? = null
 
-    fun isForceVisibleMenuActive(): Boolean {
-        return radialMenuView != null || vendorMenuView != null || radialDragSession != null
-    }
+    fun isForceVisibleMenuActive(): Boolean = radialMenuView != null || vendorMenuView != null || radialDragSession != null
 
     fun isDragSessionActive(): Boolean = radialDragSession != null
 
@@ -20,7 +16,7 @@ internal class FloatingMenuController(
         anchorCenter: Pair<Int, Int>,
         alpha: Float,
         items: List<FloatingMenuHelper.MenuItem>,
-        onDismiss: () -> Unit,
+        onDismiss: () -> Unit
     ) {
         if (radialMenuView != null) return
         radialMenuView = menuHelper.showRadialMenu(anchorCenter, alpha, items) {
@@ -33,7 +29,7 @@ internal class FloatingMenuController(
         anchorCenter: Pair<Int, Int>,
         alpha: Float,
         items: List<FloatingMenuHelper.MenuItem>,
-        onDismiss: () -> Unit,
+        onDismiss: () -> Unit
     ) {
         if (radialDragSession != null) return
         radialDragSession = menuHelper.showRadialMenuForDrag(anchorCenter, alpha, items) {
@@ -64,7 +60,7 @@ internal class FloatingMenuController(
         alpha: Float,
         title: String,
         entries: List<Triple<String, Boolean, () -> Unit>>,
-        onDismiss: () -> Unit,
+        onDismiss: () -> Unit
     ) {
         hideVendorMenu()
         vendorMenuView = menuHelper.showListPanel(anchorCenter, alpha, title, entries) {
@@ -81,7 +77,7 @@ internal class FloatingMenuController(
         onItemClick: (String) -> Unit,
         initialVisibleCount: Int,
         loadMoreCount: Int,
-        onDismiss: () -> Unit,
+        onDismiss: () -> Unit
     ) {
         hideVendorMenu()
         vendorMenuView = menuHelper.showScrollableTextPanel(
@@ -91,7 +87,7 @@ internal class FloatingMenuController(
             texts,
             onItemClick,
             initialVisibleCount,
-            loadMoreCount,
+            loadMoreCount
         ) {
             vendorMenuView = null
             onDismiss()
@@ -114,4 +110,3 @@ internal class FloatingMenuController(
         hideVendorMenu()
     }
 }
-

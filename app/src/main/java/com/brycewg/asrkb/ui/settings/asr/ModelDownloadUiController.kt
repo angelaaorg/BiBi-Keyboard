@@ -9,9 +9,7 @@ import com.brycewg.asrkb.R
 import com.brycewg.asrkb.ui.DownloadSourceConfig
 import com.brycewg.asrkb.ui.DownloadSourceDialog
 
-internal class ModelDownloadUiController(
-    context: Context
-) {
+internal class ModelDownloadUiController(context: Context) {
 
     private val uiContext = context
     private val serviceContext = context.applicationContext
@@ -43,7 +41,12 @@ internal class ModelDownloadUiController(
                     if (modelType.isNullOrBlank()) {
                         ModelDownloadService.startDownload(serviceContext, option.url, variant)
                     } else {
-                        ModelDownloadService.startDownload(serviceContext, option.url, variant, modelType)
+                        ModelDownloadService.startDownload(
+                            serviceContext,
+                            option.url,
+                            variant,
+                            modelType
+                        )
                     }
                     val started = uiContext.getString(startedTextResId)
                     statusTextViews.forEach { it.text = started }
@@ -63,4 +66,3 @@ internal class ModelDownloadUiController(
         }
     }
 }
-

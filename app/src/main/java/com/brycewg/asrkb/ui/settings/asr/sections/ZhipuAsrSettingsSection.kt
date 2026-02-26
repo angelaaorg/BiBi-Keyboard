@@ -2,9 +2,9 @@ package com.brycewg.asrkb.ui.settings.asr.sections
 
 import android.widget.EditText
 import com.brycewg.asrkb.R
-import com.brycewg.asrkb.ui.settings.asr.bindString
 import com.brycewg.asrkb.ui.settings.asr.AsrSettingsBinding
 import com.brycewg.asrkb.ui.settings.asr.AsrSettingsSection
+import com.brycewg.asrkb.ui.settings.asr.bindString
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.slider.Slider
 
@@ -31,7 +31,9 @@ internal class ZhipuAsrSettingsSection : AsrSettingsSection {
 
         binding.view<MaterialButton>(R.id.btnZhipuGetKey).setOnClickListener { v ->
             binding.hapticTapIfEnabled(v)
-            binding.openUrlSafely("https://bibidocs.brycewg.com/getting-started/asr-providers.html#%E6%99%BA%E8%B0%B1-glm")
+            binding.openUrlSafely(
+                "https://bibidocs.brycewg.com/getting-started/asr-providers.html#%E6%99%BA%E8%B0%B1-glm"
+            )
         }
     }
 }

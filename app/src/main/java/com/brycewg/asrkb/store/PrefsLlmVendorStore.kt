@@ -45,7 +45,9 @@ internal object PrefsLlmVendorStore {
 
     fun setLlmVendorTemperature(sp: SharedPreferences, vendor: LlmVendor, temperature: Float) {
         val key = "llm_vendor_${vendor.id}_temperature"
-        sp.edit { putFloat(key, temperature.coerceIn(vendor.temperatureMin, vendor.temperatureMax)) }
+        sp.edit {
+            putFloat(key, temperature.coerceIn(vendor.temperatureMin, vendor.temperatureMax))
+        }
     }
 
     fun getLlmVendorReasoningEnabled(sp: SharedPreferences, vendor: LlmVendor): Boolean {
@@ -81,7 +83,12 @@ internal object PrefsLlmVendorStore {
         }
     }
 
-    fun setLlmVendorModels(sp: SharedPreferences, json: Json, vendor: LlmVendor, models: List<String>) {
+    fun setLlmVendorModels(
+        sp: SharedPreferences,
+        json: Json,
+        vendor: LlmVendor,
+        models: List<String>
+    ) {
         val key = "llm_vendor_${vendor.id}_models_json"
         val cleaned = models.map { it.trim() }.filter { it.isNotBlank() }.distinct()
         try {
@@ -119,112 +126,124 @@ internal object PrefsLlmVendorStore {
         sp.edit { putString(key, json.trim()) }
     }
 
-    fun getEffectiveLlmConfig(prefs: Prefs, sp: SharedPreferences): Prefs.EffectiveLlmConfig? {
-        return when (val vendor = prefs.llmVendor) {
-            LlmVendor.SF_FREE -> {
-                val model = if (prefs.sfFreeLlmUsePaidKey) {
-                    getLlmVendorModel(sp, LlmVendor.SF_FREE).ifBlank { prefs.sfFreeLlmModel }
-                } else {
-                    prefs.sfFreeLlmModel
-                }
-                if (prefs.sfFreeLlmUsePaidKey) {
-                    // 使用用户自己的付费 API Key
-                    val apiKey = getLlmVendorApiKey(sp, LlmVendor.SF_FREE)
-                    if (apiKey.isBlank()) {
-                        null // 需要 API Key 但未配置
-                    } else {
-                        Prefs.EffectiveLlmConfig(
-                            endpoint = vendor.endpoint,
-                            apiKey = apiKey,
-                            model = model,
-                            temperature = getLlmVendorTemperature(sp, LlmVendor.SF_FREE),
-                            vendor = vendor,
-                            enableReasoning = getLlmVendorReasoningEnabled(sp, vendor),
-                            useCustomReasoningParams = !isBuiltinLlmPresetModel(vendor, model, prefs.sfFreeLlmUsePaidKey),
-                            reasoningParamsOnJson = getLlmVendorReasoningParamsOnJson(sp, vendor),
-                            reasoningParamsOffJson = getLlmVendorReasoningParamsOffJson(sp, vendor)
-                        )
-                    }
-                } else {
-                    // SiliconFlow 免费服务：使用内置端点和模型，无需 API Key
-                    // 实际 API Key 在 LlmPostProcessor 中注入
-                    Prefs.EffectiveLlmConfig(
-                        endpoint = vendor.endpoint,
-                        apiKey = "", // 免费服务在调用层注入内置 Key
-                        model = model,
-                        temperature = Prefs.DEFAULT_LLM_TEMPERATURE,
-                        vendor = vendor,
-                        enableReasoning = getLlmVendorReasoningEnabled(sp, vendor),
-                        useCustomReasoningParams = !isBuiltinLlmPresetModel(vendor, model, prefs.sfFreeLlmUsePaidKey),
-                        reasoningParamsOnJson = getLlmVendorReasoningParamsOnJson(sp, vendor),
-                        reasoningParamsOffJson = getLlmVendorReasoningParamsOffJson(sp, vendor)
-                    )
-                }
+    fun getEffectiveLlmConfig(prefs: Prefs, sp: SharedPreferences): Prefs.EffectiveLlmConfig? = when (val vendor = prefs.llmVendor) {
+        LlmVendor.SF_FREE -> {
+            val model = if (prefs.sfFreeLlmUsePaidKey) {
+                getLlmVendorModel(sp, LlmVendor.SF_FREE).ifBlank { prefs.sfFreeLlmModel }
+            } else {
+                prefs.sfFreeLlmModel
             }
-            LlmVendor.CUSTOM -> {
-                // 自定义供应商：使用用户配置的 LlmProvider
-                val provider = prefs.getActiveLlmProvider()
-                if (provider != null && provider.endpoint.isNotBlank()) {
-                    Prefs.EffectiveLlmConfig(
-                        endpoint = provider.endpoint,
-                        apiKey = provider.apiKey,
-                        model = provider.model,
-                        temperature = provider.temperature,
-                        vendor = vendor,
-                        enableReasoning = provider.enableReasoning,
-                        useCustomReasoningParams = true,
-                        reasoningParamsOnJson = provider.reasoningParamsOnJson,
-                        reasoningParamsOffJson = provider.reasoningParamsOffJson
-                    )
-                } else null
-            }
-            else -> {
-                // 内置供应商：使用预设端点 + 用户 API Key + 用户选择的模型
-                val apiKey = getLlmVendorApiKey(sp, vendor)
-                val model = getLlmVendorModel(sp, vendor).ifBlank { vendor.defaultModel }
-                if (vendor.requiresApiKey && apiKey.isBlank()) {
+            if (prefs.sfFreeLlmUsePaidKey) {
+                // 使用用户自己的付费 API Key
+                val apiKey = getLlmVendorApiKey(sp, LlmVendor.SF_FREE)
+                if (apiKey.isBlank()) {
                     null // 需要 API Key 但未配置
                 } else {
                     Prefs.EffectiveLlmConfig(
                         endpoint = vendor.endpoint,
                         apiKey = apiKey,
                         model = model,
-                        temperature = getLlmVendorTemperature(sp, vendor),
+                        temperature = getLlmVendorTemperature(sp, LlmVendor.SF_FREE),
                         vendor = vendor,
                         enableReasoning = getLlmVendorReasoningEnabled(sp, vendor),
-                        useCustomReasoningParams = !isBuiltinLlmPresetModel(vendor, model, prefs.sfFreeLlmUsePaidKey),
+                        useCustomReasoningParams = !isBuiltinLlmPresetModel(
+                            vendor,
+                            model,
+                            prefs.sfFreeLlmUsePaidKey
+                        ),
                         reasoningParamsOnJson = getLlmVendorReasoningParamsOnJson(sp, vendor),
                         reasoningParamsOffJson = getLlmVendorReasoningParamsOffJson(sp, vendor)
                     )
                 }
+            } else {
+                // SiliconFlow 免费服务：使用内置端点和模型，无需 API Key
+                // 实际 API Key 在 LlmPostProcessor 中注入
+                Prefs.EffectiveLlmConfig(
+                    endpoint = vendor.endpoint,
+                    apiKey = "", // 免费服务在调用层注入内置 Key
+                    model = model,
+                    temperature = Prefs.DEFAULT_LLM_TEMPERATURE,
+                    vendor = vendor,
+                    enableReasoning = getLlmVendorReasoningEnabled(sp, vendor),
+                    useCustomReasoningParams = !isBuiltinLlmPresetModel(
+                        vendor,
+                        model,
+                        prefs.sfFreeLlmUsePaidKey
+                    ),
+                    reasoningParamsOnJson = getLlmVendorReasoningParamsOnJson(sp, vendor),
+                    reasoningParamsOffJson = getLlmVendorReasoningParamsOffJson(sp, vendor)
+                )
+            }
+        }
+        LlmVendor.CUSTOM -> {
+            // 自定义供应商：使用用户配置的 LlmProvider
+            val provider = prefs.getActiveLlmProvider()
+            if (provider != null && provider.endpoint.isNotBlank()) {
+                Prefs.EffectiveLlmConfig(
+                    endpoint = provider.endpoint,
+                    apiKey = provider.apiKey,
+                    model = provider.model,
+                    temperature = provider.temperature,
+                    vendor = vendor,
+                    enableReasoning = provider.enableReasoning,
+                    useCustomReasoningParams = true,
+                    reasoningParamsOnJson = provider.reasoningParamsOnJson,
+                    reasoningParamsOffJson = provider.reasoningParamsOffJson
+                )
+            } else {
+                null
+            }
+        }
+        else -> {
+            // 内置供应商：使用预设端点 + 用户 API Key + 用户选择的模型
+            val apiKey = getLlmVendorApiKey(sp, vendor)
+            val model = getLlmVendorModel(sp, vendor).ifBlank { vendor.defaultModel }
+            if (vendor.requiresApiKey && apiKey.isBlank()) {
+                null // 需要 API Key 但未配置
+            } else {
+                Prefs.EffectiveLlmConfig(
+                    endpoint = vendor.endpoint,
+                    apiKey = apiKey,
+                    model = model,
+                    temperature = getLlmVendorTemperature(sp, vendor),
+                    vendor = vendor,
+                    enableReasoning = getLlmVendorReasoningEnabled(sp, vendor),
+                    useCustomReasoningParams = !isBuiltinLlmPresetModel(
+                        vendor,
+                        model,
+                        prefs.sfFreeLlmUsePaidKey
+                    ),
+                    reasoningParamsOnJson = getLlmVendorReasoningParamsOnJson(sp, vendor),
+                    reasoningParamsOffJson = getLlmVendorReasoningParamsOffJson(sp, vendor)
+                )
             }
         }
     }
 
-    private fun defaultReasoningParamsOnJson(vendor: LlmVendor): String {
-        return when (vendor.reasoningMode) {
-            ReasoningMode.ENABLE_THINKING -> """{"enable_thinking":true}"""
-            ReasoningMode.THINKING_TYPE -> """{"thinking":{"type":"enabled"}}"""
-            ReasoningMode.REASONING_EFFORT -> """{"reasoning_effort":"medium"}"""
+    private fun defaultReasoningParamsOnJson(vendor: LlmVendor): String = when (vendor.reasoningMode) {
+        ReasoningMode.ENABLE_THINKING -> """{"enable_thinking":true}"""
+        ReasoningMode.THINKING_TYPE -> """{"thinking":{"type":"enabled"}}"""
+        ReasoningMode.REASONING_EFFORT -> """{"reasoning_effort":"medium"}"""
+        ReasoningMode.MODEL_SELECTION,
+        ReasoningMode.NONE -> Prefs.DEFAULT_CUSTOM_REASONING_PARAMS_ON_JSON
+    }
+
+    private fun defaultReasoningParamsOffJson(vendor: LlmVendor): String = when (vendor) {
+        LlmVendor.CEREBRAS -> """{"reasoning_effort":"low"}"""
+        else -> when (vendor.reasoningMode) {
+            ReasoningMode.ENABLE_THINKING -> """{"enable_thinking":false}"""
+            ReasoningMode.THINKING_TYPE -> """{"thinking":{"type":"disabled"}}"""
+            ReasoningMode.REASONING_EFFORT -> """{"reasoning_effort":"none"}"""
             ReasoningMode.MODEL_SELECTION,
-            ReasoningMode.NONE -> Prefs.DEFAULT_CUSTOM_REASONING_PARAMS_ON_JSON
+            ReasoningMode.NONE -> Prefs.DEFAULT_CUSTOM_REASONING_PARAMS_OFF_JSON
         }
     }
 
-    private fun defaultReasoningParamsOffJson(vendor: LlmVendor): String {
-        return when (vendor) {
-            LlmVendor.CEREBRAS -> """{"reasoning_effort":"low"}"""
-            else -> when (vendor.reasoningMode) {
-                ReasoningMode.ENABLE_THINKING -> """{"enable_thinking":false}"""
-                ReasoningMode.THINKING_TYPE -> """{"thinking":{"type":"disabled"}}"""
-                ReasoningMode.REASONING_EFFORT -> """{"reasoning_effort":"none"}"""
-                ReasoningMode.MODEL_SELECTION,
-                ReasoningMode.NONE -> Prefs.DEFAULT_CUSTOM_REASONING_PARAMS_OFF_JSON
-            }
-        }
-    }
-
-    private fun isBuiltinLlmPresetModel(vendor: LlmVendor, model: String, sfFreeLlmUsePaidKey: Boolean): Boolean {
+    private fun isBuiltinLlmPresetModel(
+        vendor: LlmVendor,
+        model: String,
+        sfFreeLlmUsePaidKey: Boolean
+    ): Boolean {
         if (model.isBlank()) return false
         if (vendor == LlmVendor.SF_FREE && !sfFreeLlmUsePaidKey) {
             return Prefs.SF_FREE_LLM_MODELS.contains(model)

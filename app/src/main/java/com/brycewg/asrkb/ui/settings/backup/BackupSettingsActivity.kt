@@ -11,27 +11,22 @@ import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import com.brycewg.asrkb.ui.BaseActivity
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.store.Prefs
+import com.brycewg.asrkb.ui.BaseActivity
 import com.brycewg.asrkb.ui.settings.search.SettingsSearchNavigator
 import com.brycewg.asrkb.util.HapticFeedbackHelper
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody
-import okhttp3.RequestBody.Companion.toRequestBody
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
 
 class BackupSettingsActivity : BaseActivity() {
     companion object {
@@ -104,7 +99,11 @@ class BackupSettingsActivity : BaseActivity() {
                 os.flush()
             }
             val name = uri.lastPathSegment ?: "settings.json"
-            Toast.makeText(this, getString(R.string.toast_export_success, name), Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                this,
+                getString(R.string.toast_export_success, name),
+                Toast.LENGTH_SHORT
+            ).show()
             Log.d(TAG, "Settings exported successfully to $uri")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to export settings", e)
@@ -122,14 +121,26 @@ class BackupSettingsActivity : BaseActivity() {
             if (success) {
                 // 导入完成后，通知 IME 即时刷新（包含高度与按钮交换等）
                 try {
-                    sendBroadcast(android.content.Intent(com.brycewg.asrkb.ime.AsrKeyboardService.ACTION_REFRESH_IME_UI))
+                    sendBroadcast(
+                        android.content.Intent(
+                            com.brycewg.asrkb.ime.AsrKeyboardService.ACTION_REFRESH_IME_UI
+                        )
+                    )
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to send refresh broadcast", e)
                 }
-                Toast.makeText(this, getString(R.string.toast_import_success), Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    this,
+                    getString(R.string.toast_import_success),
+                    Toast.LENGTH_SHORT
+                ).show()
                 Log.d(TAG, "Settings imported successfully from $uri")
             } else {
-                Toast.makeText(this, getString(R.string.toast_import_failed), Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    this,
+                    getString(R.string.toast_import_failed),
+                    Toast.LENGTH_SHORT
+                ).show()
                 Log.w(TAG, "Failed to import settings (invalid JSON or parsing error)")
             }
         } catch (e: Exception) {
@@ -167,19 +178,34 @@ class BackupSettingsActivity : BaseActivity() {
     private fun uploadToWebdav() {
         val rawUrl = prefs.webdavUrl.trim()
         if (rawUrl.isEmpty()) {
-            Toast.makeText(this, getString(R.string.toast_webdav_url_required), Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                this,
+                getString(R.string.toast_webdav_url_required),
+                Toast.LENGTH_SHORT
+            ).show()
             return
         }
 
         lifecycleScope.launch(Dispatchers.IO) {
-            val result = WebDavBackupHelper.uploadSettingsWithStatus(this@BackupSettingsActivity, prefs)
+            val result = WebDavBackupHelper.uploadSettingsWithStatus(
+                this@BackupSettingsActivity,
+                prefs
+            )
             withContext(Dispatchers.Main) {
                 if (result is WebDavBackupHelper.UploadResult.Success) {
-                    Toast.makeText(this@BackupSettingsActivity, getString(R.string.toast_webdav_upload_success), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        this@BackupSettingsActivity,
+                        getString(R.string.toast_webdav_upload_success),
+                        Toast.LENGTH_SHORT
+                    ).show()
                 } else {
                     val error = (result as? WebDavBackupHelper.UploadResult.Error)
                     val reason = buildWebdavErrorReason(error?.statusCode, error?.responsePhrase)
-                    Toast.makeText(this@BackupSettingsActivity, getString(R.string.toast_webdav_upload_failed, reason), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        this@BackupSettingsActivity,
+                        getString(R.string.toast_webdav_upload_failed, reason),
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
             }
         }
@@ -188,7 +214,11 @@ class BackupSettingsActivity : BaseActivity() {
     private fun downloadFromWebdav() {
         val rawUrl = prefs.webdavUrl.trim()
         if (rawUrl.isEmpty()) {
-            Toast.makeText(this, getString(R.string.toast_webdav_url_required), Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                this,
+                getString(R.string.toast_webdav_url_required),
+                Toast.LENGTH_SHORT
+            ).show()
             return
         }
 
@@ -214,11 +244,29 @@ class BackupSettingsActivity : BaseActivity() {
 
             withContext(Dispatchers.Main) {
                 if (imported) {
-                    try { sendBroadcast(android.content.Intent(com.brycewg.asrkb.ime.AsrKeyboardService.ACTION_REFRESH_IME_UI)) } catch (e: Exception) { Log.e(TAG, "Failed to send refresh broadcast", e) }
-                    Toast.makeText(this@BackupSettingsActivity, getString(R.string.toast_webdav_download_success), Toast.LENGTH_SHORT).show()
+                    try {
+                        sendBroadcast(
+                            android.content.Intent(
+                                com.brycewg.asrkb.ime.AsrKeyboardService.ACTION_REFRESH_IME_UI
+                            )
+                        )
+                    } catch (
+                        e: Exception
+                    ) {
+                        Log.e(TAG, "Failed to send refresh broadcast", e)
+                    }
+                    Toast.makeText(
+                        this@BackupSettingsActivity,
+                        getString(R.string.toast_webdav_download_success),
+                        Toast.LENGTH_SHORT
+                    ).show()
                 } else {
                     val reasonText = errorReason ?: getString(R.string.toast_import_failed)
-                    Toast.makeText(this@BackupSettingsActivity, getString(R.string.toast_webdav_download_failed, reasonText), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        this@BackupSettingsActivity,
+                        getString(R.string.toast_webdav_download_failed, reasonText),
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
             }
         }
@@ -229,13 +277,14 @@ class BackupSettingsActivity : BaseActivity() {
     }
 }
 
-private fun BackupSettingsActivity.buildWebdavErrorReason(statusCode: Int?, responsePhrase: String?): String {
-    return when {
-        statusCode != null && !responsePhrase.isNullOrBlank() -> "$statusCode $responsePhrase"
-        statusCode != null -> statusCode.toString()
-        !responsePhrase.isNullOrBlank() -> responsePhrase
-        else -> "HTTP"
-    }
+private fun BackupSettingsActivity.buildWebdavErrorReason(
+    statusCode: Int?,
+    responsePhrase: String?
+): String = when {
+    statusCode != null && !responsePhrase.isNullOrBlank() -> "$statusCode $responsePhrase"
+    statusCode != null -> statusCode.toString()
+    !responsePhrase.isNullOrBlank() -> responsePhrase
+    else -> "HTTP"
 }
 
 private class SimpleTextWatcher(private val onChanged: (String) -> Unit) : android.text.TextWatcher {

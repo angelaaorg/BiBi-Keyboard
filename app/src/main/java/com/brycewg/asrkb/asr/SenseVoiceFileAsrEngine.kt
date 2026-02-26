@@ -29,7 +29,8 @@ class SenseVoiceFileAsrEngine(
     prefs: Prefs,
     listener: StreamingAsrEngine.Listener,
     onRequestDuration: ((Long) -> Unit)? = null
-) : BaseFileAsrEngine(context, scope, prefs, listener, onRequestDuration), PcmBatchRecognizer {
+) : BaseFileAsrEngine(context, scope, prefs, listener, onRequestDuration),
+    PcmBatchRecognizer {
 
     // 本地 SenseVoice：为降低内存占用，主动限制为 5 分钟
     override val maxRecordDurationMillis: Int = 5 * 60 * 1000
@@ -42,7 +43,11 @@ class SenseVoiceFileAsrEngine(
     private fun showToast(resId: Int) {
         try {
             Handler(Looper.getMainLooper()).post {
-                try { Toast.makeText(context, context.getString(resId), Toast.LENGTH_SHORT).show() } catch (t: Throwable) {
+                try {
+                    Toast.makeText(context, context.getString(resId), Toast.LENGTH_SHORT).show()
+                } catch (
+                    t: Throwable
+                ) {
                     Log.e("SenseVoiceFileAsrEngine", "Failed to show toast", t)
                 }
             }
@@ -54,7 +59,9 @@ class SenseVoiceFileAsrEngine(
     private fun notifyLoadStart() {
         val ui = (listener as? LocalModelLoadUi)
         if (ui != null) {
-            try { ui.onLocalModelLoadStart() } catch (t: Throwable) {
+            try {
+                ui.onLocalModelLoadStart()
+            } catch (t: Throwable) {
                 Log.e("SenseVoiceFileAsrEngine", "Failed to notify load start", t)
             }
         } else {
@@ -65,7 +72,9 @@ class SenseVoiceFileAsrEngine(
     private fun notifyLoadDone() {
         val ui = (listener as? LocalModelLoadUi)
         if (ui != null) {
-            try { ui.onLocalModelLoadDone() } catch (t: Throwable) {
+            try {
+                ui.onLocalModelLoadDone()
+            } catch (t: Throwable) {
                 Log.e("SenseVoiceFileAsrEngine", "Failed to notify load done", t)
             }
         }
@@ -76,7 +85,11 @@ class SenseVoiceFileAsrEngine(
         // 若未集成 sherpa-onnx Kotlin/so，则直接报错以避免无意义的录音
         val manager = SenseVoiceOnnxManager.getInstance()
         if (!manager.isOnnxAvailable()) {
-            try { listener.onError(context.getString(R.string.error_local_asr_not_ready)) } catch (t: Throwable) {
+            try {
+                listener.onError(context.getString(R.string.error_local_asr_not_ready))
+            } catch (
+                t: Throwable
+            ) {
                 Log.e("SenseVoiceFileAsrEngine", "Failed to send error callback", t)
             }
             return false
@@ -93,12 +106,16 @@ class SenseVoiceFileAsrEngine(
                 return
             }
             // 模型目录：固定为外部专属目录（不可配置）；外部不可用时回退内部目录
-            val base = try { context.getExternalFilesDir(null) } catch (t: Throwable) {
+            val base = try {
+                context.getExternalFilesDir(null)
+            } catch (t: Throwable) {
                 Log.w("SenseVoiceFileAsrEngine", "Failed to get external files dir", t)
                 null
             } ?: context.filesDir
             val probeRoot = java.io.File(base, "sensevoice")
-            val rawVariant = try { prefs.svModelVariant } catch (t: Throwable) {
+            val rawVariant = try {
+                prefs.svModelVariant
+            } catch (t: Throwable) {
                 Log.w("SenseVoiceFileAsrEngine", "Failed to get model variant", t)
                 "small-int8"
             }
@@ -120,7 +137,10 @@ class SenseVoiceFileAsrEngine(
             val modelFile = selectSvModelFile(auto, variant)
             val modelPath = modelFile?.absolutePath
             val minBytes = 8L * 1024L * 1024L // 粗略下限，避免明显的截断文件
-            if (modelPath == null || !java.io.File(tokensPath).exists() || (modelFile?.length() ?: 0L) < minBytes) {
+            if (modelPath == null ||
+                !java.io.File(tokensPath).exists() ||
+                (modelFile?.length() ?: 0L) < minBytes
+            ) {
                 listener.onError(context.getString(R.string.error_sensevoice_model_missing))
                 return
             }
@@ -136,7 +156,9 @@ class SenseVoiceFileAsrEngine(
             // 注意：当从绝对路径加载模型/词表时，必须将 assetManager 设为 null
             // 参考 sherpa-onnx 提示 https://github.com/k2-fsa/sherpa-onnx/issues/2562
             // 在需要创建新识别器时，向用户提示"加载中/完成"
-            val keepMinutes = try { prefs.svKeepAliveMinutes } catch (t: Throwable) {
+            val keepMinutes = try {
+                prefs.svKeepAliveMinutes
+            } catch (t: Throwable) {
                 Log.w("SenseVoiceFileAsrEngine", "Failed to get keep alive minutes", t)
                 -1
             }
@@ -153,12 +175,16 @@ class SenseVoiceFileAsrEngine(
                     Log.w("SenseVoiceFileAsrEngine", "Failed to get language", t)
                     "auto"
                 },
-                useItn = try { prefs.svUseItn } catch (t: Throwable) {
+                useItn = try {
+                    prefs.svUseItn
+                } catch (t: Throwable) {
                     Log.w("SenseVoiceFileAsrEngine", "Failed to get useItn", t)
                     false
                 },
                 provider = "cpu",
-                numThreads = try { prefs.svNumThreads } catch (t: Throwable) {
+                numThreads = try {
+                    prefs.svNumThreads
+                } catch (t: Throwable) {
                     Log.w("SenseVoiceFileAsrEngine", "Failed to get num threads", t)
                     2
                 },
@@ -178,16 +204,25 @@ class SenseVoiceFileAsrEngine(
             }
         } catch (t: Throwable) {
             Log.e("SenseVoiceFileAsrEngine", "Recognition failed", t)
-            listener.onError(context.getString(R.string.error_recognize_failed_with_reason, t.message ?: ""))
+            listener.onError(
+                context.getString(
+                    R.string.error_recognize_failed_with_reason,
+                    t.message ?: ""
+                )
+            )
         } finally {
             val dt = System.currentTimeMillis() - t0
-            try { onRequestDuration?.invoke(dt) } catch (t: Throwable) {
+            try {
+                onRequestDuration?.invoke(dt)
+            } catch (t: Throwable) {
                 Log.e("SenseVoiceFileAsrEngine", "Failed to invoke duration callback", t)
             }
         }
     }
 
-    override suspend fun recognizeFromPcm(pcm: ByteArray) { recognize(pcm) }
+    override suspend fun recognizeFromPcm(pcm: ByteArray) {
+        recognize(pcm)
+    }
 
     private fun pcmToFloatArray(pcm: ByteArray): FloatArray {
         if (pcm.isEmpty()) return FloatArray(0)
@@ -199,7 +234,11 @@ class SenseVoiceFileAsrEngine(
             val s = bb.short.toInt()
             // 32768f 防止 -32768 溢出；限制到 [-1, 1]
             var f = s / 32768.0f
-            if (f > 1f) f = 1f else if (f < -1f) f = -1f
+            if (f > 1f) {
+                f = 1f
+            } else if (f < -1f) {
+                f = -1f
+            }
             out[i] = f
             i++
         }
@@ -270,12 +309,16 @@ fun preloadSenseVoiceIfConfigured(
                 onLoadStart = {
                     if (!suppressToastOnStart) {
                         mainHandler.post {
-                            Toast.makeText(context, context.getString(R.string.sv_loading_model), Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.sv_loading_model),
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
                     }
                     onLoadStart?.invoke()
                 },
-                onLoadDone = onLoadDone,
+                onLoadDone = onLoadDone
             )
             if (ok && !forImmediateUse) {
                 val dt = (android.os.SystemClock.uptimeMillis() - t0).coerceAtLeast(0)
@@ -333,9 +376,7 @@ fun selectSvModelFile(dir: java.io.File, variant: String?): java.io.File? {
 /**
  * SenseVoice
  */
-fun resolveSvLanguageForVariant(language: String, variant: String?): String {
-    return language.trim().ifBlank { "auto" }
-}
+fun resolveSvLanguageForVariant(language: String, variant: String?): String = language.trim().ifBlank { "auto" }
 
 /**
  * 识别器配置（作为缓存 key）
@@ -359,7 +400,11 @@ internal class ReflectiveStream(val instance: Any) {
 
     fun acceptWaveform(samples: FloatArray, sampleRate: Int) {
         try {
-            streamClass.getMethod("acceptWaveform", FloatArray::class.java, Int::class.javaPrimitiveType)
+            streamClass.getMethod(
+                "acceptWaveform",
+                FloatArray::class.java,
+                Int::class.javaPrimitiveType
+            )
                 .invoke(instance, samples, sampleRate)
         } catch (t: Throwable) {
             Log.d("ReflectiveStream", "Failed with sampleRate param, trying without", t)
@@ -398,7 +443,10 @@ internal class ReflectiveRecognizer(
     fun decode(stream: ReflectiveStream): String? {
         val clsStream = stream.streamClass
         clsOfflineRecognizer.getMethod("decode", clsStream).invoke(instance, stream.instance)
-        val result = clsOfflineRecognizer.getMethod("getResult", clsStream).invoke(instance, stream.instance)
+        val result = clsOfflineRecognizer.getMethod(
+            "getResult",
+            clsStream
+        ).invoke(instance, stream.instance)
         return tryGetStringField(result, "text") ?: result?.toString()
     }
 
@@ -435,12 +483,10 @@ class SenseVoiceOnnxManager private constructor() {
         private const val TAG = "SenseVoiceOnnxManager"
 
         @Volatile
-    private var instance: SenseVoiceOnnxManager? = null
+        private var instance: SenseVoiceOnnxManager? = null
 
-        fun getInstance(): SenseVoiceOnnxManager {
-            return instance ?: synchronized(this) {
-                instance ?: SenseVoiceOnnxManager().also { instance = it }
-            }
+        fun getInstance(): SenseVoiceOnnxManager = instance ?: synchronized(this) {
+            instance ?: SenseVoiceOnnxManager().also { instance = it }
         }
     }
 
@@ -448,22 +494,27 @@ class SenseVoiceOnnxManager private constructor() {
     private val mutex = Mutex()
 
     @Volatile private var cachedConfig: RecognizerConfig? = null
+
     @Volatile private var cachedRecognizer: ReflectiveRecognizer? = null
+
     @Volatile private var preparing: Boolean = false
+
     @Volatile private var clsOfflineRecognizer: Class<*>? = null
+
     @Volatile private var clsOfflineRecognizerConfig: Class<*>? = null
+
     @Volatile private var clsOfflineModelConfig: Class<*>? = null
+
     @Volatile private var clsOfflineSenseVoiceModelConfig: Class<*>? = null
+
     @Volatile private var unloadJob: Job? = null
 
-    fun isOnnxAvailable(): Boolean {
-        return try {
-            Class.forName("com.k2fsa.sherpa.onnx.OfflineRecognizer")
-            true
-        } catch (t: Throwable) {
-            Log.d(TAG, "sherpa-onnx not available", t)
-            false
-        }
+    fun isOnnxAvailable(): Boolean = try {
+        Class.forName("com.k2fsa.sherpa.onnx.OfflineRecognizer")
+        true
+    } catch (t: Throwable) {
+        Log.d(TAG, "sherpa-onnx not available", t)
+        false
     }
 
     fun unload() {
@@ -488,14 +539,13 @@ class SenseVoiceOnnxManager private constructor() {
         }
     }
 
-    fun isPrepared(): Boolean {
-        return cachedRecognizer != null
-    }
+    fun isPrepared(): Boolean = cachedRecognizer != null
 
     fun isPreparing(): Boolean = preparing
 
     // 记录最近一次配置，用于解码完成后按用户设置调度卸载
     @Volatile private var lastKeepAliveMs: Long = 0L
+
     @Volatile private var lastAlwaysKeep: Boolean = false
 
     /**
@@ -539,7 +589,12 @@ class SenseVoiceOnnxManager private constructor() {
     /**
      * 构建模型配置
      */
-    private fun buildModelConfig(tokens: String, numThreads: Int, provider: String, senseVoice: Any): Any {
+    private fun buildModelConfig(
+        tokens: String,
+        numThreads: Int,
+        provider: String,
+        senseVoice: Any
+    ): Any {
         val modelConfig = clsOfflineModelConfig!!.getDeclaredConstructor().newInstance()
         trySetField(modelConfig, "tokens", tokens)
         trySetField(modelConfig, "numThreads", numThreads)
@@ -559,7 +614,8 @@ class SenseVoiceOnnxManager private constructor() {
      */
     private fun buildRecognizerConfig(config: RecognizerConfig): Any {
         val senseVoice = buildSenseVoiceConfig(config.model, config.language, config.useItn)
-        val modelConfig = buildModelConfig(config.tokens, config.numThreads, config.provider, senseVoice)
+        val modelConfig =
+            buildModelConfig(config.tokens, config.numThreads, config.provider, senseVoice)
 
         val recConfig = clsOfflineRecognizerConfig!!.getDeclaredConstructor().newInstance()
         if (!trySetField(recConfig, "modelConfig", modelConfig)) {
@@ -571,7 +627,10 @@ class SenseVoiceOnnxManager private constructor() {
     /**
      * 创建识别器实例
      */
-    private fun createRecognizer(assetManager: android.content.res.AssetManager?, recConfig: Any): Any {
+    private fun createRecognizer(
+        assetManager: android.content.res.AssetManager?,
+        recConfig: Any
+    ): Any {
         // 当 assetManager 为空（从绝对路径加载）时，优先尝试无 assetManager 的构造函数
         val ctor = if (assetManager == null) {
             try {
@@ -579,11 +638,17 @@ class SenseVoiceOnnxManager private constructor() {
             } catch (t: Throwable) {
                 Log.d(TAG, "No single-param constructor, using AssetManager variant", t)
                 // 回退到带 assetManager 的构造（以 null 传入）
-                clsOfflineRecognizer!!.getDeclaredConstructor(android.content.res.AssetManager::class.java, clsOfflineRecognizerConfig)
+                clsOfflineRecognizer!!.getDeclaredConstructor(
+                    android.content.res.AssetManager::class.java,
+                    clsOfflineRecognizerConfig
+                )
             }
         } else {
             try {
-                clsOfflineRecognizer!!.getDeclaredConstructor(android.content.res.AssetManager::class.java, clsOfflineRecognizerConfig)
+                clsOfflineRecognizer!!.getDeclaredConstructor(
+                    android.content.res.AssetManager::class.java,
+                    clsOfflineRecognizerConfig
+                )
             } catch (t: Throwable) {
                 Log.d(TAG, "No AssetManager constructor, using single-param variant", t)
                 clsOfflineRecognizer!!.getDeclaredConstructor(clsOfflineRecognizerConfig)
@@ -603,9 +668,11 @@ class SenseVoiceOnnxManager private constructor() {
     private fun initClasses() {
         if (clsOfflineRecognizer == null) {
             clsOfflineRecognizer = Class.forName("com.k2fsa.sherpa.onnx.OfflineRecognizer")
-            clsOfflineRecognizerConfig = Class.forName("com.k2fsa.sherpa.onnx.OfflineRecognizerConfig")
+            clsOfflineRecognizerConfig =
+                Class.forName("com.k2fsa.sherpa.onnx.OfflineRecognizerConfig")
             clsOfflineModelConfig = Class.forName("com.k2fsa.sherpa.onnx.OfflineModelConfig")
-            clsOfflineSenseVoiceModelConfig = Class.forName("com.k2fsa.sherpa.onnx.OfflineSenseVoiceModelConfig")
+            clsOfflineSenseVoiceModelConfig =
+                Class.forName("com.k2fsa.sherpa.onnx.OfflineSenseVoiceModelConfig")
             Log.d(TAG, "Initialized sherpa-onnx reflection classes")
         }
     }
@@ -613,27 +680,25 @@ class SenseVoiceOnnxManager private constructor() {
     /**
      * 尝试设置对象字段
      */
-    private fun trySetField(target: Any, name: String, value: Any?): Boolean {
-        return try {
-            val f = target.javaClass.getDeclaredField(name)
-            f.isAccessible = true
-            f.set(target, value)
-            Log.d(TAG, "Successfully set field '$name' to ${value?.javaClass?.simpleName}")
-            true
-        } catch (t: Throwable) {
-            Log.d(TAG, "Failed to set field '$name', trying setter method", t)
-            try {
-                val methodName = "set" + name.replaceFirstChar {
-                    if (it.isLowerCase()) it.titlecase() else it.toString()
-                }
-                val m = target.javaClass.getMethod(methodName, value?.javaClass ?: Any::class.java)
-                m.invoke(target, value)
-                Log.d(TAG, "Successfully set field '$name' via setter")
-                true
-            } catch (t2: Throwable) {
-                Log.w(TAG, "Failed to set field '$name' via both direct access and setter", t2)
-                false
+    private fun trySetField(target: Any, name: String, value: Any?): Boolean = try {
+        val f = target.javaClass.getDeclaredField(name)
+        f.isAccessible = true
+        f.set(target, value)
+        Log.d(TAG, "Successfully set field '$name' to ${value?.javaClass?.simpleName}")
+        true
+    } catch (t: Throwable) {
+        Log.d(TAG, "Failed to set field '$name', trying setter method", t)
+        try {
+            val methodName = "set" + name.replaceFirstChar {
+                if (it.isLowerCase()) it.titlecase() else it.toString()
             }
+            val m = target.javaClass.getMethod(methodName, value?.javaClass ?: Any::class.java)
+            m.invoke(target, value)
+            Log.d(TAG, "Successfully set field '$name' via setter")
+            true
+        } catch (t2: Throwable) {
+            Log.w(TAG, "Failed to set field '$name' via both direct access and setter", t2)
+            false
         }
     }
 
@@ -778,14 +843,16 @@ class SenseVoiceOnnxManager private constructor() {
             return@withLock false
         }
     }
-
 }
 
 /**
  * 向后兼容的桥接 object
  * 委托给新的 SenseVoiceOnnxManager 单例
  */
-@Deprecated("Use SenseVoiceOnnxManager.getInstance() instead", ReplaceWith("SenseVoiceOnnxManager.getInstance()"))
+@Deprecated(
+    "Use SenseVoiceOnnxManager.getInstance() instead",
+    ReplaceWith("SenseVoiceOnnxManager.getInstance()")
+)
 object SenseVoiceOnnxBridge {
     private val manager = SenseVoiceOnnxManager.getInstance()
 

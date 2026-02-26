@@ -31,9 +31,7 @@ class SenseVoicePseudoStreamAsrEngine(
         tag = TAG
     )
 
-    override fun ensureReady(): Boolean {
-        return delegate.ensureReady()
-    }
+    override fun ensureReady(): Boolean = delegate.ensureReady()
 
     override fun onSessionStart(sessionId: Long) {
         delegate.onSessionStart(sessionId)

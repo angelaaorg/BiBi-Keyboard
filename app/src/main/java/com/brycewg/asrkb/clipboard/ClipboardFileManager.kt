@@ -15,15 +15,17 @@ class ClipboardFileManager(private val context: Context) {
     companion object {
         private const val TAG = "ClipboardFileManager"
         private const val BIBI_FOLDER = "BiBi"
-        private const val MAX_CACHE_SIZE_MB = 500  // 最大缓存 500MB
-        private const val MAX_FILE_AGE_DAYS = 30   // 文件最长保留 30 天
+        private const val MAX_CACHE_SIZE_MB = 500 // 最大缓存 500MB
+        private const val MAX_FILE_AGE_DAYS = 30 // 文件最长保留 30 天
     }
 
     /**
      * 获取 BiBi 文件夹路径 (Download/BiBi)
      */
     private fun getBiBiFolder(): File {
-        val downloadDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+        val downloadDir = Environment.getExternalStoragePublicDirectory(
+            Environment.DIRECTORY_DOWNLOADS
+        )
         val bibiDir = File(downloadDir, BIBI_FOLDER)
         if (!bibiDir.exists()) {
             bibiDir.mkdirs()
@@ -36,9 +38,7 @@ class ClipboardFileManager(private val context: Context) {
      * @param fileName 文件名
      * @return 文件对象
      */
-    fun getFile(fileName: String): File {
-        return File(getBiBiFolder(), fileName)
-    }
+    fun getFile(fileName: String): File = File(getBiBiFolder(), fileName)
 
     /**
      * 检查文件是否已存在且完整
@@ -56,7 +56,10 @@ class ClipboardFileManager(private val context: Context) {
         if (expectedSize != null && expectedSize > 0) {
             val actualSize = file.length()
             if (actualSize != expectedSize) {
-                Log.w(TAG, "File size mismatch: $fileName (expected: $expectedSize, actual: $actualSize)")
+                Log.w(
+                    TAG,
+                    "File size mismatch: $fileName (expected: $expectedSize, actual: $actualSize)"
+                )
                 return false
             }
         }
@@ -76,41 +79,39 @@ class ClipboardFileManager(private val context: Context) {
         inputStream: InputStream,
         totalBytes: Long = -1,
         progressCallback: ((Long, Long) -> Unit)? = null
-    ): String? {
-        return try {
-            val file = getFile(fileName)
+    ): String? = try {
+        val file = getFile(fileName)
 
-            // 确保父目录存在
-            file.parentFile?.mkdirs()
+        // 确保父目录存在
+        file.parentFile?.mkdirs()
 
-            // 如果文件已存在，先删除
-            if (file.exists()) {
-                file.delete()
+        // 如果文件已存在，先删除
+        if (file.exists()) {
+            file.delete()
+        }
+
+        var downloadedBytes = 0L
+        val buffer = ByteArray(8192)
+
+        file.outputStream().use { output ->
+            var bytesRead: Int
+            while (inputStream.read(buffer).also { bytesRead = it } != -1) {
+                output.write(buffer, 0, bytesRead)
+                downloadedBytes += bytesRead
+                progressCallback?.invoke(downloadedBytes, totalBytes)
             }
+        }
 
-            var downloadedBytes = 0L
-            val buffer = ByteArray(8192)
-
-            file.outputStream().use { output ->
-                var bytesRead: Int
-                while (inputStream.read(buffer).also { bytesRead = it } != -1) {
-                    output.write(buffer, 0, bytesRead)
-                    downloadedBytes += bytesRead
-                    progressCallback?.invoke(downloadedBytes, totalBytes)
-                }
-            }
-
-            Log.d(TAG, "File saved: $fileName -> ${file.absolutePath}")
-            file.absolutePath
+        Log.d(TAG, "File saved: $fileName -> ${file.absolutePath}")
+        file.absolutePath
+    } catch (e: Exception) {
+        Log.e(TAG, "Failed to save file: $fileName", e)
+        null
+    } finally {
+        try {
+            inputStream.close()
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to save file: $fileName", e)
-            null
-        } finally {
-            try {
-                inputStream.close()
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to close input stream", e)
-            }
+            Log.e(TAG, "Failed to close input stream", e)
         }
     }
 
@@ -119,18 +120,16 @@ class ClipboardFileManager(private val context: Context) {
      * @param fileName 文件名
      * @return 是否删除成功
      */
-    fun deleteFile(fileName: String): Boolean {
-        return try {
-            val file = getFile(fileName)
-            if (file.exists()) {
-                file.delete()
-            } else {
-                true
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to delete file: $fileName", e)
-            false
+    fun deleteFile(fileName: String): Boolean = try {
+        val file = getFile(fileName)
+        if (file.exists()) {
+            file.delete()
+        } else {
+            true
         }
+    } catch (e: Exception) {
+        Log.e(TAG, "Failed to delete file: $fileName", e)
+        false
     }
 
     /**
@@ -167,7 +166,9 @@ class ClipboardFileManager(private val context: Context) {
 
         try {
             val bibiDir = getBiBiFolder()
-            val files = bibiDir.listFiles()?.filter { it.isFile }?.sortedBy { it.lastModified() } ?: return 0
+            val files =
+                bibiDir.listFiles()?.filter { it.isFile }?.sortedBy { it.lastModified() }
+                    ?: return 0
 
             var totalSize = files.sumOf { it.length() }
             val maxSize = MAX_CACHE_SIZE_MB * 1024 * 1024L
@@ -192,14 +193,12 @@ class ClipboardFileManager(private val context: Context) {
      * 获取缓存文件夹的总大小
      * @return 大小（字节）
      */
-    fun getCacheSize(): Long {
-        return try {
-            val bibiDir = getBiBiFolder()
-            bibiDir.listFiles()?.filter { it.isFile }?.sumOf { it.length() } ?: 0L
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to get cache size", e)
-            0L
-        }
+    fun getCacheSize(): Long = try {
+        val bibiDir = getBiBiFolder()
+        bibiDir.listFiles()?.filter { it.isFile }?.sumOf { it.length() } ?: 0L
+    } catch (e: Exception) {
+        Log.e(TAG, "Failed to get cache size", e)
+        0L
     }
 
     /**

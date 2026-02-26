@@ -23,7 +23,7 @@ internal class ClipboardPanelController(
     private val inputConnectionProvider: () -> android.view.inputmethod.InputConnection?,
     private val showPopupMenuKeepingIme: (PopupMenu) -> Unit,
     private val onOpenFile: (filePath: String) -> Unit,
-    private val onDownloadFile: (entry: ClipboardHistoryStore.Entry) -> Unit,
+    private val onDownloadFile: (entry: ClipboardHistoryStore.Entry) -> Unit
 ) {
     val store: ClipboardHistoryStore = ClipboardHistoryStore(context, prefs)
 
@@ -123,14 +123,20 @@ internal class ClipboardPanelController(
         views.clipList?.layoutManager = LinearLayoutManager(context)
         views.clipList?.adapter = adapter
 
-        val callback = object : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) {
+        val callback = object : ItemTouchHelper.SimpleCallback(
+            0,
+            ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT
+        ) {
             override fun onMove(
                 recyclerView: RecyclerView,
                 viewHolder: RecyclerView.ViewHolder,
                 target: RecyclerView.ViewHolder
             ): Boolean = false
 
-            override fun getSwipeDirs(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder): Int {
+            override fun getSwipeDirs(
+                recyclerView: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder
+            ): Int {
                 val pos = viewHolder.bindingAdapterPosition
                 val item = adapter?.currentList?.getOrNull(pos)
                 return if (item != null && item.pinned) {
@@ -146,16 +152,30 @@ internal class ClipboardPanelController(
                 if (item != null) {
                     if (direction == ItemTouchHelper.RIGHT) {
                         val pinnedNow = store.togglePin(item.id)
-                        val msg = if (pinnedNow) context.getString(R.string.clip_pinned) else context.getString(R.string.clip_unpinned)
+                        val msg = if (pinnedNow) {
+                            context.getString(
+                                R.string.clip_pinned
+                            )
+                        } else {
+                            context.getString(R.string.clip_unpinned)
+                        }
                         Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                     } else if (direction == ItemTouchHelper.LEFT) {
                         if (item.pinned) {
-                            Toast.makeText(context, context.getString(R.string.clip_cannot_delete_pinned), Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.clip_cannot_delete_pinned),
+                                Toast.LENGTH_SHORT
+                            ).show()
                             adapter?.notifyItemChanged(pos)
                         } else {
                             val deleted = store.deleteHistoryById(item.id)
                             if (deleted) {
-                                Toast.makeText(context, context.getString(R.string.clip_deleted), Toast.LENGTH_SHORT).show()
+                                Toast.makeText(
+                                    context,
+                                    context.getString(R.string.clip_deleted),
+                                    Toast.LENGTH_SHORT
+                                ).show()
                             }
                         }
                     }
@@ -190,4 +210,3 @@ internal class ClipboardPanelController(
         showPopupMenuKeepingIme(popup)
     }
 }
-

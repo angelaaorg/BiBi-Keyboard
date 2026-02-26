@@ -31,7 +31,11 @@ internal class AsrSilenceDetectionSection : AsrSettingsSection {
             onChanged = { enabled ->
                 if (enabled) {
                     try {
-                        VadDetector.preload(binding.activity.applicationContext, 16000, binding.prefs.autoStopSilenceSensitivity)
+                        VadDetector.preload(
+                            binding.activity.applicationContext,
+                            16000,
+                            binding.prefs.autoStopSilenceSensitivity
+                        )
                     } catch (t: Throwable) {
                         android.util.Log.w(TAG, "Failed to preload VAD", t)
                     }
@@ -58,7 +62,11 @@ internal class AsrSilenceDetectionSection : AsrSettingsSection {
                             16000,
                             binding.prefs.autoStopSilenceSensitivity
                         )
-                        Toast.makeText(binding.activity, R.string.toast_vad_sensitivity_applied, Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            binding.activity,
+                            R.string.toast_vad_sensitivity_applied,
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
                 } catch (t: Throwable) {
                     android.util.Log.w(TAG, "Failed to rebuild VAD", t)
@@ -71,4 +79,3 @@ internal class AsrSilenceDetectionSection : AsrSettingsSection {
         private const val TAG = "AsrSilenceDetectionSection"
     }
 }
-

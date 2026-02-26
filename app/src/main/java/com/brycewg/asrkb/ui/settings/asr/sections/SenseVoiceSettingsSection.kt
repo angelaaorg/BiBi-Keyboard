@@ -10,10 +10,10 @@ import com.brycewg.asrkb.ui.settings.asr.AsrSettingsSection
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.slider.Slider
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.File
 
 internal class SenseVoiceSettingsSection : AsrSettingsSection {
     override fun bind(binding: AsrSettingsBinding) {
@@ -26,7 +26,9 @@ internal class SenseVoiceSettingsSection : AsrSettingsSection {
 
         binding.view<MaterialButton>(R.id.btnSvGuide).setOnClickListener { v ->
             binding.hapticTapIfEnabled(v)
-            binding.openUrlSafely(binding.activity.getString(R.string.local_model_guide_config_doc_url))
+            binding.openUrlSafely(
+                binding.activity.getString(R.string.local_model_guide_config_doc_url)
+            )
         }
     }
 
@@ -59,7 +61,11 @@ internal class SenseVoiceSettingsSection : AsrSettingsSection {
         tvSvModelVariant.setOnClickListener { v ->
             binding.hapticTapIfEnabled(v)
             val cur = variantCodes.indexOf(binding.prefs.svModelVariant).coerceAtLeast(0)
-            binding.showSingleChoiceDialog(R.string.label_sv_model_variant, variantLabels.toTypedArray(), cur) { which ->
+            binding.showSingleChoiceDialog(
+                R.string.label_sv_model_variant,
+                variantLabels.toTypedArray(),
+                cur
+            ) { which ->
                 val code = variantCodes.getOrNull(which) ?: "small-int8"
                 if (code != binding.prefs.svModelVariant) {
                     binding.viewModel.updateSvModelVariant(code)
@@ -95,7 +101,11 @@ internal class SenseVoiceSettingsSection : AsrSettingsSection {
         tvSvLanguage.setOnClickListener { v ->
             binding.hapticTapIfEnabled(v)
             val cur = codes.indexOf(binding.prefs.svLanguage).coerceAtLeast(0)
-            binding.showSingleChoiceDialog(R.string.label_sv_language, labels.toTypedArray(), cur) { which ->
+            binding.showSingleChoiceDialog(
+                R.string.label_sv_language,
+                labels.toTypedArray(),
+                cur
+            ) { which ->
                 val code = codes.getOrNull(which) ?: "auto"
                 if (code != binding.prefs.svLanguage) {
                     binding.viewModel.updateSvLanguage(code)
@@ -186,15 +196,35 @@ internal class SenseVoiceSettingsSection : AsrSettingsSection {
         val tvSvKeepAlive = binding.view<TextView>(R.id.tvSvKeepAliveValue)
 
         fun updateKeepAliveSummary() {
-            val idx = values.indexOf(binding.prefs.svKeepAliveMinutes).let { if (it >= 0) it else values.size - 1 }
+            val idx = values.indexOf(binding.prefs.svKeepAliveMinutes).let {
+                if (it >=
+                    0
+                ) {
+                    it
+                } else {
+                    values.size - 1
+                }
+            }
             tvSvKeepAlive.text = labels[idx]
         }
 
         updateKeepAliveSummary()
         tvSvKeepAlive.setOnClickListener { v ->
             binding.hapticTapIfEnabled(v)
-            val cur = values.indexOf(binding.prefs.svKeepAliveMinutes).let { if (it >= 0) it else values.size - 1 }
-            binding.showSingleChoiceDialog(R.string.label_sv_keep_alive, labels.toTypedArray(), cur) { which ->
+            val cur = values.indexOf(binding.prefs.svKeepAliveMinutes).let {
+                if (it >=
+                    0
+                ) {
+                    it
+                } else {
+                    values.size - 1
+                }
+            }
+            binding.showSingleChoiceDialog(
+                R.string.label_sv_keep_alive,
+                labels.toTypedArray(),
+                cur
+            ) { which ->
                 val vv = values.getOrNull(which) ?: -1
                 if (vv != binding.prefs.svKeepAliveMinutes) {
                     binding.viewModel.updateSvKeepAlive(vv)
@@ -237,7 +267,9 @@ internal class SenseVoiceSettingsSection : AsrSettingsSection {
                     v.isEnabled = false
                     binding.activity.lifecycleScope.launch {
                         try {
-                            val base = binding.activity.getExternalFilesDir(null) ?: binding.activity.filesDir
+                            val base =
+                                binding.activity.getExternalFilesDir(null)
+                                    ?: binding.activity.filesDir
                             val variant = binding.prefs.svModelVariant
                             val outDirRoot = File(base, "sensevoice")
                             val outDir = when (variant) {
@@ -252,10 +284,12 @@ internal class SenseVoiceSettingsSection : AsrSettingsSection {
                             } catch (t: Throwable) {
                                 android.util.Log.e(TAG, "Failed to unload SenseVoice recognizer", t)
                             }
-                            tvSvDownloadStatus.text = binding.activity.getString(R.string.sv_clear_done)
+                            tvSvDownloadStatus.text =
+                                binding.activity.getString(R.string.sv_clear_done)
                         } catch (t: Throwable) {
                             android.util.Log.e(TAG, "Failed to clear model", t)
-                            tvSvDownloadStatus.text = binding.activity.getString(R.string.sv_clear_failed)
+                            tvSvDownloadStatus.text =
+                                binding.activity.getString(R.string.sv_clear_failed)
                         } finally {
                             v.isEnabled = true
                             updateDownloadUiVisibility(binding)

@@ -37,8 +37,9 @@ internal class FloatingAsrInteractionController(
     private val notifier: UserNotifier,
     private val scope: CoroutineScope,
     private val tag: String,
-    private val isImeVisible: () -> Boolean,
-) : AsrSessionManager.AsrSessionListener, FloatingBallTouchHandler.TouchEventListener {
+    private val isImeVisible: () -> Boolean
+) : AsrSessionManager.AsrSessionListener,
+    FloatingBallTouchHandler.TouchEventListener {
     companion object {
         private const val EDGE_HANDLE_AUTO_HIDE_DELAY_MS = 2500L
     }
@@ -54,11 +55,9 @@ internal class FloatingAsrInteractionController(
     private var postErrorPartialHideRunnable: Runnable? = null
     private var postErrorResetStateRunnable: Runnable? = null
 
-    fun isForceVisibleActive(): Boolean {
-        return menuController.isForceVisibleMenuActive() ||
-            stateMachine.isMoveMode ||
-            touchActiveGuard
-    }
+    fun isForceVisibleActive(): Boolean = menuController.isForceVisibleMenuActive() ||
+        stateMachine.isMoveMode ||
+        touchActiveGuard
 
     fun cleanup() {
         cancelEdgeHandleAutoHide()
@@ -127,25 +126,32 @@ internal class FloatingAsrInteractionController(
     }
 
     private fun cancelEdgeHandleAutoHide() {
-        edgeHandleAutoHideRunnable = cancelDelayedRunnable(edgeHandleAutoHideRunnable, "edge-handle auto hide")
+        edgeHandleAutoHideRunnable =
+            cancelDelayedRunnable(edgeHandleAutoHideRunnable, "edge-handle auto hide")
     }
 
     private fun cancelPostCommitPartialHide() {
-        postCommitPartialHideRunnable = cancelDelayedRunnable(postCommitPartialHideRunnable, "post-commit partial hide")
+        postCommitPartialHideRunnable =
+            cancelDelayedRunnable(postCommitPartialHideRunnable, "post-commit partial hide")
     }
 
     private fun cancelPostErrorPartialHide() {
-        postErrorPartialHideRunnable = cancelDelayedRunnable(postErrorPartialHideRunnable, "post-error partial hide")
+        postErrorPartialHideRunnable =
+            cancelDelayedRunnable(postErrorPartialHideRunnable, "post-error partial hide")
     }
 
     private fun cancelPostErrorResetState() {
-        postErrorResetStateRunnable = cancelDelayedRunnable(postErrorResetStateRunnable, "post-error reset state")
+        postErrorResetStateRunnable =
+            cancelDelayedRunnable(postErrorResetStateRunnable, "post-error reset state")
     }
 
     private fun schedulePostCommitPartialHide() {
         cancelPostCommitPartialHide()
         val runnable = Runnable {
-            if (stateMachine.isIdle && !prefs.floatingSwitcherOnlyWhenImeVisible && !isImeVisible()) {
+            if (stateMachine.isIdle &&
+                !prefs.floatingSwitcherOnlyWhenImeVisible &&
+                !isImeVisible()
+            ) {
                 try {
                     viewManager.animateHideToEdgePartialIfNeeded()
                 } catch (e: Throwable) {
@@ -202,11 +208,24 @@ internal class FloatingAsrInteractionController(
 
     private fun scheduleEdgeHandleAutoHide() {
         cancelEdgeHandleAutoHide()
-        if (try { prefs.floatingSwitcherOnlyWhenImeVisible } catch (_: Throwable) { false }) return
+        if (try {
+                prefs.floatingSwitcherOnlyWhenImeVisible
+            } catch (_: Throwable) {
+                false
+            }
+        ) {
+            return
+        }
 
         val runnable = Runnable {
             try {
-                val completionActive = try { viewManager.isCompletionTickActive() } catch (_: Throwable) { false }
+                val completionActive = try {
+                    viewManager.isCompletionTickActive()
+                } catch (
+                    _: Throwable
+                ) {
+                    false
+                }
                 val imeVisible = isImeVisible()
                 val forceVisible = isForceVisibleActive()
                 if (!imeVisible &&
@@ -260,13 +279,28 @@ internal class FloatingAsrInteractionController(
                     val totalElapsedMs = asrSessionManager.popLastTotalElapsedMsForStats()
                     val procMs = asrSessionManager.getLastRequestDuration() ?: 0L
                     val chars = com.brycewg.asrkb.util.TextSanitizer.countEffectiveChars(text)
-                    val ai = try { asrSessionManager.wasLastAiUsed() } catch (_: Throwable) { false }
-                    val aiPostMs = try { asrSessionManager.getLastAiPostMs() } catch (_: Throwable) { 0L }
+                    val ai = try {
+                        asrSessionManager.wasLastAiUsed()
+                    } catch (
+                        _: Throwable
+                    ) {
+                        false
+                    }
+                    val aiPostMs = try {
+                        asrSessionManager.getLastAiPostMs()
+                    } catch (
+                        _: Throwable
+                    ) {
+                        0L
+                    }
                     val aiPostStatus = try {
                         asrSessionManager.getLastAiPostStatus()
                     } catch (_: Throwable) {
-                        if (ai) com.brycewg.asrkb.store.AsrHistoryStore.AiPostStatus.SUCCESS
-                        else com.brycewg.asrkb.store.AsrHistoryStore.AiPostStatus.NONE
+                        if (ai) {
+                            com.brycewg.asrkb.store.AsrHistoryStore.AiPostStatus.SUCCESS
+                        } else {
+                            com.brycewg.asrkb.store.AsrHistoryStore.AiPostStatus.NONE
+                        }
                     }
                     val vendorForRecord = try {
                         asrSessionManager.peekLastFinalVendorForStats()
@@ -281,7 +315,7 @@ internal class FloatingAsrInteractionController(
                         procMs = procMs,
                         source = "floating",
                         aiProcessed = ai,
-                        charCount = chars,
+                        charCount = chars
                     )
                     if (!prefs.disableUsageStats) {
                         prefs.recordUsageCommit(
@@ -289,7 +323,7 @@ internal class FloatingAsrInteractionController(
                             vendorForRecord,
                             audioMs,
                             chars,
-                            procMs,
+                            procMs
                         )
                     }
                     if (!prefs.disableAsrHistory) {
@@ -307,8 +341,8 @@ internal class FloatingAsrInteractionController(
                                     aiProcessed = ai,
                                     aiPostMs = aiPostMs,
                                     aiPostStatus = aiPostStatus,
-                                    charCount = chars,
-                                ),
+                                    charCount = chars
+                                )
                             )
                         } catch (e: Exception) {
                             Log.e(tag, "Failed to add ASR history (floating)", e)
@@ -540,7 +574,7 @@ internal class FloatingAsrInteractionController(
             anchorCenter = center,
             alpha = alpha,
             title = context.getString(R.string.label_llm_prompt_presets),
-            entries = entries,
+            entries = entries
         ) {
             touchActiveGuard = false
             updateVisibilityByPref("prompt_panel_dismiss")
@@ -645,7 +679,7 @@ internal class FloatingAsrInteractionController(
             anchorCenter = center,
             alpha = alpha,
             title = context.getString(R.string.label_choose_asr_vendor),
-            entries = entries,
+            entries = entries
         ) {
             touchActiveGuard = false
             updateVisibilityByPref("vendor_panel_dismiss")
@@ -669,7 +703,13 @@ internal class FloatingAsrInteractionController(
             prefs.postProcessEnabled = newVal
             val msg = context.getString(
                 R.string.status_postproc,
-                if (newVal) context.getString(R.string.toggle_on) else context.getString(R.string.toggle_off),
+                if (newVal) {
+                    context.getString(
+                        R.string.toggle_on
+                    )
+                } else {
+                    context.getString(R.string.toggle_off)
+                }
             )
             showToast(msg)
         } catch (e: Throwable) {
@@ -699,11 +739,23 @@ internal class FloatingAsrInteractionController(
             anchorCenter = center,
             alpha = alpha,
             title = context.getString(R.string.btn_open_asr_history),
-            texts = if (texts.isEmpty()) listOf(context.getString(R.string.empty_history)) else texts,
+            texts = if (texts.isEmpty()) {
+                listOf(
+                    context.getString(R.string.empty_history)
+                )
+            } else {
+                texts
+            },
             onItemClick = { text ->
-                if (text == context.getString(R.string.empty_history)) return@showScrollableTextPanel
+                if (text ==
+                    context.getString(R.string.empty_history)
+                ) {
+                    return@showScrollableTextPanel
+                }
                 try {
-                    val clipMgr = context.getSystemService(android.content.ClipboardManager::class.java)
+                    val clipMgr = context.getSystemService(
+                        android.content.ClipboardManager::class.java
+                    )
                     val clip = android.content.ClipData.newPlainText("asr_history", text)
                     clipMgr?.setPrimaryClip(clip)
                     showToast(context.getString(R.string.floating_asr_copied))
@@ -712,7 +764,7 @@ internal class FloatingAsrInteractionController(
                 }
             },
             initialVisibleCount = 20,
-            loadMoreCount = 20,
+            loadMoreCount = 20
         ) {
             touchActiveGuard = false
             updateVisibilityByPref("history_panel_dismiss")
@@ -752,7 +804,11 @@ internal class FloatingAsrInteractionController(
                     false
                 }
                 handler.post {
-                    showToast(context.getString(if (ok) R.string.sc_status_uploaded else R.string.sc_test_failed))
+                    showToast(
+                        context.getString(
+                            if (ok) R.string.sc_status_uploaded else R.string.sc_test_failed
+                        )
+                    )
                 }
             }
         } catch (e: Throwable) {
@@ -808,100 +864,111 @@ internal class FloatingAsrInteractionController(
         }
     }
 
-    private fun getMenuAlphaOrDefault(): Float {
-        return try {
-            prefs.floatingSwitcherAlpha
-        } catch (e: Throwable) {
-            Log.w(tag, "Failed to get floating menu alpha", e)
-            1.0f
-        }
+    private fun getMenuAlphaOrDefault(): Float = try {
+        prefs.floatingSwitcherAlpha
+    } catch (e: Throwable) {
+        Log.w(tag, "Failed to get floating menu alpha", e)
+        1.0f
     }
 
-    private fun buildRadialMenuItems(): List<FloatingMenuHelper.MenuItem> {
-        return buildList {
-            add(
-                FloatingMenuHelper.MenuItem(
-                    R.drawable.article,
-                    context.getString(R.string.label_radial_switch_prompt),
-                    context.getString(R.string.label_radial_switch_prompt),
-                ) { onPickPromptPresetFromMenu() },
-            )
-            add(
-                FloatingMenuHelper.MenuItem(
-                    R.drawable.waveform,
-                    context.getString(R.string.label_radial_switch_asr),
-                    context.getString(R.string.label_radial_switch_asr),
-                ) { onPickAsrVendor() },
-            )
-            add(
-                FloatingMenuHelper.MenuItem(
-                    R.drawable.keyboard,
-                    context.getString(R.string.label_radial_switch_ime),
-                    context.getString(R.string.label_radial_switch_ime),
-                ) { invokeImePickerFromMenu() },
-            )
-            add(
-                FloatingMenuHelper.MenuItem(
-                    R.drawable.arrows_out_cardinal,
-                    context.getString(R.string.label_radial_move),
-                    context.getString(R.string.label_radial_move),
-                ) { enableMoveModeFromMenu() },
-            )
-            add(
-                FloatingMenuHelper.MenuItem(
-                    if (try { prefs.autoStopOnSilenceEnabled } catch (_: Throwable) { false }) {
-                        R.drawable.hand_palm_fill
-                    } else {
-                        R.drawable.hand_palm
-                    },
-                    context.getString(R.string.label_radial_toggle_silence_autostop),
-                    context.getString(R.string.label_radial_toggle_silence_autostop),
-                ) { toggleAutoStopSilenceFromMenu() },
-            )
-            add(
-                FloatingMenuHelper.MenuItem(
-                    if (try { prefs.postProcessEnabled } catch (_: Throwable) { false }) {
-                        R.drawable.magic_wand_fill
-                    } else {
-                        R.drawable.magic_wand
-                    },
-                    context.getString(R.string.label_radial_postproc),
-                    context.getString(R.string.label_radial_postproc),
-                ) { togglePostprocFromMenu() },
-            )
-            add(
-                FloatingMenuHelper.MenuItem(
-                    R.drawable.textbox,
-                    context.getString(R.string.label_radial_open_history),
-                    context.getString(R.string.label_radial_open_history),
-                ) { showHistoryPanelFromMenu() },
-            )
+    private fun buildRadialMenuItems(): List<FloatingMenuHelper.MenuItem> = buildList {
+        add(
+            FloatingMenuHelper.MenuItem(
+                R.drawable.article,
+                context.getString(R.string.label_radial_switch_prompt),
+                context.getString(R.string.label_radial_switch_prompt)
+            ) { onPickPromptPresetFromMenu() }
+        )
+        add(
+            FloatingMenuHelper.MenuItem(
+                R.drawable.waveform,
+                context.getString(R.string.label_radial_switch_asr),
+                context.getString(R.string.label_radial_switch_asr)
+            ) { onPickAsrVendor() }
+        )
+        add(
+            FloatingMenuHelper.MenuItem(
+                R.drawable.keyboard,
+                context.getString(R.string.label_radial_switch_ime),
+                context.getString(R.string.label_radial_switch_ime)
+            ) { invokeImePickerFromMenu() }
+        )
+        add(
+            FloatingMenuHelper.MenuItem(
+                R.drawable.arrows_out_cardinal,
+                context.getString(R.string.label_radial_move),
+                context.getString(R.string.label_radial_move)
+            ) { enableMoveModeFromMenu() }
+        )
+        add(
+            FloatingMenuHelper.MenuItem(
+                if (try {
+                        prefs.autoStopOnSilenceEnabled
+                    } catch (_: Throwable) {
+                        false
+                    }
+                ) {
+                    R.drawable.hand_palm_fill
+                } else {
+                    R.drawable.hand_palm
+                },
+                context.getString(R.string.label_radial_toggle_silence_autostop),
+                context.getString(R.string.label_radial_toggle_silence_autostop)
+            ) { toggleAutoStopSilenceFromMenu() }
+        )
+        add(
+            FloatingMenuHelper.MenuItem(
+                if (try {
+                        prefs.postProcessEnabled
+                    } catch (_: Throwable) {
+                        false
+                    }
+                ) {
+                    R.drawable.magic_wand_fill
+                } else {
+                    R.drawable.magic_wand
+                },
+                context.getString(R.string.label_radial_postproc),
+                context.getString(R.string.label_radial_postproc)
+            ) { togglePostprocFromMenu() }
+        )
+        add(
+            FloatingMenuHelper.MenuItem(
+                R.drawable.textbox,
+                context.getString(R.string.label_radial_open_history),
+                context.getString(R.string.label_radial_open_history)
+            ) { showHistoryPanelFromMenu() }
+        )
 
-            if (try { prefs.syncClipboardEnabled } catch (_: Throwable) { false }) {
-                add(
-                    FloatingMenuHelper.MenuItem(
-                        R.drawable.cloud_arrow_up,
-                        context.getString(R.string.label_radial_clipboard_upload),
-                        context.getString(R.string.label_radial_clipboard_upload),
-                    ) { uploadClipboardOnceFromMenu() },
-                )
-                add(
-                    FloatingMenuHelper.MenuItem(
-                        R.drawable.cloud_arrow_down,
-                        context.getString(R.string.label_radial_clipboard_pull),
-                        context.getString(R.string.label_radial_clipboard_pull),
-                    ) { pullClipboardOnceFromMenu() },
-                )
+        if (try {
+                prefs.syncClipboardEnabled
+            } catch (_: Throwable) {
+                false
             }
-
+        ) {
             add(
                 FloatingMenuHelper.MenuItem(
-                    R.drawable.gear,
-                    context.getString(R.string.label_radial_open_settings),
-                    context.getString(R.string.label_radial_open_settings),
-                ) { openSettingsFromMenu() },
+                    R.drawable.cloud_arrow_up,
+                    context.getString(R.string.label_radial_clipboard_upload),
+                    context.getString(R.string.label_radial_clipboard_upload)
+                ) { uploadClipboardOnceFromMenu() }
+            )
+            add(
+                FloatingMenuHelper.MenuItem(
+                    R.drawable.cloud_arrow_down,
+                    context.getString(R.string.label_radial_clipboard_pull),
+                    context.getString(R.string.label_radial_clipboard_pull)
+                ) { pullClipboardOnceFromMenu() }
             )
         }
+
+        add(
+            FloatingMenuHelper.MenuItem(
+                R.drawable.gear,
+                context.getString(R.string.label_radial_open_settings),
+                context.getString(R.string.label_radial_open_settings)
+            ) { openSettingsFromMenu() }
+        )
     }
 
     // ==================== 辅助方法 ====================
@@ -943,9 +1010,13 @@ internal class FloatingAsrInteractionController(
         }
         if (list?.any { it.packageName == context.packageName } == true) return true
         return try {
-            val enabled = Settings.Secure.getString(context.contentResolver, Settings.Secure.ENABLED_INPUT_METHODS)
+            val enabled = Settings.Secure.getString(
+                context.contentResolver,
+                Settings.Secure.ENABLED_INPUT_METHODS
+            )
             val id = "${context.packageName}/.ime.AsrKeyboardService"
-            enabled?.contains(id) == true || (enabled?.split(':')?.any { it.startsWith(context.packageName) } == true)
+            enabled?.contains(id) == true ||
+                (enabled?.split(':')?.any { it.startsWith(context.packageName) } == true)
         } catch (e: Throwable) {
             Log.e(tag, "Failed to check IME enabled via settings", e)
             false
@@ -960,15 +1031,12 @@ internal class FloatingAsrInteractionController(
         }
     }
 
-    private fun hasRecordAudioPermission(): Boolean {
-        return ContextCompat.checkSelfPermission(
-            context,
-            Manifest.permission.RECORD_AUDIO,
-        ) == PackageManager.PERMISSION_GRANTED
-    }
+    private fun hasRecordAudioPermission(): Boolean = ContextCompat.checkSelfPermission(
+        context,
+        Manifest.permission.RECORD_AUDIO
+    ) == PackageManager.PERMISSION_GRANTED
 
     private fun hapticTapIfEnabled(view: View?) {
         HapticFeedbackHelper.performTap(context, prefs, view)
     }
 }
-

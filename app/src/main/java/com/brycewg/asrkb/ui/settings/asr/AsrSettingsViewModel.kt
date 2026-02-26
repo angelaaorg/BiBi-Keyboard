@@ -6,12 +6,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.brycewg.asrkb.asr.AsrVendor
 import com.brycewg.asrkb.store.Prefs
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.io.File
 
 /**
  * ViewModel for ASR Settings screen, managing all state and business logic.
@@ -32,9 +32,7 @@ class AsrSettingsViewModel : ViewModel() {
     }
 
     private fun loadInitialState() {
-        fun isQwenOmniModel(model: String): Boolean {
-            return model.startsWith("Qwen/Qwen3-Omni-30B-A3B-")
-        }
+        fun isQwenOmniModel(model: String): Boolean = model.startsWith("Qwen/Qwen3-Omni-30B-A3B-")
         _uiState.value = AsrSettingsUiState(
             selectedVendor = prefs.asrVendor,
             autoStopSilenceEnabled = prefs.autoStopOnSilenceEnabled,
@@ -50,7 +48,11 @@ class AsrSettingsViewModel : ViewModel() {
             volcModelV2Enabled = prefs.volcModelV2Enabled,
             volcLanguage = prefs.volcLanguage,
             // SiliconFlow settings
-            sfUseOmni = isQwenOmniModel(prefs.sfModel.ifBlank { com.brycewg.asrkb.store.Prefs.DEFAULT_SF_MODEL }),
+            sfUseOmni = isQwenOmniModel(
+                prefs.sfModel.ifBlank {
+                    com.brycewg.asrkb.store.Prefs.DEFAULT_SF_MODEL
+                }
+            ),
             // Eleven settings
             elevenStreamingEnabled = prefs.elevenStreamingEnabled,
             // OpenAI settings
@@ -96,16 +98,40 @@ class AsrSettingsViewModel : ViewModel() {
 
         // Handle local model lifecycle cleanup
         if (oldVendor == AsrVendor.SenseVoice && vendor != AsrVendor.SenseVoice) {
-            try { com.brycewg.asrkb.asr.unloadSenseVoiceRecognizer() } catch (e: Throwable) { Log.e(TAG, "Failed to unload SenseVoice recognizer", e) }
+            try {
+                com.brycewg.asrkb.asr.unloadSenseVoiceRecognizer()
+            } catch (
+                e: Throwable
+            ) {
+                Log.e(TAG, "Failed to unload SenseVoice recognizer", e)
+            }
         }
         if (oldVendor == AsrVendor.FunAsrNano && vendor != AsrVendor.FunAsrNano) {
-            try { com.brycewg.asrkb.asr.unloadFunAsrNanoRecognizer() } catch (e: Throwable) { Log.e(TAG, "Failed to unload FunASR Nano recognizer", e) }
+            try {
+                com.brycewg.asrkb.asr.unloadFunAsrNanoRecognizer()
+            } catch (
+                e: Throwable
+            ) {
+                Log.e(TAG, "Failed to unload FunASR Nano recognizer", e)
+            }
         }
         if (oldVendor == AsrVendor.Telespeech && vendor != AsrVendor.Telespeech) {
-            try { com.brycewg.asrkb.asr.unloadTelespeechRecognizer() } catch (e: Throwable) { Log.e(TAG, "Failed to unload TeleSpeech recognizer", e) }
+            try {
+                com.brycewg.asrkb.asr.unloadTelespeechRecognizer()
+            } catch (
+                e: Throwable
+            ) {
+                Log.e(TAG, "Failed to unload TeleSpeech recognizer", e)
+            }
         }
         if (oldVendor == AsrVendor.Paraformer && vendor != AsrVendor.Paraformer) {
-            try { com.brycewg.asrkb.asr.unloadParaformerRecognizer() } catch (e: Throwable) { Log.e(TAG, "Failed to unload Paraformer recognizer", e) }
+            try {
+                com.brycewg.asrkb.asr.unloadParaformerRecognizer()
+            } catch (
+                e: Throwable
+            ) {
+                Log.e(TAG, "Failed to unload Paraformer recognizer", e)
+            }
         }
 
         // 当切换到本地模型（TeleSpeech / Paraformer）时，如未安装标点模型则提示一次
@@ -306,7 +332,13 @@ class AsrSettingsViewModel : ViewModel() {
         if (prefs.pfUseItn != enabled) {
             prefs.pfUseItn = enabled
             _uiState.value = _uiState.value.copy(pfUseItn = enabled)
-            try { com.brycewg.asrkb.asr.unloadParaformerRecognizer() } catch (e: Throwable) { Log.e(TAG, "Failed to unload Paraformer recognizer after ITN change", e) }
+            try {
+                com.brycewg.asrkb.asr.unloadParaformerRecognizer()
+            } catch (
+                e: Throwable
+            ) {
+                Log.e(TAG, "Failed to unload Paraformer recognizer after ITN change", e)
+            }
             triggerPfPreloadIfEnabledAndActive("pf ITN change")
         }
     }
@@ -403,7 +435,13 @@ class AsrSettingsViewModel : ViewModel() {
     fun updateTsModelVariant(variant: String) {
         prefs.tsModelVariant = variant
         _uiState.value = _uiState.value.copy(tsModelVariant = variant)
-        try { com.brycewg.asrkb.asr.unloadTelespeechRecognizer() } catch (e: Throwable) { Log.e(TAG, "Failed to unload TeleSpeech recognizer after variant change", e) }
+        try {
+            com.brycewg.asrkb.asr.unloadTelespeechRecognizer()
+        } catch (
+            e: Throwable
+        ) {
+            Log.e(TAG, "Failed to unload TeleSpeech recognizer after variant change", e)
+        }
         triggerTsPreloadIfEnabledAndActive("variant change")
     }
 
@@ -416,7 +454,13 @@ class AsrSettingsViewModel : ViewModel() {
         val vv = v.coerceIn(1, 8)
         prefs.tsNumThreads = vv
         _uiState.value = _uiState.value.copy(tsNumThreads = vv)
-        try { com.brycewg.asrkb.asr.unloadTelespeechRecognizer() } catch (e: Throwable) { Log.e(TAG, "Failed to unload TeleSpeech recognizer after threads change", e) }
+        try {
+            com.brycewg.asrkb.asr.unloadTelespeechRecognizer()
+        } catch (
+            e: Throwable
+        ) {
+            Log.e(TAG, "Failed to unload TeleSpeech recognizer after threads change", e)
+        }
         triggerTsPreloadIfEnabledAndActive("threads change")
     }
 
@@ -457,7 +501,9 @@ class AsrSettingsViewModel : ViewModel() {
     fun updatePfModelVariant(variant: String) {
         prefs.pfModelVariant = variant
         _uiState.value = _uiState.value.copy(pfModelVariant = variant)
-        try { com.brycewg.asrkb.asr.unloadParaformerRecognizer() } catch (_: Throwable) { }
+        try {
+            com.brycewg.asrkb.asr.unloadParaformerRecognizer()
+        } catch (_: Throwable) { }
         triggerPfPreloadIfEnabledAndActive("variant change")
     }
 
@@ -471,7 +517,9 @@ class AsrSettingsViewModel : ViewModel() {
         prefs.pfNumThreads = vv
         _uiState.value = _uiState.value.copy(pfNumThreads = vv)
         // 线程数变化后卸载已缓存识别器，必要时重新预加载
-        try { com.brycewg.asrkb.asr.unloadParaformerRecognizer() } catch (_: Throwable) { }
+        try {
+            com.brycewg.asrkb.asr.unloadParaformerRecognizer()
+        } catch (_: Throwable) { }
         triggerPfPreloadIfEnabledAndActive("threads change")
     }
 
@@ -545,13 +593,23 @@ class AsrSettingsViewModel : ViewModel() {
     fun checkPfModelDownloaded(context: Context): Boolean {
         val base = context.getExternalFilesDir(null) ?: context.filesDir
         val root = File(base, "paraformer")
-        val group = if (prefs.pfModelVariant.startsWith("trilingual")) File(root, "trilingual") else File(root, "bilingual")
+        val group = if (prefs.pfModelVariant.startsWith(
+                "trilingual"
+            )
+        ) {
+            File(root, "trilingual")
+        } else {
+            File(root, "bilingual")
+        }
         val dir = com.brycewg.asrkb.asr.findPfModelDir(group)
         return dir != null &&
-                File(dir, "tokens.txt").exists() &&
-                (
-                    (File(dir, "encoder.onnx").exists() && File(dir, "decoder.onnx").exists()) ||
-                    (File(dir, "encoder.int8.onnx").exists() && File(dir, "decoder.int8.onnx").exists())
+            File(dir, "tokens.txt").exists() &&
+            (
+                (File(dir, "encoder.onnx").exists() && File(dir, "decoder.onnx").exists()) ||
+                    (
+                        File(dir, "encoder.int8.onnx").exists() &&
+                            File(dir, "decoder.int8.onnx").exists()
+                        )
                 )
     }
 
@@ -565,8 +623,14 @@ class AsrSettingsViewModel : ViewModel() {
         }
         val modelDir = findModelDir(dir)
         return modelDir != null &&
-                File(modelDir, "tokens.txt").exists() &&
-                (File(modelDir, "model.int8.onnx").exists() || File(modelDir, "model.onnx").exists())
+            File(modelDir, "tokens.txt").exists() &&
+            (
+                File(
+                    modelDir,
+                    "model.int8.onnx"
+                ).exists() ||
+                    File(modelDir, "model.onnx").exists()
+                )
     }
 
     fun checkFnModelDownloaded(context: Context): Boolean {
@@ -574,14 +638,15 @@ class AsrSettingsViewModel : ViewModel() {
         val root = File(base, "funasr_nano")
         val dirName = "nano-int8"
         val dir = File(root, dirName)
-        val modelDir = com.brycewg.asrkb.asr.findFnModelDir(dir) ?: com.brycewg.asrkb.asr.findFnModelDir(root)
+        val modelDir =
+            com.brycewg.asrkb.asr.findFnModelDir(dir) ?: com.brycewg.asrkb.asr.findFnModelDir(root)
         val tokenizerDir = modelDir?.let { com.brycewg.asrkb.asr.findFnTokenizerDir(it) }
         return modelDir != null &&
-                File(modelDir, "encoder_adaptor.int8.onnx").exists() &&
-                File(modelDir, "llm.int8.onnx").exists() &&
-                File(modelDir, "embedding.int8.onnx").exists() &&
-                tokenizerDir != null &&
-                File(tokenizerDir, "tokenizer.json").exists()
+            File(modelDir, "encoder_adaptor.int8.onnx").exists() &&
+            File(modelDir, "llm.int8.onnx").exists() &&
+            File(modelDir, "embedding.int8.onnx").exists() &&
+            tokenizerDir != null &&
+            File(tokenizerDir, "tokenizer.json").exists()
     }
 
     fun checkTsModelDownloaded(context: Context): Boolean {
@@ -594,17 +659,21 @@ class AsrSettingsViewModel : ViewModel() {
         }
         val modelDir = findModelDir(dir)
         return modelDir != null &&
-                File(modelDir, "tokens.txt").exists() &&
-                (File(modelDir, "model.int8.onnx").exists() || File(modelDir, "model.onnx").exists())
+            File(modelDir, "tokens.txt").exists() &&
+            (
+                File(
+                    modelDir,
+                    "model.int8.onnx"
+                ).exists() ||
+                    File(modelDir, "model.onnx").exists()
+                )
     }
 
-    fun isPunctuationModelInstalled(context: Context): Boolean {
-        return try {
-            com.brycewg.asrkb.asr.SherpaPunctuationManager.isModelInstalled(context)
-        } catch (t: Throwable) {
-            Log.w(TAG, "Failed to check punctuation model installed", t)
-            false
-        }
+    fun isPunctuationModelInstalled(context: Context): Boolean = try {
+        com.brycewg.asrkb.asr.SherpaPunctuationManager.isModelInstalled(context)
+    } catch (t: Throwable) {
+        Log.w(TAG, "Failed to check punctuation model installed", t)
+        false
     }
 
     private fun findModelDir(root: File): File? {

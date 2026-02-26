@@ -68,13 +68,9 @@ internal object PrivilegedKeepAliveStarter {
         }
     }
 
-    fun isShizukuManagerInstalled(context: Context): Boolean {
-        return PrivilegedAccessManager.isShizukuManagerInstalled(context)
-    }
+    fun isShizukuManagerInstalled(context: Context): Boolean = PrivilegedAccessManager.isShizukuManagerInstalled(context)
 
-    fun isShizukuPrivilegedApiInstalled(context: Context): Boolean {
-        return PrivilegedAccessManager.isShizukuPrivilegedApiInstalled(context)
-    }
+    fun isShizukuPrivilegedApiInstalled(context: Context): Boolean = PrivilegedAccessManager.isShizukuPrivilegedApiInstalled(context)
 
     fun isShizukuBinderReady(): Boolean {
         initShizuku()
@@ -104,7 +100,14 @@ internal object PrivilegedKeepAliveStarter {
                 return
             }
             if (!isShizukuGranted(context)) {
-                DebugLogManager.logPersistent(context, "keepalive", "shizuku_ready_skip", mapOf("reason" to "permission_denied"))
+                DebugLogManager.logPersistent(
+                    context,
+                    "keepalive",
+                    "shizuku_ready_skip",
+                    mapOf(
+                        "reason" to "permission_denied"
+                    )
+                )
                 return
             }
             if (!tryAcquirePrivilegedStartWindow(context, "shizuku_ready")) {
@@ -115,17 +118,26 @@ internal object PrivilegedKeepAliveStarter {
                 context,
                 "keepalive",
                 "shizuku_ready_result",
-                mapOf("ok" to (result?.ok == true), "method" to (result?.method?.name?.lowercase() ?: "none"), "exit" to result?.exitCode)
+                mapOf(
+                    "ok" to (result?.ok == true),
+                    "method" to (result?.method?.name?.lowercase() ?: "none"),
+                    "exit" to result?.exitCode
+                )
             )
         } catch (t: Throwable) {
             if (BuildConfig.DEBUG) Log.d(TAG, "tryStartByShizukuWhenBinderReady failed", t)
-            DebugLogManager.logPersistent(context, "keepalive", "shizuku_ready_error", mapOf("msg" to t.message))
+            DebugLogManager.logPersistent(
+                context,
+                "keepalive",
+                "shizuku_ready_error",
+                mapOf(
+                    "msg" to t.message
+                )
+            )
         }
     }
 
-    fun isRootProbablyAvailable(): Boolean {
-        return PrivilegedAccessManager.isRootProbablyAvailable()
-    }
+    fun isRootProbablyAvailable(): Boolean = PrivilegedAccessManager.isRootProbablyAvailable()
 
     fun startKeepAliveServiceIntent(context: Context): Intent {
         val token = FloatingKeepAliveService.getOrCreateCallerToken(context)
@@ -175,13 +187,32 @@ internal object PrivilegedKeepAliveStarter {
 
     fun tryStartKeepAliveByShizuku(context: Context): StartResult? {
         if (!isShizukuGranted(context)) {
-            DebugLogManager.logPersistent(context, "keepalive", "start_skip", mapOf("method" to "shizuku", "reason" to "permission_denied"))
+            DebugLogManager.logPersistent(
+                context,
+                "keepalive",
+                "start_skip",
+                mapOf(
+                    "method" to "shizuku",
+                    "reason" to "permission_denied"
+                )
+            )
             return null
         }
-        DebugLogManager.logPersistent(context, "keepalive", "start_attempt", mapOf("method" to "shizuku"))
+        DebugLogManager.logPersistent(
+            context,
+            "keepalive",
+            "start_attempt",
+            mapOf(
+                "method" to "shizuku"
+            )
+        )
         val cmd = startKeepAliveForegroundServiceCommand(context)
         val result = PrivilegedAccessManager.runShellByShizuku(context, cmd)
-            ?: StartResult(ok = false, method = StartMethod.Shizuku, stderr = "Shizuku newProcess failed")
+            ?: StartResult(
+                ok = false,
+                method = StartMethod.Shizuku,
+                stderr = "Shizuku newProcess failed"
+            )
                 .toExecFallback()
         val mapped = result.toStartResult()
         DebugLogManager.logPersistent(
@@ -200,10 +231,25 @@ internal object PrivilegedKeepAliveStarter {
 
     fun tryStartKeepAliveByRoot(context: Context): StartResult? {
         if (!isRootProbablyAvailable()) {
-            DebugLogManager.logPersistent(context, "keepalive", "start_skip", mapOf("method" to "root", "reason" to "su_not_found"))
+            DebugLogManager.logPersistent(
+                context,
+                "keepalive",
+                "start_skip",
+                mapOf(
+                    "method" to "root",
+                    "reason" to "su_not_found"
+                )
+            )
             return null
         }
-        DebugLogManager.logPersistent(context, "keepalive", "start_attempt", mapOf("method" to "root"))
+        DebugLogManager.logPersistent(
+            context,
+            "keepalive",
+            "start_attempt",
+            mapOf(
+                "method" to "root"
+            )
+        )
         val cmd = startKeepAliveForegroundServiceCommand(context)
         val result = PrivilegedAccessManager.runShellByRoot(context, cmd)
             ?: StartResult(ok = false, method = StartMethod.Root, stderr = "su exec failed")
@@ -224,11 +270,26 @@ internal object PrivilegedKeepAliveStarter {
     }
 
     fun startKeepAliveFallback(context: Context): StartResult {
-        DebugLogManager.logPersistent(context, "keepalive", "start_attempt", mapOf("method" to "normal"))
+        DebugLogManager.logPersistent(
+            context,
+            "keepalive",
+            "start_attempt",
+            mapOf(
+                "method" to "normal"
+            )
+        )
         return try {
             FloatingKeepAliveService.start(context)
             StartResult(ok = true, method = StartMethod.Normal).also {
-                DebugLogManager.logPersistent(context, "keepalive", "start_result", mapOf("method" to "normal", "ok" to true))
+                DebugLogManager.logPersistent(
+                    context,
+                    "keepalive",
+                    "start_result",
+                    mapOf(
+                        "method" to "normal",
+                        "ok" to true
+                    )
+                )
             }
         } catch (t: Throwable) {
             StartResult(ok = false, method = StartMethod.Normal, stderr = t.message).also {
@@ -247,18 +308,16 @@ internal object PrivilegedKeepAliveStarter {
         return this.take(160)
     }
 
-    private fun StartResult.toExecFallback(): PrivilegedAccessManager.ExecResult {
-        return PrivilegedAccessManager.ExecResult(
-            ok = ok,
-            method = when (method) {
-                StartMethod.Shizuku -> PrivilegedAccessManager.PrivilegedMethod.Shizuku
-                StartMethod.Root -> PrivilegedAccessManager.PrivilegedMethod.Root
-                StartMethod.Normal -> PrivilegedAccessManager.PrivilegedMethod.None
-            },
-            exitCode = exitCode,
-            stderr = stderr
-        )
-    }
+    private fun StartResult.toExecFallback(): PrivilegedAccessManager.ExecResult = PrivilegedAccessManager.ExecResult(
+        ok = ok,
+        method = when (method) {
+            StartMethod.Shizuku -> PrivilegedAccessManager.PrivilegedMethod.Shizuku
+            StartMethod.Root -> PrivilegedAccessManager.PrivilegedMethod.Root
+            StartMethod.Normal -> PrivilegedAccessManager.PrivilegedMethod.None
+        },
+        exitCode = exitCode,
+        stderr = stderr
+    )
 
     private fun PrivilegedAccessManager.ExecResult.toStartResult(): StartResult {
         val mappedMethod = when (method) {

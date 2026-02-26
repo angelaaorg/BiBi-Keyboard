@@ -3,10 +3,10 @@ package com.brycewg.asrkb.ui.settings.asr.sections
 import android.widget.EditText
 import android.widget.TextView
 import com.brycewg.asrkb.R
-import com.brycewg.asrkb.ui.settings.asr.bindString
 import com.brycewg.asrkb.ui.installExplainedSwitch
 import com.brycewg.asrkb.ui.settings.asr.AsrSettingsBinding
 import com.brycewg.asrkb.ui.settings.asr.AsrSettingsSection
+import com.brycewg.asrkb.ui.settings.asr.bindString
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.materialswitch.MaterialSwitch
 
@@ -109,7 +109,9 @@ internal class VolcengineSettingsSection : AsrSettingsSection {
 
         binding.view<MaterialButton>(R.id.btnVolcGetKey).setOnClickListener { v ->
             binding.hapticTapIfEnabled(v)
-            binding.openUrlSafely("https://bibidocs.brycewg.com/getting-started/asr-providers.html#%E7%81%AB%E5%B1%B1%E5%BC%95%E6%93%8E-volcengine")
+            binding.openUrlSafely(
+                "https://bibidocs.brycewg.com/getting-started/asr-providers.html#%E7%81%AB%E5%B1%B1%E5%BC%95%E6%93%8E-volcengine"
+            )
         }
     }
 
@@ -155,7 +157,11 @@ internal class VolcengineSettingsSection : AsrSettingsSection {
         tvVolcLanguage.setOnClickListener { v ->
             binding.hapticTapIfEnabled(v)
             val cur = langCodes.indexOf(binding.prefs.volcLanguage).coerceAtLeast(0)
-            binding.showSingleChoiceDialog(R.string.label_volc_language, langLabels.toTypedArray(), cur) { which ->
+            binding.showSingleChoiceDialog(
+                R.string.label_volc_language,
+                langLabels.toTypedArray(),
+                cur
+            ) { which ->
                 val code = langCodes.getOrNull(which) ?: ""
                 binding.viewModel.updateVolcLanguage(code)
                 updateVolcLangSummary()

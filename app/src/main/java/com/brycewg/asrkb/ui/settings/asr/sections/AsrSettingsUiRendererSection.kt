@@ -23,7 +23,11 @@ internal class AsrSettingsUiRendererSection : AsrSettingsSection {
         updateSfOmniVisibility(binding, state.sfUseOmni)
         updateOpenAiPromptVisibility(binding, state.oaAsrUsePrompt)
         updateVolcFileModeVisibility(binding, state.volcStreamingEnabled)
-        updateVolcModelV2Visibility(binding, state.volcStreamingEnabled, state.volcFileStandardEnabled)
+        updateVolcModelV2Visibility(
+            binding,
+            state.volcStreamingEnabled,
+            state.volcFileStandardEnabled
+        )
 
         binding.view<MaterialSwitch>(R.id.switchVolcFileStandard).let { sw ->
             if (sw.isChecked != state.volcFileStandardEnabled) {
@@ -77,10 +81,34 @@ internal class AsrSettingsUiRendererSection : AsrSettingsSection {
 
     private fun updateSilenceOptionsVisibility(binding: AsrSettingsBinding, enabled: Boolean) {
         val vis = if (enabled) View.VISIBLE else View.GONE
-        binding.view<View>(R.id.tvSilenceWindowLabel).let { if (it.visibility != vis) it.visibility = vis }
-        binding.view<View>(R.id.sliderSilenceWindow).let { if (it.visibility != vis) it.visibility = vis }
-        binding.view<View>(R.id.tvSilenceSensitivityLabel).let { if (it.visibility != vis) it.visibility = vis }
-        binding.view<View>(R.id.sliderSilenceSensitivity).let { if (it.visibility != vis) it.visibility = vis }
+        binding.view<View>(R.id.tvSilenceWindowLabel).let {
+            if (it.visibility !=
+                vis
+            ) {
+                it.visibility = vis
+            }
+        }
+        binding.view<View>(R.id.sliderSilenceWindow).let {
+            if (it.visibility !=
+                vis
+            ) {
+                it.visibility = vis
+            }
+        }
+        binding.view<View>(R.id.tvSilenceSensitivityLabel).let {
+            if (it.visibility !=
+                vis
+            ) {
+                it.visibility = vis
+            }
+        }
+        binding.view<View>(R.id.sliderSilenceSensitivity).let {
+            if (it.visibility !=
+                vis
+            ) {
+                it.visibility = vis
+            }
+        }
     }
 
     private fun updateSfOmniVisibility(binding: AsrSettingsBinding, enabled: Boolean) {
@@ -95,13 +123,20 @@ internal class AsrSettingsUiRendererSection : AsrSettingsSection {
         if (til.visibility != vis) til.visibility = vis
     }
 
-    private fun updateVolcFileModeVisibility(binding: AsrSettingsBinding, streamingEnabled: Boolean) {
+    private fun updateVolcFileModeVisibility(
+        binding: AsrSettingsBinding,
+        streamingEnabled: Boolean
+    ) {
         val sw = binding.view<MaterialSwitch>(R.id.switchVolcFileStandard)
         val vis = if (streamingEnabled) View.GONE else View.VISIBLE
         if (sw.visibility != vis) sw.visibility = vis
     }
 
-    private fun updateVolcModelV2Visibility(binding: AsrSettingsBinding, streamingEnabled: Boolean, fileStandardEnabled: Boolean) {
+    private fun updateVolcModelV2Visibility(
+        binding: AsrSettingsBinding,
+        streamingEnabled: Boolean,
+        fileStandardEnabled: Boolean
+    ) {
         val sw = binding.view<MaterialSwitch>(R.id.switchVolcModelV2)
         val vis = if (streamingEnabled || fileStandardEnabled) View.VISIBLE else View.GONE
         if (sw.visibility != vis) sw.visibility = vis
@@ -117,7 +152,10 @@ internal class AsrSettingsUiRendererSection : AsrSettingsSection {
         setIfChanged(binding.view(R.id.tvVolcLanguageLabel))
     }
 
-    private fun updateVolcTwoPassVisibility(binding: AsrSettingsBinding, streamingEnabled: Boolean) {
+    private fun updateVolcTwoPassVisibility(
+        binding: AsrSettingsBinding,
+        streamingEnabled: Boolean
+    ) {
         val vis = if (streamingEnabled) View.VISIBLE else View.GONE
         val v = binding.view<View>(R.id.switchVolcNonstream)
         if (v.visibility != vis) v.visibility = vis

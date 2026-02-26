@@ -124,8 +124,18 @@ internal class PunctuationModelSettingsSection : AsrSettingsSection {
             }
         }
 
-        apply(R.id.btnTsDownloadPunct, R.id.btnTsImportPunct, R.id.btnTsClearPunct, R.id.tvTsPunctStatus)
-        apply(R.id.btnPfDownloadPunct, R.id.btnPfImportPunct, R.id.btnPfClearPunct, R.id.tvPfPunctStatus)
+        apply(
+            R.id.btnTsDownloadPunct,
+            R.id.btnTsImportPunct,
+            R.id.btnTsClearPunct,
+            R.id.tvTsPunctStatus
+        )
+        apply(
+            R.id.btnPfDownloadPunct,
+            R.id.btnPfImportPunct,
+            R.id.btnPfClearPunct,
+            R.id.tvPfPunctStatus
+        )
     }
 
     private companion object {

@@ -17,8 +17,8 @@ import android.widget.TextView
 import androidx.annotation.IdRes
 import androidx.annotation.LayoutRes
 import androidx.annotation.StringRes
-import com.brycewg.asrkb.asr.LlmVendor
 import com.brycewg.asrkb.R
+import com.brycewg.asrkb.asr.LlmVendor
 import com.brycewg.asrkb.ui.settings.ai.AiPostSettingsActivity
 import com.brycewg.asrkb.ui.settings.asr.AsrSettingsActivity
 import com.brycewg.asrkb.ui.settings.backup.BackupSettingsActivity
@@ -89,11 +89,17 @@ object SettingsSearchIndex {
                 manualMappings = listOf(
                     ManualMapping(R.string.label_ime_switch_target, R.id.tvImeSwitchTargetValue),
                     ManualMapping(R.string.label_keyboard_height, R.id.toggleKeyboardHeight),
-                    ManualMapping(R.string.label_haptic_feedback_strength, R.id.sliderHapticFeedbackStrength),
+                    ManualMapping(
+                        R.string.label_haptic_feedback_strength,
+                        R.id.sliderHapticFeedbackStrength
+                    ),
                     ManualMapping(R.string.label_keyboard_bottom_padding, R.id.sliderBottomPadding),
-                    ManualMapping(R.string.label_waveform_sensitivity, R.id.sliderWaveformSensitivity),
+                    ManualMapping(
+                        R.string.label_waveform_sensitivity,
+                        R.id.sliderWaveformSensitivity
+                    ),
                     ManualMapping(R.string.label_language, R.id.tvLanguageValue),
-                    ManualMapping(R.string.label_extension_buttons, R.id.tvExtensionButtonsValue),
+                    ManualMapping(R.string.label_extension_buttons, R.id.tvExtensionButtonsValue)
                 )
             ),
             ScreenSpec(
@@ -103,7 +109,10 @@ object SettingsSearchIndex {
                 manualMappings = listOf(
                     ManualMapping(R.string.label_asr_vendor, R.id.tvAsrVendorValue),
                     ManualMapping(R.string.label_silence_window_ms, R.id.sliderSilenceWindow),
-                    ManualMapping(R.string.label_silence_sensitivity, R.id.sliderSilenceSensitivity),
+                    ManualMapping(
+                        R.string.label_silence_sensitivity,
+                        R.id.sliderSilenceSensitivity
+                    )
                 )
             ),
             ScreenSpec(
@@ -112,7 +121,7 @@ object SettingsSearchIndex {
                 activityClass = AiPostSettingsActivity::class.java,
                 manualMappings = listOf(
                     ManualMapping(R.string.label_llm_vendor, R.id.tvLlmVendor),
-                    ManualMapping(R.string.title_ai_skip_under, R.id.sliderSkipAiUnderChars),
+                    ManualMapping(R.string.title_ai_skip_under, R.id.sliderSkipAiUnderChars)
                 )
             ),
             ScreenSpec(
@@ -121,7 +130,7 @@ object SettingsSearchIndex {
                 activityClass = FloatingSettingsActivity::class.java,
                 manualMappings = listOf(
                     ManualMapping(R.string.label_floating_alpha, R.id.sliderFloatingAlpha),
-                    ManualMapping(R.string.label_floating_size, R.id.sliderFloatingSize),
+                    ManualMapping(R.string.label_floating_size, R.id.sliderFloatingSize)
                 )
             ),
             ScreenSpec(
@@ -129,7 +138,7 @@ object SettingsSearchIndex {
                 screenTitleResId = R.string.title_other_settings,
                 activityClass = OtherSettingsActivity::class.java,
                 manualMappings = listOf(
-                    ManualMapping(R.string.label_speech_preset_section, R.id.tvSpeechPresetsValue),
+                    ManualMapping(R.string.label_speech_preset_section, R.id.tvSpeechPresetsValue)
                 )
             ),
             ScreenSpec(
@@ -137,7 +146,7 @@ object SettingsSearchIndex {
                 screenTitleResId = R.string.title_backup_settings,
                 activityClass = BackupSettingsActivity::class.java,
                 manualMappings = emptyList()
-            ),
+            )
         )
 
         val unique = LinkedHashMap<String, SettingsSearchEntry>()
@@ -148,9 +157,12 @@ object SettingsSearchIndex {
                 unique.putIfAbsent(entry.uniqueKey(), entry)
             }
             for (mapping in spec.manualMappings) {
-                val title = runCatching { context.getString(mapping.labelResId) }.getOrNull().orEmpty()
+                val title = runCatching {
+                    context.getString(mapping.labelResId)
+                }.getOrNull().orEmpty()
                 if (title.isBlank()) continue
-                val sectionPathAndVendors = resolveSectionPathAndVendors(root, mapping.targetViewId, minCardTitlePx)
+                val sectionPathAndVendors =
+                    resolveSectionPathAndVendors(root, mapping.targetViewId, minCardTitlePx)
                 val manual = SettingsSearchEntry(
                     title = title,
                     sectionPath = sectionPathAndVendors.sectionPath,
@@ -174,25 +186,23 @@ object SettingsSearchIndex {
         return unique.values.toList()
     }
 
-    private fun SettingsSearchEntry.uniqueKey(): String {
-        return buildString {
-            append(activityClass.name)
+    private fun SettingsSearchEntry.uniqueKey(): String = buildString {
+        append(activityClass.name)
+        append('#')
+        append(targetViewId)
+        append('#')
+        append(title.lowercase(Locale.ROOT))
+        if (sectionPath.isNotEmpty()) {
             append('#')
-            append(targetViewId)
-            append('#')
-            append(title.lowercase(Locale.ROOT))
-            if (sectionPath.isNotEmpty()) {
-                append('#')
-                append(sectionPath.joinToString(">").lowercase(Locale.ROOT))
-            }
-            if (!forceAsrVendorId.isNullOrBlank()) {
-                append("#asr=")
-                append(forceAsrVendorId.lowercase(Locale.ROOT))
-            }
-            if (!forceLlmVendorId.isNullOrBlank()) {
-                append("#llm=")
-                append(forceLlmVendorId.lowercase(Locale.ROOT))
-            }
+            append(sectionPath.joinToString(">").lowercase(Locale.ROOT))
+        }
+        if (!forceAsrVendorId.isNullOrBlank()) {
+            append("#asr=")
+            append(forceAsrVendorId.lowercase(Locale.ROOT))
+        }
+        if (!forceLlmVendorId.isNullOrBlank()) {
+            append("#llm=")
+            append(forceLlmVendorId.lowercase(Locale.ROOT))
         }
     }
 
@@ -378,7 +388,10 @@ object SettingsSearchIndex {
         }
     }
 
-    private fun shouldSkipAiPostProcessModelVendorDetails(spec: ScreenSpec, @IdRes viewId: Int): Boolean {
+    private fun shouldSkipAiPostProcessModelVendorDetails(
+        spec: ScreenSpec,
+        @IdRes viewId: Int
+    ): Boolean {
         if (spec.activityClass != AiPostSettingsActivity::class.java) return false
         return when (viewId) {
             R.id.groupSfFreeLlm,
@@ -392,12 +405,16 @@ object SettingsSearchIndex {
         spec: ScreenSpec,
         context: Context
     ): List<SettingsSearchEntry> {
-        val sectionTitle = runCatching { context.getString(R.string.section_post_process_model) }.getOrNull().orEmpty()
+        val sectionTitle = runCatching {
+            context.getString(R.string.section_post_process_model)
+        }.getOrNull().orEmpty()
         if (sectionTitle.isBlank()) return emptyList()
 
         return buildList(LlmVendor.allVendors().size) {
             for (vendor in LlmVendor.allVendors()) {
-                val title = runCatching { context.getString(vendor.displayNameResId) }.getOrNull().orEmpty()
+                val title = runCatching {
+                    context.getString(vendor.displayNameResId)
+                }.getOrNull().orEmpty()
                 if (title.isBlank()) continue
                 val targetViewId = when (vendor) {
                     LlmVendor.SF_FREE -> R.id.groupSfFreeLlm
@@ -495,84 +512,82 @@ object SettingsSearchIndex {
         )
     }
 
-    private fun resolveVendorHint(context: Context, @IdRes viewId: Int): VendorHint? {
-        return when (viewId) {
-            // ======== ASR 供应商分组 ========
-            R.id.groupVolc -> VendorHint(
-                title = context.getString(R.string.vendor_volc),
-                asrVendorId = "volc",
-                keywords = listOf("volc")
-            )
-            R.id.groupSf,
-            R.id.groupSfFreeModel,
-            R.id.groupSfApiKey -> VendorHint(
-                title = context.getString(R.string.vendor_sf),
-                asrVendorId = "siliconflow",
-                keywords = listOf("siliconflow", "sf")
-            )
-            R.id.groupEleven -> VendorHint(
-                title = context.getString(R.string.vendor_eleven),
-                asrVendorId = "elevenlabs",
-                keywords = listOf("eleven", "elevenlabs")
-            )
-            R.id.groupOpenAI -> VendorHint(
-                title = context.getString(R.string.vendor_openai),
-                asrVendorId = "openai",
-                keywords = listOf("openai")
-            )
-            R.id.groupDashScope -> VendorHint(
-                title = context.getString(R.string.vendor_dashscope),
-                asrVendorId = "dashscope",
-                keywords = listOf("dashscope")
-            )
-            R.id.groupGemini -> VendorHint(
-                title = context.getString(R.string.vendor_gemini),
-                asrVendorId = "gemini",
-                keywords = listOf("gemini")
-            )
-            R.id.groupSoniox -> VendorHint(
-                title = context.getString(R.string.vendor_soniox),
-                asrVendorId = "soniox",
-                keywords = listOf("soniox")
-            )
-            R.id.groupZhipu -> VendorHint(
-                title = context.getString(R.string.vendor_zhipu),
-                asrVendorId = "zhipu",
-                keywords = listOf("zhipu", "glm")
-            )
-            R.id.groupSenseVoice -> VendorHint(
-                title = context.getString(R.string.vendor_sensevoice),
-                asrVendorId = "sensevoice",
-                keywords = listOf("sensevoice")
-            )
-            R.id.groupFunAsrNano -> VendorHint(
-                title = context.getString(R.string.vendor_funasr_nano),
-                asrVendorId = "funasr_nano",
-                keywords = listOf("funasr", "funasr_nano")
-            )
-            R.id.groupTelespeech -> VendorHint(
-                title = context.getString(R.string.vendor_telespeech),
-                asrVendorId = "telespeech",
-                keywords = listOf("telespeech")
-            )
-            R.id.groupParaformer -> VendorHint(
-                title = context.getString(R.string.vendor_paraformer),
-                asrVendorId = "paraformer",
-                keywords = listOf("paraformer", "zipformer")
-            )
+    private fun resolveVendorHint(context: Context, @IdRes viewId: Int): VendorHint? = when (viewId) {
+        // ======== ASR 供应商分组 ========
+        R.id.groupVolc -> VendorHint(
+            title = context.getString(R.string.vendor_volc),
+            asrVendorId = "volc",
+            keywords = listOf("volc")
+        )
+        R.id.groupSf,
+        R.id.groupSfFreeModel,
+        R.id.groupSfApiKey -> VendorHint(
+            title = context.getString(R.string.vendor_sf),
+            asrVendorId = "siliconflow",
+            keywords = listOf("siliconflow", "sf")
+        )
+        R.id.groupEleven -> VendorHint(
+            title = context.getString(R.string.vendor_eleven),
+            asrVendorId = "elevenlabs",
+            keywords = listOf("eleven", "elevenlabs")
+        )
+        R.id.groupOpenAI -> VendorHint(
+            title = context.getString(R.string.vendor_openai),
+            asrVendorId = "openai",
+            keywords = listOf("openai")
+        )
+        R.id.groupDashScope -> VendorHint(
+            title = context.getString(R.string.vendor_dashscope),
+            asrVendorId = "dashscope",
+            keywords = listOf("dashscope")
+        )
+        R.id.groupGemini -> VendorHint(
+            title = context.getString(R.string.vendor_gemini),
+            asrVendorId = "gemini",
+            keywords = listOf("gemini")
+        )
+        R.id.groupSoniox -> VendorHint(
+            title = context.getString(R.string.vendor_soniox),
+            asrVendorId = "soniox",
+            keywords = listOf("soniox")
+        )
+        R.id.groupZhipu -> VendorHint(
+            title = context.getString(R.string.vendor_zhipu),
+            asrVendorId = "zhipu",
+            keywords = listOf("zhipu", "glm")
+        )
+        R.id.groupSenseVoice -> VendorHint(
+            title = context.getString(R.string.vendor_sensevoice),
+            asrVendorId = "sensevoice",
+            keywords = listOf("sensevoice")
+        )
+        R.id.groupFunAsrNano -> VendorHint(
+            title = context.getString(R.string.vendor_funasr_nano),
+            asrVendorId = "funasr_nano",
+            keywords = listOf("funasr", "funasr_nano")
+        )
+        R.id.groupTelespeech -> VendorHint(
+            title = context.getString(R.string.vendor_telespeech),
+            asrVendorId = "telespeech",
+            keywords = listOf("telespeech")
+        )
+        R.id.groupParaformer -> VendorHint(
+            title = context.getString(R.string.vendor_paraformer),
+            asrVendorId = "paraformer",
+            keywords = listOf("paraformer", "zipformer")
+        )
 
-            // ======== LLM 分组 ========
-            R.id.groupSfFreeLlm -> VendorHint(
-                title = context.getString(R.string.llm_vendor_sf_free),
-                llmVendorId = "sf_free",
-                keywords = listOf("sf_free", "siliconflow", "sf")
-            )
-            R.id.groupCustomLlm -> VendorHint(
-                title = context.getString(R.string.llm_vendor_custom),
-                llmVendorId = "custom",
-                keywords = listOf("custom")
-            )
-            else -> null
-        }
+        // ======== LLM 分组 ========
+        R.id.groupSfFreeLlm -> VendorHint(
+            title = context.getString(R.string.llm_vendor_sf_free),
+            llmVendorId = "sf_free",
+            keywords = listOf("sf_free", "siliconflow", "sf")
+        )
+        R.id.groupCustomLlm -> VendorHint(
+            title = context.getString(R.string.llm_vendor_custom),
+            llmVendorId = "custom",
+            keywords = listOf("custom")
+        )
+        else -> null
     }
 }

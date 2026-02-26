@@ -37,7 +37,13 @@ internal class PostprocessPipeline(
         onPostprocFailed: () -> Unit
     ): Result? {
         val rawText = try {
-            if (prefs.trimFinalTrailingPunct) TextSanitizer.trimTrailingPunctAndEmoji(text) else text
+            if (prefs.trimFinalTrailingPunct) {
+                TextSanitizer.trimTrailingPunctAndEmoji(
+                    text
+                )
+            } else {
+                text
+            }
         } catch (_: Throwable) {
             text
         }
@@ -92,7 +98,12 @@ internal class PostprocessPipeline(
             } catch (_: Throwable) {
                 rawText
             }
-            LlmPostProcessor.LlmProcessResult(ok = false, text = fallback, attempted = true, llmMs = 0L)
+            LlmPostProcessor.LlmProcessResult(
+                ok = false,
+                text = fallback,
+                attempted = true,
+                llmMs = 0L
+            )
         }
 
         val postprocFailed = !res.ok

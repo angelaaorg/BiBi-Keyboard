@@ -5,6 +5,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.graphics.Rect
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -13,12 +14,11 @@ import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.view.accessibility.AccessibilityWindowInfo
 import android.widget.Toast
-import android.graphics.Rect
-import com.brycewg.asrkb.store.Prefs
 import com.brycewg.asrkb.LocaleHelper
+import com.brycewg.asrkb.store.Prefs
+import com.brycewg.asrkb.store.debug.DebugLogManager
 import com.brycewg.asrkb.ui.floating.FloatingAsrService
 import com.brycewg.asrkb.ui.floating.FloatingImeHints
-import com.brycewg.asrkb.store.debug.DebugLogManager
 
 /**
  * 无障碍服务,用于悬浮球语音识别后将文本插入到当前焦点的输入框中
@@ -35,10 +35,7 @@ class AsrAccessibilityService : AccessibilityService() {
      * - prefix：选区前文本
      * - suffix：选区后文本
      */
-    data class FocusContext(
-        val prefix: String,
-        val suffix: String
-    )
+    data class FocusContext(val prefix: String, val suffix: String)
 
     companion object {
         private const val TAG = "AsrAccessibilityService"
@@ -108,7 +105,11 @@ class AsrAccessibilityService : AccessibilityService() {
                 // 无障碍服务未启用,复制到剪贴板
                 Log.w(TAG, "Accessibility service not enabled, copying to clipboard")
                 copyToClipboard(context, text)
-                Toast.makeText(context, context.getString(com.brycewg.asrkb.R.string.floating_asr_copied), Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    context,
+                    context.getString(com.brycewg.asrkb.R.string.floating_asr_copied),
+                    Toast.LENGTH_SHORT
+                ).show()
                 return false
             }
 
@@ -136,13 +137,17 @@ class AsrAccessibilityService : AccessibilityService() {
                     for (w in ws) {
                         try {
                             if (w == null) continue
-                            if (w.type == AccessibilityWindowInfo.TYPE_APPLICATION && (w.isActive || w.isFocused)) {
+                            if (w.type == AccessibilityWindowInfo.TYPE_APPLICATION &&
+                                (w.isActive || w.isFocused)
+                            ) {
                                 val r = w.root
                                 val p = r?.packageName?.toString()
                                 if (!p.isNullOrEmpty()) return p
                             }
                             // 记录一个非 IME 的候选（用于兜底）
-                            if (candidate == null && w.type == AccessibilityWindowInfo.TYPE_APPLICATION) {
+                            if (candidate == null &&
+                                w.type == AccessibilityWindowInfo.TYPE_APPLICATION
+                            ) {
                                 val r2 = w.root
                                 val p2 = r2?.packageName?.toString()
                                 if (!p2.isNullOrEmpty()) candidate = p2
@@ -260,14 +265,12 @@ class AsrAccessibilityService : AccessibilityService() {
     /**
      * 判断事件类型是否与输入法可见性检测相关。
      */
-    private fun isRelevantEventType(eventType: Int): Boolean {
-        return eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
-               eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED ||
-               eventType == AccessibilityEvent.TYPE_VIEW_FOCUSED ||
-               eventType == AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED ||
-               eventType == AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED ||
-               eventType == AccessibilityEvent.TYPE_WINDOWS_CHANGED
-    }
+    private fun isRelevantEventType(eventType: Int): Boolean = eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
+        eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED ||
+        eventType == AccessibilityEvent.TYPE_VIEW_FOCUSED ||
+        eventType == AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED ||
+        eventType == AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED ||
+        eventType == AccessibilityEvent.TYPE_WINDOWS_CHANGED
 
     private fun tryDispatchImeVisibilityHint() {
         val prefs = try {
@@ -291,7 +294,11 @@ class AsrAccessibilityService : AccessibilityService() {
         val now = System.currentTimeMillis()
         if (now - lastA11yAggEmitAt >= 1000L) {
             lastA11yAggEmitAt = now
-            val pkg = try { getActiveWindowPackage() } catch (_: Throwable) { null } ?: ""
+            val pkg = try {
+                getActiveWindowPackage()
+            } catch (_: Throwable) {
+                null
+            } ?: ""
             val d = mapOf(
                 "pkgTop" to pkg,
                 "winStateChanged" to aggWinStateChanged,
@@ -330,7 +337,6 @@ class AsrAccessibilityService : AccessibilityService() {
         return mWindow || hold
     }
 
-
     /**
      * 更新输入法可见性状态，并在状态变化时通知相关服务。
      */
@@ -364,7 +370,13 @@ class AsrAccessibilityService : AccessibilityService() {
         val imePkgDetected = isImePackageDetected()
         val holdByFocus = (now - lastEditableFocusAt <= holdAfterFocusMs)
         val activePkg = getActiveWindowPackage()
-        val strategyUsed = if (winVisible) "ime_window" else if (holdByFocus) "hold_focus" else "none"
+        val strategyUsed = if (winVisible) {
+            "ime_window"
+        } else if (holdByFocus) {
+            "hold_focus"
+        } else {
+            "none"
+        }
         val resultActive = (winVisible || holdByFocus)
         return mapOf(
             "winVisible" to winVisible,
@@ -415,7 +427,11 @@ class AsrAccessibilityService : AccessibilityService() {
                 Log.w(TAG, "Root node is null")
                 DebugLogManager.log("insert", "fallback_clipboard", mapOf("reason" to "root_null"))
                 copyToClipboard(this, text)
-                Toast.makeText(this, getString(com.brycewg.asrkb.R.string.floating_asr_copied), Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    this,
+                    getString(com.brycewg.asrkb.R.string.floating_asr_copied),
+                    Toast.LENGTH_SHORT
+                ).show()
                 return false
             }
 
@@ -424,16 +440,39 @@ class AsrAccessibilityService : AccessibilityService() {
             if (target != null) {
                 Log.d(TAG, "Found editable/focusable node; trying ACTION_SET_TEXT")
                 try {
-                    val nodeClass = try { target.className?.toString() } catch (_: Throwable) { null } ?: ""
-                    val editable = try { target.isEditable } catch (_: Throwable) { false }
+                    val nodeClass =
+                        try {
+                            target.className?.toString()
+                        } catch (_: Throwable) {
+                            null
+                        } ?: ""
+                    val editable = try {
+                        target.isEditable
+                    } catch (_: Throwable) {
+                        false
+                    }
                     val hasSetText = nodeHasAction(target, AccessibilityNodeInfo.ACTION_SET_TEXT)
                     val hasPaste = nodeHasAction(target, AccessibilityNodeInfo.ACTION_PASTE)
-                    val hasLongClick = nodeHasAction(target, AccessibilityNodeInfo.ACTION_LONG_CLICK)
-                    val textLen = try { target.text?.length ?: 0 } catch (_: Throwable) { 0 }
-                    val selStart = try { target.textSelectionStart } catch (_: Throwable) { -1 }
-                    val selEnd = try { target.textSelectionEnd } catch (_: Throwable) { -1 }
+                    val hasLongClick =
+                        nodeHasAction(target, AccessibilityNodeInfo.ACTION_LONG_CLICK)
+                    val textLen = try {
+                        target.text?.length ?: 0
+                    } catch (_: Throwable) {
+                        0
+                    }
+                    val selStart = try {
+                        target.textSelectionStart
+                    } catch (_: Throwable) {
+                        -1
+                    }
+                    val selEnd = try {
+                        target.textSelectionEnd
+                    } catch (_: Throwable) {
+                        -1
+                    }
                     DebugLogManager.log(
-                        "insert", "cap",
+                        "insert",
+                        "cap",
                         mapOf(
                             "nodeClass" to nodeClass,
                             "editable" to editable,
@@ -450,7 +489,10 @@ class AsrAccessibilityService : AccessibilityService() {
                 }
                 // 先尝试 ACTION_SET_TEXT 直接写入
                 val args = Bundle().apply {
-                    putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, text)
+                    putCharSequence(
+                        AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,
+                        text
+                    )
                 }
                 // 保障焦点在目标上
                 try {
@@ -488,7 +530,11 @@ class AsrAccessibilityService : AccessibilityService() {
             // 兜底：复制剪贴板
             DebugLogManager.log("insert", "fallback_clipboard", mapOf("reason" to "no_target"))
             copyToClipboard(this, text)
-            Toast.makeText(this, getString(com.brycewg.asrkb.R.string.floating_asr_copied), Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                this,
+                getString(com.brycewg.asrkb.R.string.floating_asr_copied),
+                Toast.LENGTH_SHORT
+            ).show()
             return false
         } catch (e: Throwable) {
             // 发生错误,复制到剪贴板
@@ -502,42 +548,45 @@ class AsrAccessibilityService : AccessibilityService() {
                 )
             )
             copyToClipboard(this, text)
-            Toast.makeText(this, getString(com.brycewg.asrkb.R.string.floating_asr_copied), Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                this,
+                getString(com.brycewg.asrkb.R.string.floating_asr_copied),
+                Toast.LENGTH_SHORT
+            ).show()
             return false
         }
     }
 
     // 静默版本：仅尝试设置文本，不做 Toast/复制
-    private fun performInsertTextSilent(text: String): Boolean {
-        return withFocusedEditableNode { focusedNode ->
-            val arguments = Bundle()
-            arguments.putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, text)
-            focusedNode.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, arguments)
-        } ?: false
-    }
+    private fun performInsertTextSilent(text: String): Boolean = withFocusedEditableNode { focusedNode ->
+        val arguments = Bundle()
+        arguments.putCharSequence(
+            AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,
+            text
+        )
+        focusedNode.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, arguments)
+    } ?: false
 
     // 静默粘贴：使用剪贴板 + ACTION_PASTE，尽量不干扰用户当前剪贴板内容
-    private fun performPasteTextSilent(text: String): Boolean {
-        return withFocusedEditableNode { focusedNode ->
-            val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
-            val previous = try {
-                clipboard.primaryClip
-            } catch (e: Throwable) {
-                Log.e(TAG, "Error getting primary clip", e)
-                null
-            }
+    private fun performPasteTextSilent(text: String): Boolean = withFocusedEditableNode { focusedNode ->
+        val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+        val previous = try {
+            clipboard.primaryClip
+        } catch (e: Throwable) {
+            Log.e(TAG, "Error getting primary clip", e)
+            null
+        }
 
-            val clip = ClipData.newPlainText("ASR Paste", text)
-            clipboard.setPrimaryClip(clip)
+        val clip = ClipData.newPlainText("ASR Paste", text)
+        clipboard.setPrimaryClip(clip)
 
-            val ok = focusedNode.performAction(AccessibilityNodeInfo.ACTION_PASTE)
+        val ok = focusedNode.performAction(AccessibilityNodeInfo.ACTION_PASTE)
 
-            // 恢复之前的剪贴板（尽最大努力）；若没有之前内容则尝试清空
-            restoreClipboard(clipboard, previous)
+        // 恢复之前的剪贴板（尽最大努力）；若没有之前内容则尝试清空
+        restoreClipboard(clipboard, previous)
 
-            ok
-        } ?: false
-    }
+        ok
+    } ?: false
 
     /**
      * 恢复剪贴板内容或清空。
@@ -564,20 +613,18 @@ class AsrAccessibilityService : AccessibilityService() {
     }
 
     // 静默设置选区：不提示、不改剪贴板
-    private fun performSetSelectionSilent(start: Int, end: Int): Boolean {
-        return withFocusedEditableNode { target ->
-            val args = Bundle().apply {
-                putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, start)
-                putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, end)
-            }
-            try {
-                target.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, args)
-            } catch (e: Throwable) {
-                Log.e(TAG, "Error setting selection", e)
-                false
-            }
-        } ?: false
-    }
+    private fun performSetSelectionSilent(start: Int, end: Int): Boolean = withFocusedEditableNode { target ->
+        val args = Bundle().apply {
+            putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, start)
+            putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, end)
+        }
+        try {
+            target.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, args)
+        } catch (e: Throwable) {
+            Log.e(TAG, "Error setting selection", e)
+            false
+        }
+    } ?: false
 
     /**
      * 高阶函数：查找焦点可编辑节点、执行操作、回收节点并统一处理异常。
@@ -609,7 +656,8 @@ class AsrAccessibilityService : AccessibilityService() {
     private fun findFocusedEditableNode(root: AccessibilityNodeInfo): AccessibilityNodeInfo? {
         root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT)?.let { f ->
             if (isEditableLike(f)) return f
-            @Suppress("DEPRECATION") f.recycle()
+            @Suppress("DEPRECATION")
+            f.recycle()
         }
         return findEditableNodeRecursive(root)
     }
@@ -620,10 +668,12 @@ class AsrAccessibilityService : AccessibilityService() {
             val child = node.getChild(i) ?: continue
             val result = findEditableNodeRecursive(child)
             if (result != null) {
-                @Suppress("DEPRECATION") child.recycle()
+                @Suppress("DEPRECATION")
+                child.recycle()
                 return result
             }
-            @Suppress("DEPRECATION") child.recycle()
+            @Suppress("DEPRECATION")
+            child.recycle()
         }
         return null
     }
@@ -637,64 +687,60 @@ class AsrAccessibilityService : AccessibilityService() {
         return false
     }
 
-    private fun nodeHasAction(node: AccessibilityNodeInfo, action: Int): Boolean {
-        return try {
-            val list = node.actionList
-            list?.any { it.id == action } == true
-        } catch (e: Throwable) {
-            Log.e(TAG, "Error checking node actions", e)
-            false
-        }
+    private fun nodeHasAction(node: AccessibilityNodeInfo, action: Int): Boolean = try {
+        val list = node.actionList
+        list?.any { it.id == action } == true
+    } catch (e: Throwable) {
+        Log.e(TAG, "Error checking node actions", e)
+        false
     }
 
-    private fun performPasteFallback(target: AccessibilityNodeInfo, text: String): Boolean {
-        return try {
-            // 将文本放入剪贴板（带备份并恢复）
-            val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
-            val previous = try {
-                clipboard.primaryClip
-            } catch (e: Throwable) {
-                Log.e(TAG, "Error getting clip for paste fallback", e)
-                null
-            }
-
-            val clip = ClipData.newPlainText("ASR PasteFallback", text)
-            try {
-                clipboard.setPrimaryClip(clip)
-            } catch (e: Throwable) {
-                Log.e(TAG, "Error setting clip for paste fallback", e)
-            }
-
-            // 确保焦点在输入框
-            target.performAction(AccessibilityNodeInfo.ACTION_FOCUS)
-            // 若可长按，尝试长按以唤出粘贴菜单（部分应用要求）
-            target.performAction(AccessibilityNodeInfo.ACTION_LONG_CLICK)
-            // 尝试直接执行粘贴动作（多数输入框支持）
-            var ok = target.performAction(AccessibilityNodeInfo.ACTION_PASTE)
-            if (!ok) {
-                // 延迟再试一次，等待长按菜单弹出
-                handler.postDelayed({
-                    target.performAction(AccessibilityNodeInfo.ACTION_PASTE)
-                }, 120)
-                ok = true // 假设延迟后会成功
-            }
-
-            // 恢复剪贴板
-            try {
-                if (previous != null) {
-                    clipboard.setPrimaryClip(previous)
-                } else {
-                    clipboard.clearPrimaryClip()
-                }
-            } catch (e: Throwable) {
-                Log.e(TAG, "Error restoring clipboard in paste fallback", e)
-            }
-
-            ok
+    private fun performPasteFallback(target: AccessibilityNodeInfo, text: String): Boolean = try {
+        // 将文本放入剪贴板（带备份并恢复）
+        val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+        val previous = try {
+            clipboard.primaryClip
         } catch (e: Throwable) {
-            Log.e(TAG, "Error in paste fallback", e)
-            false
+            Log.e(TAG, "Error getting clip for paste fallback", e)
+            null
         }
+
+        val clip = ClipData.newPlainText("ASR PasteFallback", text)
+        try {
+            clipboard.setPrimaryClip(clip)
+        } catch (e: Throwable) {
+            Log.e(TAG, "Error setting clip for paste fallback", e)
+        }
+
+        // 确保焦点在输入框
+        target.performAction(AccessibilityNodeInfo.ACTION_FOCUS)
+        // 若可长按，尝试长按以唤出粘贴菜单（部分应用要求）
+        target.performAction(AccessibilityNodeInfo.ACTION_LONG_CLICK)
+        // 尝试直接执行粘贴动作（多数输入框支持）
+        var ok = target.performAction(AccessibilityNodeInfo.ACTION_PASTE)
+        if (!ok) {
+            // 延迟再试一次，等待长按菜单弹出
+            handler.postDelayed({
+                target.performAction(AccessibilityNodeInfo.ACTION_PASTE)
+            }, 120)
+            ok = true // 假设延迟后会成功
+        }
+
+        // 恢复剪贴板
+        try {
+            if (previous != null) {
+                clipboard.setPrimaryClip(previous)
+            } else {
+                clipboard.clearPrimaryClip()
+            }
+        } catch (e: Throwable) {
+            Log.e(TAG, "Error restoring clipboard in paste fallback", e)
+        }
+
+        ok
+    } catch (e: Throwable) {
+        Log.e(TAG, "Error in paste fallback", e)
+        false
     }
 
     private fun hasEditableFocusNow(): Boolean {
@@ -709,7 +755,8 @@ class AsrAccessibilityService : AccessibilityService() {
                         val root = w.root ?: continue
                         val node = findFocusedEditableNode(root)
                         if (node != null) {
-                            @Suppress("DEPRECATION") node.recycle()
+                            @Suppress("DEPRECATION")
+                            node.recycle()
                             return true
                         }
                     } catch (t: Throwable) {
@@ -723,7 +770,8 @@ class AsrAccessibilityService : AccessibilityService() {
             val node = findFocusedEditableNode(root)
             val ok = node != null
             if (node != null) {
-                @Suppress("DEPRECATION") node.recycle()
+                @Suppress("DEPRECATION")
+                node.recycle()
             }
             ok
         } catch (e: Throwable) {
@@ -743,7 +791,9 @@ class AsrAccessibilityService : AccessibilityService() {
                         val root = w.root
                         if (root != null) return true
                         val r = Rect()
-                        try { w.getBoundsInScreen(r) } catch (_: Throwable) {}
+                        try {
+                            w.getBoundsInScreen(r)
+                        } catch (_: Throwable) {}
                         if (r.width() > 0 && r.height() > 0) return true
                         if (w.isActive || w.isFocused) return true
                     }

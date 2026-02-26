@@ -174,7 +174,10 @@ class AsrRecognitionService : RecognitionService() {
     /**
      * 构建 ASR 引擎（复用 ExternalSpeechService 的逻辑）
      */
-    private fun buildEngine(engineContext: Context, listener: StreamingAsrEngine.Listener): StreamingAsrEngine? {
+    private fun buildEngine(
+        engineContext: Context,
+        listener: StreamingAsrEngine.Listener
+    ): StreamingAsrEngine? {
         val vendor = prefs.asrVendor
         val backupVendor = prefs.backupAsrVendor
         val backupEnabled = shouldUseBackupAsr(vendor, backupVendor)
@@ -244,7 +247,11 @@ class AsrRecognitionService : RecognitionService() {
     }
 
     private fun shouldUseBackupAsr(primaryVendor: AsrVendor, backupVendor: AsrVendor): Boolean {
-        val enabled = try { prefs.backupAsrEnabled } catch (_: Throwable) { false }
+        val enabled = try {
+            prefs.backupAsrEnabled
+        } catch (_: Throwable) {
+            false
+        }
         if (!enabled) return false
         if (backupVendor == primaryVendor) return false
         return try {
@@ -261,44 +268,40 @@ class AsrRecognitionService : RecognitionService() {
     /**
      * 根据设置决定是否使用流式模式
      */
-    private fun resolveStreamingBySettings(vendor: AsrVendor): Boolean {
-        return when (vendor) {
-            AsrVendor.Volc -> prefs.volcStreamingEnabled
-            AsrVendor.DashScope -> prefs.isDashStreamingModelSelected()
-            AsrVendor.Soniox -> prefs.sonioxStreamingEnabled
-            AsrVendor.ElevenLabs -> prefs.elevenStreamingEnabled
-            AsrVendor.Paraformer -> true
-            AsrVendor.SenseVoice, AsrVendor.FunAsrNano, AsrVendor.Telespeech -> false
-            AsrVendor.OpenAI, AsrVendor.Gemini, AsrVendor.SiliconFlow, AsrVendor.Zhipu -> false
-        }
+    private fun resolveStreamingBySettings(vendor: AsrVendor): Boolean = when (vendor) {
+        AsrVendor.Volc -> prefs.volcStreamingEnabled
+        AsrVendor.DashScope -> prefs.isDashStreamingModelSelected()
+        AsrVendor.Soniox -> prefs.sonioxStreamingEnabled
+        AsrVendor.ElevenLabs -> prefs.elevenStreamingEnabled
+        AsrVendor.Paraformer -> true
+        AsrVendor.SenseVoice, AsrVendor.FunAsrNano, AsrVendor.Telespeech -> false
+        AsrVendor.OpenAI, AsrVendor.Gemini, AsrVendor.SiliconFlow, AsrVendor.Zhipu -> false
     }
 
     /**
      * 将内部错误消息映射到 SpeechRecognizer 标准错误码
      */
-    private fun mapToSpeechRecognizerError(message: String): Int {
-        return when {
-            message.contains("permission", ignoreCase = true) ->
-                SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS
-            message.contains("network", ignoreCase = true) ||
+    private fun mapToSpeechRecognizerError(message: String): Int = when {
+        message.contains("permission", ignoreCase = true) ->
+            SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS
+        message.contains("network", ignoreCase = true) ||
             message.contains("timeout", ignoreCase = true) ||
             message.contains("connect", ignoreCase = true) ->
-                SpeechRecognizer.ERROR_NETWORK
-            message.contains("audio", ignoreCase = true) ||
+            SpeechRecognizer.ERROR_NETWORK
+        message.contains("audio", ignoreCase = true) ||
             message.contains("microphone", ignoreCase = true) ||
             message.contains("record", ignoreCase = true) ->
-                SpeechRecognizer.ERROR_AUDIO
-            message.contains("busy", ignoreCase = true) ->
-                SpeechRecognizer.ERROR_RECOGNIZER_BUSY
-            message.contains("empty", ignoreCase = true) ||
+            SpeechRecognizer.ERROR_AUDIO
+        message.contains("busy", ignoreCase = true) ->
+            SpeechRecognizer.ERROR_RECOGNIZER_BUSY
+        message.contains("empty", ignoreCase = true) ||
             message.contains("no speech", ignoreCase = true) ||
             message.contains("no match", ignoreCase = true) ->
-                SpeechRecognizer.ERROR_NO_MATCH
-            message.contains("server", ignoreCase = true) ||
+            SpeechRecognizer.ERROR_NO_MATCH
+        message.contains("server", ignoreCase = true) ||
             message.contains("api", ignoreCase = true) ->
-                SpeechRecognizer.ERROR_SERVER
-            else -> SpeechRecognizer.ERROR_CLIENT
-        }
+            SpeechRecognizer.ERROR_SERVER
+        else -> SpeechRecognizer.ERROR_CLIENT
     }
 
     /**
@@ -409,13 +412,25 @@ class AsrRecognitionService : RecognitionService() {
 
             val usedBackupResult = (engine as? ParallelAsrEngine)?.wasLastResultFromBackup() == true
 
-            val doAi = try { prefs.postProcessEnabled && prefs.hasLlmKeys() } catch (_: Throwable) { false }
+            val doAi = try {
+                prefs.postProcessEnabled && prefs.hasLlmKeys()
+            } catch (_: Throwable) {
+                false
+            }
 
             serviceScope.launch {
                 if (canceled || finished) return@launch
                 val processedText = if (doAi) {
                     val allowPartial = config.partialResults
-                    val typewriterEnabled = allowPartial && (try { prefs.postprocTypewriterEnabled } catch (_: Throwable) { true })
+                    val typewriterEnabled =
+                        allowPartial &&
+                            (
+                                try {
+                                    prefs.postprocTypewriterEnabled
+                                } catch (_: Throwable) {
+                                    true
+                                }
+                                )
                     var postprocCommitted = false
                     var lastPostprocTarget: String? = null
                     val typewriter = if (typewriterEnabled) {
@@ -436,42 +451,54 @@ class AsrRecognitionService : RecognitionService() {
                     val onStreamingUpdate: ((String) -> Unit)? = if (allowPartial) {
                         onStreamingUpdate@{ streamed ->
                             if (canceled || finished || postprocCommitted) return@onStreamingUpdate
-                            if (streamed.isEmpty() || streamed == lastPostprocTarget) return@onStreamingUpdate
+                            if (streamed.isEmpty() ||
+                                streamed == lastPostprocTarget
+                            ) {
+                                return@onStreamingUpdate
+                            }
                             lastPostprocTarget = streamed
                             if (typewriter != null) {
                                 typewriter.submit(streamed)
                             } else {
-                                if (streamed.isEmpty() || streamed == lastPostprocPreview) return@onStreamingUpdate
+                                if (streamed.isEmpty() ||
+                                    streamed == lastPostprocPreview
+                                ) {
+                                    return@onStreamingUpdate
+                                }
                                 lastPostprocPreview = streamed
                                 deliverPartialResults(streamed)
                             }
                         }
-                    } else null
-	                    try {
-	                        val res = com.brycewg.asrkb.util.AsrFinalFilters.applyWithAi(
-	                            this@AsrRecognitionService,
-	                            prefs,
-	                            text,
-	                            onStreamingUpdate = onStreamingUpdate
-	                        )
-	                        val aiUsed = (res.usedAi && res.ok)
-	                        val finalOut = res.text.ifBlank {
-	                            try {
-	                                com.brycewg.asrkb.util.AsrFinalFilters.applySimple(
-	                                    this@AsrRecognitionService,
-	                                    prefs,
-	                                    text
-	                                )
-	                            } catch (_: Throwable) {
-	                                text
-	                            }
-	                        }
-	                        if (typewriter != null && aiUsed && finalOut.isNotEmpty()) {
-	                            typewriter?.submit(finalOut, rush = true)
-	                            val finalLen = finalOut.length
-	                            val t0 = SystemClock.uptimeMillis()
-	                            while (!canceled && !finished && (SystemClock.uptimeMillis() - t0) < 2_000L &&
-	                                typewriter?.currentText()?.length != finalLen
+                    } else {
+                        null
+                    }
+                    try {
+                        val res = com.brycewg.asrkb.util.AsrFinalFilters.applyWithAi(
+                            this@AsrRecognitionService,
+                            prefs,
+                            text,
+                            onStreamingUpdate = onStreamingUpdate
+                        )
+                        val aiUsed = (res.usedAi && res.ok)
+                        val finalOut = res.text.ifBlank {
+                            try {
+                                com.brycewg.asrkb.util.AsrFinalFilters.applySimple(
+                                    this@AsrRecognitionService,
+                                    prefs,
+                                    text
+                                )
+                            } catch (_: Throwable) {
+                                text
+                            }
+                        }
+                        if (typewriter != null && aiUsed && finalOut.isNotEmpty()) {
+                            typewriter?.submit(finalOut, rush = true)
+                            val finalLen = finalOut.length
+                            val t0 = SystemClock.uptimeMillis()
+                            while (!canceled &&
+                                !finished &&
+                                (SystemClock.uptimeMillis() - t0) < 2_000L &&
+                                typewriter?.currentText()?.length != finalLen
                             ) {
                                 delay(20)
                             }
@@ -629,17 +656,23 @@ class AsrRecognitionService : RecognitionService() {
             // stop->processing 后必须最终回调 results/error；否则会卡住 currentSession，导致后续 startListening 永久 BUSY。
             cancelProcessingTimeout()
             val audioMs = lastAudioMsForTimeout
-            val baseTimeoutMs = com.brycewg.asrkb.asr.AsrTimeoutCalculator.calculateTimeoutMs(audioMs)
+            val baseTimeoutMs = com.brycewg.asrkb.asr.AsrTimeoutCalculator.calculateTimeoutMs(
+                audioMs
+            )
             val timeoutMs = if (engine is ParallelAsrEngine) baseTimeoutMs + 2_000L else baseTimeoutMs
             processingTimeoutJob = serviceScope.launch {
                 val usingBackupEngine = engine is ParallelAsrEngine
-                val shouldDeferForLocalModel = !usingBackupEngine && isLocalAsrVendor(prefs.asrVendor)
+                val shouldDeferForLocalModel =
+                    !usingBackupEngine && isLocalAsrVendor(prefs.asrVendor)
                 if (shouldDeferForLocalModel) {
                     // 本地模型：将超时计时起点推移到“模型加载完成”之后，避免首次加载期间误触发超时
                     val ok = awaitLocalAsrReady(prefs, maxWaitMs = LOCAL_MODEL_READY_WAIT_MAX_MS)
                     if (!ok) {
                         // 读取配置失败等异常场景：回退为原有策略（不阻塞、继续计时）
-                        Log.w(TAG, "awaitLocalAsrReady returned false, fallback to immediate timeout countdown")
+                        Log.w(
+                            TAG,
+                            "awaitLocalAsrReady returned false, fallback to immediate timeout countdown"
+                        )
                     }
                     if (canceled || finished) return@launch
                     if (currentSession !== this@RecognitionSession) return@launch
@@ -648,7 +681,10 @@ class AsrRecognitionService : RecognitionService() {
                 if (canceled || finished) return@launch
                 if (currentSession !== this@RecognitionSession) return@launch
 
-                Log.w(TAG, "Processing timeout fired (audioMs=$audioMs, timeoutMs=$timeoutMs), forcing session end")
+                Log.w(
+                    TAG,
+                    "Processing timeout fired (audioMs=$audioMs, timeoutMs=$timeoutMs), forcing session end"
+                )
                 finished = true
                 try {
                     engine?.stop()

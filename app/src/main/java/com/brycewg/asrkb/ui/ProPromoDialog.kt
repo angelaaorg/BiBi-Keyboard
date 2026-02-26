@@ -21,7 +21,6 @@ import com.brycewg.asrkb.store.Prefs
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import java.io.File
 import java.io.FileOutputStream
-import java.io.OutputStream
 
 /**
  * Pro 版本宣传弹窗工具类
@@ -93,10 +92,18 @@ object ProPromoDialog {
             val inflater = LayoutInflater.from(context)
             val customView = inflater.inflate(R.layout.dialog_pro_promo, null)
 
-            val btnPlayStore = customView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btnPlayStore)
-            val btnTelegram = customView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btnTelegram)
-            val btnPaymentQr = customView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btnPaymentQr)
-            val btnClose = customView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btnClose)
+            val btnPlayStore = customView.findViewById<com.google.android.material.button.MaterialButton>(
+                R.id.btnPlayStore
+            )
+            val btnTelegram = customView.findViewById<com.google.android.material.button.MaterialButton>(
+                R.id.btnTelegram
+            )
+            val btnPaymentQr = customView.findViewById<com.google.android.material.button.MaterialButton>(
+                R.id.btnPaymentQr
+            )
+            val btnClose = customView.findViewById<com.google.android.material.button.MaterialButton>(
+                R.id.btnClose
+            )
 
             val dialog = MaterialAlertDialogBuilder(context)
                 .setView(customView)
@@ -151,9 +158,15 @@ object ProPromoDialog {
             val inflater = LayoutInflater.from(context)
             val customView = inflater.inflate(R.layout.dialog_payment_qr, null)
 
-            val btnClose = customView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btnClosePayment)
-            val btnSaveWechat = customView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btnSaveWechat)
-            val btnSaveAlipay = customView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btnSaveAlipay)
+            val btnClose = customView.findViewById<com.google.android.material.button.MaterialButton>(
+                R.id.btnClosePayment
+            )
+            val btnSaveWechat = customView.findViewById<com.google.android.material.button.MaterialButton>(
+                R.id.btnSaveWechat
+            )
+            val btnSaveAlipay = customView.findViewById<com.google.android.material.button.MaterialButton>(
+                R.id.btnSaveAlipay
+            )
             val layoutEmail = customView.findViewById<LinearLayout>(R.id.layoutEmail)
 
             val dialog = MaterialAlertDialogBuilder(context)
@@ -235,13 +248,20 @@ object ProPromoDialog {
      */
     private fun saveImageToMediaStore(context: Context, bitmap: Bitmap, fileName: String): Boolean {
         val contentValues = ContentValues().apply {
-            put(MediaStore.Images.Media.DISPLAY_NAME, "${fileName}_${System.currentTimeMillis()}.jpg")
+            put(
+                MediaStore.Images.Media.DISPLAY_NAME,
+                "${fileName}_${System.currentTimeMillis()}.jpg"
+            )
             put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
             put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/BiBi")
         }
 
-        val uri = context.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
-            ?: return false
+        val uri =
+            context.contentResolver.insert(
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                contentValues
+            )
+                ?: return false
 
         return try {
             context.contentResolver.openOutputStream(uri)?.use { outputStream ->
@@ -258,8 +278,14 @@ object ProPromoDialog {
      * Android 9 及以下使用传统方式保存图片
      */
     @Suppress("DEPRECATION")
-    private fun saveImageToExternalStorage(context: Context, bitmap: Bitmap, fileName: String): Boolean {
-        val picturesDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
+    private fun saveImageToExternalStorage(
+        context: Context,
+        bitmap: Bitmap,
+        fileName: String
+    ): Boolean {
+        val picturesDir = Environment.getExternalStoragePublicDirectory(
+            Environment.DIRECTORY_PICTURES
+        )
         val appDir = File(picturesDir, "BiBi")
         if (!appDir.exists() && !appDir.mkdirs()) {
             return false

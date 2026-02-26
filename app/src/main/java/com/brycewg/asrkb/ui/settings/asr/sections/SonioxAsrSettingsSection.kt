@@ -7,10 +7,10 @@ import android.widget.EditText
 import android.widget.TextView
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.ui.SettingsOptionSheet
-import com.brycewg.asrkb.ui.settings.asr.bindString
 import com.brycewg.asrkb.ui.installExplainedSwitch
 import com.brycewg.asrkb.ui.settings.asr.AsrSettingsBinding
 import com.brycewg.asrkb.ui.settings.asr.AsrSettingsSection
+import com.brycewg.asrkb.ui.settings.asr.bindString
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.materialswitch.MaterialSwitch
 
@@ -53,7 +53,9 @@ internal class SonioxAsrSettingsSection : AsrSettingsSection {
 
         binding.view<MaterialButton>(R.id.btnSonioxGetKey).setOnClickListener { v ->
             binding.hapticTapIfEnabled(v)
-            binding.openUrlSafely("https://bibidocs.brycewg.com/getting-started/asr-providers.html#soniox")
+            binding.openUrlSafely(
+                "https://bibidocs.brycewg.com/getting-started/asr-providers.html#soniox"
+            )
         }
     }
 

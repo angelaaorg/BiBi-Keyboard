@@ -4,12 +4,13 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.media.AudioFormat
-import android.media.AudioRecord
-import android.media.MediaRecorder
 import android.util.Log
 import androidx.core.content.ContextCompat
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.store.Prefs
+import java.util.ArrayDeque
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -22,9 +23,6 @@ import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import okio.ByteString
 import org.json.JSONObject
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.ArrayDeque
 
 /**
  * Soniox WebSocket 实时 ASR 引擎实现。
@@ -37,7 +35,8 @@ class SonioxStreamAsrEngine(
     private val prefs: Prefs,
     private val listener: StreamingAsrEngine.Listener,
     private val externalPcmMode: Boolean = false
-) : StreamingAsrEngine, ExternalPcmConsumer {
+) : StreamingAsrEngine,
+    ExternalPcmConsumer {
 
     companion object {
         private const val TAG = "SonioxStreamAsrEngine"
@@ -138,70 +137,81 @@ class SonioxStreamAsrEngine(
         val req = Request.Builder()
             .url(Prefs.SONIOX_WS_URL)
             .build()
-        ws = http.newWebSocket(req, object : WebSocketListener() {
-            override fun onOpen(webSocket: WebSocket, response: Response) {
-                Log.d(TAG, "WebSocket opened, sending config")
-                try {
-                    // 发送配置
-                    val config = buildConfigJson()
-                    webSocket.send(config)
-                    // 标记 WS 已就绪，录音线程将冲刷预缓冲并进入实时发送
-                    wsReady.set(true)
-                    Log.d(TAG, "WebSocket ready, audio streaming can begin")
-                    if (!running.get() && awaitingFinal.get()) {
-                        flushPrebufferAndRequestEnd("stop_before_ready")
+        ws = http.newWebSocket(
+            req,
+            object : WebSocketListener() {
+                override fun onOpen(webSocket: WebSocket, response: Response) {
+                    Log.d(TAG, "WebSocket opened, sending config")
+                    try {
+                        // 发送配置
+                        val config = buildConfigJson()
+                        webSocket.send(config)
+                        // 标记 WS 已就绪，录音线程将冲刷预缓冲并进入实时发送
+                        wsReady.set(true)
+                        Log.d(TAG, "WebSocket ready, audio streaming can begin")
+                        if (!running.get() && awaitingFinal.get()) {
+                            flushPrebufferAndRequestEnd("stop_before_ready")
+                        }
+                    } catch (t: Throwable) {
+                        Log.e(TAG, "Failed to send config", t)
+                        val message = context.getString(
+                            R.string.error_recognize_failed_with_reason,
+                            t.message ?: ""
+                        )
+                        notifyError(message, "config", t)
+                        running.set(false)
+                        awaitingFinal.set(false)
+                        finalizeJob?.cancel()
+                        closeWebSocket("config_error")
                     }
-                } catch (t: Throwable) {
-                    Log.e(TAG, "Failed to send config", t)
-                    val message = context.getString(R.string.error_recognize_failed_with_reason, t.message ?: "")
-                    notifyError(message, "config", t)
+                }
+
+                override fun onMessage(webSocket: WebSocket, text: String) {
+                    handleMessage(text)
+                }
+
+                override fun onMessage(webSocket: WebSocket, bytes: ByteString) {
+                    // Soniox 文档为文本 JSON 响应；此处保底兼容
+                    try {
+                        handleMessage(bytes.utf8())
+                    } catch (t: Throwable) {
+                        Log.e(TAG, "Failed to decode binary message", t)
+                    }
+                }
+
+                override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+                    val message = context.getString(
+                        R.string.error_recognize_failed_with_reason,
+                        t.message ?: ""
+                    )
+                    if (running.get() || awaitingFinal.get()) {
+                        notifyError(message, "failure", t)
+                    }
                     running.set(false)
                     awaitingFinal.set(false)
                     finalizeJob?.cancel()
-                    closeWebSocket("config_error")
+                    closeWebSocket("failure")
                 }
-            }
 
-            override fun onMessage(webSocket: WebSocket, text: String) {
-                handleMessage(text)
-            }
-
-            override fun onMessage(webSocket: WebSocket, bytes: ByteString) {
-                // Soniox 文档为文本 JSON 响应；此处保底兼容
-                try { handleMessage(bytes.utf8()) } catch (t: Throwable) {
-                    Log.e(TAG, "Failed to decode binary message", t)
-                }
-            }
-
-            override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-                val message = context.getString(R.string.error_recognize_failed_with_reason, t.message ?: "")
-                if (running.get() || awaitingFinal.get()) {
-                    notifyError(message, "failure", t)
-                }
-                running.set(false)
-                awaitingFinal.set(false)
-                finalizeJob?.cancel()
-                closeWebSocket("failure")
-            }
-
-            override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
-                Log.d(TAG, "WebSocket closed with code $code: $reason")
-                if (awaitingFinal.get()) {
-                    val message = if (reason.isNotBlank()) {
-                        context.getString(R.string.error_recognize_failed_with_reason, reason)
-                    } else {
-                        context.getString(R.string.error_asr_timeout)
+                override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
+                    Log.d(TAG, "WebSocket closed with code $code: $reason")
+                    if (awaitingFinal.get()) {
+                        val message = if (reason.isNotBlank()) {
+                            context.getString(R.string.error_recognize_failed_with_reason, reason)
+                        } else {
+                            context.getString(R.string.error_asr_timeout)
+                        }
+                        notifyError(message, "closed_without_final", null)
+                        awaitingFinal.set(false)
                     }
-                    notifyError(message, "closed_without_final", null)
-                    awaitingFinal.set(false)
+                    running.set(false)
+                    finalizeJob?.cancel()
+                    ws = null
+                    wsReady.set(false)
+                    synchronized(prebufferLock) { prebuffer.clear() }
                 }
-                running.set(false)
-                finalizeJob?.cancel()
-                ws = null
-                wsReady.set(false)
-                synchronized(prebufferLock) { prebuffer.clear() }
             }
-        })
+        )
     }
 
     /**
@@ -232,9 +242,16 @@ class SonioxStreamAsrEngine(
             }
 
             // 长按说话模式下由用户松手决定停止，绕过 VAD 自动判停
-            val vadDetector = if (isVadAutoStopEnabled(context, prefs))
-                VadDetector(context, sampleRate, prefs.autoStopSilenceWindowMs, prefs.autoStopSilenceSensitivity)
-            else null
+            val vadDetector = if (isVadAutoStopEnabled(context, prefs)) {
+                VadDetector(
+                    context,
+                    sampleRate,
+                    prefs.autoStopSilenceWindowMs,
+                    prefs.autoStopSilenceSensitivity
+                )
+            } else {
+                null
+            }
 
             val maxFrames = (2000 / chunkMillis).coerceAtLeast(1) // 预缓冲≈2s
 
@@ -245,7 +262,9 @@ class SonioxStreamAsrEngine(
 
                     // Calculate and send audio amplitude (for waveform animation)
                     try {
-                        val amplitude = com.brycewg.asrkb.asr.calculateNormalizedAmplitude(audioChunk)
+                        val amplitude = com.brycewg.asrkb.asr.calculateNormalizedAmplitude(
+                            audioChunk
+                        )
                         listener.onAmplitude(amplitude)
                     } catch (t: Throwable) {
                         Log.w(TAG, "Failed to calculate amplitude", t)
@@ -254,7 +273,9 @@ class SonioxStreamAsrEngine(
                     // VAD 自动判停
                     if (vadDetector?.shouldStop(audioChunk, audioChunk.size) == true) {
                         Log.d(TAG, "Silence detected, stopping recording")
-                        try { listener.onStopped() } catch (t: Throwable) {
+                        try {
+                            listener.onStopped()
+                        } catch (t: Throwable) {
                             Log.e(TAG, "Failed to notify stopped", t)
                         }
                         stop()
@@ -341,13 +362,20 @@ class SonioxStreamAsrEngine(
     override fun appendPcm(pcm: ByteArray, sampleRate: Int, channels: Int) {
         if (!running.get()) return
         if (sampleRate != 16000 || channels != 1) return
-        try { listener.onAmplitude(com.brycewg.asrkb.asr.calculateNormalizedAmplitude(pcm)) } catch (_: Throwable) {}
+        try {
+            listener.onAmplitude(com.brycewg.asrkb.asr.calculateNormalizedAmplitude(pcm))
+        } catch (
+            _: Throwable
+        ) {}
         if (!wsReady.get()) {
             synchronized(prebufferLock) { prebuffer.addLast(pcm.copyOf()) }
         } else {
             var flushed: Array<ByteArray>? = null
             synchronized(prebufferLock) {
-                if (prebuffer.isNotEmpty()) { flushed = prebuffer.toTypedArray(); prebuffer.clear() }
+                if (prebuffer.isNotEmpty()) {
+                    flushed = prebuffer.toTypedArray()
+                    prebuffer.clear()
+                }
             }
             val socket = ws ?: return
             flushed?.forEach { b -> kotlin.runCatching { socket.send(ByteString.of(*b)) } }
@@ -406,7 +434,9 @@ class SonioxStreamAsrEngine(
             val stable = stripEndMarker(finalTextBuffer.toString())
             val preview = if (nonFinal.isNotEmpty()) {
                 stripEndMarker(mergeWithOverlapDedup(stable, nonFinal.toString()))
-            } else stable
+            } else {
+                stable
+            }
             // 仅在会话运行中才发出中间预览；用户 stop() 后可能仍有零星 non-final 到达，需忽略以避免重复追加
             if (preview.isNotEmpty() && running.get()) listener.onPartial(preview)
 
@@ -538,5 +568,4 @@ class SonioxStreamAsrEngine(
         if (s.isEmpty()) return s
         return s.replace("<end>", "").replace("<fin>", "").trimEnd()
     }
-
 }

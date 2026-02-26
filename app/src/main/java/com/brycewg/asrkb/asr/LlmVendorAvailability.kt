@@ -33,31 +33,28 @@ internal fun partitionLlmVendorsByConfigured(
     )
 }
 
-internal fun isLlmVendorConfigured(prefs: Prefs, vendor: LlmVendor): Boolean {
-    return try {
-        when (vendor) {
-            LlmVendor.SF_FREE -> {
-                if (prefs.sfFreeLlmUsePaidKey) {
-                    prefs.getLlmVendorApiKey(LlmVendor.SF_FREE).isNotBlank()
-                } else {
-                    prefs.sfFreeLlmEnabled
-                }
+internal fun isLlmVendorConfigured(prefs: Prefs, vendor: LlmVendor): Boolean = try {
+    when (vendor) {
+        LlmVendor.SF_FREE -> {
+            if (prefs.sfFreeLlmUsePaidKey) {
+                prefs.getLlmVendorApiKey(LlmVendor.SF_FREE).isNotBlank()
+            } else {
+                prefs.sfFreeLlmEnabled
             }
-
-            LlmVendor.CUSTOM -> {
-                val provider = prefs.getActiveLlmProvider()
-                provider != null &&
-                    provider.endpoint.isNotBlank() &&
-                    provider.model.isNotBlank()
-            }
-
-            else -> prefs.getLlmVendorApiKey(vendor).isNotBlank()
         }
-    } catch (t: Throwable) {
-        Log.w(TAG, "Failed to check LLM vendor availability: $vendor", t)
-        false
+
+        LlmVendor.CUSTOM -> {
+            val provider = prefs.getActiveLlmProvider()
+            provider != null &&
+                provider.endpoint.isNotBlank() &&
+                provider.model.isNotBlank()
+        }
+
+        else -> prefs.getLlmVendorApiKey(vendor).isNotBlank()
     }
+} catch (t: Throwable) {
+    Log.w(TAG, "Failed to check LLM vendor availability: $vendor", t)
+    false
 }
 
 private const val TAG = "LlmVendorAvailability"
-

@@ -9,6 +9,9 @@ import android.util.Log
 import androidx.core.content.ContextCompat
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.store.Prefs
+import java.util.ArrayDeque
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -23,9 +26,6 @@ import okhttp3.Response
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import org.json.JSONObject
-import java.util.ArrayDeque
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * ElevenLabs Realtime Streaming ASR Engine.
@@ -41,7 +41,8 @@ class ElevenLabsStreamAsrEngine(
     private val prefs: Prefs,
     private val listener: StreamingAsrEngine.Listener,
     private val externalPcmMode: Boolean = false
-) : StreamingAsrEngine, ExternalPcmConsumer {
+) : StreamingAsrEngine,
+    ExternalPcmConsumer {
 
     companion object {
         private const val TAG = "ElevenLabsStreamAsr"
@@ -143,55 +144,58 @@ class ElevenLabsStreamAsrEngine(
             .addHeader("xi-api-key", prefs.elevenApiKey.trim())
             .build()
 
-        ws = httpClient.newWebSocket(request, object : WebSocketListener() {
-            override fun onOpen(webSocket: WebSocket, response: Response) {
-                Log.d(TAG, "WebSocket opened: $response")
-                wsReady.set(true)
-                flushPrebuffer()
-            }
+        ws = httpClient.newWebSocket(
+            request,
+            object : WebSocketListener() {
+                override fun onOpen(webSocket: WebSocket, response: Response) {
+                    Log.d(TAG, "WebSocket opened: $response")
+                    wsReady.set(true)
+                    flushPrebuffer()
+                }
 
-            override fun onMessage(webSocket: WebSocket, text: String) {
-                handleMessage(text)
-            }
+                override fun onMessage(webSocket: WebSocket, text: String) {
+                    handleMessage(text)
+                }
 
-            override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
-                Log.d(TAG, "WebSocket closing: code=$code reason=$reason")
-            }
+                override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
+                    Log.d(TAG, "WebSocket closing: code=$code reason=$reason")
+                }
 
-            override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
-                Log.d(TAG, "WebSocket closed: code=$code reason=$reason")
-                ws = null
-                running.set(false)
-                audioJob?.cancel()
-                audioJob = null
-                if (closingByUser.get() || !running.get()) {
-                    emitFinalIfNeeded("closed")
-                } else if (!finalEmitted.get()) {
-                    listener.onError(
-                        context.getString(
-                            R.string.error_recognize_failed_with_reason,
-                            "connection closed"
+                override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
+                    Log.d(TAG, "WebSocket closed: code=$code reason=$reason")
+                    ws = null
+                    running.set(false)
+                    audioJob?.cancel()
+                    audioJob = null
+                    if (closingByUser.get() || !running.get()) {
+                        emitFinalIfNeeded("closed")
+                    } else if (!finalEmitted.get()) {
+                        listener.onError(
+                            context.getString(
+                                R.string.error_recognize_failed_with_reason,
+                                "connection closed"
+                            )
                         )
-                    )
+                    }
                 }
-            }
 
-            override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-                Log.e(TAG, "WebSocket failure: ${t.message}", t)
-                ws = null
-                audioJob?.cancel()
-                audioJob = null
-                if (closingByUser.get()) {
-                    emitFinalIfNeeded("failure_after_stop")
-                    return
+                override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+                    Log.e(TAG, "WebSocket failure: ${t.message}", t)
+                    ws = null
+                    audioJob?.cancel()
+                    audioJob = null
+                    if (closingByUser.get()) {
+                        emitFinalIfNeeded("failure_after_stop")
+                        return
+                    }
+                    val detail = response?.message ?: t.message.orEmpty()
+                    listener.onError(
+                        context.getString(R.string.error_recognize_failed_with_reason, detail)
+                    )
+                    running.set(false)
                 }
-                val detail = response?.message ?: t.message.orEmpty()
-                listener.onError(
-                    context.getString(R.string.error_recognize_failed_with_reason, detail)
-                )
-                running.set(false)
             }
-        })
+        )
     }
 
     private fun startCaptureAndStream() {
@@ -220,7 +224,9 @@ class ElevenLabsStreamAsrEngine(
                     prefs.autoStopSilenceWindowMs,
                     prefs.autoStopSilenceSensitivity
                 )
-            } else null
+            } else {
+                null
+            }
             val maxFrames = (2000 / chunkMillis).coerceAtLeast(1)
 
             try {
@@ -393,10 +399,8 @@ class ElevenLabsStreamAsrEngine(
         }
     }
 
-    private fun hasRecordPermission(): Boolean {
-        return ContextCompat.checkSelfPermission(
-            context,
-            Manifest.permission.RECORD_AUDIO
-        ) == PackageManager.PERMISSION_GRANTED
-    }
+    private fun hasRecordPermission(): Boolean = ContextCompat.checkSelfPermission(
+        context,
+        Manifest.permission.RECORD_AUDIO
+    ) == PackageManager.PERMISSION_GRANTED
 }

@@ -25,7 +25,11 @@ internal object PrefsAsrVendorFields {
             VendorField(KEY_ELEVEN_LANGUAGE_CODE)
         ),
         AsrVendor.OpenAI to listOf(
-            VendorField(KEY_OA_ASR_ENDPOINT, required = true, default = Prefs.DEFAULT_OA_ASR_ENDPOINT),
+            VendorField(
+                KEY_OA_ASR_ENDPOINT,
+                required = true,
+                default = Prefs.DEFAULT_OA_ASR_ENDPOINT
+            ),
             VendorField(KEY_OA_ASR_API_KEY, required = false),
             VendorField(KEY_OA_ASR_MODEL, required = true, default = Prefs.DEFAULT_OA_ASR_MODEL),
             // 可选 Prompt 字段（字符串）；开关为布尔，单独在导入/导出处理

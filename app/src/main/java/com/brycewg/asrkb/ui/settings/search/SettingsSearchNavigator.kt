@@ -15,8 +15,8 @@ import android.view.ViewGroup
 import android.widget.ScrollView
 import androidx.core.graphics.ColorUtils
 import androidx.core.widget.NestedScrollView
-import com.brycewg.asrkb.UiColors
 import com.brycewg.asrkb.UiColorTokens
+import com.brycewg.asrkb.UiColors
 
 object SettingsSearchNavigator {
     const val EXTRA_TARGET_VIEW_ID = "extra_target_view_id"
@@ -118,13 +118,11 @@ object SettingsSearchNavigator {
         animator.start()
     }
 
-    private fun dpToPx(view: View, dp: Float): Int {
-        return TypedValue.applyDimension(
-            TypedValue.COMPLEX_UNIT_DIP,
-            dp,
-            view.resources.displayMetrics
-        ).toInt()
-    }
+    private fun dpToPx(view: View, dp: Float): Int = TypedValue.applyDimension(
+        TypedValue.COMPLEX_UNIT_DIP,
+        dp,
+        view.resources.displayMetrics
+    ).toInt()
 
     private fun findFirstScrollContainer(root: View): View? {
         if (root is NestedScrollView || root is ScrollView) {

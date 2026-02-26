@@ -2,17 +2,16 @@ package com.brycewg.asrkb.asr
 
 import android.content.Context
 import android.util.Base64
-import android.util.Log
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.store.Prefs
+import java.util.UUID
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
-import java.util.UUID
-import java.util.concurrent.TimeUnit
 
 /**
  * 使用火山引擎"recognize/flash" API的非流式ASR引擎。
@@ -25,12 +24,14 @@ class VolcFileAsrEngine(
     listener: StreamingAsrEngine.Listener,
     onRequestDuration: ((Long) -> Unit)? = null,
     httpClient: OkHttpClient? = null
-) : BaseFileAsrEngine(context, scope, prefs, listener, onRequestDuration), PcmBatchRecognizer {
+) : BaseFileAsrEngine(context, scope, prefs, listener, onRequestDuration),
+    PcmBatchRecognizer {
 
     companion object {
         // 文件识别模型 1.0 / 2.0
         private const val FILE_RESOURCE_V1 = "volc.bigasr.auc"
         private const val FILE_RESOURCE_V2 = "volc.seedasr.auc"
+
         // 文件识别极速版（仅 1.0）
         private const val FILE_RESOURCE_TURBO = "volc.bigasr.auc_turbo"
         private const val TAG = "VolcFileAsrEngine"
@@ -82,11 +83,17 @@ class VolcFileAsrEngine(
                     val obj = JSONObject(bodyStr)
                     if (obj.has("result")) {
                         obj.getJSONObject("result").optString("text", "")
-                    } else ""
-                } catch (_: Throwable) { "" }
+                    } else {
+                        ""
+                    }
+                } catch (_: Throwable) {
+                    ""
+                }
                 if (text.isNotBlank()) {
                     val dt = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - t0)
-                    try { onRequestDuration?.invoke(dt) } catch (_: Throwable) {}
+                    try {
+                        onRequestDuration?.invoke(dt)
+                    } catch (_: Throwable) {}
                     listener.onFinal(text)
                 } else {
                     listener.onError(context.getString(R.string.error_asr_empty_result))
@@ -100,7 +107,9 @@ class VolcFileAsrEngine(
     }
 
     // 供“推送 PCM 适配器”调用，直接复用现有实现
-    override suspend fun recognizeFromPcm(pcm: ByteArray) { recognize(pcm) }
+    override suspend fun recognizeFromPcm(pcm: ByteArray) {
+        recognize(pcm)
+    }
 
     /**
      * 构建火山引擎 API 请求体

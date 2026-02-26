@@ -12,18 +12,17 @@ import android.provider.Settings
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
+import android.view.View
 import android.widget.EditText
 import android.widget.TextView
-import com.google.android.material.button.MaterialButton
 import android.widget.Toast
-import android.view.View
 import androidx.core.net.toUri
 import androidx.lifecycle.lifecycleScope
 import com.brycewg.asrkb.BuildConfig
-import com.brycewg.asrkb.ui.BaseActivity
 import com.brycewg.asrkb.R
-import com.brycewg.asrkb.store.Prefs
 import com.brycewg.asrkb.analytics.AnalyticsManager
+import com.brycewg.asrkb.store.Prefs
+import com.brycewg.asrkb.ui.BaseActivity
 import com.brycewg.asrkb.ui.SettingsOptionSheet
 import com.brycewg.asrkb.ui.floating.FloatingServiceManager
 import com.brycewg.asrkb.ui.floating.PrivilegedKeepAliveScheduler
@@ -32,6 +31,7 @@ import com.brycewg.asrkb.ui.installExplainedSwitch
 import com.brycewg.asrkb.ui.settings.search.SettingsSearchNavigator
 import com.brycewg.asrkb.util.HapticFeedbackHelper
 import com.google.android.material.appbar.MaterialToolbar
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.textfield.TextInputEditText
 import kotlinx.coroutines.Dispatchers
@@ -54,7 +54,10 @@ class OtherSettingsActivity : BaseActivity() {
     private var updatingFieldsFromViewModel = false
     private var pendingEnablePrivilegedKeepAlive = false
 
-    private val shizukuPermissionResultListener = Shizuku.OnRequestPermissionResultListener { requestCode, grantResult ->
+    private val shizukuPermissionResultListener = Shizuku.OnRequestPermissionResultListener {
+            requestCode,
+            grantResult
+        ->
         if (requestCode == PrivilegedKeepAliveStarter.SHIZUKU_REQUEST_CODE_KEEP_ALIVE) {
             runOnUiThread {
                 if (grantResult == android.content.pm.PackageManager.PERMISSION_GRANTED) {
@@ -91,9 +94,8 @@ class OtherSettingsActivity : BaseActivity() {
         setupSyncClipboard()
         setupPrivacyToggles()
 
-
-    // Observe ViewModel state
-    observeViewModel()
+        // Observe ViewModel state
+        observeViewModel()
     }
 
     override fun onPostResume() {
@@ -165,9 +167,16 @@ class OtherSettingsActivity : BaseActivity() {
             onChanged = { enabled ->
                 if (!enabled) return@installExplainedSwitch
                 lifecycleScope.launch(Dispatchers.IO) {
-                    val result = PrivilegedKeepAliveStarter.tryStartKeepAliveByShizuku(this@OtherSettingsActivity)
-                        ?: PrivilegedKeepAliveStarter.tryStartKeepAliveByRoot(this@OtherSettingsActivity)
-                        ?: PrivilegedKeepAliveStarter.startKeepAliveFallback(this@OtherSettingsActivity)
+                    val result =
+                        PrivilegedKeepAliveStarter.tryStartKeepAliveByShizuku(
+                            this@OtherSettingsActivity
+                        )
+                            ?: PrivilegedKeepAliveStarter.tryStartKeepAliveByRoot(
+                                this@OtherSettingsActivity
+                            )
+                            ?: PrivilegedKeepAliveStarter.startKeepAliveFallback(
+                                this@OtherSettingsActivity
+                            )
                     if (!result.ok) {
                         withContext(Dispatchers.Main) {
                             Toast.makeText(
@@ -179,37 +188,62 @@ class OtherSettingsActivity : BaseActivity() {
                     }
                 }
             },
-	            preCheck = { target ->
-	                if (!target) return@installExplainedSwitch true
-	                pendingEnablePrivilegedKeepAlive = false
-	                if (!prefs.floatingKeepAliveEnabled) {
-	                    Toast.makeText(this, R.string.toast_need_floating_keep_alive_first, Toast.LENGTH_SHORT).show()
-	                    return@installExplainedSwitch false
-	                }
+            preCheck = { target ->
+                if (!target) return@installExplainedSwitch true
+                pendingEnablePrivilegedKeepAlive = false
+                if (!prefs.floatingKeepAliveEnabled) {
+                    Toast.makeText(
+                        this,
+                        R.string.toast_need_floating_keep_alive_first,
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    return@installExplainedSwitch false
+                }
 
                 val rootAvailable = PrivilegedKeepAliveStarter.isRootProbablyAvailable()
                 if (rootAvailable) return@installExplainedSwitch true
 
-                if (PrivilegedKeepAliveStarter.isShizukuGranted(this)) return@installExplainedSwitch true
+                if (PrivilegedKeepAliveStarter.isShizukuGranted(
+                        this
+                    )
+                ) {
+                    return@installExplainedSwitch true
+                }
 
-	                when (PrivilegedKeepAliveStarter.requestShizukuPermission(this)) {
-	                    PrivilegedKeepAliveStarter.ShizukuPermissionRequestResult.AlreadyGranted -> Unit
-	                    PrivilegedKeepAliveStarter.ShizukuPermissionRequestResult.Requested -> {
-	                        pendingEnablePrivilegedKeepAlive = true
-	                        Toast.makeText(this, R.string.toast_shizuku_permission_requested, Toast.LENGTH_SHORT).show()
-	                        return@installExplainedSwitch false
-	                    }
-	                    PrivilegedKeepAliveStarter.ShizukuPermissionRequestResult.WaitingForBinder -> {
-	                        pendingEnablePrivilegedKeepAlive = true
-	                        Toast.makeText(this, R.string.toast_shizuku_permission_waiting, Toast.LENGTH_SHORT).show()
-	                        return@installExplainedSwitch false
-	                    }
+                when (PrivilegedKeepAliveStarter.requestShizukuPermission(this)) {
+                    PrivilegedKeepAliveStarter.ShizukuPermissionRequestResult.AlreadyGranted -> Unit
+                    PrivilegedKeepAliveStarter.ShizukuPermissionRequestResult.Requested -> {
+                        pendingEnablePrivilegedKeepAlive = true
+                        Toast.makeText(
+                            this,
+                            R.string.toast_shizuku_permission_requested,
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        return@installExplainedSwitch false
+                    }
+                    PrivilegedKeepAliveStarter.ShizukuPermissionRequestResult.WaitingForBinder -> {
+                        pendingEnablePrivilegedKeepAlive = true
+                        Toast.makeText(
+                            this,
+                            R.string.toast_shizuku_permission_waiting,
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        return@installExplainedSwitch false
+                    }
                     PrivilegedKeepAliveStarter.ShizukuPermissionRequestResult.NotInstalled -> {
-                        Toast.makeText(this, R.string.toast_shizuku_or_root_unavailable, Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            this,
+                            R.string.toast_shizuku_or_root_unavailable,
+                            Toast.LENGTH_SHORT
+                        ).show()
                         return@installExplainedSwitch false
                     }
                     PrivilegedKeepAliveStarter.ShizukuPermissionRequestResult.Failed -> {
-                        Toast.makeText(this, R.string.toast_shizuku_permission_request_failed, Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            this,
+                            R.string.toast_shizuku_permission_request_failed,
+                            Toast.LENGTH_SHORT
+                        ).show()
                         return@installExplainedSwitch false
                     }
                 }
@@ -238,9 +272,12 @@ class OtherSettingsActivity : BaseActivity() {
         switchPrivilegedKeepAlive.isChecked = true
 
         lifecycleScope.launch(Dispatchers.IO) {
-            val result = PrivilegedKeepAliveStarter.tryStartKeepAliveByShizuku(this@OtherSettingsActivity)
-                ?: PrivilegedKeepAliveStarter.tryStartKeepAliveByRoot(this@OtherSettingsActivity)
-                ?: PrivilegedKeepAliveStarter.startKeepAliveFallback(this@OtherSettingsActivity)
+            val result =
+                PrivilegedKeepAliveStarter.tryStartKeepAliveByShizuku(this@OtherSettingsActivity)
+                    ?: PrivilegedKeepAliveStarter.tryStartKeepAliveByRoot(
+                        this@OtherSettingsActivity
+                    )
+                    ?: PrivilegedKeepAliveStarter.startKeepAliveFallback(this@OtherSettingsActivity)
             if (!result.ok) {
                 withContext(Dispatchers.Main) {
                     Toast.makeText(
@@ -287,7 +324,11 @@ class OtherSettingsActivity : BaseActivity() {
                     // 清空历史
                     try {
                         com.brycewg.asrkb.store.AsrHistoryStore(this).clearAll()
-                        Toast.makeText(this, R.string.toast_cleared_history, Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            this,
+                            R.string.toast_cleared_history,
+                            Toast.LENGTH_SHORT
+                        ).show()
                     } catch (e: Throwable) {
                         Log.e(TAG, "Failed to clear ASR history", e)
                     }
@@ -318,7 +359,11 @@ class OtherSettingsActivity : BaseActivity() {
                     // 清空统计
                     try {
                         prefs.resetUsageStats()
-                        Toast.makeText(this, R.string.toast_cleared_stats, Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            this,
+                            R.string.toast_cleared_stats,
+                            Toast.LENGTH_SHORT
+                        ).show()
                     } catch (e: Throwable) {
                         Log.e(TAG, "Failed to reset usage stats", e)
                     }
@@ -369,9 +414,16 @@ class OtherSettingsActivity : BaseActivity() {
 
         fun EditText.bind(onChange: (String) -> Unit) {
             addTextChangedListener(object : TextWatcher {
-                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+                override fun beforeTextChanged(
+                    s: CharSequence?,
+                    start: Int,
+                    count: Int,
+                    after: Int
+                ) {}
                 override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-                override fun afterTextChanged(s: Editable?) { onChange(s?.toString() ?: "") }
+                override fun afterTextChanged(s: Editable?) {
+                    onChange(s?.toString() ?: "")
+                }
             })
         }
 
@@ -385,8 +437,14 @@ class OtherSettingsActivity : BaseActivity() {
 
     private fun setupSpeechPresets() {
         val tvSpeechPresets = findViewById<TextView>(R.id.tvSpeechPresetsValue)
-        val tilSpeechPresetName = findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.tilSpeechPresetName)
-        val tilSpeechPresetContent = findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.tilSpeechPresetContent)
+        val tilSpeechPresetName =
+            findViewById<com.google.android.material.textfield.TextInputLayout>(
+                R.id.tilSpeechPresetName
+            )
+        val tilSpeechPresetContent =
+            findViewById<com.google.android.material.textfield.TextInputLayout>(
+                R.id.tilSpeechPresetContent
+            )
         val etSpeechPresetName = findViewById<TextInputEditText>(R.id.etSpeechPresetName)
         val etSpeechPresetContent = findViewById<TextInputEditText>(R.id.etSpeechPresetContent)
         val btnSpeechPresetAdd = findViewById<MaterialButton>(R.id.btnSpeechPresetAdd)
@@ -451,7 +509,11 @@ class OtherSettingsActivity : BaseActivity() {
                 etSpeechPresetName.requestFocus()
                 etSpeechPresetName.setSelection(etSpeechPresetName.text?.length ?: 0)
             }
-            Toast.makeText(this, getString(R.string.toast_speech_preset_added), Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                this,
+                getString(R.string.toast_speech_preset_added),
+                Toast.LENGTH_SHORT
+            ).show()
         }
 
         // Setup delete button
@@ -463,13 +525,19 @@ class OtherSettingsActivity : BaseActivity() {
             val current = state.currentPreset ?: return@setOnClickListener
             com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
                 .setTitle(R.string.dialog_speech_preset_delete_title)
-                .setMessage(getString(
-                    R.string.dialog_speech_preset_delete_message,
-                    current.name.ifBlank { getString(R.string.speech_preset_untitled) }
-                ))
+                .setMessage(
+                    getString(
+                        R.string.dialog_speech_preset_delete_message,
+                        current.name.ifBlank { getString(R.string.speech_preset_untitled) }
+                    )
+                )
                 .setPositiveButton(R.string.btn_speech_preset_delete) { _, _ ->
                     viewModel.deleteSpeechPreset(current.id)
-                    Toast.makeText(this, getString(R.string.toast_speech_preset_deleted), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        this,
+                        getString(R.string.toast_speech_preset_deleted),
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
                 .setNegativeButton(R.string.btn_cancel, null)
                 .show()
@@ -494,8 +562,14 @@ class OtherSettingsActivity : BaseActivity() {
 
     private fun updateSpeechPresetsUI(state: OtherSettingsViewModel.SpeechPresetsState) {
         val tvSpeechPresets = findViewById<TextView>(R.id.tvSpeechPresetsValue)
-        val tilSpeechPresetName = findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.tilSpeechPresetName)
-        val tilSpeechPresetContent = findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.tilSpeechPresetContent)
+        val tilSpeechPresetName =
+            findViewById<com.google.android.material.textfield.TextInputLayout>(
+                R.id.tilSpeechPresetName
+            )
+        val tilSpeechPresetContent =
+            findViewById<com.google.android.material.textfield.TextInputLayout>(
+                R.id.tilSpeechPresetContent
+            )
         val etSpeechPresetName = findViewById<TextInputEditText>(R.id.etSpeechPresetName)
         val etSpeechPresetContent = findViewById<TextInputEditText>(R.id.etSpeechPresetContent)
         val spSpeechPresets = findViewById<android.widget.Spinner>(R.id.spSpeechPresets)
@@ -571,7 +645,7 @@ class OtherSettingsActivity : BaseActivity() {
             viewModel.updateSyncClipboardAutoPullEnabled(checked)
         }
 
-        etServer.addTextChangedListener(object: TextWatcher {
+        etServer.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: Editable?) {
@@ -579,7 +653,7 @@ class OtherSettingsActivity : BaseActivity() {
             }
         })
 
-        etUser.addTextChangedListener(object: TextWatcher {
+        etUser.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: Editable?) {
@@ -587,7 +661,7 @@ class OtherSettingsActivity : BaseActivity() {
             }
         })
 
-        etPass.addTextChangedListener(object: TextWatcher {
+        etPass.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: Editable?) {
@@ -595,7 +669,7 @@ class OtherSettingsActivity : BaseActivity() {
             }
         })
 
-        etInterval.addTextChangedListener(object: TextWatcher {
+        etInterval.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: Editable?) {
@@ -679,16 +753,28 @@ class OtherSettingsActivity : BaseActivity() {
             false
         }
         if (alreadyIgnoring) {
-            Toast.makeText(this, getString(R.string.toast_battery_whitelist_already), Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                this,
+                getString(R.string.toast_battery_whitelist_already),
+                Toast.LENGTH_SHORT
+            ).show()
             return
         }
 
         try {
-            val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, "package:$packageName".toUri())
+            val intent =
+                Intent(
+                    Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                    "package:$packageName".toUri()
+                )
             startActivity(intent)
         } catch (e: Throwable) {
             Log.e(TAG, "Failed to request battery optimization whitelist", e)
-            Toast.makeText(this, getString(R.string.toast_battery_whitelist_failed), Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                this,
+                getString(R.string.toast_battery_whitelist_failed),
+                Toast.LENGTH_SHORT
+            ).show()
         }
     }
 

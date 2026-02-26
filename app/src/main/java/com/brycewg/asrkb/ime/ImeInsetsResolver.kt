@@ -11,7 +11,9 @@ internal object ImeInsetsResolver {
 
     fun resolveBottomInset(insets: WindowInsetsCompat, resources: Resources): Int {
         val navBarsBottom = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
-        val mandatoryBottom = insets.getInsets(WindowInsetsCompat.Type.mandatorySystemGestures()).bottom
+        val mandatoryBottom = insets.getInsets(
+            WindowInsetsCompat.Type.mandatorySystemGestures()
+        ).bottom
         val tappableBottom = insets.getInsets(WindowInsetsCompat.Type.tappableElement()).bottom
         val systemGesturesBottom = insets.getInsets(WindowInsetsCompat.Type.systemGestures()).bottom
 

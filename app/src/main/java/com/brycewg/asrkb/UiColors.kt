@@ -23,9 +23,7 @@ object UiColors {
      * @return 解析后的颜色值
      */
     @ColorInt
-    fun get(view: View, @AttrRes attr: Int, @ColorInt defaultColor: Int): Int {
-        return MaterialColors.getColor(view, attr, defaultColor)
-    }
+    fun get(view: View, @AttrRes attr: Int, @ColorInt defaultColor: Int): Int = MaterialColors.getColor(view, attr, defaultColor)
 
     /**
      * 从 Context 获取主题属性颜色
@@ -36,9 +34,7 @@ object UiColors {
      * @return 解析后的颜色值
      */
     @ColorInt
-    fun get(context: Context, @AttrRes attr: Int, @ColorInt defaultColor: Int): Int {
-        return MaterialColors.getColor(context, attr, defaultColor)
-    }
+    fun get(context: Context, @AttrRes attr: Int, @ColorInt defaultColor: Int): Int = MaterialColors.getColor(context, attr, defaultColor)
 
     /**
      * 从 View 的上下文获取主题属性颜色（使用标准 Material 回退色）
@@ -46,17 +42,13 @@ object UiColors {
      * 提供常用颜色的标准回退值，避免每次都手动指定
      */
     @ColorInt
-    fun get(view: View, @AttrRes attr: Int): Int {
-        return get(view, attr, getDefaultFallback(attr))
-    }
+    fun get(view: View, @AttrRes attr: Int): Int = get(view, attr, getDefaultFallback(attr))
 
     /**
      * 从 Context 获取主题属性颜色（使用标准 Material 回退色）
      */
     @ColorInt
-    fun get(context: Context, @AttrRes attr: Int): Int {
-        return get(context, attr, getDefaultFallback(attr))
-    }
+    fun get(context: Context, @AttrRes attr: Int): Int = get(context, attr, getDefaultFallback(attr))
 
     /**
      * 获取标准的回退颜色
@@ -64,27 +56,25 @@ object UiColors {
      * 根据颜色语义提供合理的回退值（Material3 基线）
      */
     @ColorInt
-    private fun getDefaultFallback(@AttrRes attr: Int): Int {
-        return when (attr) {
-            UiColorTokens.error, UiColorTokens.floatingError -> 0xFFB3261E.toInt()
-            UiColorTokens.primary -> 0xFF6750A4.toInt()
-            UiColorTokens.secondary, UiColorTokens.floatingIcon -> 0xFF625B71.toInt()
-            UiColorTokens.tertiary -> 0xFF7D5260.toInt()
-            UiColorTokens.primaryContainer -> 0xFFEADDFF.toInt()
-            UiColorTokens.onPrimaryContainer -> 0xFF21005D.toInt()
-            UiColorTokens.onSecondaryContainer -> 0xFF1D192B.toInt()
-            UiColorTokens.tertiaryContainer -> 0xFFFFD8E4.toInt()
-            UiColorTokens.onTertiaryContainer -> 0xFF31111D.toInt()
-            UiColorTokens.panelBg, UiColorTokens.kbdContainerBg, UiColorTokens.floatingBallBg -> 0xFFFFFBFE.toInt()
-            UiColorTokens.panelFg -> 0xFF1C1B1F.toInt()
-            UiColorTokens.panelFgVariant, UiColorTokens.containerFg, UiColorTokens.chipFg, UiColorTokens.kbdKeyFg -> 0xFF49454F.toInt()
-            UiColorTokens.containerBg, UiColorTokens.chipBg, UiColorTokens.kbdKeyBg -> 0xFFE7E0EC.toInt()
-            UiColorTokens.selectedBg, UiColorTokens.secondaryContainer -> 0xFFE8DEF8.toInt()
-            UiColorTokens.outline -> 0xFF79747E.toInt()
-            UiColorTokens.outlineVariant -> 0xFFCAC4D0.toInt()
-            UiColorTokens.scrim -> 0xFF000000.toInt()
-            else -> 0xFF000000.toInt() // 黑色作为最终回退
-        }
+    private fun getDefaultFallback(@AttrRes attr: Int): Int = when (attr) {
+        UiColorTokens.error, UiColorTokens.floatingError -> 0xFFB3261E.toInt()
+        UiColorTokens.primary -> 0xFF6750A4.toInt()
+        UiColorTokens.secondary, UiColorTokens.floatingIcon -> 0xFF625B71.toInt()
+        UiColorTokens.tertiary -> 0xFF7D5260.toInt()
+        UiColorTokens.primaryContainer -> 0xFFEADDFF.toInt()
+        UiColorTokens.onPrimaryContainer -> 0xFF21005D.toInt()
+        UiColorTokens.onSecondaryContainer -> 0xFF1D192B.toInt()
+        UiColorTokens.tertiaryContainer -> 0xFFFFD8E4.toInt()
+        UiColorTokens.onTertiaryContainer -> 0xFF31111D.toInt()
+        UiColorTokens.panelBg, UiColorTokens.kbdContainerBg, UiColorTokens.floatingBallBg -> 0xFFFFFBFE.toInt()
+        UiColorTokens.panelFg -> 0xFF1C1B1F.toInt()
+        UiColorTokens.panelFgVariant, UiColorTokens.containerFg, UiColorTokens.chipFg, UiColorTokens.kbdKeyFg -> 0xFF49454F.toInt()
+        UiColorTokens.containerBg, UiColorTokens.chipBg, UiColorTokens.kbdKeyBg -> 0xFFE7E0EC.toInt()
+        UiColorTokens.selectedBg, UiColorTokens.secondaryContainer -> 0xFFE8DEF8.toInt()
+        UiColorTokens.outline -> 0xFF79747E.toInt()
+        UiColorTokens.outlineVariant -> 0xFFCAC4D0.toInt()
+        UiColorTokens.scrim -> 0xFF000000.toInt()
+        else -> 0xFF000000.toInt() // 黑色作为最终回退
     }
 
     // ==================== 便捷方法（常用颜色） ====================

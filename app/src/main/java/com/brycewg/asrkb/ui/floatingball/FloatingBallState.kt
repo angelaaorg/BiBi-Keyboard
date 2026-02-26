@@ -33,7 +33,10 @@ class FloatingBallStateMachine {
 
     fun transitionTo(newState: FloatingBallState) {
         // 记录状态转换（便于调试）
-        android.util.Log.d("FloatingBallStateMachine", "State transition: $currentState -> $newState")
+        android.util.Log.d(
+            "FloatingBallStateMachine",
+            "State transition: $currentState -> $newState"
+        )
         currentState = newState
     }
 

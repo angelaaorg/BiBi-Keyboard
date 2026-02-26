@@ -47,4 +47,3 @@ internal object PrefsLlmProviderStore {
         return list.firstOrNull { it.id == id } ?: list.firstOrNull()
     }
 }
-

@@ -24,10 +24,7 @@ import com.google.android.material.color.DynamicColors
  *
  * 自动应用动态主题上下文（Material3 + Monet），确保与系统主题一致
  */
-class FloatingMenuHelper(
-    rawContext: Context,
-    private val windowManager: WindowManager
-) {
+class FloatingMenuHelper(rawContext: Context, private val windowManager: WindowManager) {
     companion object {
         private const val TAG = "FloatingMenuHelper"
     }
@@ -95,7 +92,13 @@ class FloatingMenuHelper(
             if (hit >= 0) {
                 // 触发反馈与点击
                 HapticFeedbackHelper.performTap(context, prefs, root)
-                try { actions.getOrNull(hit)?.invoke() } catch (e: Throwable) { Log.e(TAG, "Drag select action failed", e) }
+                try {
+                    actions.getOrNull(hit)?.invoke()
+                } catch (
+                    e: Throwable
+                ) {
+                    Log.e(TAG, "Drag select action failed", e)
+                }
             }
             dismiss()
         }
@@ -109,7 +112,13 @@ class FloatingMenuHelper(
             } catch (e: Throwable) {
                 Log.e(TAG, "Failed to remove drag radial root", e)
             }
-            try { onDismiss.invoke() } catch (e: Throwable) { Log.w(TAG, "onDismiss error in drag session", e) }
+            try {
+                onDismiss.invoke()
+            } catch (
+                e: Throwable
+            ) {
+                Log.w(TAG, "onDismiss error in drag session", e)
+            }
         }
     }
 
@@ -153,7 +162,13 @@ class FloatingMenuHelper(
                 }
             }
             root.alpha = 1.0f
-            try { root.requestFocus() } catch (e: Throwable) { Log.w(TAG, "Failed to request focus for radial root", e) }
+            try {
+                root.requestFocus()
+            } catch (
+                e: Throwable
+            ) {
+                Log.w(TAG, "Failed to request focus for radial root", e)
+            }
 
             val (centerX, centerY) = anchorCenter
             val isLeft = centerX < (context.resources.displayMetrics.widthPixels / 2)
@@ -239,14 +254,22 @@ class FloatingMenuHelper(
                 isFocusable = true
                 isFocusableInTouchMode = true
                 setOnClickListener {
-                    try { windowManager.removeView(this) } catch (e: Throwable) {
+                    try {
+                        windowManager.removeView(this)
+                    } catch (e: Throwable) {
                         Log.e(TAG, "Failed to remove drag radial root on blank click", e)
                     }
                     onDismiss()
                 }
             }
             root.alpha = 1.0f
-            try { root.requestFocus() } catch (e: Throwable) { Log.w(TAG, "Failed to request focus for drag radial root", e) }
+            try {
+                root.requestFocus()
+            } catch (
+                e: Throwable
+            ) {
+                Log.w(TAG, "Failed to request focus for drag radial root", e)
+            }
 
             val (centerX, centerY) = anchorCenter
             val isLeft = centerX < (context.resources.displayMetrics.widthPixels / 2)
@@ -264,8 +287,20 @@ class FloatingMenuHelper(
             items.forEachIndexed { index, item ->
                 val row = buildCapsule(item.iconRes, item.label, item.contentDescription) {
                     // 点击备用：也允许直接轻触选择
-                    try { item.onClick() } catch (e: Throwable) { Log.e(TAG, "Drag radial item action failed", e) }
-                    try { windowManager.removeView(root) } catch (e: Throwable) { Log.e(TAG, "Failed to remove drag radial root on item click", e) }
+                    try {
+                        item.onClick()
+                    } catch (
+                        e: Throwable
+                    ) {
+                        Log.e(TAG, "Drag radial item action failed", e)
+                    }
+                    try {
+                        windowManager.removeView(root)
+                    } catch (
+                        e: Throwable
+                    ) {
+                        Log.e(TAG, "Failed to remove drag radial root on item click", e)
+                    }
                     onDismiss()
                 }
                 rows.add(row)
@@ -306,7 +341,15 @@ class FloatingMenuHelper(
             params.gravity = Gravity.TOP or Gravity.START
 
             windowManager.addView(root, params)
-            return DragRadialMenuSession(context, windowManager, root, container, rows, actions, onDismiss)
+            return DragRadialMenuSession(
+                context,
+                windowManager,
+                root,
+                container,
+                rows,
+                actions,
+                onDismiss
+            )
         } catch (e: Throwable) {
             Log.e(TAG, "Failed to show radial menu (drag)", e)
             return null
@@ -345,7 +388,13 @@ class FloatingMenuHelper(
                 }
             }
             root.alpha = 1.0f
-            try { root.requestFocus() } catch (e: Throwable) { Log.w(TAG, "Failed to request focus for panel root", e) }
+            try {
+                root.requestFocus()
+            } catch (
+                e: Throwable
+            ) {
+                Log.w(TAG, "Failed to request focus for panel root", e)
+            }
 
             val container = LinearLayout(context).apply {
                 orientation = LinearLayout.VERTICAL
@@ -465,14 +514,22 @@ class FloatingMenuHelper(
                 isFocusable = true
                 isFocusableInTouchMode = true
                 setOnClickListener {
-                    try { windowManager.removeView(this) } catch (e: Throwable) {
+                    try {
+                        windowManager.removeView(this)
+                    } catch (e: Throwable) {
                         Log.e(TAG, "Failed to remove text panel root on blank click", e)
                     }
                     onDismiss()
                 }
             }
             root.alpha = 1.0f
-            try { root.requestFocus() } catch (e: Throwable) { Log.w(TAG, "Failed to request focus for text panel root", e) }
+            try {
+                root.requestFocus()
+            } catch (
+                e: Throwable
+            ) {
+                Log.w(TAG, "Failed to request focus for text panel root", e)
+            }
 
             val container = LinearLayout(context).apply {
                 orientation = LinearLayout.VERTICAL
@@ -543,10 +600,14 @@ class FloatingMenuHelper(
                     ellipsize = android.text.TextUtils.TruncateAt.END
                     setOnClickListener {
                         hapticFeedback(this)
-                        try { onItemClick(text) } catch (e: Throwable) {
+                        try {
+                            onItemClick(text)
+                        } catch (e: Throwable) {
                             Log.e(TAG, "Text item action failed", e)
                         }
-                        try { windowManager.removeView(root) } catch (e: Throwable) {
+                        try {
+                            windowManager.removeView(root)
+                        } catch (e: Throwable) {
                             Log.e(TAG, "Failed to remove text panel root on item click", e)
                         }
                         onDismiss()
@@ -564,7 +625,13 @@ class FloatingMenuHelper(
             fun appendBatch(maxCount: Int) {
                 if (texts.isEmpty() || loadedCount >= texts.size) return
                 val remaining = texts.size - loadedCount
-                val target = if (maxCount == Int.MAX_VALUE) remaining else maxCount.coerceAtMost(remaining)
+                val target = if (maxCount ==
+                    Int.MAX_VALUE
+                ) {
+                    remaining
+                } else {
+                    maxCount.coerceAtMost(remaining)
+                }
                 if (target <= 0) return
                 texts.subList(loadedCount, loadedCount + target).forEach { text ->
                     addTextView(text)
@@ -705,12 +772,7 @@ class FloatingMenuHelper(
         return layout
     }
 
-    private fun positionContainer(
-        container: View,
-        centerX: Int,
-        centerY: Int,
-        isLeft: Boolean
-    ) {
+    private fun positionContainer(container: View, centerX: Int, centerY: Int, isLeft: Boolean) {
         val dm = context.resources.displayMetrics
         val screenW = dm.widthPixels
         val screenH = dm.heightPixels

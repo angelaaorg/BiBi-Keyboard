@@ -18,9 +18,7 @@ import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
-import com.brycewg.asrkb.ui.BaseActivity
 import androidx.lifecycle.lifecycleScope
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.asr.LlmPostProcessor
@@ -29,6 +27,7 @@ import com.brycewg.asrkb.asr.partitionLlmVendorsByConfigured
 import com.brycewg.asrkb.ime.AsrKeyboardService
 import com.brycewg.asrkb.store.Prefs
 import com.brycewg.asrkb.store.PromptPreset
+import com.brycewg.asrkb.ui.BaseActivity
 import com.brycewg.asrkb.ui.SettingsOptionSheet
 import com.brycewg.asrkb.ui.installExplainedSwitch
 import com.brycewg.asrkb.ui.settings.search.SettingsSearchNavigator
@@ -38,8 +37,8 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.slider.Slider
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
@@ -168,7 +167,9 @@ class AiPostSettingsActivity : BaseActivity() {
     }
 
     private fun consumeSearchForcedVendorIfNeeded() {
-        val id = intent?.getStringExtra(SettingsSearchNavigator.EXTRA_FORCE_LLM_VENDOR_ID)?.trim().orEmpty()
+        val id = intent?.getStringExtra(
+            SettingsSearchNavigator.EXTRA_FORCE_LLM_VENDOR_ID
+        )?.trim().orEmpty()
         if (id.isBlank()) return
         val vendor = com.brycewg.asrkb.asr.LlmVendor.fromId(id)
         val oldVendor = prefs.llmVendor
@@ -176,7 +177,10 @@ class AiPostSettingsActivity : BaseActivity() {
             viewModel.selectVendor(prefs, vendor)
             Toast.makeText(
                 this,
-                getString(R.string.toast_search_changed_llm_vendor, getString(vendor.displayNameResId)),
+                getString(
+                    R.string.toast_search_changed_llm_vendor,
+                    getString(vendor.displayNameResId)
+                ),
                 Toast.LENGTH_SHORT
             ).show()
         }
@@ -332,13 +336,17 @@ class AiPostSettingsActivity : BaseActivity() {
 
         // 根据深色模式设置 Powered by 图片
         val imgSfFreeLlmPoweredBy = findViewById<ImageView>(R.id.imgSfFreeLlmPoweredBy)
-        val isDarkMode = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+        val isDarkMode =
+            (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
+                Configuration.UI_MODE_NIGHT_YES
         imgSfFreeLlmPoweredBy.setImageResource(
             if (isDarkMode) R.drawable.powered_by_siliconflow_dark else R.drawable.powered_by_siliconflow_light
         )
 
         // SF register button
-        findViewById<com.google.android.material.button.MaterialButton>(R.id.btnSfFreeLlmRegister).setOnClickListener { v ->
+        findViewById<com.google.android.material.button.MaterialButton>(
+            R.id.btnSfFreeLlmRegister
+        ).setOnClickListener { v ->
             hapticTapIfEnabled(v)
             openUrlSafely(LlmVendor.SF_FREE.registerUrl)
         }
@@ -442,12 +450,20 @@ class AiPostSettingsActivity : BaseActivity() {
         }
         etBuiltinReasoningParamsOnJson.addTextChangeListener { text ->
             val vendor = viewModel.selectedVendor.value
-            if (vendor == LlmVendor.CUSTOM || vendor == LlmVendor.SF_FREE) return@addTextChangeListener
+            if (vendor == LlmVendor.CUSTOM ||
+                vendor == LlmVendor.SF_FREE
+            ) {
+                return@addTextChangeListener
+            }
             prefs.setLlmVendorReasoningParamsOnJson(vendor, text)
         }
         etBuiltinReasoningParamsOffJson.addTextChangeListener { text ->
             val vendor = viewModel.selectedVendor.value
-            if (vendor == LlmVendor.CUSTOM || vendor == LlmVendor.SF_FREE) return@addTextChangeListener
+            if (vendor == LlmVendor.CUSTOM ||
+                vendor == LlmVendor.SF_FREE
+            ) {
+                return@addTextChangeListener
+            }
             prefs.setLlmVendorReasoningParamsOffJson(vendor, text)
         }
 
@@ -609,7 +625,14 @@ class AiPostSettingsActivity : BaseActivity() {
 
         // Show/hide groups based on vendor type
         groupSfFreeLlm.visibility = if (vendor == LlmVendor.SF_FREE) View.VISIBLE else View.GONE
-        groupBuiltinLlm.visibility = if (vendor != LlmVendor.SF_FREE && vendor != LlmVendor.CUSTOM) View.VISIBLE else View.GONE
+        groupBuiltinLlm.visibility =
+            if (vendor != LlmVendor.SF_FREE &&
+                vendor != LlmVendor.CUSTOM
+            ) {
+                View.VISIBLE
+            } else {
+                View.GONE
+            }
         groupCustomLlm.visibility = if (vendor == LlmVendor.CUSTOM) View.VISIBLE else View.GONE
     }
 
@@ -639,7 +662,8 @@ class AiPostSettingsActivity : BaseActivity() {
         val showCustomReasoningParams = displayModel.isNotBlank() && !isBuiltinModel
         val showReasoning = supportsReasoning || showCustomReasoningParams
         layoutBuiltinReasoningMode.visibility = if (showReasoning) View.VISIBLE else View.GONE
-        layoutBuiltinReasoningParams.visibility = if (showCustomReasoningParams) View.VISIBLE else View.GONE
+        layoutBuiltinReasoningParams.visibility =
+            if (showCustomReasoningParams) View.VISIBLE else View.GONE
         if (showReasoning) {
             switchBuiltinReasoningMode.isChecked = config.reasoningEnabled
         }
@@ -667,20 +691,16 @@ class AiPostSettingsActivity : BaseActivity() {
         }
     }
 
-    private fun getSfPresetModels(): List<String> {
-        return if (prefs.sfFreeLlmUsePaidKey) {
-            prefs.getLlmVendorModels(LlmVendor.SF_FREE)
-        } else {
-            Prefs.SF_FREE_LLM_MODELS
-        }
+    private fun getSfPresetModels(): List<String> = if (prefs.sfFreeLlmUsePaidKey) {
+        prefs.getLlmVendorModels(LlmVendor.SF_FREE)
+    } else {
+        Prefs.SF_FREE_LLM_MODELS
     }
 
-    private fun getSfStaticModels(): List<String> {
-        return if (prefs.sfFreeLlmUsePaidKey) {
-            LlmVendor.SF_FREE.models
-        } else {
-            Prefs.SF_FREE_LLM_MODELS
-        }
+    private fun getSfStaticModels(): List<String> = if (prefs.sfFreeLlmUsePaidKey) {
+        LlmVendor.SF_FREE.models
+    } else {
+        Prefs.SF_FREE_LLM_MODELS
     }
 
     private fun updateSfFreeLlmModelDisplay() {
@@ -723,7 +743,8 @@ class AiPostSettingsActivity : BaseActivity() {
         val supportsReasoning = viewModel.supportsReasoningSwitch(LlmVendor.SF_FREE, model)
         val showReasoning = supportsReasoning || showCustomReasoningParams
         layoutSfReasoningMode.visibility = if (showReasoning) View.VISIBLE else View.GONE
-        layoutSfReasoningParams.visibility = if (showCustomReasoningParams) View.VISIBLE else View.GONE
+        layoutSfReasoningParams.visibility =
+            if (showCustomReasoningParams) View.VISIBLE else View.GONE
         if (showReasoning) {
             switchSfReasoningMode.isChecked = prefs.getLlmVendorReasoningEnabled(LlmVendor.SF_FREE)
         }
@@ -758,9 +779,11 @@ class AiPostSettingsActivity : BaseActivity() {
         } else if (model.isNotBlank()) {
             isCustomModelInputVisible = true
         }
-        tvCustomLlmModel.text = if (model.isNotBlank()) model else getString(R.string.option_custom_model)
+        tvCustomLlmModel.text =
+            if (model.isNotBlank()) model else getString(R.string.option_custom_model)
         tilCustomModelId.visibility = if (isCustomModelInputVisible) View.VISIBLE else View.GONE
-        btnCustomLlmFetchModels.visibility = if (isCustomModelInputVisible && hasPresetModels) View.GONE else View.VISIBLE
+        btnCustomLlmFetchModels.visibility =
+            if (isCustomModelInputVisible && hasPresetModels) View.GONE else View.VISIBLE
         if (isCustomModelInputVisible) {
             etCustomModelId.setTextIfDifferent(model)
         } else {
@@ -937,7 +960,9 @@ class AiPostSettingsActivity : BaseActivity() {
         val profiles = viewModel.llmProfiles.value
         if (profiles.isEmpty()) return
 
-        val titles = profiles.map { it.name.ifBlank { getString(R.string.untitled_profile) } }.toTypedArray()
+        val titles = profiles.map {
+            it.name.ifBlank { getString(R.string.untitled_profile) }
+        }.toTypedArray()
         val selectedIndex = viewModel.getActiveLlmProviderIndex()
 
         showSingleChoiceBottomSheet(
@@ -973,10 +998,13 @@ class AiPostSettingsActivity : BaseActivity() {
         ) { which ->
             if (which == models.size - 1) {
                 tilCustomModelId.visibility = View.VISIBLE
-                btnCustomLlmFetchModels.visibility = if (hasPresetModels) View.GONE else View.VISIBLE
+                btnCustomLlmFetchModels.visibility =
+                    if (hasPresetModels) View.GONE else View.VISIBLE
                 isCustomModelInputVisible = true
                 etCustomModelId.requestFocus()
-                val nextModel = currentModel.takeIf { it.isNotBlank() && !presetModels.contains(it) }.orEmpty()
+                val nextModel = currentModel.takeIf {
+                    it.isNotBlank() && !presetModels.contains(it)
+                }.orEmpty()
                 viewModel.updateActiveLlmProvider(prefs) { it.copy(model = nextModel) }
             } else {
                 val selected = presetModels.getOrNull(which)
@@ -995,7 +1023,11 @@ class AiPostSettingsActivity : BaseActivity() {
         val endpoint = vendor.endpoint
         val apiKey = prefs.getLlmVendorApiKey(vendor)
         if (endpoint.isBlank()) {
-            Toast.makeText(this, getString(R.string.llm_test_missing_params), Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                this,
+                getString(R.string.llm_test_missing_params),
+                Toast.LENGTH_SHORT
+            ).show()
             return
         }
 
@@ -1026,7 +1058,11 @@ class AiPostSettingsActivity : BaseActivity() {
         val endpoint = LlmVendor.SF_FREE.endpoint
         val apiKey = prefs.getLlmVendorApiKey(LlmVendor.SF_FREE)
         if (endpoint.isBlank()) {
-            Toast.makeText(this, getString(R.string.llm_test_missing_params), Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                this,
+                getString(R.string.llm_test_missing_params),
+                Toast.LENGTH_SHORT
+            ).show()
             return
         }
 
@@ -1057,7 +1093,11 @@ class AiPostSettingsActivity : BaseActivity() {
         val endpoint = provider?.endpoint?.ifBlank { prefs.llmEndpoint } ?: prefs.llmEndpoint
         val apiKey = provider?.apiKey?.ifBlank { prefs.llmApiKey } ?: prefs.llmApiKey
         if (endpoint.isBlank()) {
-            Toast.makeText(this, getString(R.string.llm_test_missing_params), Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                this,
+                getString(R.string.llm_test_missing_params),
+                Toast.LENGTH_SHORT
+            ).show()
             return
         }
 
@@ -1089,7 +1129,12 @@ class AiPostSettingsActivity : BaseActivity() {
         if (uniqueModels.isEmpty()) {
             MaterialAlertDialogBuilder(this)
                 .setTitle(R.string.llm_models_fetch_failed_title)
-                .setMessage(getString(R.string.llm_models_fetch_failed, getString(R.string.llm_test_failed_generic)))
+                .setMessage(
+                    getString(
+                        R.string.llm_models_fetch_failed,
+                        getString(R.string.llm_test_failed_generic)
+                    )
+                )
                 .setPositiveButton(android.R.string.ok, null)
                 .show()
             return
@@ -1105,7 +1150,11 @@ class AiPostSettingsActivity : BaseActivity() {
             .setPositiveButton(R.string.btn_llm_models_add) { dialog, _ ->
                 val selected = uniqueModels.filterIndexed { index, _ -> checkedItems[index] }
                 if (selected.isEmpty()) {
-                    Toast.makeText(this, getString(R.string.toast_llm_models_none_selected), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        this,
+                        getString(R.string.toast_llm_models_none_selected),
+                        Toast.LENGTH_SHORT
+                    ).show()
                     dialog.dismiss()
                     return@setPositiveButton
                 }
@@ -1143,7 +1192,12 @@ class AiPostSettingsActivity : BaseActivity() {
         if (uniqueModels.isEmpty()) {
             MaterialAlertDialogBuilder(this)
                 .setTitle(R.string.llm_models_fetch_failed_title)
-                .setMessage(getString(R.string.llm_models_fetch_failed, getString(R.string.llm_test_failed_generic)))
+                .setMessage(
+                    getString(
+                        R.string.llm_models_fetch_failed,
+                        getString(R.string.llm_test_failed_generic)
+                    )
+                )
                 .setPositiveButton(android.R.string.ok, null)
                 .show()
             return
@@ -1159,7 +1213,11 @@ class AiPostSettingsActivity : BaseActivity() {
             .setPositiveButton(R.string.btn_llm_models_add) { dialog, _ ->
                 val selected = uniqueModels.filterIndexed { index, _ -> checkedItems[index] }
                 if (selected.isEmpty()) {
-                    Toast.makeText(this, getString(R.string.toast_llm_models_none_selected), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        this,
+                        getString(R.string.toast_llm_models_none_selected),
+                        Toast.LENGTH_SHORT
+                    ).show()
                     dialog.dismiss()
                     return@setPositiveButton
                 }
@@ -1168,7 +1226,9 @@ class AiPostSettingsActivity : BaseActivity() {
                     currentModel.isNotBlank() && selected.contains(currentModel) -> currentModel
                     else -> selected.first()
                 }
-                viewModel.updateActiveLlmProvider(prefs) { it.copy(models = selected, model = nextModel) }
+                viewModel.updateActiveLlmProvider(prefs) {
+                    it.copy(models = selected, model = nextModel)
+                }
                 dialog.dismiss()
             }
             .setNegativeButton(R.string.btn_cancel, null)
@@ -1179,7 +1239,9 @@ class AiPostSettingsActivity : BaseActivity() {
         val presets = viewModel.promptPresets.value
         if (presets.isEmpty()) return
 
-        val titles = presets.map { it.title.ifBlank { getString(R.string.untitled_preset) } }.toTypedArray()
+        val titles = presets.map {
+            it.title.ifBlank { getString(R.string.untitled_preset) }
+        }.toTypedArray()
         val selectedIndex = viewModel.getActivePromptPresetIndex()
 
         showSingleChoiceBottomSheet(
@@ -1199,18 +1261,29 @@ class AiPostSettingsActivity : BaseActivity() {
     private fun handleAddLlmProfile() {
         val defaultName = getString(R.string.untitled_profile)
         if (viewModel.addLlmProvider(prefs, defaultName)) {
-            Toast.makeText(this, getString(R.string.toast_llm_profile_added), Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                this,
+                getString(R.string.toast_llm_profile_added),
+                Toast.LENGTH_SHORT
+            ).show()
         }
     }
 
     private fun handleDeleteLlmProfile() {
         if (viewModel.deleteActiveLlmProvider(prefs)) {
-            Toast.makeText(this, getString(R.string.toast_llm_profile_deleted), Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                this,
+                getString(R.string.toast_llm_profile_deleted),
+                Toast.LENGTH_SHORT
+            ).show()
         }
     }
 
     private fun setLlmTestButtonsEnabled(enabled: Boolean) {
-        if (!::btnSfFreeLlmTestCall.isInitialized || !::btnBuiltinTestCall.isInitialized || !::btnLlmTestCall.isInitialized) {
+        if (!::btnSfFreeLlmTestCall.isInitialized ||
+            !::btnBuiltinTestCall.isInitialized ||
+            !::btnLlmTestCall.isInitialized
+        ) {
             return
         }
         btnSfFreeLlmTestCall.isEnabled = enabled
@@ -1326,7 +1399,11 @@ class AiPostSettingsActivity : BaseActivity() {
 
     private fun handleDeletePromptPreset() {
         if (viewModel.deleteActivePromptPreset(prefs)) {
-            Toast.makeText(this, getString(R.string.toast_preset_deleted), Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                this,
+                getString(R.string.toast_preset_deleted),
+                Toast.LENGTH_SHORT
+            ).show()
         }
     }
 
@@ -1358,9 +1435,11 @@ class AiPostSettingsActivity : BaseActivity() {
      * Send broadcast to refresh keyboard UI (e.g., update AI post-process button toggle state)
      */
     private fun sendRefreshBroadcast() {
-        sendBroadcast(Intent(AsrKeyboardService.ACTION_REFRESH_IME_UI).apply {
-            setPackage(packageName)
-        })
+        sendBroadcast(
+            Intent(AsrKeyboardService.ACTION_REFRESH_IME_UI).apply {
+                setPackage(packageName)
+            }
+        )
     }
 
     private fun openUrlSafely(url: String) {

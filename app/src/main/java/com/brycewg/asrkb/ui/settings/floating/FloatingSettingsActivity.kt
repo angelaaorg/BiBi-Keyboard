@@ -8,26 +8,26 @@ package com.brycewg.asrkb.ui.settings.floating
 import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
+import android.text.Editable
+import android.text.TextWatcher
+import android.util.Log
+import android.view.View
 import android.widget.Toast
 import androidx.core.net.toUri
-import com.brycewg.asrkb.ui.BaseActivity
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.store.Prefs
+import com.brycewg.asrkb.ui.BaseActivity
 import com.brycewg.asrkb.ui.floating.FloatingServiceManager
 import com.brycewg.asrkb.ui.installExplainedSwitch
 import com.brycewg.asrkb.ui.settings.search.SettingsSearchNavigator
+import com.brycewg.asrkb.util.HapticFeedbackHelper
 import com.google.android.material.appbar.MaterialToolbar
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.slider.Slider
 import com.google.android.material.textfield.TextInputEditText
-import com.google.android.material.button.MaterialButton
-import android.text.Editable
-import android.text.TextWatcher
-import android.view.View
-import android.util.Log
-import com.brycewg.asrkb.util.HapticFeedbackHelper
 import kotlinx.coroutines.launch
 
 class FloatingSettingsActivity : BaseActivity() {
@@ -55,7 +55,6 @@ class FloatingSettingsActivity : BaseActivity() {
     private lateinit var switchFloatingWritePaste: MaterialSwitch
     private lateinit var etFloatingWritePastePkgs: TextInputEditText
     private lateinit var btnResetFloatingPos: MaterialButton
-    
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -199,11 +198,18 @@ class FloatingSettingsActivity : BaseActivity() {
             onDescRes = R.string.feature_floating_only_when_ime_visible_on_desc,
             preferenceKey = "floating_only_when_ime_visible_explained",
             readPref = { viewModel.onlyWhenImeVisible.value },
-            writePref = { v -> /* handled in onChanged */ },
+            // handled in onChanged
+            writePref = { _ -> },
             preCheck = { target ->
                 // 检查权限
-                val permissionRequest = viewModel.handleOnlyWhenImeVisibleToggle(this, target, serviceManager)
-                if (permissionRequest == FloatingSettingsViewModel.PermissionRequest.ACCESSIBILITY) {
+                val permissionRequest = viewModel.handleOnlyWhenImeVisibleToggle(
+                    this,
+                    target,
+                    serviceManager
+                )
+                if (permissionRequest ==
+                    FloatingSettingsViewModel.PermissionRequest.ACCESSIBILITY
+                ) {
                     showAccessibilityPermissionToast()
                     requestAccessibilityPermission()
                     false // 阻止切换
@@ -269,7 +275,8 @@ class FloatingSettingsActivity : BaseActivity() {
             onDescRes = R.string.feature_floating_asr_on_desc,
             preferenceKey = "floating_asr_explained",
             readPref = { viewModel.asrEnabled.value },
-            writePref = { v -> /* handled in onChanged */ },
+            // handled in onChanged
+            writePref = { _ -> },
             preCheck = { target ->
                 // 检查权限
                 val permissionRequest = viewModel.handleAsrToggle(this, target, serviceManager)
@@ -329,7 +336,11 @@ class FloatingSettingsActivity : BaseActivity() {
         btnResetFloatingPos.setOnClickListener { v ->
             hapticTapIfEnabled(v)
             viewModel.resetFloatingPosition(this, serviceManager)
-            Toast.makeText(this, getString(R.string.toast_floating_position_reset), Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                this,
+                getString(R.string.toast_floating_position_reset),
+                Toast.LENGTH_SHORT
+            ).show()
         }
 
         // 兼容目标包名（写入兼容）
@@ -337,7 +348,10 @@ class FloatingSettingsActivity : BaseActivity() {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: Editable?) {
-                viewModel.updateWriteCompatPackages(this@FloatingSettingsActivity, s?.toString() ?: "")
+                viewModel.updateWriteCompatPackages(
+                    this@FloatingSettingsActivity,
+                    s?.toString() ?: ""
+                )
             }
         })
 
@@ -346,10 +360,12 @@ class FloatingSettingsActivity : BaseActivity() {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: Editable?) {
-                viewModel.updateWritePastePackages(this@FloatingSettingsActivity, s?.toString() ?: "")
+                viewModel.updateWritePastePackages(
+                    this@FloatingSettingsActivity,
+                    s?.toString() ?: ""
+                )
             }
         })
-
     }
 
     /**
@@ -376,7 +392,11 @@ class FloatingSettingsActivity : BaseActivity() {
      * 处理"仅在键盘显示时显示"开关变化
      */
     private fun handleOnlyWhenImeVisibleToggle(enabled: Boolean) {
-        val permissionRequest = viewModel.handleOnlyWhenImeVisibleToggle(this, enabled, serviceManager)
+        val permissionRequest = viewModel.handleOnlyWhenImeVisibleToggle(
+            this,
+            enabled,
+            serviceManager
+        )
         if (permissionRequest == FloatingSettingsViewModel.PermissionRequest.ACCESSIBILITY) {
             showAccessibilityPermissionToast()
             requestAccessibilityPermission()
@@ -394,7 +414,11 @@ class FloatingSettingsActivity : BaseActivity() {
      * 显示需要无障碍权限的提示
      */
     private fun showAccessibilityPermissionToast() {
-        Toast.makeText(this, getString(R.string.toast_need_accessibility_perm), Toast.LENGTH_LONG).show()
+        Toast.makeText(
+            this,
+            getString(R.string.toast_need_accessibility_perm),
+            Toast.LENGTH_LONG
+        ).show()
     }
 
     /**
@@ -402,7 +426,8 @@ class FloatingSettingsActivity : BaseActivity() {
      */
     private fun requestOverlayPermission() {
         try {
-            val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, "package:$packageName".toUri())
+            val intent =
+                Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, "package:$packageName".toUri())
             startActivity(intent)
         } catch (e: Throwable) {
             Log.e(TAG, "Failed to request overlay permission", e)
@@ -439,8 +464,10 @@ class FloatingSettingsActivity : BaseActivity() {
             }
 
             // overlay 已授予且之前是 overlay 阶段触发的请求，则自动进入无障碍授权
-            if (hasOverlay && !hasA11y &&
-                pendingAsrPermission == FloatingSettingsViewModel.PermissionRequest.OVERLAY) {
+            if (hasOverlay &&
+                !hasA11y &&
+                pendingAsrPermission == FloatingSettingsViewModel.PermissionRequest.OVERLAY
+            ) {
                 pendingAsrPermission = FloatingSettingsViewModel.PermissionRequest.ACCESSIBILITY
                 showAccessibilityPermissionToast()
                 requestAccessibilityPermission()

@@ -4,8 +4,8 @@ import android.content.Context
 import android.view.View
 import android.view.Window
 import androidx.core.graphics.ColorUtils
-import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import com.brycewg.asrkb.UiColorTokens
 import com.brycewg.asrkb.UiColors
 
@@ -23,7 +23,11 @@ internal class ImeThemeStyler {
         return ColorUtils.blendARGB(mixed, scrim, 0.04f)
     }
 
-    fun syncSystemBarsToKeyboardBackground(window: Window, anchorView: View?, ctx: Context = window.context) {
+    fun syncSystemBarsToKeyboardBackground(
+        window: Window,
+        anchorView: View?,
+        ctx: Context = window.context
+    ) {
         val color = resolveKeyboardBackgroundColor(ctx)
         @Suppress("DEPRECATION")
         window.navigationBarColor = color

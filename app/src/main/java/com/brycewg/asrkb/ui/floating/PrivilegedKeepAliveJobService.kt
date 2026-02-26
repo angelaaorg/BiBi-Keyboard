@@ -37,27 +37,55 @@ class PrivilegedKeepAliveJobService : JobService() {
             try {
                 val prefs = Prefs(this@PrivilegedKeepAliveJobService)
                 if (!prefs.floatingKeepAliveEnabled || !prefs.floatingKeepAlivePrivilegedEnabled) {
-                    DebugLogManager.logPersistent(this@PrivilegedKeepAliveJobService, "keepalive", "job_skip", mapOf("reason" to "pref_disabled"))
+                    DebugLogManager.logPersistent(
+                        this@PrivilegedKeepAliveJobService,
+                        "keepalive",
+                        "job_skip",
+                        mapOf(
+                            "reason" to "pref_disabled"
+                        )
+                    )
                     jobFinished(params, false)
                     return@launch
                 }
 
-                val result = PrivilegedKeepAliveStarter.tryStartKeepAliveByShizuku(this@PrivilegedKeepAliveJobService)
-                    ?: PrivilegedKeepAliveStarter.tryStartKeepAliveByRoot(this@PrivilegedKeepAliveJobService)
-                    ?: PrivilegedKeepAliveStarter.startKeepAliveFallback(this@PrivilegedKeepAliveJobService)
+                val result =
+                    PrivilegedKeepAliveStarter.tryStartKeepAliveByShizuku(
+                        this@PrivilegedKeepAliveJobService
+                    )
+                        ?: PrivilegedKeepAliveStarter.tryStartKeepAliveByRoot(
+                            this@PrivilegedKeepAliveJobService
+                        )
+                        ?: PrivilegedKeepAliveStarter.startKeepAliveFallback(
+                            this@PrivilegedKeepAliveJobService
+                        )
 
                 if (!result.ok) {
-                    Log.w(TAG, "start keep-alive by ${result.method} failed: exit=${result.exitCode}, err=${result.stderr}")
+                    Log.w(
+                        TAG,
+                        "start keep-alive by ${result.method} failed: exit=${result.exitCode}, err=${result.stderr}"
+                    )
                 }
                 DebugLogManager.logPersistent(
                     this@PrivilegedKeepAliveJobService,
                     "keepalive",
                     "job_result",
-                    mapOf("method" to result.method.name.lowercase(), "ok" to result.ok, "exit" to result.exitCode)
+                    mapOf(
+                        "method" to result.method.name.lowercase(),
+                        "ok" to result.ok,
+                        "exit" to result.exitCode
+                    )
                 )
             } catch (t: Throwable) {
                 Log.w(TAG, "privileged keep-alive job failed", t)
-                DebugLogManager.logPersistent(this@PrivilegedKeepAliveJobService, "keepalive", "job_error", mapOf("msg" to t.message))
+                DebugLogManager.logPersistent(
+                    this@PrivilegedKeepAliveJobService,
+                    "keepalive",
+                    "job_error",
+                    mapOf(
+                        "msg" to t.message
+                    )
+                )
             } finally {
                 jobFinished(params, false)
             }

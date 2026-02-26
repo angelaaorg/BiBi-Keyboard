@@ -11,10 +11,10 @@ import com.brycewg.asrkb.ui.settings.asr.AsrSettingsSection
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.slider.Slider
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.File
 
 internal class FunAsrNanoSettingsSection : AsrSettingsSection {
 
@@ -39,7 +39,9 @@ internal class FunAsrNanoSettingsSection : AsrSettingsSection {
 
         binding.view<MaterialButton>(R.id.btnFnGuide).setOnClickListener { v ->
             binding.hapticTapIfEnabled(v)
-            binding.openUrlSafely(binding.activity.getString(R.string.local_model_guide_config_doc_url))
+            binding.openUrlSafely(
+                binding.activity.getString(R.string.local_model_guide_config_doc_url)
+            )
         }
     }
 
@@ -82,7 +84,11 @@ internal class FunAsrNanoSettingsSection : AsrSettingsSection {
         tvFnModelVariant.setOnClickListener { v ->
             binding.hapticTapIfEnabled(v)
             val cur = variantCodes.indexOf(binding.prefs.fnModelVariant).coerceAtLeast(0)
-            binding.showSingleChoiceDialog(R.string.label_fn_model_variant, variantLabels.toTypedArray(), cur) { which ->
+            binding.showSingleChoiceDialog(
+                R.string.label_fn_model_variant,
+                variantLabels.toTypedArray(),
+                cur
+            ) { which ->
                 val code = variantCodes.getOrNull(which) ?: "nano-int8"
                 if (code != binding.prefs.fnModelVariant) {
                     binding.viewModel.updateFnModelVariant(code)
@@ -154,15 +160,35 @@ internal class FunAsrNanoSettingsSection : AsrSettingsSection {
         val tvFnKeepAlive = binding.view<TextView>(R.id.tvFnKeepAliveValue)
 
         fun updateKeepAliveSummary() {
-            val idx = values.indexOf(binding.prefs.fnKeepAliveMinutes).let { if (it >= 0) it else values.size - 1 }
+            val idx = values.indexOf(binding.prefs.fnKeepAliveMinutes).let {
+                if (it >=
+                    0
+                ) {
+                    it
+                } else {
+                    values.size - 1
+                }
+            }
             tvFnKeepAlive.text = labels[idx]
         }
 
         updateKeepAliveSummary()
         tvFnKeepAlive.setOnClickListener { v ->
             binding.hapticTapIfEnabled(v)
-            val cur = values.indexOf(binding.prefs.fnKeepAliveMinutes).let { if (it >= 0) it else values.size - 1 }
-            binding.showSingleChoiceDialog(R.string.label_fn_keep_alive, labels.toTypedArray(), cur) { which ->
+            val cur = values.indexOf(binding.prefs.fnKeepAliveMinutes).let {
+                if (it >=
+                    0
+                ) {
+                    it
+                } else {
+                    values.size - 1
+                }
+            }
+            binding.showSingleChoiceDialog(
+                R.string.label_fn_keep_alive,
+                labels.toTypedArray(),
+                cur
+            ) { which ->
                 val vv = values.getOrNull(which) ?: -1
                 if (vv != binding.prefs.fnKeepAliveMinutes) {
                     binding.viewModel.updateFnKeepAlive(vv)
@@ -203,7 +229,9 @@ internal class FunAsrNanoSettingsSection : AsrSettingsSection {
                     v.isEnabled = false
                     binding.activity.lifecycleScope.launch {
                         try {
-                            val base = binding.activity.getExternalFilesDir(null) ?: binding.activity.filesDir
+                            val base =
+                                binding.activity.getExternalFilesDir(null)
+                                    ?: binding.activity.filesDir
                             val legacySenseVoice = File(base, "sensevoice")
                             val targets = listOf(
                                 File(base, "funasr_nano"),
@@ -220,10 +248,12 @@ internal class FunAsrNanoSettingsSection : AsrSettingsSection {
                             } catch (t: Throwable) {
                                 android.util.Log.e(TAG, "Failed to unload local recognizer", t)
                             }
-                            tvFnDownloadStatus.text = binding.activity.getString(R.string.fn_clear_done)
+                            tvFnDownloadStatus.text =
+                                binding.activity.getString(R.string.fn_clear_done)
                         } catch (t: Throwable) {
                             android.util.Log.e(TAG, "Failed to clear FunASR Nano model", t)
-                            tvFnDownloadStatus.text = binding.activity.getString(R.string.fn_clear_failed)
+                            tvFnDownloadStatus.text =
+                                binding.activity.getString(R.string.fn_clear_failed)
                         } finally {
                             v.isEnabled = true
                             updateDownloadUiVisibility(binding)
@@ -261,4 +291,3 @@ internal class FunAsrNanoSettingsSection : AsrSettingsSection {
         private const val TAG = "FunAsrNanoSettingsSection"
     }
 }
-

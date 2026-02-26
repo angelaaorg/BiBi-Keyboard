@@ -24,7 +24,9 @@ class WaveformView @JvmOverloads constructor(
 
     /** 波形灵敏度（1-10），数值越大响应越明显 */
     var sensitivity: Int = 5
-        set(value) { field = value.coerceIn(1, 10) }
+        set(value) {
+            field = value.coerceIn(1, 10)
+        }
 
     private val waveView: WaveLineView = WaveLineView(context).apply {
         // 透明背景，融入容器

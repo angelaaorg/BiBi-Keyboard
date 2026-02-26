@@ -5,14 +5,14 @@ import android.media.AudioFormat
 import android.util.Log
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.store.Prefs
+import java.io.ByteArrayOutputStream
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import java.io.ByteArrayOutputStream
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicLong
 
 /**
  * 本地模型伪流式基础引擎：
@@ -221,7 +221,10 @@ abstract class LocalModelPseudoStreamAsrEngine(
                             false
                         }
                         if (shouldStop) {
-                            Log.d(TAG, "Silence after last segment with auto-stop enabled, stopping session")
+                            Log.d(
+                                TAG,
+                                "Silence after last segment with auto-stop enabled, stopping session"
+                            )
                             stop()
                             return@collect
                         }
@@ -233,7 +236,12 @@ abstract class LocalModelPseudoStreamAsrEngine(
                 } else {
                     Log.e(TAG, "Audio capture failed", t)
                     try {
-                        listener.onError(context.getString(R.string.error_audio_error, t.message ?: ""))
+                        listener.onError(
+                            context.getString(
+                                R.string.error_audio_error,
+                                t.message ?: ""
+                            )
+                        )
                     } catch (e: Throwable) {
                         Log.e(TAG, "Failed to notify audio error", e)
                     }

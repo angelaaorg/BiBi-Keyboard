@@ -20,7 +20,7 @@ internal class ImeUiRenderer(
     private val micGestureController: () -> MicGestureController?,
     private val downloadClipboardFileById: (String) -> Unit,
     private val markShownClipboardText: (String) -> Unit,
-    private val copyTextToSystemClipboard: (label: String, text: String) -> Boolean,
+    private val copyTextToSystemClipboard: (label: String, text: String) -> Boolean
 ) {
     private var clipboardPreviewTimeout: Runnable? = null
     private var aiEditHintResetRunnable: Runnable? = null
@@ -68,7 +68,11 @@ internal class ImeUiRenderer(
                 false
             }
             if (copied) {
-                Toast.makeText(context, context.getString(R.string.error_auto_copied), Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.error_auto_copied),
+                    Toast.LENGTH_SHORT
+                ).show()
             }
         }
 
@@ -93,7 +97,9 @@ internal class ImeUiRenderer(
     }
 
     fun updatePostprocIcon() {
-        views.btnPostproc?.setImageResource(if (prefs.postProcessEnabled) R.drawable.magic_wand_fill else R.drawable.magic_wand)
+        views.btnPostproc?.setImageResource(
+            if (prefs.postProcessEnabled) R.drawable.magic_wand_fill else R.drawable.magic_wand
+        )
     }
 
     fun showAiEditFunctionHint(message: String, autoHideMs: Long = 1500L) {
@@ -227,9 +233,9 @@ internal class ImeUiRenderer(
         }
     }
 
-    private fun getAiEditGuideText(): String {
-        return context.getString(if (prefs.micTapToggleEnabled) R.string.ime_ai_edit_guide_tap else R.string.ime_ai_edit_guide_hold)
-    }
+    private fun getAiEditGuideText(): String = context.getString(
+        if (prefs.micTapToggleEnabled) R.string.ime_ai_edit_guide_tap else R.string.ime_ai_edit_guide_hold
+    )
 
     private fun updateAiEditInfoBar(state: KeyboardState) {
         if (!isAiEditPanelVisible()) return
@@ -335,7 +341,8 @@ internal class ImeUiRenderer(
             views.btnGestureCancel?.text = context.getString(R.string.label_recording_tap_cancel)
             views.btnGestureSend?.text = context.getString(R.string.label_recording_tap_send)
         } else {
-            views.btnGestureCancel?.text = context.getString(R.string.label_recording_gesture_cancel)
+            views.btnGestureCancel?.text =
+                context.getString(R.string.label_recording_gesture_cancel)
             views.btnGestureSend?.text = context.getString(R.string.label_recording_gesture_send)
         }
         applyLockZoneUi(state)
@@ -354,7 +361,10 @@ internal class ImeUiRenderer(
             return
         }
         spaceKey.isEnabled = false
-        spaceKey.text = context.getString(if (state.lockedBySwipe) R.string.hint_tap_to_stop_recording else R.string.hint_swipe_down_lock)
+        spaceKey.text =
+            context.getString(
+                if (state.lockedBySwipe) R.string.hint_tap_to_stop_recording else R.string.hint_swipe_down_lock
+            )
     }
 
     private fun resetLockZoneUi() {

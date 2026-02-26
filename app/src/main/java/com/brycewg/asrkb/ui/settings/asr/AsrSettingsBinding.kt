@@ -6,8 +6,8 @@ import android.view.View
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import com.brycewg.asrkb.R
-import com.brycewg.asrkb.ui.SettingsOptionSheet
 import com.brycewg.asrkb.store.Prefs
+import com.brycewg.asrkb.ui.SettingsOptionSheet
 import com.brycewg.asrkb.util.HapticFeedbackHelper
 import com.google.android.material.slider.Slider
 
@@ -39,7 +39,11 @@ internal class AsrSettingsBinding(
             activity.startActivity(intent)
         } catch (t: Throwable) {
             android.util.Log.e(TAG, "Failed to open url: $url", t)
-            Toast.makeText(activity, activity.getString(R.string.error_open_browser), Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                activity,
+                activity.getString(R.string.error_open_browser),
+                Toast.LENGTH_SHORT
+            ).show()
         }
     }
 

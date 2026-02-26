@@ -10,7 +10,7 @@ import com.brycewg.asrkb.LocaleHelper
 internal class UserNotifier(
     private val context: Context,
     private val handler: Handler,
-    private val tag: String,
+    private val tag: String
 ) {
     private var currentToast: Toast? = null
 
@@ -52,4 +52,3 @@ internal class UserNotifier(
         }
     }
 }
-

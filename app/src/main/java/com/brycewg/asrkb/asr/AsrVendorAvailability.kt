@@ -35,24 +35,18 @@ internal fun partitionAsrVendorsByConfigured(
     )
 }
 
-internal fun isAsrVendorConfigured(
-    context: Context,
-    prefs: Prefs,
-    vendor: AsrVendor
-): Boolean {
-    return try {
-        when (vendor) {
-            AsrVendor.SenseVoice -> hasSenseVoiceModelInstalled(context, prefs)
-            AsrVendor.FunAsrNano -> hasFunAsrNanoModelInstalled(context)
-            AsrVendor.Telespeech -> hasTelespeechModelInstalled(context, prefs)
-            AsrVendor.Paraformer -> hasParaformerModelInstalled(context, prefs)
-            AsrVendor.SiliconFlow -> prefs.hasSfKeys()
-            else -> prefs.hasVendorKeys(vendor)
-        }
-    } catch (t: Throwable) {
-        Log.w(TAG, "Failed to check vendor availability: $vendor", t)
-        false
+internal fun isAsrVendorConfigured(context: Context, prefs: Prefs, vendor: AsrVendor): Boolean = try {
+    when (vendor) {
+        AsrVendor.SenseVoice -> hasSenseVoiceModelInstalled(context, prefs)
+        AsrVendor.FunAsrNano -> hasFunAsrNanoModelInstalled(context)
+        AsrVendor.Telespeech -> hasTelespeechModelInstalled(context, prefs)
+        AsrVendor.Paraformer -> hasParaformerModelInstalled(context, prefs)
+        AsrVendor.SiliconFlow -> prefs.hasSfKeys()
+        else -> prefs.hasVendorKeys(vendor)
     }
+} catch (t: Throwable) {
+    Log.w(TAG, "Failed to check vendor availability: $vendor", t)
+    false
 }
 
 private fun hasSenseVoiceModelInstalled(context: Context, prefs: Prefs): Boolean {

@@ -75,7 +75,11 @@ internal class TelespeechPseudoStreamDelegate(
             val normalizedSegment = try {
                 TextSanitizer.trimTrailingPunctAndEmoji(segmentText)
             } catch (t: Throwable) {
-                Log.w(tag, "trimTrailingPunctAndEmoji failed for segment, fallback to raw trimmed text", t)
+                Log.w(
+                    tag,
+                    "trimTrailingPunctAndEmoji failed for segment, fallback to raw trimmed text",
+                    t
+                )
                 segmentText
             }
             if (normalizedSegment.isEmpty()) return@launch
@@ -89,7 +93,11 @@ internal class TelespeechPseudoStreamDelegate(
                     val previewOut = try {
                         TextSanitizer.trimTrailingPunctAndEmoji(merged)
                     } catch (t: Throwable) {
-                        Log.w(tag, "trimTrailingPunctAndEmoji failed for preview, fallback to merged", t)
+                        Log.w(
+                            tag,
+                            "trimTrailingPunctAndEmoji failed for preview, fallback to merged",
+                            t
+                        )
                         merged
                     }
                     if (sessionId != activeSessionId) return@withLock
@@ -136,7 +144,10 @@ internal class TelespeechPseudoStreamDelegate(
                 }
                 val normalized = if (useItn) ChineseItn.normalize(raw) else raw
                 val finalText = try {
-                    SherpaPunctuationManager.getInstance().addOfflinePunctuation(context, normalized)
+                    SherpaPunctuationManager.getInstance().addOfflinePunctuation(
+                        context,
+                        normalized
+                    )
                 } catch (t: Throwable) {
                     Log.e(tag, "Failed to apply offline punctuation", t)
                     normalized
@@ -214,10 +225,7 @@ internal class TelespeechPseudoStreamDelegate(
         }
     }
 
-    private suspend fun decodeOnce(
-        pcm: ByteArray,
-        reportErrorToUser: Boolean
-    ): String? {
+    private suspend fun decodeOnce(pcm: ByteArray, reportErrorToUser: Boolean): String? {
         val manager = TelespeechOnnxManager.getInstance()
         if (!manager.isOnnxAvailable()) {
             if (reportErrorToUser) {
@@ -275,7 +283,10 @@ internal class TelespeechPseudoStreamDelegate(
         }
         val modelPath = modelFile?.absolutePath
         val minBytes = 8L * 1024L * 1024L
-        if (modelPath == null || !java.io.File(tokensPath).exists() || (modelFile?.length() ?: 0L) < minBytes) {
+        if (modelPath == null ||
+            !java.io.File(tokensPath).exists() ||
+            (modelFile?.length() ?: 0L) < minBytes
+        ) {
             if (reportErrorToUser) {
                 try {
                     listener.onError(context.getString(R.string.error_telespeech_model_missing))
@@ -351,7 +362,11 @@ internal class TelespeechPseudoStreamDelegate(
         while (i < n) {
             val s = bb.short.toInt()
             var f = s / 32768.0f
-            if (f > 1f) f = 1f else if (f < -1f) f = -1f
+            if (f > 1f) {
+                f = 1f
+            } else if (f < -1f) {
+                f = -1f
+            }
             out[i] = f
             i++
         }

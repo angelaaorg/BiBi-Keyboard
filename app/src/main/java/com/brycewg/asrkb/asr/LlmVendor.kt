@@ -8,12 +8,16 @@ import com.brycewg.asrkb.R
 enum class ReasoningMode {
     /** No reasoning control support */
     NONE,
+
     /** Control via model selection (DeepSeek, Moonshot) */
     MODEL_SELECTION,
+
     /** SiliconFlow: enable_thinking parameter */
     ENABLE_THINKING,
+
     /** Gemini/Groq/Cerebras/OhMyGPT: reasoning_effort parameter */
     REASONING_EFFORT,
+
     /** Volcengine/Zhipu: thinking.type parameter */
     THINKING_TYPE
 }
@@ -131,7 +135,7 @@ enum class LlmVendor(
         guideUrl = "https://api-docs.deepseek.com/",
         temperatureMin = 0f,
         temperatureMax = 2f,
-        reasoningMode = ReasoningMode.MODEL_SELECTION,  // chat=non-thinking, reasoner=thinking
+        reasoningMode = ReasoningMode.MODEL_SELECTION, // chat=non-thinking, reasoner=thinking
         reasoningModels = setOf("deepseek-reasoner")
     ),
 
@@ -173,7 +177,7 @@ enum class LlmVendor(
         temperatureMin = 0f,
         temperatureMax = 1f,
         reasoningMode = ReasoningMode.THINKING_TYPE,
-        reasoningModels = setOf("glm-4.7","glm-4.6", "glm-4.5", "glm-4.5-air", "glm-4.5-flash")
+        reasoningModels = setOf("glm-4.7", "glm-4.6", "glm-4.5", "glm-4.5-air", "glm-4.5-flash")
     ),
 
     /** Volcengine (火山引擎) */
@@ -277,9 +281,12 @@ enum class LlmVendor(
         temperatureMax = 2f,
         reasoningMode = ReasoningMode.REASONING_EFFORT,
         reasoningModels = setOf(
-            "gemini-2.5-flash-lite", "gemini-2.5-flash",
-            "claude-haiku-4-5", "claude-sonnet-4-5",
-            "gpt-5-mini", "gpt-5-nano"
+            "gemini-2.5-flash-lite",
+            "gemini-2.5-flash",
+            "claude-haiku-4-5",
+            "claude-sonnet-4-5",
+            "gpt-5-mini",
+            "gpt-5-nano"
         )
     ),
 
@@ -364,12 +371,10 @@ enum class LlmVendor(
         get() = this != CUSTOM && endpoint.isNotBlank()
 
     /** Check if the current model supports reasoning control */
-    fun supportsReasoningControl(model: String): Boolean {
-        return when (reasoningMode) {
-            ReasoningMode.NONE -> false
-            ReasoningMode.MODEL_SELECTION -> false  // Controlled via model selection, no switch needed
-            else -> reasoningModels.isEmpty() || reasoningModels.contains(model)
-        }
+    fun supportsReasoningControl(model: String): Boolean = when (reasoningMode) {
+        ReasoningMode.NONE -> false
+        ReasoningMode.MODEL_SELECTION -> false // Controlled via model selection, no switch needed
+        else -> reasoningModels.isEmpty() || reasoningModels.contains(model)
     }
 
     companion object {
@@ -395,19 +400,19 @@ enum class LlmVendor(
          * Ordered by: Free tier -> Domestic (China) -> International -> Custom
          */
         fun allVendors(): List<LlmVendor> = listOf(
-            SF_FREE,      // 1. Free service
-            DEEPSEEK,     // 2. Domestic - popular
-            ZHIPU,        // 3. Domestic
-            MOONSHOT,     // 4. Domestic
-            VOLCENGINE,   // 5. Domestic
-            DASHSCOPE,    // 6. Domestic - Alibaba
-            OPENAI,       // 7. International
-            GEMINI,       // 8. International
-            GROQ,         // 9. International - free tier
-            CEREBRAS,     // 10. International - free tier
-            FIREWORKS,    // 11. International - fast inference
-            OHMYGPT,      // 12. Relay platform
-            CUSTOM        // 13. Custom
+            SF_FREE, // 1. Free service
+            DEEPSEEK, // 2. Domestic - popular
+            ZHIPU, // 3. Domestic
+            MOONSHOT, // 4. Domestic
+            VOLCENGINE, // 5. Domestic
+            DASHSCOPE, // 6. Domestic - Alibaba
+            OPENAI, // 7. International
+            GEMINI, // 8. International
+            GROQ, // 9. International - free tier
+            CEREBRAS, // 10. International - free tier
+            FIREWORKS, // 11. International - fast inference
+            OHMYGPT, // 12. Relay platform
+            CUSTOM // 13. Custom
         )
 
         /** Get built-in vendors (excluding custom) */

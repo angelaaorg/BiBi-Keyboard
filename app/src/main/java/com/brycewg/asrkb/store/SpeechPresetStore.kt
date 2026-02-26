@@ -44,8 +44,8 @@ internal object SpeechPresetStore {
         if (normalized.isEmpty()) return null
         val presets = getSpeechPresets(prefs, json)
         val strict = presets.firstOrNull { it.name.trim() == normalized }
-        val match = strict ?: presets.firstOrNull { it.name.trim().equals(normalized, ignoreCase = true) }
+        val match =
+            strict ?: presets.firstOrNull { it.name.trim().equals(normalized, ignoreCase = true) }
         return match?.content
     }
 }
-

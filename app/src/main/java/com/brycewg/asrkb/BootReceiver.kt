@@ -31,8 +31,19 @@ import java.util.concurrent.Executors
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
         val action = intent?.action ?: return
-        if (action != Intent.ACTION_BOOT_COMPLETED && action != Intent.ACTION_LOCKED_BOOT_COMPLETED) return
-        DebugLogManager.logPersistent(context, "keepalive", "boot_received", mapOf("action" to action))
+        if (action != Intent.ACTION_BOOT_COMPLETED &&
+            action != Intent.ACTION_LOCKED_BOOT_COMPLETED
+        ) {
+            return
+        }
+        DebugLogManager.logPersistent(
+            context,
+            "keepalive",
+            "boot_received",
+            mapOf(
+                "action" to action
+            )
+        )
 
         val handler = Handler(Looper.getMainLooper())
         // 略微延迟，等系统服务就绪
@@ -88,37 +99,71 @@ class BootReceiver : BroadcastReceiver() {
 
             if (result.ok) {
                 Log.d("BootReceiver", "Started keep-alive service via ${result.method}")
-                DebugLogManager.logPersistent(context, "keepalive", "boot_start_result", mapOf("ok" to true, "method" to result.method.name.lowercase()))
-            } else {
-                Log.w("BootReceiver", "Privileged keep-alive start failed: ${result.method}, exit=${result.exitCode}, err=${result.stderr}")
                 DebugLogManager.logPersistent(
                     context,
                     "keepalive",
                     "boot_start_result",
-                    mapOf("ok" to false, "method" to result.method.name.lowercase(), "exit" to result.exitCode)
+                    mapOf(
+                        "ok" to true,
+                        "method" to result.method.name.lowercase()
+                    )
+                )
+            } else {
+                Log.w(
+                    "BootReceiver",
+                    "Privileged keep-alive start failed: ${result.method}, exit=${result.exitCode}, err=${result.stderr}"
+                )
+                DebugLogManager.logPersistent(
+                    context,
+                    "keepalive",
+                    "boot_start_result",
+                    mapOf(
+                        "ok" to false,
+                        "method" to result.method.name.lowercase(),
+                        "exit" to result.exitCode
+                    )
                 )
             }
         } catch (t: Throwable) {
             Log.w("BootReceiver", "tryStartKeepAlivePrivileged failed, falling back", t)
-            DebugLogManager.logPersistent(context, "keepalive", "boot_start_exception", mapOf("msg" to t.message))
+            DebugLogManager.logPersistent(
+                context,
+                "keepalive",
+                "boot_start_exception",
+                mapOf(
+                    "msg" to t.message
+                )
+            )
             try {
                 FloatingKeepAliveService.start(context)
                 DebugLogManager.logPersistent(context, "keepalive", "boot_start_fallback")
             } catch (t2: Throwable) {
                 Log.e("BootReceiver", "Fallback keep-alive start also failed", t2)
-                DebugLogManager.logPersistent(context, "keepalive", "boot_start_fallback_failed", mapOf("msg" to t2.message))
+                DebugLogManager.logPersistent(
+                    context,
+                    "keepalive",
+                    "boot_start_fallback_failed",
+                    mapOf(
+                        "msg" to t2.message
+                    )
+                )
             }
         }
     }
 
     private fun tryEnableAccessibilityIfPermitted(context: Context) {
         // 仅当应用实际拥有 WRITE_SECURE_SETTINGS 时才尝试；普通应用默认无此权限
-        val granted = context.checkSelfPermission(android.Manifest.permission.WRITE_SECURE_SETTINGS) == PackageManager.PERMISSION_GRANTED
+        val granted =
+            context.checkSelfPermission(android.Manifest.permission.WRITE_SECURE_SETTINGS) ==
+                PackageManager.PERMISSION_GRANTED
         if (!granted) return
 
         try {
             val resolver = context.contentResolver
-            val component = ComponentName(context, AsrAccessibilityService::class.java).flattenToString()
+            val component = ComponentName(
+                context,
+                AsrAccessibilityService::class.java
+            ).flattenToString()
             val keyEnabled = Settings.Secure.ACCESSIBILITY_ENABLED
             val keyServices = Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
 
@@ -129,7 +174,10 @@ class BootReceiver : BroadcastReceiver() {
 
             val ok1 = Settings.Secure.putString(resolver, keyServices, newValue)
             val ok2 = Settings.Secure.putInt(resolver, keyEnabled, 1)
-            Log.d("BootReceiver", "tryEnableAccessibilityIfPermitted: servicesUpdated=$ok1, enabledSet=$ok2")
+            Log.d(
+                "BootReceiver",
+                "tryEnableAccessibilityIfPermitted: servicesUpdated=$ok1, enabledSet=$ok2"
+            )
         } catch (t: Throwable) {
             Log.e("BootReceiver", "Failed to enable accessibility via secure settings", t)
         }

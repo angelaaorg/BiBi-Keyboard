@@ -5,11 +5,7 @@ import com.brycewg.asrkb.R
 /**
  * 扩展按钮动作类型
  */
-enum class ExtensionButtonAction(
-    val id: String,
-    val titleResId: Int,
-    val iconResId: Int
-) {
+enum class ExtensionButtonAction(val id: String, val titleResId: Int, val iconResId: Int) {
     /**
      * 禁用（不显示按钮或显示为灰色）
      */
@@ -82,7 +78,6 @@ enum class ExtensionButtonAction(
         iconResId = R.drawable.hand_palm
     ),
 
-
     /**
      * 光标左移一位（长按连发）
      */
@@ -141,17 +136,12 @@ enum class ExtensionButtonAction(
         /**
          * 从ID获取动作类型
          */
-        fun fromId(id: String?): ExtensionButtonAction {
-            return values().firstOrNull { it.id == id } ?: NONE
-        }
+        fun fromId(id: String?): ExtensionButtonAction = values().firstOrNull { it.id == id } ?: NONE
 
         /**
          * 获取默认的4个按钮配置
          * 默认顺序：撤销、全选、复制、收起键盘
          */
-        fun getDefaults(): List<ExtensionButtonAction> {
-            return listOf(UNDO, SELECT_ALL, COPY, HIDE_KEYBOARD)
-        }
+        fun getDefaults(): List<ExtensionButtonAction> = listOf(UNDO, SELECT_ALL, COPY, HIDE_KEYBOARD)
     }
 }
-

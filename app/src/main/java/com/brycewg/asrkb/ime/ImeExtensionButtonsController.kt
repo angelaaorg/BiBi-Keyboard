@@ -17,7 +17,7 @@ internal class ImeExtensionButtonsController(
     private val updateSelectExtButtonsUi: () -> Unit,
     private val showNumpadPanel: () -> Unit,
     private val showClipboardPanel: () -> Unit,
-    private val hideKeyboardPanel: () -> Unit,
+    private val hideKeyboardPanel: () -> Unit
 ) {
     fun bindListeners() {
         // 中央扩展按钮（占位，暂无功能）
@@ -165,7 +165,9 @@ internal class ImeExtensionButtonsController(
 
         fun updateBtn(btn: ImageButton?, action: ExtensionButtonAction) {
             if (action == ExtensionButtonAction.SILENCE_AUTOSTOP_TOGGLE) {
-                btn?.setImageResource(if (enabled) R.drawable.hand_palm_fill else R.drawable.hand_palm)
+                btn?.setImageResource(
+                    if (enabled) R.drawable.hand_palm_fill else R.drawable.hand_palm
+                )
                 btn?.isSelected = enabled
             }
         }
@@ -176,4 +178,3 @@ internal class ImeExtensionButtonsController(
         updateBtn(views.btnExt4, prefs.extBtn4)
     }
 }
-

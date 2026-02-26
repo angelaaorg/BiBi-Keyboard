@@ -61,7 +61,9 @@ internal object PromptPresetMigrations {
         knownDefaultVariants: List<List<PromptPreset>>
     ): Boolean {
         if (matchesDefaultPromptPresets(presets, localizedDefaults)) return true
-        return knownDefaultVariants.any { defaults -> matchesDefaultPromptPresets(presets, defaults) }
+        return knownDefaultVariants.any { defaults ->
+            matchesDefaultPromptPresets(presets, defaults)
+        }
     }
 
     fun remapLegacyDefaultPresetIdsIfNeeded(

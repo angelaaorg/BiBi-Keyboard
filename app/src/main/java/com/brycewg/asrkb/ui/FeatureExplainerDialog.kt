@@ -8,7 +8,6 @@ import android.widget.CheckBox
 import android.widget.TextView
 import androidx.annotation.StringRes
 import com.brycewg.asrkb.R
-import com.brycewg.asrkb.store.Prefs
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.materialswitch.MaterialSwitch
 

@@ -15,13 +15,13 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatDelegate
-import com.brycewg.asrkb.ui.BaseActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.os.LocaleListCompat
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.ime.AsrKeyboardService
 import com.brycewg.asrkb.store.Prefs
+import com.brycewg.asrkb.ui.BaseActivity
 import com.brycewg.asrkb.ui.SettingsOptionSheet
 import com.brycewg.asrkb.ui.installExplainedSwitch
 import com.brycewg.asrkb.ui.settings.search.SettingsSearchNavigator
@@ -63,22 +63,31 @@ class InputSettingsActivity : BaseActivity() {
 
         val switchTrimTrailingPunct = findViewById<MaterialSwitch>(R.id.switchTrimTrailingPunct)
         val switchMicTapToggle = findViewById<MaterialSwitch>(R.id.switchMicTapToggle)
-        val switchAutoStartRecordingOnShow = findViewById<MaterialSwitch>(R.id.switchAutoStartRecordingOnShow)
-        val switchFcitx5ReturnOnSwitcher = findViewById<MaterialSwitch>(R.id.switchFcitx5ReturnOnSwitcher)
+        val switchAutoStartRecordingOnShow =
+            findViewById<MaterialSwitch>(R.id.switchAutoStartRecordingOnShow)
+        val switchFcitx5ReturnOnSwitcher =
+            findViewById<MaterialSwitch>(R.id.switchFcitx5ReturnOnSwitcher)
         val switchReturnPrevImeOnHide = findViewById<MaterialSwitch>(R.id.switchReturnPrevImeOnHide)
         val switchHideRecentTasks = findViewById<MaterialSwitch>(R.id.switchHideRecentTasks)
         val switchDuckMediaOnRecord = findViewById<MaterialSwitch>(R.id.switchDuckMediaOnRecord)
         val switchOfflineDenoise = findViewById<MaterialSwitch>(R.id.switchOfflineDenoise)
         val switchHeadsetMicPriority = findViewById<MaterialSwitch>(R.id.switchHeadsetMicPriority)
         val switchExternalImeAidl = findViewById<MaterialSwitch>(R.id.switchExternalImeAidl)
-        val toggleKeyboardHeight = findViewById<MaterialButtonToggleGroup>(R.id.toggleKeyboardHeight)
-        val sliderHapticFeedbackStrength = findViewById<com.google.android.material.slider.Slider>(R.id.sliderHapticFeedbackStrength)
-        val tvHapticFeedbackStrengthValue = findViewById<TextView>(R.id.tvHapticFeedbackStrengthValue)
+        val toggleKeyboardHeight =
+            findViewById<MaterialButtonToggleGroup>(R.id.toggleKeyboardHeight)
+        val sliderHapticFeedbackStrength =
+            findViewById<com.google.android.material.slider.Slider>(
+                R.id.sliderHapticFeedbackStrength
+            )
+        val tvHapticFeedbackStrengthValue =
+            findViewById<TextView>(R.id.tvHapticFeedbackStrengthValue)
         val tvLanguage = findViewById<TextView>(R.id.tvLanguageValue)
         val tvImeSwitchTarget = findViewById<TextView>(R.id.tvImeSwitchTargetValue)
-        val sliderBottomPadding = findViewById<com.google.android.material.slider.Slider>(R.id.sliderBottomPadding)
+        val sliderBottomPadding =
+            findViewById<com.google.android.material.slider.Slider>(R.id.sliderBottomPadding)
         val tvBottomPaddingValue = findViewById<TextView>(R.id.tvBottomPaddingValue)
-        val sliderWaveformSensitivity = findViewById<com.google.android.material.slider.Slider>(R.id.sliderWaveformSensitivity)
+        val sliderWaveformSensitivity =
+            findViewById<com.google.android.material.slider.Slider>(R.id.sliderWaveformSensitivity)
         val tvWaveformSensitivityValue = findViewById<TextView>(R.id.tvWaveformSensitivityValue)
         val tvExtensionButtons = findViewById<TextView>(R.id.tvExtensionButtonsValue)
 
@@ -127,7 +136,11 @@ class InputSettingsActivity : BaseActivity() {
         setupKeyboardHeightToggle(prefs, toggleKeyboardHeight)
 
         // 触觉反馈强度
-        setupHapticFeedbackStrengthSlider(prefs, sliderHapticFeedbackStrength, tvHapticFeedbackStrengthValue)
+        setupHapticFeedbackStrengthSlider(
+            prefs,
+            sliderHapticFeedbackStrength,
+            tvHapticFeedbackStrengthValue
+        )
 
         // 底部间距调节
         setupBottomPaddingSlider(prefs, sliderBottomPadding, tvBottomPaddingValue)
@@ -245,12 +258,25 @@ class InputSettingsActivity : BaseActivity() {
             writePref = { v -> prefs.headsetMicPriorityEnabled = v },
             preCheck = { target ->
                 if (target && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    val granted = ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
+                    val granted =
+                        ContextCompat.checkSelfPermission(
+                            this,
+                            Manifest.permission.BLUETOOTH_CONNECT
+                        ) ==
+                            PackageManager.PERMISSION_GRANTED
                     if (!granted) {
-                        ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.BLUETOOTH_CONNECT), REQ_BT_CONNECT)
+                        ActivityCompat.requestPermissions(
+                            this,
+                            arrayOf(Manifest.permission.BLUETOOTH_CONNECT),
+                            REQ_BT_CONNECT
+                        )
                         false
-                    } else true
-                } else true
+                    } else {
+                        true
+                    }
+                } else {
+                    true
+                }
             },
             onChanged = { enabled ->
                 if (!enabled) {
@@ -263,7 +289,6 @@ class InputSettingsActivity : BaseActivity() {
 
         // 初始应用一次"从最近任务中排除"设置
         applyExcludeFromRecents(prefs.hideRecentTaskCard)
-
     }
 
     override fun onPostResume() {
@@ -271,11 +296,17 @@ class InputSettingsActivity : BaseActivity() {
         SettingsSearchNavigator.applyScrollAndHighlightIfNeeded(this)
     }
 
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == REQ_BT_CONNECT) {
-            val switchHeadsetMicPriority = findViewById<MaterialSwitch>(R.id.switchHeadsetMicPriority)
-            val granted = grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED
+            val switchHeadsetMicPriority =
+                findViewById<MaterialSwitch>(R.id.switchHeadsetMicPriority)
+            val granted =
+                grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED
             if (granted) {
                 prefs.headsetMicPriorityEnabled = true
                 isUpdatingSwitchHeadsetMicPriority = true
@@ -286,7 +317,11 @@ class InputSettingsActivity : BaseActivity() {
                 isUpdatingSwitchHeadsetMicPriority = true
                 switchHeadsetMicPriority.isChecked = false
                 isUpdatingSwitchHeadsetMicPriority = false
-                Toast.makeText(this, getString(R.string.toast_bt_connect_permission_denied), Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    this,
+                    getString(R.string.toast_bt_connect_permission_denied),
+                    Toast.LENGTH_SHORT
+                ).show()
             }
         }
     }
@@ -374,7 +409,8 @@ class InputSettingsActivity : BaseActivity() {
     ) {
         // 初始化滑动条值
         slider.value = prefs.keyboardBottomPaddingDp.toFloat()
-        tvValue.text = getString(R.string.keyboard_bottom_padding_value, prefs.keyboardBottomPaddingDp)
+        tvValue.text =
+            getString(R.string.keyboard_bottom_padding_value, prefs.keyboardBottomPaddingDp)
 
         // 监听滑动条变化
         slider.addOnChangeListener { _, value, fromUser ->
@@ -545,9 +581,11 @@ class InputSettingsActivity : BaseActivity() {
      * 发送刷新 IME UI 的广播
      */
     private fun sendRefreshBroadcast() {
-        sendBroadcast(Intent(AsrKeyboardService.ACTION_REFRESH_IME_UI).apply {
-            setPackage(packageName)
-        })
+        sendBroadcast(
+            Intent(AsrKeyboardService.ACTION_REFRESH_IME_UI).apply {
+                setPackage(packageName)
+            }
+        )
     }
 
     /**
@@ -631,7 +669,9 @@ class InputSettingsActivity : BaseActivity() {
                         // 为已选按钮显示顺序编号（1~4）
                         val orderIndex = selectedOrder.indexOf(position)
                         val baseLabel = items[position]
-                        val textView = itemView?.findViewById<android.widget.CheckedTextView>(android.R.id.text1)
+                        val textView = itemView?.findViewById<android.widget.CheckedTextView>(
+                            android.R.id.text1
+                        )
                         if (textView != null) {
                             if (orderIndex >= 0) {
                                 textView.text = "${orderIndex + 1}. $baseLabel"
@@ -674,7 +714,10 @@ class InputSettingsActivity : BaseActivity() {
                     val selectedCount = checked.count { it }
 
                     // 更新确定按钮的启用状态
-                    alertDialog?.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE)?.isEnabled = (selectedCount == 4)
+                    alertDialog?.getButton(
+                        androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE
+                    )?.isEnabled =
+                        (selectedCount == 4)
 
                     // 更新列表项的视觉状态和禁用状态 + 顺序编号
                     listView?.post {
@@ -686,10 +729,14 @@ class InputSettingsActivity : BaseActivity() {
                     val selected = selectedOrder.mapNotNull { idx -> allActions.getOrNull(idx) }
 
                     // 填充到4个位置
-                    prefs.extBtn1 = selected.getOrElse(0) { com.brycewg.asrkb.ime.ExtensionButtonAction.NONE }
-                    prefs.extBtn2 = selected.getOrElse(1) { com.brycewg.asrkb.ime.ExtensionButtonAction.NONE }
-                    prefs.extBtn3 = selected.getOrElse(2) { com.brycewg.asrkb.ime.ExtensionButtonAction.NONE }
-                    prefs.extBtn4 = selected.getOrElse(3) { com.brycewg.asrkb.ime.ExtensionButtonAction.NONE }
+                    prefs.extBtn1 =
+                        selected.getOrElse(0) { com.brycewg.asrkb.ime.ExtensionButtonAction.NONE }
+                    prefs.extBtn2 =
+                        selected.getOrElse(1) { com.brycewg.asrkb.ime.ExtensionButtonAction.NONE }
+                    prefs.extBtn3 =
+                        selected.getOrElse(2) { com.brycewg.asrkb.ime.ExtensionButtonAction.NONE }
+                    prefs.extBtn4 =
+                        selected.getOrElse(3) { com.brycewg.asrkb.ime.ExtensionButtonAction.NONE }
 
                     updateSummary()
                     sendRefreshBroadcast()
@@ -701,7 +748,8 @@ class InputSettingsActivity : BaseActivity() {
 
             // 初始根据当前选择数量设置确定按钮的启用状态
             val initialSelectedCount = checked.count { it }
-            dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE)?.isEnabled = (initialSelectedCount == 4)
+            dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE)?.isEnabled =
+                (initialSelectedCount == 4)
 
             // 初始化列表项的视觉状态、禁用状态和顺序编号
             dialog.listView?.post {
@@ -710,7 +758,10 @@ class InputSettingsActivity : BaseActivity() {
 
             // 滚动时也刷新一次文本（保证编号正确）
             dialog.listView?.setOnScrollListener(object : android.widget.AbsListView.OnScrollListener {
-                override fun onScrollStateChanged(view: android.widget.AbsListView?, scrollState: Int) {
+                override fun onScrollStateChanged(
+                    view: android.widget.AbsListView?,
+                    scrollState: Int
+                ) {
                     updateListVisual(dialog.listView)
                 }
 
@@ -747,12 +798,12 @@ class InputSettingsActivity : BaseActivity() {
         val items =
             arrayOf(
                 getString(R.string.external_aidl_guide_release_fcitx),
-                getString(R.string.external_aidl_guide_release_trime),
+                getString(R.string.external_aidl_guide_release_trime)
             )
         val urls =
             arrayOf(
                 "https://github.com/BryceWG/fcitx5-android-lexi-keyboard/releases",
-                "https://github.com/BryceWG/trime-bibi-keyboard/releases",
+                "https://github.com/BryceWG/trime-bibi-keyboard/releases"
             )
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.external_aidl_guide_choose_release_title)

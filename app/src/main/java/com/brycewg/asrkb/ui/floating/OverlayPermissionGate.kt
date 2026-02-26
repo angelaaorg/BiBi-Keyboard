@@ -10,7 +10,7 @@ import com.brycewg.asrkb.R
 internal class OverlayPermissionGate(
     private val context: Context,
     private val notifier: UserNotifier,
-    private val tag: String,
+    private val tag: String
 ) {
     fun hasPermission(): Boolean = Settings.canDrawOverlays(context)
 
@@ -26,7 +26,7 @@ internal class OverlayPermissionGate(
         try {
             val intent = Intent(
                 Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                Uri.parse("package:${context.packageName}"),
+                Uri.parse("package:${context.packageName}")
             ).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }

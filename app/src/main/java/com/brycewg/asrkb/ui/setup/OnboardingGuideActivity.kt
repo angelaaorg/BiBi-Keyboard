@@ -39,7 +39,9 @@ import com.google.android.material.progressindicator.LinearProgressIndicator
 /**
  * 重构后的“查看使用指南”入口：整合权限、服务选择、隐私和相关信息。
  */
-class OnboardingGuideActivity : BaseActivity(), OnboardingPagerAdapter.Callbacks {
+class OnboardingGuideActivity :
+    BaseActivity(),
+    OnboardingPagerAdapter.Callbacks {
 
     companion object {
         private const val TAG = "OnboardingGuideActivity"
@@ -182,7 +184,9 @@ class OnboardingGuideActivity : BaseActivity(), OnboardingPagerAdapter.Callbacks
     }
 
     override fun bindPrivacyPage(root: View) {
-        val switchDataCollection = root.findViewById<MaterialSwitch>(R.id.switchOnboardingDataCollection)
+        val switchDataCollection = root.findViewById<MaterialSwitch>(
+            R.id.switchOnboardingDataCollection
+        )
 
         switchDataCollection.setOnCheckedChangeListener(null)
         switchDataCollection.isChecked = prefs.dataCollectionEnabled
@@ -365,7 +369,11 @@ class OnboardingGuideActivity : BaseActivity(), OnboardingPagerAdapter.Callbacks
 
     private fun requestNotificationPermission() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-            Toast.makeText(this, R.string.onboarding_permission_status_granted, Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                this,
+                R.string.onboarding_permission_status_granted,
+                Toast.LENGTH_SHORT
+            ).show()
             return
         }
         requestNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
@@ -418,46 +426,38 @@ class OnboardingGuideActivity : BaseActivity(), OnboardingPagerAdapter.Callbacks
         }
     }
 
-    private fun deriveInitialAsrChoice(): AsrChoice {
-        return when {
-            prefs.sfFreeAsrEnabled -> AsrChoice.SiliconFlowFree
-            prefs.asrVendor == com.brycewg.asrkb.asr.AsrVendor.SenseVoice -> AsrChoice.LocalModel
-            else -> AsrChoice.OnlineCustom
-        }
+    private fun deriveInitialAsrChoice(): AsrChoice = when {
+        prefs.sfFreeAsrEnabled -> AsrChoice.SiliconFlowFree
+        prefs.asrVendor == com.brycewg.asrkb.asr.AsrVendor.SenseVoice -> AsrChoice.LocalModel
+        else -> AsrChoice.OnlineCustom
     }
 
-    private fun hasMicrophonePermission(): Boolean {
-        return ContextCompat.checkSelfPermission(
-            this,
-            Manifest.permission.RECORD_AUDIO
-        ) == PackageManager.PERMISSION_GRANTED
-    }
+    private fun hasMicrophonePermission(): Boolean = ContextCompat.checkSelfPermission(
+        this,
+        Manifest.permission.RECORD_AUDIO
+    ) == PackageManager.PERMISSION_GRANTED
 
     private fun hasOverlayPermission(): Boolean = Settings.canDrawOverlays(this)
 
-    private fun hasNotificationPermission(): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.POST_NOTIFICATIONS
-            ) == PackageManager.PERMISSION_GRANTED
-        } else {
-            true
-        }
+    private fun hasNotificationPermission(): Boolean = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.POST_NOTIFICATIONS
+        ) == PackageManager.PERMISSION_GRANTED
+    } else {
+        true
     }
 
-    private fun hasAccessibilityPermission(): Boolean {
-        return try {
-            val expectedComponentName = "$packageName/com.brycewg.asrkb.ui.AsrAccessibilityService"
-            val enabledServicesSetting = Settings.Secure.getString(
-                contentResolver,
-                Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
-            )
-            enabledServicesSetting?.contains(expectedComponentName) == true
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to check accessibility service state", e)
-            false
-        }
+    private fun hasAccessibilityPermission(): Boolean = try {
+        val expectedComponentName = "$packageName/com.brycewg.asrkb.ui.AsrAccessibilityService"
+        val enabledServicesSetting = Settings.Secure.getString(
+            contentResolver,
+            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+        )
+        enabledServicesSetting?.contains(expectedComponentName) == true
+    } catch (e: Exception) {
+        Log.e(TAG, "Failed to check accessibility service state", e)
+        false
     }
 
     private fun isOurImeEnabled(): Boolean {
@@ -493,18 +493,16 @@ class OnboardingGuideActivity : BaseActivity(), OnboardingPagerAdapter.Callbacks
         }
     }
 
-    private fun isOurImeCurrent(): Boolean {
-        return try {
-            val current = Settings.Secure.getString(
-                contentResolver,
-                Settings.Secure.DEFAULT_INPUT_METHOD
-            )
-            val ids = getOurImeIdCandidates()
-            current != null && ids.contains(current)
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to check current IME", e)
-            false
-        }
+    private fun isOurImeCurrent(): Boolean = try {
+        val current = Settings.Secure.getString(
+            contentResolver,
+            Settings.Secure.DEFAULT_INPUT_METHOD
+        )
+        val ids = getOurImeIdCandidates()
+        current != null && ids.contains(current)
+    } catch (e: Exception) {
+        Log.e(TAG, "Failed to check current IME", e)
+        false
     }
 
     private fun getOurImeIdCandidates(): Set<String> {

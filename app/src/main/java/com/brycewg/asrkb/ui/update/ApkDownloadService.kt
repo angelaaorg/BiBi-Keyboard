@@ -12,10 +12,13 @@ import android.provider.Settings
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.FileProvider
-import com.brycewg.asrkb.R
 import com.brycewg.asrkb.LocaleHelper
-import kotlinx.coroutines.CoroutineScope
+import com.brycewg.asrkb.R
+import com.brycewg.asrkb.store.Prefs
+import java.io.File
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -26,9 +29,6 @@ import kotlinx.coroutines.withContext
 import okhttp3.Call
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import java.io.File
-import java.util.concurrent.TimeUnit
-import com.brycewg.asrkb.store.Prefs
 
 /**
  * APK 下载与安装服务
@@ -107,7 +107,9 @@ class ApkDownloadService : Service() {
     private lateinit var notificationManager: NotificationManager
     private var isDownloading = false
     private var downloadJob: Job? = null
+
     @Volatile private var activeDownloadCall: Call? = null
+
     @Volatile private var downloadingApkFile: File? = null
     private var downloadedApkFile: File? = null
 
@@ -327,7 +329,10 @@ class ApkDownloadService : Service() {
 
                             // 更新进度
                             if (totalBytes > 0) {
-                                val progress = ((downloadedBytes * 100) / totalBytes).toInt().coerceIn(0, 100)
+                                val progress = ((downloadedBytes * 100) / totalBytes).toInt().coerceIn(
+                                    0,
+                                    100
+                                )
                                 updateDownloadProgress(progress, downloadedBytes, totalBytes)
                             }
                         }
@@ -382,7 +387,9 @@ class ApkDownloadService : Service() {
 
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(getString(R.string.apk_download_notification_title))
-            .setContentText(getString(R.string.apk_download_progress, progress, downloadedMB, totalMB))
+            .setContentText(
+                getString(R.string.apk_download_progress, progress, downloadedMB, totalMB)
+            )
             .setSmallIcon(R.drawable.cloud_arrow_down)
             .setOngoing(true)
             .setProgress(100, progress, false)
@@ -421,18 +428,16 @@ class ApkDownloadService : Service() {
     /**
      * 创建安装 Intent
      */
-    private fun createInstallIntent(apkFile: File): Intent {
-        return Intent(Intent.ACTION_VIEW).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
+    private fun createInstallIntent(apkFile: File): Intent = Intent(Intent.ACTION_VIEW).apply {
+        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
 
-            // 使用 FileProvider
-            val uri = FileProvider.getUriForFile(
-                this@ApkDownloadService,
-                "${packageName}.fileprovider",
-                apkFile
-            )
-            setDataAndType(uri, "application/vnd.android.package-archive")
-        }
+        // 使用 FileProvider
+        val uri = FileProvider.getUriForFile(
+            this@ApkDownloadService,
+            "$packageName.fileprovider",
+            apkFile
+        )
+        setDataAndType(uri, "application/vnd.android.package-archive")
     }
 
     /**

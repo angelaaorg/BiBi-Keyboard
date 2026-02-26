@@ -3,17 +3,19 @@ package com.brycewg.asrkb.clipboard
 import android.content.Context
 import android.util.Log
 import com.brycewg.asrkb.store.Prefs
+import java.util.UUID
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import java.util.UUID
 
 /**
  * 剪贴板条目类型
  */
 @Serializable
 enum class EntryType {
-    TEXT, IMAGE, FILE
+    TEXT,
+    IMAGE,
+    FILE
 }
 
 /**
@@ -21,10 +23,10 @@ enum class EntryType {
  */
 @Serializable
 enum class DownloadStatus {
-    NONE,        // 未下载
+    NONE, // 未下载
     DOWNLOADING, // 下载中
-    COMPLETED,   // 已完成
-    FAILED       // 失败
+    COMPLETED, // 已完成
+    FAILED // 失败
 }
 
 /**
@@ -40,17 +42,18 @@ class ClipboardHistoryStore(private val context: Context, private val prefs: Pre
     @Serializable
     data class Entry(
         val id: String,
-        val text: String = "",              // 文本内容（保持向后兼容）
+        val text: String = "", // 文本内容（保持向后兼容）
         val ts: Long,
         val pinned: Boolean,
         // 新增字段：支持文件类型
         val type: EntryType = EntryType.TEXT,
-        val fileName: String? = null,       // 文件名
-        val fileSize: Long? = null,         // 文件大小（字节）
-        val mimeType: String? = null,       // MIME 类型
-        val localFilePath: String? = null,  // 本地文件路径
+        val fileName: String? = null, // 文件名
+        val fileSize: Long? = null, // 文件大小（字节）
+        val mimeType: String? = null, // MIME 类型
+        val localFilePath: String? = null, // 本地文件路径
         val downloadStatus: DownloadStatus = DownloadStatus.NONE,
-        val serverFileName: String? = null  // 服务器上的文件名（用于下载）
+        // 服务器上的文件名（用于下载）
+        val serverFileName: String? = null
     ) {
         /**
          * 用于列表 / 信息栏展示的文本。
@@ -72,7 +75,12 @@ class ClipboardHistoryStore(private val context: Context, private val prefs: Pre
     }
 
     private val sp by lazy { context.getSharedPreferences("asr_prefs", Context.MODE_PRIVATE) }
-    private val json by lazy { Json { ignoreUnknownKeys = true; encodeDefaults = true } }
+    private val json by lazy {
+        Json {
+            ignoreUnknownKeys = true
+            encodeDefaults = true
+        }
+    }
 
     companion object {
         private const val TAG = "ClipboardHistoryStore"
@@ -82,9 +90,7 @@ class ClipboardHistoryStore(private val context: Context, private val prefs: Pre
         private const val KEY_CLIP_PINNED_JSON = "clip_pinned"
     }
 
-    fun getAll(): List<Entry> {
-        return getPinned() + getHistory()
-    }
+    fun getAll(): List<Entry> = getPinned() + getHistory()
 
     fun getPinned(): List<Entry> {
         return try {
@@ -132,8 +138,20 @@ class ClipboardHistoryStore(private val context: Context, private val prefs: Pre
         try {
             val his = getHistory().toMutableList()
             if (his.firstOrNull()?.text == trimmed) return
-            his.add(0, Entry(UUID.randomUUID().toString(), trimmed, System.currentTimeMillis(), pinned = false))
-            while (his.size > MAX_HISTORY) if (his.isNotEmpty()) his.removeAt(his.lastIndex) else break
+            his.add(
+                0,
+                Entry(
+                    UUID.randomUUID().toString(),
+                    trimmed,
+                    System.currentTimeMillis(),
+                    pinned = false
+                )
+            )
+            while (his.size >
+                MAX_HISTORY
+            ) {
+                if (his.isNotEmpty()) his.removeAt(his.lastIndex) else break
+            }
             sp.edit().putString(KEY_CLIP_HISTORY_JSON, json.encodeToString(his)).apply()
         } catch (t: Throwable) {
             Log.e(TAG, "addFromClipboard failed", t)
@@ -153,7 +171,11 @@ class ClipboardHistoryStore(private val context: Context, private val prefs: Pre
             val e = history.removeAt(idxH)
             val pe = e.copy(pinned = true, ts = System.currentTimeMillis())
             pinned.add(0, pe)
-            while (pinned.size > MAX_PINNED) if (pinned.isNotEmpty()) pinned.removeAt(pinned.lastIndex) else break
+            while (pinned.size >
+                MAX_PINNED
+            ) {
+                if (pinned.isNotEmpty()) pinned.removeAt(pinned.lastIndex) else break
+            }
             persist(pinned, history)
             return true
         }
@@ -163,7 +185,11 @@ class ClipboardHistoryStore(private val context: Context, private val prefs: Pre
             val e = pinned.removeAt(idxP)
             val he = e.copy(pinned = false, ts = System.currentTimeMillis())
             history.add(0, he)
-            while (history.size > MAX_HISTORY) if (history.isNotEmpty()) history.removeAt(history.lastIndex) else break
+            while (history.size >
+                MAX_HISTORY
+            ) {
+                if (history.isNotEmpty()) history.removeAt(history.lastIndex) else break
+            }
             persist(pinned, history)
             return false
         }
@@ -189,8 +215,22 @@ class ClipboardHistoryStore(private val context: Context, private val prefs: Pre
     private fun persist(pinned: List<Entry>, history: List<Entry>) {
         try {
             sp.edit()
-                .putString(KEY_CLIP_PINNED_JSON, json.encodeToString(pinned.sortedByDescending { it.ts }))
-                .putString(KEY_CLIP_HISTORY_JSON, json.encodeToString(history.sortedByDescending { it.ts }))
+                .putString(
+                    KEY_CLIP_PINNED_JSON,
+                    json.encodeToString(
+                        pinned.sortedByDescending {
+                            it.ts
+                        }
+                    )
+                )
+                .putString(
+                    KEY_CLIP_HISTORY_JSON,
+                    json.encodeToString(
+                        history.sortedByDescending {
+                            it.ts
+                        }
+                    )
+                )
                 .apply()
         } catch (t: Throwable) {
             Log.e(TAG, "persist failed", t)
@@ -198,19 +238,19 @@ class ClipboardHistoryStore(private val context: Context, private val prefs: Pre
     }
 
     /** 从非固定历史中删除指定ID的记录 */
-    fun deleteHistoryById(id: String): Boolean {
-        return try {
-            val history = getHistory().toMutableList()
-            val idx = history.indexOfFirst { it.id == id }
-            if (idx >= 0) {
-                history.removeAt(idx)
-                sp.edit().putString(KEY_CLIP_HISTORY_JSON, json.encodeToString(history)).apply()
-                true
-            } else false
-        } catch (t: Throwable) {
-            Log.e(TAG, "deleteHistoryById failed", t)
+    fun deleteHistoryById(id: String): Boolean = try {
+        val history = getHistory().toMutableList()
+        val idx = history.indexOfFirst { it.id == id }
+        if (idx >= 0) {
+            history.removeAt(idx)
+            sp.edit().putString(KEY_CLIP_HISTORY_JSON, json.encodeToString(history)).apply()
+            true
+        } else {
             false
         }
+    } catch (t: Throwable) {
+        Log.e(TAG, "deleteHistoryById failed", t)
+        false
     }
 
     /**
@@ -265,7 +305,11 @@ class ClipboardHistoryStore(private val context: Context, private val prefs: Pre
             )
 
             his.add(0, entry)
-            while (his.size > MAX_HISTORY) if (his.isNotEmpty()) his.removeAt(his.lastIndex) else break
+            while (his.size >
+                MAX_HISTORY
+            ) {
+                if (his.isNotEmpty()) his.removeAt(his.lastIndex) else break
+            }
             sp.edit().putString(KEY_CLIP_HISTORY_JSON, json.encodeToString(his)).apply()
             return true
         } catch (t: Throwable) {
@@ -318,7 +362,5 @@ class ClipboardHistoryStore(private val context: Context, private val prefs: Pre
     /**
      * 根据 ID 获取条目
      */
-    fun getEntryById(id: String): Entry? {
-        return getAll().firstOrNull { it.id == id }
-    }
+    fun getEntryById(id: String): Entry? = getAll().firstOrNull { it.id == id }
 }

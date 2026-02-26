@@ -29,7 +29,7 @@ internal class ImeMainKeyboardBinder(
     private val showVendorPicker: (View) -> Unit,
     private val onImeSwitchButtonClicked: () -> Unit,
     private val inputConnectionProvider: () -> android.view.inputmethod.InputConnection?,
-    private val editorInfoProvider: () -> android.view.inputmethod.EditorInfo?,
+    private val editorInfoProvider: () -> android.view.inputmethod.EditorInfo?
 ) {
     private var keyHintResetRunnable: Runnable? = null
 
@@ -47,7 +47,9 @@ internal class ImeMainKeyboardBinder(
     }
 
     fun updatePostprocIcon() {
-        views.btnPostproc?.setImageResource(if (prefs.postProcessEnabled) R.drawable.magic_wand_fill else R.drawable.magic_wand)
+        views.btnPostproc?.setImageResource(
+            if (prefs.postProcessEnabled) R.drawable.magic_wand_fill else R.drawable.magic_wand
+        )
     }
 
     private fun bindTopRow() {
@@ -221,7 +223,9 @@ internal class ImeMainKeyboardBinder(
         secondary: () -> String
     ): View.OnTouchListener {
         val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
-        val thresholdPx = (24f * context.resources.displayMetrics.density).toInt().coerceAtLeast(touchSlop)
+        val thresholdPx = (24f * context.resources.displayMetrics.density).toInt().coerceAtLeast(
+            touchSlop
+        )
         var downY = 0f
         return View.OnTouchListener { v, ev ->
             when (ev.actionMasked) {
@@ -249,4 +253,3 @@ internal class ImeMainKeyboardBinder(
         }
     }
 }
-

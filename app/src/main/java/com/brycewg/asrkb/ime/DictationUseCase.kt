@@ -55,7 +55,9 @@ internal class DictationUseCase(
             isCancelled = { isCancelled(seq) },
             onFinalReady = { processingTimeoutController.cancel() },
             onPostprocFailed = {
-                uiListenerProvider()?.onStatusMessage(context.getString(R.string.status_llm_failed_used_raw))
+                uiListenerProvider()?.onStatusMessage(
+                    context.getString(R.string.status_llm_failed_used_raw)
+                )
             }
         ) ?: return
 
@@ -107,7 +109,9 @@ internal class DictationUseCase(
         if (postprocFailed) {
             // 回到 Idle 后再次设置错误提示，避免被 Idle 文案覆盖
             transitionToIdle(false)
-            uiListenerProvider()?.onStatusMessage(context.getString(R.string.status_llm_failed_used_raw))
+            uiListenerProvider()?.onStatusMessage(
+                context.getString(R.string.status_llm_failed_used_raw)
+            )
             return
         }
 
@@ -129,7 +133,9 @@ internal class DictationUseCase(
 
         if (finalToCommit.isBlank()) {
             transitionToIdle(true)
-            uiListenerProvider()?.onStatusMessage(context.getString(R.string.asr_error_empty_result))
+            uiListenerProvider()?.onStatusMessage(
+                context.getString(R.string.asr_error_empty_result)
+            )
             uiListenerProvider()?.onVibrate()
             return
         }

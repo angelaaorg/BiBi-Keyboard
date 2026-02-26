@@ -4,6 +4,9 @@ import android.content.Context
 import android.util.Log
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.store.Prefs
+import java.io.File
+import java.io.FileOutputStream
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
@@ -11,9 +14,6 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.asRequestBody
 import org.json.JSONObject
-import java.io.File
-import java.io.FileOutputStream
-import java.util.concurrent.TimeUnit
 
 /**
  * 使用智谱 GLM /v4/audio/transcriptions 的非流式 ASR 引擎。
@@ -26,7 +26,8 @@ class ZhipuFileAsrEngine(
     listener: StreamingAsrEngine.Listener,
     onRequestDuration: ((Long) -> Unit)? = null,
     httpClient: OkHttpClient? = null
-) : BaseFileAsrEngine(context, scope, prefs, listener, onRequestDuration), PcmBatchRecognizer {
+) : BaseFileAsrEngine(context, scope, prefs, listener, onRequestDuration),
+    PcmBatchRecognizer {
 
     companion object {
         private const val TAG = "ZhipuFileAsrEngine"
@@ -101,7 +102,9 @@ class ZhipuFileAsrEngine(
                     val text = parseTextFromResponse(bodyStr)
                     if (text.isNotBlank()) {
                         val dt = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - t0)
-                        try { onRequestDuration?.invoke(dt) } catch (_: Throwable) {}
+                        try {
+                            onRequestDuration?.invoke(dt)
+                        } catch (_: Throwable) {}
                         listener.onFinal(text)
                     } else {
                         listener.onError(context.getString(R.string.error_asr_empty_result))
@@ -123,7 +126,9 @@ class ZhipuFileAsrEngine(
         }
     }
 
-    override suspend fun recognizeFromPcm(pcm: ByteArray) { recognize(pcm) }
+    override suspend fun recognizeFromPcm(pcm: ByteArray) {
+        recognize(pcm)
+    }
 
     /**
      * 从响应体中提取错误提示信息
@@ -133,7 +138,9 @@ class ZhipuFileAsrEngine(
         return try {
             val obj = JSONObject(body)
             when {
-                obj.has("error") -> obj.optJSONObject("error")?.optString("message")?.trim().orEmpty()
+                obj.has(
+                    "error"
+                ) -> obj.optJSONObject("error")?.optString("message")?.trim().orEmpty()
                     .ifBlank { obj.optString("message").trim() }
                 obj.has("message") -> obj.optString("message").trim()
                 else -> body.take(200).trim()

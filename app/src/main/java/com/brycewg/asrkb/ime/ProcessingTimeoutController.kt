@@ -62,7 +62,11 @@ internal class ProcessingTimeoutController(
             if (currentStateProvider() is KeyboardState.Processing) {
                 debugLog(
                     "processing_timeout_fired",
-                    mapOf("opSeq" to opSeqProvider(), "audioMs" to audioMs, "timeoutMs" to timeoutMs)
+                    mapOf(
+                        "opSeq" to opSeqProvider(),
+                        "audioMs" to audioMs,
+                        "timeoutMs" to timeoutMs
+                    )
                 )
                 onTimeout()
             }
@@ -85,13 +89,11 @@ internal class ProcessingTimeoutController(
         false
     }
 
-    private fun shouldDeferForLocalModel(usingBackupEngine: Boolean): Boolean {
-        return try {
-            !usingBackupEngine && isLocalAsrVendor(prefs.asrVendor)
-        } catch (t: Throwable) {
-            Log.w(logTag, "Failed to determine local ASR vendor for timeout gating", t)
-            false
-        }
+    private fun shouldDeferForLocalModel(usingBackupEngine: Boolean): Boolean = try {
+        !usingBackupEngine && isLocalAsrVendor(prefs.asrVendor)
+    } catch (t: Throwable) {
+        Log.w(logTag, "Failed to determine local ASR vendor for timeout gating", t)
+        false
     }
 
     private fun debugLog(event: String, data: Map<String, Any?>) {
@@ -101,4 +103,3 @@ internal class ProcessingTimeoutController(
         }
     }
 }
-

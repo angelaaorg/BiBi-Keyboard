@@ -3,7 +3,6 @@ package com.brycewg.asrkb.asr
 import android.content.Context
 import android.util.Log
 import com.brycewg.asrkb.store.Prefs
-import com.brycewg.asrkb.ui.floating.FloatingAsrService
 import com.k2fsa.sherpa.onnx.TenVadModelConfig
 import com.k2fsa.sherpa.onnx.Vad
 import com.k2fsa.sherpa.onnx.VadModelConfig
@@ -38,10 +37,7 @@ class VadDetector(
      * @param isSpeech 当前帧是否检测到语音
      * @param silenceStop 是否累计静音已达到停录阈值
      */
-    data class FrameResult(
-        val isSpeech: Boolean,
-        val silenceStop: Boolean
-    )
+    data class FrameResult(val isSpeech: Boolean, val silenceStop: Boolean)
 
     companion object {
         private const val TAG = "VadDetector"
@@ -62,17 +58,15 @@ class VadDetector(
             0.20f, // 7（默认附近）
             0.16f, // 8
             0.12f, // 9
-            0.08f  // 10 更敏感
+            0.08f // 10 更敏感
         )
 
         private const val MAX_POOL_SIZE = 2
 
-        private data class VadPoolKey(
-            val sampleRate: Int,
-            val sensitivityLevel: Int
-        )
+        private data class VadPoolKey(val sampleRate: Int, val sensitivityLevel: Int)
 
         private val poolLock = Any()
+
         @Volatile
         private var poolKey: VadPoolKey? = null
         private val vadPool: ArrayDeque<Vad> = ArrayDeque()
@@ -102,18 +96,12 @@ class VadDetector(
             )
         }
 
-        private fun createVad(context: Context, sampleRate: Int, sensitivityLevel: Int): Vad {
-            return Vad(
-                assetManager = context.assets,
-                config = buildVadModelConfig(sampleRate, sensitivityLevel)
-            )
-        }
+        private fun createVad(context: Context, sampleRate: Int, sensitivityLevel: Int): Vad = Vad(
+            assetManager = context.assets,
+            config = buildVadModelConfig(sampleRate, sensitivityLevel)
+        )
 
-        private fun acquireFromPool(
-            context: Context,
-            sampleRate: Int,
-            sensitivityLevel: Int
-        ): Vad {
+        private fun acquireFromPool(context: Context, sampleRate: Int, sensitivityLevel: Int): Vad {
             val lvl = sensitivityLevel.coerceIn(1, LEVELS)
             val key = VadPoolKey(sampleRate = sampleRate, sensitivityLevel = lvl)
 
@@ -149,10 +137,7 @@ class VadDetector(
             return vad
         }
 
-        private fun recycleToPool(
-            key: VadPoolKey,
-            vad: Vad
-        ) {
+        private fun recycleToPool(key: VadPoolKey, vad: Vad) {
             val shouldPool = synchronized(poolLock) {
                 (poolKey == key) && (vadPool.size < MAX_POOL_SIZE)
             }
@@ -236,7 +221,13 @@ class VadDetector(
                     }
                 }
                 preload(context, sampleRate, sensitivityLevel)
-                Log.i(TAG, "VAD pool rebuilt (sr=$sampleRate, sensitivity=${sensitivityLevel.coerceIn(1, LEVELS)})")
+                Log.i(
+                    TAG,
+                    "VAD pool rebuilt (sr=$sampleRate, sensitivity=${sensitivityLevel.coerceIn(
+                        1,
+                        LEVELS
+                    )})"
+                )
             } catch (t: Throwable) {
                 Log.e(TAG, "Failed to rebuild global VAD", t)
             }
@@ -249,6 +240,7 @@ class VadDetector(
     private val threshold: Float
     private val speechHangoverMs: Int
     private var speechHangoverRemainingMs: Int = 0
+
     // 录音开始阶段的初期防抖（仅在首次检测到语音之前生效）
     private val initialDebounceMs: Int
     private var initialDebounceRemainingMs: Int = 0
@@ -311,9 +303,7 @@ class VadDetector(
      * @param len 有效数据长度（字节）
      * @return 如果连续非语音时长超过窗口阈值，返回 true
      */
-    fun shouldStop(buf: ByteArray, len: Int): Boolean {
-        return analyzeFrame(buf, len).silenceStop
-    }
+    fun shouldStop(buf: ByteArray, len: Int): Boolean = analyzeFrame(buf, len).silenceStop
 
     /**
      * 对单帧音频进行 VAD 分析，返回“是否语音”与“是否触发静音停录”。
@@ -383,13 +373,11 @@ class VadDetector(
      *
      * 适用于“起说检测”等仅需语音活动信息的场景（例如畅说模式）。
      */
-    fun isSpeechFrame(buf: ByteArray, len: Int): Boolean {
-        return try {
-            analyzeFrame(buf, len).isSpeech
-        } catch (t: Throwable) {
-            Log.e(TAG, "Error during VAD speech frame detection", t)
-            false
-        }
+    fun isSpeechFrame(buf: ByteArray, len: Int): Boolean = try {
+        analyzeFrame(buf, len).isSpeech
+    } catch (t: Throwable) {
+        Log.e(TAG, "Error during VAD speech frame detection", t)
+        false
     }
 
     /**
@@ -438,7 +426,7 @@ class VadDetector(
             // Little Endian: 低字节在前
             val lo = pcm[i].toInt() and 0xFF
             val hi = pcm[i + 1].toInt() and 0xFF
-            val pcmValue = (hi shl 8) or lo  // 0..65535
+            val pcmValue = (hi shl 8) or lo // 0..65535
 
             // 转为有符号 -32768..32767
             val signed = if (pcmValue < 0x8000) pcmValue else pcmValue - 0x10000
@@ -446,8 +434,11 @@ class VadDetector(
             // 归一化到 -1.0 ~ 1.0
             // 使用 32768.0f 避免 -32768 除法溢出，并限制范围
             var normalized = signed / 32768.0f
-            if (normalized > 1.0f) normalized = 1.0f
-            else if (normalized < -1.0f) normalized = -1.0f
+            if (normalized > 1.0f) {
+                normalized = 1.0f
+            } else if (normalized < -1.0f) {
+                normalized = -1.0f
+            }
 
             samples[sampleIdx] = normalized
 

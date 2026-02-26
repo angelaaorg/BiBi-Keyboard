@@ -9,6 +9,10 @@ import android.util.Log
 import androidx.core.content.ContextCompat
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.store.Prefs
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -22,10 +26,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * 基于 sherpa-onnx OnlineRecognizer 的本地 Paraformer 流式识别引擎。
@@ -39,7 +39,8 @@ class ParaformerStreamAsrEngine(
     private val prefs: Prefs,
     private val listener: StreamingAsrEngine.Listener,
     private val externalPcmMode: Boolean = false
-) : StreamingAsrEngine, ExternalPcmConsumer {
+) : StreamingAsrEngine,
+    ExternalPcmConsumer {
 
     companion object {
         private const val TAG = "ParaformerStreamAsrEngine"
@@ -50,9 +51,11 @@ class ParaformerStreamAsrEngine(
     private val closing = AtomicBoolean(false)
     private val finalizeOnce = AtomicBoolean(false)
     private val closeSilently = AtomicBoolean(false)
+
     @Volatile private var useItnForSession: Boolean = false
     private var audioJob: Job? = null
     private val mgr = ParaformerOnnxManager.getInstance()
+
     @Volatile private var currentStream: Any? = null
     private val streamMutex = Mutex()
 
@@ -118,7 +121,14 @@ class ParaformerStreamAsrEngine(
             val base = context.getExternalFilesDir(null) ?: context.filesDir
             val root = java.io.File(base, "paraformer")
             val isTri = prefs.pfModelVariant.startsWith("trilingual")
-            val group = if (isTri) java.io.File(root, "trilingual") else java.io.File(root, "bilingual")
+            val group = if (isTri) {
+                java.io.File(
+                    root,
+                    "trilingual"
+                )
+            } else {
+                java.io.File(root, "bilingual")
+            }
             val dir = findPfModelDir(group)
             if (dir == null) {
                 listener.onError(context.getString(R.string.error_paraformer_model_missing))
@@ -128,8 +138,22 @@ class ParaformerStreamAsrEngine(
 
             val tokensPath = java.io.File(dir, "tokens.txt").absolutePath
             val int8 = prefs.pfModelVariant.contains("int8")
-            val enc = if (int8) java.io.File(dir, "encoder.int8.onnx") else java.io.File(dir, "encoder.onnx")
-            val dec = if (int8) java.io.File(dir, "decoder.int8.onnx") else java.io.File(dir, "decoder.onnx")
+            val enc = if (int8) {
+                java.io.File(
+                    dir,
+                    "encoder.int8.onnx"
+                )
+            } else {
+                java.io.File(dir, "encoder.onnx")
+            }
+            val dec = if (int8) {
+                java.io.File(
+                    dir,
+                    "decoder.int8.onnx"
+                )
+            } else {
+                java.io.File(dir, "decoder.onnx")
+            }
             if (!enc.exists() || !dec.exists()) {
                 listener.onError(context.getString(R.string.error_paraformer_model_missing))
                 running.set(false)
@@ -148,7 +172,7 @@ class ParaformerStreamAsrEngine(
                 keepAliveMs = keepMs,
                 alwaysKeep = alwaysKeep,
                 onLoadStart = { notifyLoadUi(true) },
-                onLoadDone = { notifyLoadUi(false) },
+                onLoadDone = { notifyLoadUi(false) }
             )
             if (!ok) {
                 Log.w(TAG, "Paraformer prepare() failed")
@@ -168,12 +192,27 @@ class ParaformerStreamAsrEngine(
             // 若在准备期间已调用 stop()，此处直接做最终解码
             if (closing.get() && finalizeOnce.compareAndSet(false, true)) {
                 if (closeSilently.get()) {
-                    try { releaseStreamSilently(stream) } catch (t: Throwable) { Log.e(TAG, "releaseStreamSilently failed", t) }
-                } else {
-                    val finalText = try { finalizeAndRelease(stream) } catch (t: Throwable) {
-                        Log.e(TAG, "finalizeAndRelease failed", t); ""
+                    try {
+                        releaseStreamSilently(stream)
+                    } catch (
+                        t: Throwable
+                    ) {
+                        Log.e(TAG, "releaseStreamSilently failed", t)
                     }
-                    try { listener.onFinal(finalText) } catch (t: Throwable) { Log.e(TAG, "notify final failed", t) }
+                } else {
+                    val finalText = try {
+                        finalizeAndRelease(stream)
+                    } catch (t: Throwable) {
+                        Log.e(TAG, "finalizeAndRelease failed", t)
+                        ""
+                    }
+                    try {
+                        listener.onFinal(finalText)
+                    } catch (
+                        t: Throwable
+                    ) {
+                        Log.e(TAG, "notify final failed", t)
+                    }
                 }
                 closing.set(false)
                 running.set(false)
@@ -186,7 +225,11 @@ class ParaformerStreamAsrEngine(
     override fun appendPcm(pcm: ByteArray, sampleRate: Int, channels: Int) {
         if (!running.get() && currentStream == null && !closing.get()) return
         if (sampleRate != 16000 || channels != 1) return
-        try { listener.onAmplitude(com.brycewg.asrkb.asr.calculateNormalizedAmplitude(pcm)) } catch (_: Throwable) { }
+        try {
+            listener.onAmplitude(com.brycewg.asrkb.asr.calculateNormalizedAmplitude(pcm))
+        } catch (
+            _: Throwable
+        ) { }
         val s = currentStream
         if (s == null) {
             scope.launch { appendPrebuffer(pcm) }
@@ -211,10 +254,19 @@ class ParaformerStreamAsrEngine(
         val s = currentStream
         if (s != null && finalizeOnce.compareAndSet(false, true)) {
             scope.launch(Dispatchers.Default) {
-                val finalText = try { finalizeAndRelease(s) } catch (t: Throwable) {
-                    Log.e(TAG, "finalizeAndRelease failed", t); ""
+                val finalText = try {
+                    finalizeAndRelease(s)
+                } catch (t: Throwable) {
+                    Log.e(TAG, "finalizeAndRelease failed", t)
+                    ""
                 }
-                try { listener.onFinal(finalText) } catch (t: Throwable) { Log.e(TAG, "notify final failed", t) }
+                try {
+                    listener.onFinal(finalText)
+                } catch (
+                    t: Throwable
+                ) {
+                    Log.e(TAG, "notify final failed", t)
+                }
                 closing.set(false)
             }
         }
@@ -244,9 +296,16 @@ class ParaformerStreamAsrEngine(
                 return@launch
             }
 
-            val vadDetector = if (isVadAutoStopEnabled(context, prefs))
-                VadDetector(context, sampleRate, prefs.autoStopSilenceWindowMs, prefs.autoStopSilenceSensitivity)
-            else null
+            val vadDetector = if (isVadAutoStopEnabled(context, prefs)) {
+                VadDetector(
+                    context,
+                    sampleRate,
+                    prefs.autoStopSilenceWindowMs,
+                    prefs.autoStopSilenceSensitivity
+                )
+            } else {
+                null
+            }
 
             try {
                 Log.d(TAG, "Starting audio capture for Paraformer with chunk=${chunkMillis}ms")
@@ -255,7 +314,9 @@ class ParaformerStreamAsrEngine(
 
                     // Calculate and send audio amplitude (for waveform animation)
                     try {
-                        val amplitude = com.brycewg.asrkb.asr.calculateNormalizedAmplitude(audioChunk)
+                        val amplitude = com.brycewg.asrkb.asr.calculateNormalizedAmplitude(
+                            audioChunk
+                        )
                         listener.onAmplitude(amplitude)
                     } catch (t: Throwable) {
                         Log.w(TAG, "Failed to calculate amplitude", t)
@@ -264,7 +325,13 @@ class ParaformerStreamAsrEngine(
                     // VAD 自动判停
                     if (vadDetector?.shouldStop(audioChunk, audioChunk.size) == true) {
                         Log.d(TAG, "Silence detected, stopping recording")
-                        try { listener.onStopped() } catch (t: Throwable) { Log.e(TAG, "Failed to notify stopped", t) }
+                        try {
+                            listener.onStopped()
+                        } catch (
+                            t: Throwable
+                        ) {
+                            Log.e(TAG, "Failed to notify stopped", t)
+                        }
                         stop()
                         return@collect
                     }
@@ -290,7 +357,13 @@ class ParaformerStreamAsrEngine(
                     } else {
                         context.getString(R.string.error_audio_error, t.message ?: "")
                     }
-                    try { listener.onError(msg) } catch (err: Throwable) { Log.e(TAG, "notify error failed", err) }
+                    try {
+                        listener.onError(msg)
+                    } catch (
+                        err: Throwable
+                    ) {
+                        Log.e(TAG, "notify error failed", err)
+                    }
 
                     // 录音被系统中断：静默释放（不再回调 onFinal），避免后续 stop() 触发 JNI 竞态
                     closeSilently.set(true)
@@ -299,7 +372,9 @@ class ParaformerStreamAsrEngine(
                     val s = currentStream
                     if (s != null && finalizeOnce.compareAndSet(false, true)) {
                         scope.launch(Dispatchers.Default) {
-                            try { releaseStreamSilently(s) } catch (releaseErr: Throwable) {
+                            try {
+                                releaseStreamSilently(s)
+                            } catch (releaseErr: Throwable) {
                                 Log.e(TAG, "releaseStreamSilently failed", releaseErr)
                             } finally {
                                 closeSilently.set(false)
@@ -364,7 +439,13 @@ class ParaformerStreamAsrEngine(
             val normalized = if (useItnForSession) ChineseItn.normalize(trimmed) else trimmed
             val needEmit = (now - lastEmitUptimeMs) >= FRAME_MS && normalized != lastEmittedText
             if (needEmit) {
-                try { listener.onPartial(normalized) } catch (t: Throwable) { Log.e(TAG, "notify partial failed", t) }
+                try {
+                    listener.onPartial(normalized)
+                } catch (
+                    t: Throwable
+                ) {
+                    Log.e(TAG, "notify partial failed", t)
+                }
                 lastEmitUptimeMs = now
                 lastEmittedText = normalized
             }
@@ -389,7 +470,13 @@ class ParaformerStreamAsrEngine(
                 loops++
             }
             text = mgr.getResultText(stream)
-            try { mgr.releaseStream(stream) } catch (t: Throwable) { Log.e(TAG, "releaseStream failed", t) }
+            try {
+                mgr.releaseStream(stream)
+            } catch (
+                t: Throwable
+            ) {
+                Log.e(TAG, "releaseStream failed", t)
+            }
             currentStream = null
         }
         var out = text?.trim().orEmpty()
@@ -409,7 +496,13 @@ class ParaformerStreamAsrEngine(
     private suspend fun releaseStreamSilently(stream: Any) {
         streamMutex.withLock {
             if (currentStream !== stream) return
-            try { mgr.releaseStream(stream) } catch (t: Throwable) { Log.e(TAG, "releaseStream failed", t) }
+            try {
+                mgr.releaseStream(stream)
+            } catch (
+                t: Throwable
+            ) {
+                Log.e(TAG, "releaseStream failed", t)
+            }
             currentStream = null
         }
     }
@@ -448,7 +541,11 @@ class ParaformerStreamAsrEngine(
         while (i < n) {
             val s = bb.short.toInt()
             var f = s / 32768.0f
-            if (f > 1f) f = 1f else if (f < -1f) f = -1f
+            if (f > 1f) {
+                f = 1f
+            } else if (f < -1f) {
+                f = -1f
+            }
             out[i] = f
             i++
         }
@@ -506,13 +603,17 @@ private class ReflectiveOnlineStream(val instance: Any) {
     }
 
     fun inputFinished() {
-        try { cls.getMethod("inputFinished").invoke(instance) } catch (t: Throwable) {
+        try {
+            cls.getMethod("inputFinished").invoke(instance)
+        } catch (t: Throwable) {
             Log.e("ROnlineStream", "inputFinished failed", t)
         }
     }
 
     fun release() {
-        try { cls.getMethod("release").invoke(instance) } catch (t: Throwable) {
+        try {
+            cls.getMethod("release").invoke(instance)
+        } catch (t: Throwable) {
             Log.e("ROnlineStream", "release failed", t)
         }
     }
@@ -524,10 +625,8 @@ private class ReflectiveOnlineRecognizer(private val instance: Any, private val 
         return ReflectiveOnlineStream(s)
     }
 
-    fun isReady(stream: ReflectiveOnlineStream): Boolean {
-        return cls.getMethod("isReady", stream.instance.javaClass)
-            .invoke(instance, stream.instance) as Boolean
-    }
+    fun isReady(stream: ReflectiveOnlineStream): Boolean = cls.getMethod("isReady", stream.instance.javaClass)
+        .invoke(instance, stream.instance) as Boolean
 
     fun decode(stream: ReflectiveOnlineStream) {
         cls.getMethod("decode", stream.instance.javaClass)
@@ -546,7 +645,9 @@ private class ReflectiveOnlineRecognizer(private val instance: Any, private val 
     }
 
     fun release() {
-        try { cls.getMethod("release").invoke(instance) } catch (t: Throwable) {
+        try {
+            cls.getMethod("release").invoke(instance)
+        } catch (t: Throwable) {
             Log.e("ROnlineRecognizer", "release failed", t)
         }
     }
@@ -567,28 +668,37 @@ class ParaformerOnnxManager private constructor() {
     private val runtimeLock = Any()
 
     @Volatile private var cachedConfig: RecognizerConfig? = null
+
     @Volatile private var cachedRecognizer: ReflectiveOnlineRecognizer? = null
+
     @Volatile private var preparing: Boolean = false
+
     @Volatile private var clsOnlineRecognizer: Class<*>? = null
+
     @Volatile private var clsOnlineRecognizerConfig: Class<*>? = null
+
     @Volatile private var clsOnlineModelConfig: Class<*>? = null
+
     @Volatile private var clsOnlineParaformerModelConfig: Class<*>? = null
+
     @Volatile private var clsFeatureConfig: Class<*>? = null
+
     @Volatile private var unloadJob: Job? = null
 
     // 最近一次配置与流计数：用于保留/卸载
     @Volatile private var lastKeepAliveMs: Long = 0L
+
     @Volatile private var lastAlwaysKeep: Boolean = false
     private val activeStreams = AtomicInteger(0)
+
     @Volatile private var pendingUnload: Boolean = false
 
-    fun isOnnxAvailable(): Boolean {
-        return try {
-            Class.forName("com.k2fsa.sherpa.onnx.OnlineRecognizer"); true
-        } catch (t: Throwable) {
-            Log.d(TAG, "sherpa-onnx online not available", t)
-            false
-        }
+    fun isOnnxAvailable(): Boolean = try {
+        Class.forName("com.k2fsa.sherpa.onnx.OnlineRecognizer")
+        true
+    } catch (t: Throwable) {
+        Log.d(TAG, "sherpa-onnx online not available", t)
+        false
     }
 
     fun unload() {
@@ -632,7 +742,10 @@ class ParaformerOnnxManager private constructor() {
     private fun scheduleAutoUnload(keepAliveMs: Long, alwaysKeep: Boolean) {
         unloadJob?.cancel()
         if (alwaysKeep) return
-        if (keepAliveMs <= 0L) { unload(); return }
+        if (keepAliveMs <= 0L) {
+            unload()
+            return
+        }
         unloadJob = scope.launch {
             delay(keepAliveMs)
             unload()
@@ -642,32 +755,35 @@ class ParaformerOnnxManager private constructor() {
     private fun initClasses() {
         if (clsOnlineRecognizer == null) {
             clsOnlineRecognizer = Class.forName("com.k2fsa.sherpa.onnx.OnlineRecognizer")
-            clsOnlineRecognizerConfig = Class.forName("com.k2fsa.sherpa.onnx.OnlineRecognizerConfig")
+            clsOnlineRecognizerConfig =
+                Class.forName("com.k2fsa.sherpa.onnx.OnlineRecognizerConfig")
             clsOnlineModelConfig = Class.forName("com.k2fsa.sherpa.onnx.OnlineModelConfig")
-            clsOnlineParaformerModelConfig = Class.forName("com.k2fsa.sherpa.onnx.OnlineParaformerModelConfig")
+            clsOnlineParaformerModelConfig =
+                Class.forName("com.k2fsa.sherpa.onnx.OnlineParaformerModelConfig")
             clsFeatureConfig = Class.forName("com.k2fsa.sherpa.onnx.FeatureConfig")
             Log.d(TAG, "Initialized reflection classes for online recognizer")
         }
     }
 
-    private fun trySetField(target: Any, name: String, value: Any?): Boolean {
-        return try {
-            val f = target.javaClass.getDeclaredField(name)
-            f.isAccessible = true
-            f.set(target, value)
+    private fun trySetField(target: Any, name: String, value: Any?): Boolean = try {
+        val f = target.javaClass.getDeclaredField(name)
+        f.isAccessible = true
+        f.set(target, value)
+        true
+    } catch (t: Throwable) {
+        try {
+            val m = target.javaClass.getMethod(
+                "set" +
+                    name.replaceFirstChar {
+                        if (it.isLowerCase()) it.titlecase() else it.toString()
+                    },
+                value?.javaClass ?: Any::class.java
+            )
+            m.invoke(target, value)
             true
-        } catch (t: Throwable) {
-            try {
-                val m = target.javaClass.getMethod(
-                    "set" + name.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() },
-                    value?.javaClass ?: Any::class.java
-                )
-                m.invoke(target, value)
-                true
-            } catch (t2: Throwable) {
-                Log.w(TAG, "Failed to set field '$name'", t2)
-                false
-            }
+        } catch (t2: Throwable) {
+            Log.w(TAG, "Failed to set field '$name'", t2)
+            false
         }
     }
 
@@ -681,11 +797,30 @@ class ParaformerOnnxManager private constructor() {
         val featureDim: Int = 80,
         val debug: Boolean = false
     ) {
-        fun toCacheKey(): String = listOf(tokens, encoder, decoder, numThreads, provider, sampleRate, featureDim, debug).joinToString("|")
+        fun toCacheKey(): String = listOf(
+            tokens,
+            encoder,
+            decoder,
+            numThreads,
+            provider,
+            sampleRate,
+            featureDim,
+            debug
+        ).joinToString("|")
     }
 
-    private fun buildModelConfig(tokens: String, encoder: String, decoder: String, numThreads: Int, provider: String, debug: Boolean): Any {
-        val para = clsOnlineParaformerModelConfig!!.getDeclaredConstructor(String::class.java, String::class.java)
+    private fun buildModelConfig(
+        tokens: String,
+        encoder: String,
+        decoder: String,
+        numThreads: Int,
+        provider: String,
+        debug: Boolean
+    ): Any {
+        val para = clsOnlineParaformerModelConfig!!.getDeclaredConstructor(
+            String::class.java,
+            String::class.java
+        )
             .newInstance(encoder, decoder)
         val model = clsOnlineModelConfig!!.getDeclaredConstructor().newInstance()
         // OnlineModelConfig: tokens/numThreads/provider/debug/paraformer
@@ -705,7 +840,15 @@ class ParaformerOnnxManager private constructor() {
     }
 
     private fun buildRecognizerConfig(config: RecognizerConfig): Any {
-        val model = buildModelConfig(config.tokens, config.encoder, config.decoder, config.numThreads, config.provider, config.debug)
+        val model =
+            buildModelConfig(
+                config.tokens,
+                config.encoder,
+                config.decoder,
+                config.numThreads,
+                config.provider,
+                config.debug
+            )
         val feat = buildFeatureConfig(config.sampleRate, config.featureDim)
         val rec = clsOnlineRecognizerConfig!!.getDeclaredConstructor().newInstance()
         // OnlineRecognizerConfig: modelConfig/featConfig/decodingMethod/enableEndpoint/maxActivePaths...
@@ -733,7 +876,7 @@ class ParaformerOnnxManager private constructor() {
         keepAliveMs: Long,
         alwaysKeep: Boolean,
         onLoadStart: (() -> Unit)? = null,
-        onLoadDone: (() -> Unit)? = null,
+        onLoadDone: (() -> Unit)? = null
     ): Boolean = mutex.withLock {
         try {
             pendingUnload = false
@@ -813,7 +956,8 @@ class ParaformerOnnxManager private constructor() {
             activeStreams.incrementAndGet()
             s
         } catch (t: Throwable) {
-            Log.e(TAG, "createStream failed", t); null
+            Log.e(TAG, "createStream failed", t)
+            null
         }
     }
 
@@ -837,15 +981,14 @@ class ParaformerOnnxManager private constructor() {
         }
     }
 
-    fun isReady(stream: Any): Boolean {
-        return try {
-            synchronized(runtimeLock) {
-                val r = cachedRecognizer
-                if (r != null && stream is ReflectiveOnlineStream) r.isReady(stream) else false
-            }
-        } catch (t: Throwable) {
-            Log.e(TAG, "isReady failed", t); false
+    fun isReady(stream: Any): Boolean = try {
+        synchronized(runtimeLock) {
+            val r = cachedRecognizer
+            if (r != null && stream is ReflectiveOnlineStream) r.isReady(stream) else false
         }
+    } catch (t: Throwable) {
+        Log.e(TAG, "isReady failed", t)
+        false
     }
 
     fun decode(stream: Any) {
@@ -859,15 +1002,14 @@ class ParaformerOnnxManager private constructor() {
         }
     }
 
-    fun getResultText(stream: Any): String? {
-        return try {
-            synchronized(runtimeLock) {
-                val r = cachedRecognizer
-                if (r != null && stream is ReflectiveOnlineStream) r.getResultText(stream) else null
-            }
-        } catch (t: Throwable) {
-            Log.e(TAG, "getResultText failed", t); null
+    fun getResultText(stream: Any): String? = try {
+        synchronized(runtimeLock) {
+            val r = cachedRecognizer
+            if (r != null && stream is ReflectiveOnlineStream) r.getResultText(stream) else null
         }
+    } catch (t: Throwable) {
+        Log.e(TAG, "getResultText failed", t)
+        null
     }
 
     fun releaseStream(stream: Any?) {
@@ -914,8 +1056,22 @@ fun preloadParaformerIfConfigured(
         val dir = findPfModelDir(group) ?: return
         val tokensPath = java.io.File(dir, "tokens.txt").absolutePath
         val int8 = prefs.pfModelVariant.contains("int8")
-        val enc = if (int8) java.io.File(dir, "encoder.int8.onnx") else java.io.File(dir, "encoder.onnx")
-        val dec = if (int8) java.io.File(dir, "decoder.int8.onnx") else java.io.File(dir, "decoder.onnx")
+        val enc = if (int8) {
+            java.io.File(
+                dir,
+                "encoder.int8.onnx"
+            )
+        } else {
+            java.io.File(dir, "encoder.onnx")
+        }
+        val dec = if (int8) {
+            java.io.File(
+                dir,
+                "decoder.int8.onnx"
+            )
+        } else {
+            java.io.File(dir, "decoder.onnx")
+        }
         if (!enc.exists() || !dec.exists()) return
 
         val keepMinutes = prefs.pfKeepAliveMinutes
@@ -947,7 +1103,7 @@ fun preloadParaformerIfConfigured(
                     }
                     onLoadStart?.invoke()
                 },
-                onLoadDone = onLoadDone,
+                onLoadDone = onLoadDone
             )
             if (ok && !forImmediateUse) {
                 val dt = (android.os.SystemClock.uptimeMillis() - t0).coerceAtLeast(0)

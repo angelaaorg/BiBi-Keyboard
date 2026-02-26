@@ -9,9 +9,7 @@ import android.widget.TextView
 import androidx.annotation.StringRes
 import com.brycewg.asrkb.R
 
-internal class ModelImportUiController(
-    context: Context
-) {
+internal class ModelImportUiController(context: Context) {
 
     private val uiContext = context
     private val serviceContext = context.applicationContext
@@ -62,16 +60,14 @@ internal class ModelImportUiController(
         return name.lowercase().endsWith(".zip")
     }
 
-    private fun getDisplayName(uri: Uri): String? {
-        return try {
-            val projection = arrayOf(OpenableColumns.DISPLAY_NAME)
-            contentResolver.query(uri, projection, null, null, null)?.use { c ->
-                val idx = c.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-                if (idx >= 0 && c.moveToFirst()) c.getString(idx) else null
-            }
-        } catch (t: Throwable) {
-            Log.w("ModelImportUiController", "Failed to query display name", t)
-            null
+    private fun getDisplayName(uri: Uri): String? = try {
+        val projection = arrayOf(OpenableColumns.DISPLAY_NAME)
+        contentResolver.query(uri, projection, null, null, null)?.use { c ->
+            val idx = c.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+            if (idx >= 0 && c.moveToFirst()) c.getString(idx) else null
         }
+    } catch (t: Throwable) {
+        Log.w("ModelImportUiController", "Failed to query display name", t)
+        null
     }
 }

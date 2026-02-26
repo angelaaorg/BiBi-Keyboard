@@ -15,9 +15,9 @@ import androidx.core.os.LocaleListCompat
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.asr.AsrVendor
 import com.brycewg.asrkb.asr.LlmVendor
+import kotlin.reflect.KProperty
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import kotlin.reflect.KProperty
 
 class Prefs(context: Context) {
     private val appContext = context.applicationContext
@@ -36,8 +36,7 @@ class Prefs(context: Context) {
     // --- 小工具：统一的偏好项委托，减少重复 getter/setter 代码 ---
     private fun stringPref(key: String, default: String = "") = object {
         @Suppress("unused")
-        operator fun getValue(thisRef: Prefs, property: KProperty<*>): String =
-            sp.getString(key, default) ?: default
+        operator fun getValue(thisRef: Prefs, property: KProperty<*>): String = sp.getString(key, default) ?: default
 
         @Suppress("unused")
         operator fun setValue(thisRef: Prefs, property: KProperty<*>, value: String) {
@@ -46,19 +45,16 @@ class Prefs(context: Context) {
     }
 
     // 直接从 SP 读取字符串，供通用导入/导出和校验使用
-    internal fun getPrefString(key: String, default: String = ""): String =
-        sp.getString(key, default) ?: default
+    internal fun getPrefString(key: String, default: String = ""): String = sp.getString(key, default) ?: default
 
     internal fun setPrefString(key: String, value: String) {
         sp.edit { putString(key, value.trim()) }
     }
 
-    private fun normalizeAppLanguageTag(tag: String): String {
-        return when (tag.trim().lowercase()) {
-            "zh", "zh-cn", "zh-hans" -> "zh-CN"
-            "zh-tw", "zh-hant" -> "zh-TW"
-            else -> tag.trim()
-        }
+    private fun normalizeAppLanguageTag(tag: String): String = when (tag.trim().lowercase()) {
+        "zh", "zh-cn", "zh-hans" -> "zh-CN"
+        "zh-tw", "zh-hant" -> "zh-TW"
+        else -> tag.trim()
     }
 
     private fun createContextForLanguageTag(languageTag: String): Context {
@@ -77,9 +73,7 @@ class Prefs(context: Context) {
 
     private fun createContextForAppLanguage(): Context = createContextForLanguageTag(appLanguageTag)
 
-    internal fun getLocalizedString(@StringRes resId: Int): String {
-        return createContextForAppLanguage().getString(resId)
-    }
+    internal fun getLocalizedString(@StringRes resId: Int): String = createContextForAppLanguage().getString(resId)
 
     private fun buildKnownDefaultPromptPresetVariants(): List<List<PromptPreset>> {
         val tags = listOf("en", "zh-CN", "zh-TW", "ja")
@@ -98,7 +92,6 @@ class Prefs(context: Context) {
         set(value) = sp.edit { putBoolean(KEY_TRIM_FINAL_TRAILING_PUNCT, value) }
 
     // 移除：键盘内“切换输入法”按钮显示开关（按钮始终显示）
-
 
     // 输入/点击触觉反馈强度
     var hapticFeedbackLevel: Int
@@ -179,12 +172,18 @@ class Prefs(context: Context) {
 
     // 静音自动判停：时间窗口（ms），连续低能量超过该时间则自动停止
     var autoStopSilenceWindowMs: Int
-        get() = sp.getInt(KEY_AUTO_STOP_SILENCE_WINDOW_MS, DEFAULT_SILENCE_WINDOW_MS).coerceIn(300, 5000)
+        get() = sp.getInt(
+            KEY_AUTO_STOP_SILENCE_WINDOW_MS,
+            DEFAULT_SILENCE_WINDOW_MS
+        ).coerceIn(300, 5000)
         set(value) = sp.edit { putInt(KEY_AUTO_STOP_SILENCE_WINDOW_MS, value.coerceIn(300, 5000)) }
 
     // 静音自动判停：灵敏度（1-10，数值越大越容易判定无人说话）
     var autoStopSilenceSensitivity: Int
-        get() = sp.getInt(KEY_AUTO_STOP_SILENCE_SENSITIVITY, DEFAULT_SILENCE_SENSITIVITY).coerceIn(1, 10)
+        get() = sp.getInt(
+            KEY_AUTO_STOP_SILENCE_SENSITIVITY,
+            DEFAULT_SILENCE_SENSITIVITY
+        ).coerceIn(1, 10)
         set(value) = sp.edit { putInt(KEY_AUTO_STOP_SILENCE_SENSITIVITY, value.coerceIn(1, 10)) }
 
     // 键盘高度档位（1/2/3），默认中档
@@ -226,7 +225,6 @@ class Prefs(context: Context) {
     var hideRecentTaskCard: Boolean
         get() = sp.getBoolean(KEY_HIDE_RECENT_TASK_CARD, false)
         set(value) = sp.edit { putBoolean(KEY_HIDE_RECENT_TASK_CARD, value) }
-
 
     // 应用内语言（空字符串表示跟随系统；如："zh-Hans"、"en"）
     var appLanguageTag: String
@@ -320,7 +318,11 @@ class Prefs(context: Context) {
 
     // 兼容目标包名（每行一个；支持前缀匹配，例如 org.telegram）
     var floatingWriteCompatPackages: String
-        get() = sp.getString(KEY_FLOATING_WRITE_COMPAT_PACKAGES, DEFAULT_FLOATING_WRITE_COMPAT_PACKAGES) ?: DEFAULT_FLOATING_WRITE_COMPAT_PACKAGES
+        get() = sp.getString(
+            KEY_FLOATING_WRITE_COMPAT_PACKAGES,
+            DEFAULT_FLOATING_WRITE_COMPAT_PACKAGES
+        )
+            ?: DEFAULT_FLOATING_WRITE_COMPAT_PACKAGES
         set(value) = sp.edit { putString(KEY_FLOATING_WRITE_COMPAT_PACKAGES, value) }
 
     // 悬浮球：写入采取粘贴方案（根据包名将结果仅复制到粘贴板），默认关闭
@@ -500,8 +502,7 @@ class Prefs(context: Context) {
 
     fun setSpeechPresets(list: List<SpeechPreset>) = SpeechPresetStore.setSpeechPresets(this, json, list)
 
-    fun findSpeechPresetReplacement(original: String): String? =
-        SpeechPresetStore.findSpeechPresetReplacement(this, json, original)
+    fun findSpeechPresetReplacement(original: String): String? = SpeechPresetStore.findSpeechPresetReplacement(this, json, original)
 
     // SiliconFlow凭证
     var sfApiKey: String by stringPref(KEY_SF_API_KEY, "")
@@ -528,7 +529,8 @@ class Prefs(context: Context) {
 
     // SiliconFlow 免费服务：ASR 模型选择
     var sfFreeAsrModel: String
-        get() = sp.getString(KEY_SF_FREE_ASR_MODEL, DEFAULT_SF_FREE_ASR_MODEL) ?: DEFAULT_SF_FREE_ASR_MODEL
+        get() = sp.getString(KEY_SF_FREE_ASR_MODEL, DEFAULT_SF_FREE_ASR_MODEL)
+            ?: DEFAULT_SF_FREE_ASR_MODEL
         set(value) = sp.edit { putString(KEY_SF_FREE_ASR_MODEL, value) }
 
     // SiliconFlow 免费服务：是否启用免费 LLM（AI 后处理，新用户默认启用）
@@ -538,7 +540,8 @@ class Prefs(context: Context) {
 
     // SiliconFlow 免费服务：LLM 模型选择
     var sfFreeLlmModel: String
-        get() = sp.getString(KEY_SF_FREE_LLM_MODEL, DEFAULT_SF_FREE_LLM_MODEL) ?: DEFAULT_SF_FREE_LLM_MODEL
+        get() = sp.getString(KEY_SF_FREE_LLM_MODEL, DEFAULT_SF_FREE_LLM_MODEL)
+            ?: DEFAULT_SF_FREE_LLM_MODEL
         set(value) = sp.edit { putString(KEY_SF_FREE_LLM_MODEL, value) }
 
     // SiliconFlow：是否使用自己的付费 API Key（而非免费服务）
@@ -558,7 +561,10 @@ class Prefs(context: Context) {
                 if (sfFreeLlmEnabled) return LlmVendor.SF_FREE
                 // 检查是否有配置完整的自定义供应商
                 val provider = getActiveLlmProvider()
-                if (provider != null && provider.endpoint.isNotBlank() && provider.model.isNotBlank()) {
+                if (provider != null &&
+                    provider.endpoint.isNotBlank() &&
+                    provider.model.isNotBlank()
+                ) {
                     return LlmVendor.CUSTOM
                 }
                 // 兜底：默认使用 SF_FREE（免费服务无需配置即可使用）
@@ -569,57 +575,41 @@ class Prefs(context: Context) {
         set(value) = sp.edit { putString(KEY_LLM_VENDOR, value.id) }
 
     // 内置供应商 API Key 存储（按供应商 ID 分别存储）
-    fun getLlmVendorApiKey(vendor: LlmVendor): String =
-        PrefsLlmVendorStore.getLlmVendorApiKey(sp, vendor)
+    fun getLlmVendorApiKey(vendor: LlmVendor): String = PrefsLlmVendorStore.getLlmVendorApiKey(sp, vendor)
 
-    fun setLlmVendorApiKey(vendor: LlmVendor, apiKey: String) =
-        PrefsLlmVendorStore.setLlmVendorApiKey(sp, vendor, apiKey)
+    fun setLlmVendorApiKey(vendor: LlmVendor, apiKey: String) = PrefsLlmVendorStore.setLlmVendorApiKey(sp, vendor, apiKey)
 
-    fun getLlmVendorModel(vendor: LlmVendor): String =
-        PrefsLlmVendorStore.getLlmVendorModel(sp, vendor)
+    fun getLlmVendorModel(vendor: LlmVendor): String = PrefsLlmVendorStore.getLlmVendorModel(sp, vendor)
 
-    fun setLlmVendorModel(vendor: LlmVendor, model: String) =
-        PrefsLlmVendorStore.setLlmVendorModel(sp, vendor, model)
+    fun setLlmVendorModel(vendor: LlmVendor, model: String) = PrefsLlmVendorStore.setLlmVendorModel(sp, vendor, model)
 
-    fun getLlmVendorTemperature(vendor: LlmVendor): Float =
-        PrefsLlmVendorStore.getLlmVendorTemperature(sp, vendor)
+    fun getLlmVendorTemperature(vendor: LlmVendor): Float = PrefsLlmVendorStore.getLlmVendorTemperature(sp, vendor)
 
-    fun setLlmVendorTemperature(vendor: LlmVendor, temperature: Float) =
-        PrefsLlmVendorStore.setLlmVendorTemperature(sp, vendor, temperature)
+    fun setLlmVendorTemperature(vendor: LlmVendor, temperature: Float) = PrefsLlmVendorStore.setLlmVendorTemperature(sp, vendor, temperature)
 
-    fun getLlmVendorReasoningEnabled(vendor: LlmVendor): Boolean =
-        PrefsLlmVendorStore.getLlmVendorReasoningEnabled(sp, vendor)
+    fun getLlmVendorReasoningEnabled(vendor: LlmVendor): Boolean = PrefsLlmVendorStore.getLlmVendorReasoningEnabled(sp, vendor)
 
-    fun setLlmVendorReasoningEnabled(vendor: LlmVendor, enabled: Boolean) =
-        PrefsLlmVendorStore.setLlmVendorReasoningEnabled(sp, vendor, enabled)
+    fun setLlmVendorReasoningEnabled(vendor: LlmVendor, enabled: Boolean) = PrefsLlmVendorStore.setLlmVendorReasoningEnabled(sp, vendor, enabled)
 
-    fun getLlmVendorModels(vendor: LlmVendor): List<String> =
-        PrefsLlmVendorStore.getLlmVendorModels(sp, json, vendor, sfFreeLlmUsePaidKey)
+    fun getLlmVendorModels(vendor: LlmVendor): List<String> = PrefsLlmVendorStore.getLlmVendorModels(sp, json, vendor, sfFreeLlmUsePaidKey)
 
-    fun setLlmVendorModels(vendor: LlmVendor, models: List<String>) =
-        PrefsLlmVendorStore.setLlmVendorModels(sp, json, vendor, models)
+    fun setLlmVendorModels(vendor: LlmVendor, models: List<String>) = PrefsLlmVendorStore.setLlmVendorModels(sp, json, vendor, models)
 
-    fun setLlmVendorModelsJson(vendor: LlmVendor, raw: String) =
-        PrefsLlmVendorStore.setLlmVendorModelsJson(sp, vendor, raw)
+    fun setLlmVendorModelsJson(vendor: LlmVendor, raw: String) = PrefsLlmVendorStore.setLlmVendorModelsJson(sp, vendor, raw)
 
-    fun getLlmVendorReasoningParamsOnJson(vendor: LlmVendor): String =
-        PrefsLlmVendorStore.getLlmVendorReasoningParamsOnJson(sp, vendor)
+    fun getLlmVendorReasoningParamsOnJson(vendor: LlmVendor): String = PrefsLlmVendorStore.getLlmVendorReasoningParamsOnJson(sp, vendor)
 
-    fun setLlmVendorReasoningParamsOnJson(vendor: LlmVendor, json: String) =
-        PrefsLlmVendorStore.setLlmVendorReasoningParamsOnJson(sp, vendor, json)
+    fun setLlmVendorReasoningParamsOnJson(vendor: LlmVendor, json: String) = PrefsLlmVendorStore.setLlmVendorReasoningParamsOnJson(sp, vendor, json)
 
-    fun getLlmVendorReasoningParamsOffJson(vendor: LlmVendor): String =
-        PrefsLlmVendorStore.getLlmVendorReasoningParamsOffJson(sp, vendor)
+    fun getLlmVendorReasoningParamsOffJson(vendor: LlmVendor): String = PrefsLlmVendorStore.getLlmVendorReasoningParamsOffJson(sp, vendor)
 
-    fun setLlmVendorReasoningParamsOffJson(vendor: LlmVendor, json: String) =
-        PrefsLlmVendorStore.setLlmVendorReasoningParamsOffJson(sp, vendor, json)
+    fun setLlmVendorReasoningParamsOffJson(vendor: LlmVendor, json: String) = PrefsLlmVendorStore.setLlmVendorReasoningParamsOffJson(sp, vendor, json)
 
     /**
      * 获取当前有效的 LLM 配置（根据选择的供应商）
      * @return EffectiveLlmConfig 或 null（如果配置无效）
      */
-    fun getEffectiveLlmConfig(): EffectiveLlmConfig? =
-        PrefsLlmVendorStore.getEffectiveLlmConfig(this, sp)
+    fun getEffectiveLlmConfig(): EffectiveLlmConfig? = PrefsLlmVendorStore.getEffectiveLlmConfig(this, sp)
 
     /** 有效的 LLM 配置数据类 */
     data class EffectiveLlmConfig(
@@ -636,7 +626,6 @@ class Prefs(context: Context) {
 
     // 阿里云百炼（DashScope）凭证
     var dashApiKey: String by stringPref(KEY_DASH_API_KEY, "")
-
 
     // DashScope：自定义识别上下文（提示词）
     var dashPrompt: String by stringPref(KEY_DASH_PROMPT, "")
@@ -674,18 +663,17 @@ class Prefs(context: Context) {
             sp.edit {
                 putString(KEY_DASH_ASR_MODEL, model)
                 // 同步旧开关，便于兼容旧版本导入/导出
-                putBoolean(KEY_DASH_STREAMING_ENABLED, model.endsWith("-realtime", ignoreCase = true))
+                putBoolean(
+                    KEY_DASH_STREAMING_ENABLED,
+                    model.endsWith("-realtime", ignoreCase = true)
+                )
                 putBoolean(KEY_DASH_FUNASR_ENABLED, model.startsWith("fun-asr", ignoreCase = true))
             }
         }
 
-    fun isDashStreamingModelSelected(): Boolean {
-        return dashAsrModel.endsWith("-realtime", ignoreCase = true)
-    }
+    fun isDashStreamingModelSelected(): Boolean = dashAsrModel.endsWith("-realtime", ignoreCase = true)
 
-    fun isDashPromptSupportedByModel(): Boolean {
-        return !dashAsrModel.startsWith("fun-asr", ignoreCase = true)
-    }
+    fun isDashPromptSupportedByModel(): Boolean = !dashAsrModel.startsWith("fun-asr", ignoreCase = true)
 
     // DashScope: streaming toggle（legacy，已由 dashAsrModel 替代）
     var dashStreamingEnabled: Boolean
@@ -735,9 +723,9 @@ class Prefs(context: Context) {
 
     var gemApiKey: String by stringPref(KEY_GEM_API_KEY, "")
 
-    fun getGeminiApiKeys(): List<String> {
-        return gemApiKey.split("\n").map { it.trim() }.filter { it.isNotBlank() }
-    }
+    fun getGeminiApiKeys(): List<String> = gemApiKey.split("\n").map {
+        it.trim()
+    }.filter { it.isNotBlank() }
 
     var gemModel: String by stringPref(KEY_GEM_MODEL, DEFAULT_GEM_MODEL)
 
@@ -879,7 +867,11 @@ class Prefs(context: Context) {
     // SenseVoice 模型版本：small-int8 / small-full（默认 small-int8）
     var svModelVariant: String
         get() = sp.getString(KEY_SV_MODEL_VARIANT, "small-int8") ?: "small-int8"
-        set(value) = sp.edit { putString(KEY_SV_MODEL_VARIANT, value.trim().ifBlank { "small-int8" }) }
+        set(
+        value
+        ) = sp.edit {
+            putString(KEY_SV_MODEL_VARIANT, value.trim().ifBlank { "small-int8" })
+        }
 
     var svNumThreads: Int
         get() = sp.getInt(KEY_SV_NUM_THREADS, 2).coerceIn(1, 8)
@@ -912,7 +904,11 @@ class Prefs(context: Context) {
     // FunASR Nano（本地 ASR）
     var fnModelVariant: String
         get() = sp.getString(KEY_FN_MODEL_VARIANT, "nano-int8") ?: "nano-int8"
-        set(value) = sp.edit { putString(KEY_FN_MODEL_VARIANT, value.trim().ifBlank { "nano-int8" }) }
+        set(
+        value
+        ) = sp.edit {
+            putString(KEY_FN_MODEL_VARIANT, value.trim().ifBlank { "nano-int8" })
+        }
 
     var fnNumThreads: Int
         get() = sp.getInt(KEY_FN_NUM_THREADS, 4).coerceIn(1, 8)
@@ -965,7 +961,11 @@ class Prefs(context: Context) {
     // Paraformer（本地 ASR）
     var pfModelVariant: String
         get() = sp.getString(KEY_PF_MODEL_VARIANT, "bilingual-int8") ?: "bilingual-int8"
-        set(value) = sp.edit { putString(KEY_PF_MODEL_VARIANT, value.trim().ifBlank { "bilingual-int8" }) }
+        set(
+        value
+        ) = sp.edit {
+            putString(KEY_PF_MODEL_VARIANT, value.trim().ifBlank { "bilingual-int8" })
+        }
 
     var pfNumThreads: Int
         get() = sp.getInt(KEY_PF_NUM_THREADS, 2).coerceIn(1, 8)
@@ -988,6 +988,7 @@ class Prefs(context: Context) {
     var zipformerCleanupDone: Boolean
         get() = sp.getBoolean(KEY_ZIPFORMER_CLEANUP_DONE, false)
         set(value) = sp.edit { putBoolean(KEY_ZIPFORMER_CLEANUP_DONE, value) }
+
     // --- 供应商配置通用化 ---
     internal val vendorFields: Map<AsrVendor, List<VendorField>> = PrefsAsrVendorFields.vendorFields
 
@@ -1020,7 +1021,7 @@ class Prefs(context: Context) {
     }
 
     fun hasVolcKeys(): Boolean = hasVendorKeys(AsrVendor.Volc)
-    fun hasSfKeys(): Boolean = sfFreeAsrEnabled || sfApiKey.isNotBlank()  // 免费服务启用或有 API Key
+    fun hasSfKeys(): Boolean = sfFreeAsrEnabled || sfApiKey.isNotBlank() // 免费服务启用或有 API Key
     fun hasDashKeys(): Boolean = hasVendorKeys(AsrVendor.DashScope)
     fun hasElevenKeys(): Boolean = hasVendorKeys(AsrVendor.ElevenLabs)
     fun hasOpenAiKeys(): Boolean = hasVendorKeys(AsrVendor.OpenAI)
@@ -1192,8 +1193,13 @@ class Prefs(context: Context) {
 
     fun resetUsageStats() = UsageStatsStore.resetUsageStats(this)
 
-    fun recordUsageCommit(source: String, vendor: AsrVendor, audioMs: Long, chars: Int, procMs: Long = 0L) =
-        UsageStatsStore.recordUsageCommit(this, json, source, vendor, audioMs, chars, procMs)
+    fun recordUsageCommit(
+        source: String,
+        vendor: AsrVendor,
+        audioMs: Long,
+        chars: Int,
+        procMs: Long = 0L
+    ) = UsageStatsStore.recordUsageCommit(this, json, source, vendor, audioMs, chars, procMs)
 
     fun getDaysSinceFirstUse(): Long = UsageStatsStore.getDaysSinceFirstUse(this)
 
@@ -1269,11 +1275,14 @@ class Prefs(context: Context) {
         const val SF_CHAT_COMPLETIONS_ENDPOINT = "https://api.siliconflow.cn/v1/chat/completions"
         const val DEFAULT_SF_MODEL = "FunAudioLLM/SenseVoiceSmall"
         const val DEFAULT_SF_OMNI_MODEL = "Qwen/Qwen3-Omni-30B-A3B-Instruct"
+
         // SiliconFlow 免费服务模型配置
-        const val DEFAULT_SF_FREE_ASR_MODEL = "FunAudioLLM/SenseVoiceSmall"  // 免费 ASR 默认模型
-        const val DEFAULT_SF_FREE_LLM_MODEL = "Qwen/Qwen3-8B"  // 免费 LLM 默认模型
+        const val DEFAULT_SF_FREE_ASR_MODEL = "FunAudioLLM/SenseVoiceSmall" // 免费 ASR 默认模型
+        const val DEFAULT_SF_FREE_LLM_MODEL = "Qwen/Qwen3-8B" // 免费 LLM 默认模型
+
         // 免费 ASR 可选模型列表
         val SF_FREE_ASR_MODELS: List<String> = PrefsOptionLists.SF_FREE_ASR_MODELS
+
         // 免费 LLM 可选模型列表
         val SF_FREE_LLM_MODELS: List<String> = PrefsOptionLists.SF_FREE_LLM_MODELS
 
@@ -1285,9 +1294,11 @@ class Prefs(context: Context) {
         const val DEFAULT_DASH_MODEL = "qwen3-asr-flash"
         const val DASH_MODEL_QWEN3_REALTIME = "qwen3-asr-flash-realtime-2026-02-10"
         const val DASH_MODEL_FUN_ASR_REALTIME = "fun-asr-realtime"
+
         // Gemini 默认
         const val DEFAULT_GEM_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta"
         const val DEFAULT_GEM_MODEL = "gemini-2.5-flash"
+
         // Zhipu GLM ASR 默认
         const val DEFAULT_ZHIPU_TEMPERATURE = 0.95f
 
@@ -1310,16 +1321,15 @@ class Prefs(context: Context) {
 
         // 悬浮球默认大小（dp）
         const val DEFAULT_FLOATING_BALL_SIZE_DP = 44
+
         // 悬浮写入兼容：默认目标包名（每行一个；支持前缀匹配）
         const val DEFAULT_FLOATING_WRITE_COMPAT_PACKAGES = "org.telegram.messenger\nnu.gpu.nagram"
-        
 
         // Soniox 默认端点
         const val SONIOX_API_BASE_URL = "https://api.soniox.com"
         const val SONIOX_FILES_ENDPOINT = "$SONIOX_API_BASE_URL/v1/files"
         const val SONIOX_TRANSCRIPTIONS_ENDPOINT = "$SONIOX_API_BASE_URL/v1/transcriptions"
         const val SONIOX_WS_URL = "wss://stt-rt.soniox.com/transcribe-websocket"
-
     }
 
     // 导出全部设置为 JSON 字符串（包含密钥，仅用于本地备份/迁移）
@@ -1333,5 +1343,4 @@ class Prefs(context: Context) {
         Log.i(TAG, "Successfully imported settings from JSON")
         return true
     }
-
 }

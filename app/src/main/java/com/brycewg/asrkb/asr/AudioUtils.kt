@@ -18,9 +18,11 @@ private const val BAD_SOURCE_RMS_THRESHOLD = 4.0
  */
 
 @Suppress("unused")
-internal fun isLikelyBadSource(maxAbs: Int, rms: Double, countAbove30: Int): Boolean {
-    return (maxAbs < BAD_SOURCE_MAX_ABS_THRESHOLD && rms < BAD_SOURCE_RMS_THRESHOLD && countAbove30 == 0)
-}
+internal fun isLikelyBadSource(maxAbs: Int, rms: Double, countAbove30: Int): Boolean = (
+    maxAbs < BAD_SOURCE_MAX_ABS_THRESHOLD &&
+        rms < BAD_SOURCE_RMS_THRESHOLD &&
+        countAbove30 == 0
+    )
 
 data class FrameStats(
     val maxAbs: Int,

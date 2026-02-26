@@ -4,11 +4,11 @@ import android.content.Context
 import android.util.Log
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.store.Prefs
+import java.io.ByteArrayOutputStream
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.io.ByteArrayOutputStream
-import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * 通用的“推送 PCM” -> 非流式识别 适配器。
@@ -26,9 +26,12 @@ class GenericPushFileAsrAdapter(
     private val prefs: Prefs,
     private val listener: StreamingAsrEngine.Listener,
     private val recognizer: PcmBatchRecognizer
-) : StreamingAsrEngine, ExternalPcmConsumer {
+) : StreamingAsrEngine,
+    ExternalPcmConsumer {
 
-    companion object { private const val TAG = "PushFileAdapter" }
+    companion object {
+        private const val TAG = "PushFileAdapter"
+    }
 
     private val running = AtomicBoolean(false)
     private val bos = ByteArrayOutputStream()
@@ -44,11 +47,19 @@ class GenericPushFileAsrAdapter(
     override fun stop() {
         if (!running.get()) return
         running.set(false)
-        try { listener.onStopped() } catch (t: Throwable) { Log.w(TAG, "notify stopped failed", t) }
+        try {
+            listener.onStopped()
+        } catch (t: Throwable) {
+            Log.w(TAG, "notify stopped failed", t)
+        }
         val data = bos.toByteArray()
         bos.reset()
         if (data.isEmpty()) {
-            try { listener.onError(context.getString(R.string.error_audio_empty)) } catch (_: Throwable) {}
+            try {
+                listener.onError(context.getString(R.string.error_audio_empty))
+            } catch (
+                _: Throwable
+            ) {}
             return
         }
         scope.launch(Dispatchers.IO) {
@@ -63,7 +74,12 @@ class GenericPushFileAsrAdapter(
             } catch (t: Throwable) {
                 Log.e(TAG, "recognizeFromPcm failed", t)
                 try {
-                    listener.onError(context.getString(R.string.error_recognize_failed_with_reason, t.message ?: ""))
+                    listener.onError(
+                        context.getString(
+                            R.string.error_recognize_failed_with_reason,
+                            t.message ?: ""
+                        )
+                    )
                 } catch (_: Throwable) { }
             }
         }
@@ -75,7 +91,17 @@ class GenericPushFileAsrAdapter(
             Log.w(TAG, "ignore frame: sr=$sampleRate ch=$channels")
             return
         }
-        try { listener.onAmplitude(calculateNormalizedAmplitude(pcm)) } catch (t: Throwable) { Log.w(TAG, "amp cb failed", t) }
-        try { bos.write(pcm) } catch (t: Throwable) { Log.e(TAG, "buffer write failed", t) }
+        try {
+            listener.onAmplitude(calculateNormalizedAmplitude(pcm))
+        } catch (
+            t: Throwable
+        ) {
+            Log.w(TAG, "amp cb failed", t)
+        }
+        try {
+            bos.write(pcm)
+        } catch (t: Throwable) {
+            Log.e(TAG, "buffer write failed", t)
+        }
     }
 }

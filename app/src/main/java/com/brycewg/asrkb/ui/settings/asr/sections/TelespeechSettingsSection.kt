@@ -10,10 +10,10 @@ import com.brycewg.asrkb.ui.settings.asr.AsrSettingsSection
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.slider.Slider
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.File
 
 internal class TelespeechSettingsSection : AsrSettingsSection {
     override fun bind(binding: AsrSettingsBinding) {
@@ -25,7 +25,9 @@ internal class TelespeechSettingsSection : AsrSettingsSection {
 
         binding.view<MaterialButton>(R.id.btnTsGuide).setOnClickListener { v ->
             binding.hapticTapIfEnabled(v)
-            binding.openUrlSafely(binding.activity.getString(R.string.local_model_guide_config_doc_url))
+            binding.openUrlSafely(
+                binding.activity.getString(R.string.local_model_guide_config_doc_url)
+            )
         }
     }
 
@@ -50,7 +52,11 @@ internal class TelespeechSettingsSection : AsrSettingsSection {
         tvVariant.setOnClickListener { v ->
             binding.hapticTapIfEnabled(v)
             val cur = variantCodes.indexOf(binding.prefs.tsModelVariant).coerceAtLeast(0)
-            binding.showSingleChoiceDialog(R.string.label_ts_model_variant, variantLabels, cur) { which ->
+            binding.showSingleChoiceDialog(
+                R.string.label_ts_model_variant,
+                variantLabels,
+                cur
+            ) { which ->
                 val code = variantCodes.getOrNull(which) ?: "int8"
                 if (code != binding.prefs.tsModelVariant) {
                     binding.viewModel.updateTsModelVariant(code)
@@ -73,14 +79,30 @@ internal class TelespeechSettingsSection : AsrSettingsSection {
         )
 
         fun updateKeepAliveSummary() {
-            val idx = values.indexOf(binding.prefs.tsKeepAliveMinutes).let { if (it >= 0) it else values.size - 1 }
+            val idx = values.indexOf(binding.prefs.tsKeepAliveMinutes).let {
+                if (it >=
+                    0
+                ) {
+                    it
+                } else {
+                    values.size - 1
+                }
+            }
             tvKeep.text = labels[idx]
         }
 
         updateKeepAliveSummary()
         tvKeep.setOnClickListener { v ->
             binding.hapticTapIfEnabled(v)
-            val cur = values.indexOf(binding.prefs.tsKeepAliveMinutes).let { if (it >= 0) it else values.size - 1 }
+            val cur = values.indexOf(binding.prefs.tsKeepAliveMinutes).let {
+                if (it >=
+                    0
+                ) {
+                    it
+                } else {
+                    values.size - 1
+                }
+            }
             binding.showSingleChoiceDialog(R.string.label_ts_keep_alive, labels, cur) { which ->
                 val vv = values.getOrNull(which) ?: -1
                 if (vv != binding.prefs.tsKeepAliveMinutes) {
@@ -192,7 +214,9 @@ internal class TelespeechSettingsSection : AsrSettingsSection {
                     v.isEnabled = false
                     binding.activity.lifecycleScope.launch {
                         try {
-                            val base = binding.activity.getExternalFilesDir(null) ?: binding.activity.filesDir
+                            val base =
+                                binding.activity.getExternalFilesDir(null)
+                                    ?: binding.activity.filesDir
                             val variant = binding.prefs.tsModelVariant
                             val outDirRoot = File(base, "telespeech")
                             val outDir = if (variant == "full") {
@@ -244,4 +268,3 @@ internal class TelespeechSettingsSection : AsrSettingsSection {
         private const val TAG = "TelespeechSettingsSection"
     }
 }
-

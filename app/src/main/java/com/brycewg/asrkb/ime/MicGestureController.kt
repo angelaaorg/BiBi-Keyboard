@@ -13,10 +13,13 @@ internal class MicGestureController(
     private val checkAsrReady: () -> Boolean,
     private val inputConnectionProvider: () -> android.view.inputmethod.InputConnection?,
     private val isAiEditPanelVisible: () -> Boolean,
-    private val onLockedBySwipeChanged: () -> Unit,
+    private val onLockedBySwipeChanged: () -> Unit
 ) {
     private enum class GestureState {
-        None, PendingCancel, PendingSend, PendingLock
+        None,
+        PendingCancel,
+        PendingSend,
+        PendingLock
     }
 
     private var state: GestureState = GestureState.None
@@ -169,9 +172,21 @@ internal class MicGestureController(
             }
             MotionEvent.ACTION_MOVE -> {
                 val target = when {
-                    isPointInsideView(event.rawX, event.rawY, views.btnGestureCancel) -> GestureState.PendingCancel
-                    isPointInsideView(event.rawX, event.rawY, views.btnGestureSend) -> GestureState.PendingSend
-                    isPointInsideView(event.rawX, event.rawY, views.btnExtCenter2) -> GestureState.PendingLock
+                    isPointInsideView(
+                        event.rawX,
+                        event.rawY,
+                        views.btnGestureCancel
+                    ) -> GestureState.PendingCancel
+                    isPointInsideView(
+                        event.rawX,
+                        event.rawY,
+                        views.btnGestureSend
+                    ) -> GestureState.PendingSend
+                    isPointInsideView(
+                        event.rawX,
+                        event.rawY,
+                        views.btnExtCenter2
+                    ) -> GestureState.PendingLock
                     else -> GestureState.None
                 }
                 if (target != state) {
@@ -209,7 +224,8 @@ internal class MicGestureController(
                             data = mapOf(
                                 "tapToggle" to false,
                                 "state" to actionHandler.getCurrentState()::class.java.simpleName,
-                                "running" to (actionHandler.getCurrentState() is KeyboardState.Listening)
+                                "running" to
+                                    (actionHandler.getCurrentState() is KeyboardState.Listening)
                             )
                         )
                         actionHandler.handleMicPressUp(false)
@@ -262,4 +278,3 @@ internal class MicGestureController(
         }
     }
 }
-

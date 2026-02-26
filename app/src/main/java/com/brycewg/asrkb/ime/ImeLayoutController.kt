@@ -14,7 +14,7 @@ import com.brycewg.asrkb.store.debug.DebugLogManager
 internal class ImeLayoutController(
     private val prefs: Prefs,
     private val themeStyler: ImeThemeStyler,
-    private val viewRefsProvider: () -> ImeViewRefs?,
+    private val viewRefsProvider: () -> ImeViewRefs?
 ) {
     private var rootView: View? = null
     private var systemNavBarBottomInset: Int = 0
@@ -106,7 +106,8 @@ internal class ImeLayoutController(
 
         // 扩展按钮行高度（同样需要在 scale==1 时恢复）
         run {
-            val extRow = refs?.rowExtension ?: root.findViewById(R.id.rowExtension) as? ConstraintLayout
+            val extRow =
+                refs?.rowExtension ?: root.findViewById(R.id.rowExtension) as? ConstraintLayout
             if (extRow != null) {
                 val lp = extRow.layoutParams
                 lp.height = dp(50f * scale)
@@ -118,7 +119,8 @@ internal class ImeLayoutController(
         // 计算规则：rowExtension 完整高度 + rowTop 高度的一半 + 固定偏移
         // = 50s(rowExtension完整) + 40s(rowTop的一半) + 6 = 90s + 6
         run {
-            val overlay = refs?.rowOverlay ?: root.findViewById(R.id.rowOverlay) as? ConstraintLayout
+            val overlay =
+                refs?.rowOverlay ?: root.findViewById(R.id.rowOverlay) as? ConstraintLayout
             val lp = overlay?.layoutParams as? FrameLayout.LayoutParams
             if (overlay != null && lp != null) {
                 lp.topMargin = dp(90f * scale + 6f)
@@ -130,7 +132,9 @@ internal class ImeLayoutController(
         // 手势按钮覆盖层：定位到第二排第三排按钮的位置
         // 计算：rowExtension 高度 (50dp) 作为顶部偏移，使手势按钮与第二排顶部对齐
         run {
-            val overlay = refs?.rowRecordingGestures ?: root.findViewById(R.id.rowRecordingGestures) as? ConstraintLayout
+            val overlay =
+                refs?.rowRecordingGestures
+                    ?: root.findViewById(R.id.rowRecordingGestures) as? ConstraintLayout
             val lp = overlay?.layoutParams as? FrameLayout.LayoutParams
             if (overlay != null && lp != null) {
                 lp.topMargin = dp(50f * scale)
@@ -345,7 +349,7 @@ internal class ImeLayoutController(
     fun fixImeInsetsIfNeeded(
         imeViewVisible: Boolean,
         outInsets: InputMethodService.Insets,
-        decorView: View?,
+        decorView: View?
     ) {
         if (!imeViewVisible) return
         val input = rootView ?: viewRefsProvider()?.rootView ?: return
@@ -381,7 +385,11 @@ internal class ImeLayoutController(
                 input.getLocationInWindow(loc)
                 locationTop = loc[1]
             } catch (t: Throwable) {
-                android.util.Log.w("AsrKeyboardService", "fixImeInsets getLocationInWindow failed", t)
+                android.util.Log.w(
+                    "AsrKeyboardService",
+                    "fixImeInsets getLocationInWindow failed",
+                    t
+                )
             }
         }
         val top = if (locationTop in 0 until decorH) {
@@ -390,7 +398,9 @@ internal class ImeLayoutController(
             topByHeight
         }
 
-        val correctionThresholdPx = (decor.resources.displayMetrics.density * 2f + 0.5f).toInt().coerceAtLeast(1)
+        val correctionThresholdPx = (decor.resources.displayMetrics.density * 2f + 0.5f).toInt().coerceAtLeast(
+            1
+        )
         val needsColdStartFix = beforeContentTop <= 0
         // 系统给出的 contentTopInsets 偏大时会导致宿主上移不足，出现输入框被键盘遮挡。
         val needsOverlapFix = beforeContentTop > top + correctionThresholdPx

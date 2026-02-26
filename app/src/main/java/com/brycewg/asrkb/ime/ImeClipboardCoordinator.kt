@@ -11,11 +11,11 @@ import com.brycewg.asrkb.clipboard.ClipboardHistoryStore
 import com.brycewg.asrkb.clipboard.EntryType
 import com.brycewg.asrkb.clipboard.SyncClipboardManager
 import com.brycewg.asrkb.store.Prefs
+import java.io.File
+import java.security.MessageDigest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.io.File
-import java.security.MessageDigest
 
 internal class ImeClipboardCoordinator(
     private val context: Context,
@@ -26,10 +26,11 @@ internal class ImeClipboardCoordinator(
     private val isClipboardPanelVisible: () -> Boolean,
     private val refreshClipboardPanelList: () -> Unit,
     private val clipStoreProvider: () -> ClipboardHistoryStore?,
-    private val showStatusMessage: (String) -> Unit,
+    private val showStatusMessage: (String) -> Unit
 ) {
     private var clipboardManager: ClipboardManager? = null
     private var clipboardChangeListener: ClipboardManager.OnPrimaryClipChangedListener? = null
+
     @Volatile private var lastShownClipboardHash: String? = null
 
     private var syncClipboardManager: SyncClipboardManager? = null
@@ -53,12 +54,20 @@ internal class ImeClipboardCoordinator(
                         override fun onUploadFailed(reason: String?) {
                             rootViewProvider()?.post {
                                 // 失败时短暂提示，然后恢复到剪贴板预览，方便点击粘贴
-                                showStatusMessage(context.getString(R.string.sc_status_upload_failed))
-                                rootViewProvider()?.postDelayed({ actionHandler.reShowClipboardPreviewIfAny() }, 900)
+                                showStatusMessage(
+                                    context.getString(R.string.sc_status_upload_failed)
+                                )
+                                rootViewProvider()?.postDelayed({
+                                    actionHandler.reShowClipboardPreviewIfAny()
+                                }, 900)
                             }
                         }
 
-                        override fun onFilePulled(type: EntryType, fileName: String, serverFileName: String) {
+                        override fun onFilePulled(
+                            type: EntryType,
+                            fileName: String,
+                            serverFileName: String
+                        ) {
                             rootViewProvider()?.post {
                                 // 刷新剪贴板列表显示新文件
                                 if (isClipboardPanelVisible()) {
@@ -70,7 +79,10 @@ internal class ImeClipboardCoordinator(
                                     val all = store.getAll()
                                     val entry = all.firstOrNull {
                                         it.type != EntryType.TEXT &&
-                                            (it.serverFileName == serverFileName || it.fileName == fileName)
+                                            (
+                                                it.serverFileName == serverFileName ||
+                                                    it.fileName == fileName
+                                                )
                                     }
                                     if (entry != null) {
                                         actionHandler.showClipboardFilePreview(entry)
@@ -181,7 +193,10 @@ internal class ImeClipboardCoordinator(
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
                 context.startActivity(
-                    Intent.createChooser(shareIntent, context.getString(R.string.clip_file_open_chooser_title)).apply {
+                    Intent.createChooser(
+                        shareIntent,
+                        context.getString(R.string.clip_file_open_chooser_title)
+                    ).apply {
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     }
                 )
@@ -198,7 +213,8 @@ internal class ImeClipboardCoordinator(
 
     fun startClipboardPreviewListener() {
         if (clipboardManager == null) {
-            clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            clipboardManager =
+                context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         }
         if (clipboardChangeListener == null) {
             clipboardChangeListener = ClipboardManager.OnPrimaryClipChangedListener {
@@ -224,15 +240,13 @@ internal class ImeClipboardCoordinator(
         lastShownClipboardHash = sha256Hex(text)
     }
 
-    fun copyPlainTextToSystemClipboard(label: String, text: String): Boolean {
-        return try {
-            val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-            cm.setPrimaryClip(ClipData.newPlainText(label, text))
-            true
-        } catch (e: Exception) {
-            android.util.Log.e("AsrKeyboardService", "Failed to copy text to clipboard", e)
-            false
-        }
+    fun copyPlainTextToSystemClipboard(label: String, text: String): Boolean = try {
+        val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        cm.setPrimaryClip(ClipData.newPlainText(label, text))
+        true
+    } catch (e: Exception) {
+        android.util.Log.e("AsrKeyboardService", "Failed to copy text to clipboard", e)
+        false
     }
 
     private fun readClipboardText(): String? {
@@ -243,17 +257,15 @@ internal class ImeClipboardCoordinator(
         return item.coerceToText(context)?.toString()?.takeIf { it.isNotEmpty() }
     }
 
-    private fun sha256Hex(s: String): String {
-        return try {
-            val md = MessageDigest.getInstance("SHA-256")
-            val bytes = md.digest(s.toByteArray(Charsets.UTF_8))
-            val sb = StringBuilder(bytes.size * 2)
-            for (b in bytes) sb.append(String.format("%02x", b))
-            sb.toString()
-        } catch (t: Throwable) {
-            android.util.Log.w("AsrKeyboardService", "sha256 failed", t)
-            s // fallback: use raw text as hash key
-        }
+    private fun sha256Hex(s: String): String = try {
+        val md = MessageDigest.getInstance("SHA-256")
+        val bytes = md.digest(s.toByteArray(Charsets.UTF_8))
+        val sb = StringBuilder(bytes.size * 2)
+        for (b in bytes) sb.append(String.format("%02x", b))
+        sb.toString()
+    } catch (t: Throwable) {
+        android.util.Log.w("AsrKeyboardService", "sha256 failed", t)
+        s // fallback: use raw text as hash key
     }
 
     private fun getMimeType(file: File): String {

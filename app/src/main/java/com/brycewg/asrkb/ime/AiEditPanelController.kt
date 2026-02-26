@@ -23,7 +23,7 @@ internal class AiEditPanelController(
     private val showAiEditHint: (String) -> Unit,
     private val showPopupMenuKeepingIme: (PopupMenu) -> Unit,
     private val inputConnectionProvider: () -> android.view.inputmethod.InputConnection?,
-    private val onRequestShowNumpad: (returnToAiPanel: Boolean) -> Unit,
+    private val onRequestShowNumpad: (returnToAiPanel: Boolean) -> Unit
 ) {
     var isVisible: Boolean = views.layoutAiEditPanel?.visibility == View.VISIBLE
         private set
@@ -56,7 +56,11 @@ internal class AiEditPanelController(
         views.btnAiPanelSpace?.setOnClickListener { v ->
             performKeyHaptic(v)
             val state = actionHandler.getCurrentState()
-            if (state is KeyboardState.Listening || state is KeyboardState.AiEditListening) return@setOnClickListener
+            if (state is KeyboardState.Listening ||
+                state is KeyboardState.AiEditListening
+            ) {
+                return@setOnClickListener
+            }
             actionHandler.commitText(inputConnectionProvider(), " ")
         }
 
@@ -164,7 +168,9 @@ internal class AiEditPanelController(
         val enabled = selectMode
         fun updateBtn(btn: android.widget.ImageButton?, action: ExtensionButtonAction) {
             if (action == ExtensionButtonAction.SELECT) {
-                btn?.setImageResource(if (enabled) R.drawable.selection_fill else R.drawable.selection_toggle)
+                btn?.setImageResource(
+                    if (enabled) R.drawable.selection_fill else R.drawable.selection_toggle
+                )
                 btn?.isSelected = enabled
             }
         }
@@ -281,7 +287,10 @@ internal class AiEditPanelController(
         popup.setOnMenuItemClickListener { mi ->
             val position = mi.itemId
             val preset = presets.getOrNull(position) ?: return@setOnMenuItemClickListener false
-            actionHandler.applyPromptToSelectionOrAll(inputConnectionProvider(), promptContent = preset.content)
+            actionHandler.applyPromptToSelectionOrAll(
+                inputConnectionProvider(),
+                promptContent = preset.content
+            )
             true
         }
         showPopupMenuKeepingIme(popup)
@@ -298,7 +307,8 @@ internal class AiEditPanelController(
                     performKeyHaptic(v)
                     moveCursorBy(-1)
                     leftHintRunnable?.let { v.removeCallbacks(it) }
-                    val hint = Runnable { showAiEditHint(context.getString(R.string.cd_cursor_left)) }
+                    val hint =
+                        Runnable { showAiEditHint(context.getString(R.string.cd_cursor_left)) }
                     leftHintRunnable = hint
                     v.postDelayed(hint, longPressTimeout)
                     repeatLeftRunnable?.let { v.removeCallbacks(it) }
@@ -327,7 +337,8 @@ internal class AiEditPanelController(
                     performKeyHaptic(v)
                     moveCursorBy(1)
                     rightHintRunnable?.let { v.removeCallbacks(it) }
-                    val hint = Runnable { showAiEditHint(context.getString(R.string.cd_cursor_right)) }
+                    val hint =
+                        Runnable { showAiEditHint(context.getString(R.string.cd_cursor_right)) }
                     rightHintRunnable = hint
                     v.postDelayed(hint, longPressTimeout)
                     repeatRightRunnable?.let { v.removeCallbacks(it) }
@@ -405,7 +416,9 @@ internal class AiEditPanelController(
 
     private fun applySelectionUi() {
         views.btnAiPanelSelect?.isSelected = selectMode
-        views.btnAiPanelSelect?.setImageResource(if (selectMode) R.drawable.selection_fill else R.drawable.selection_toggle)
+        views.btnAiPanelSelect?.setImageResource(
+            if (selectMode) R.drawable.selection_fill else R.drawable.selection_toggle
+        )
         applySelectExtButtonsUi()
     }
 

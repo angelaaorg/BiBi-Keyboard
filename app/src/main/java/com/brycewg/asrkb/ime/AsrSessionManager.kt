@@ -1,22 +1,22 @@
 package com.brycewg.asrkb.ime
 
 import android.content.Context
-import android.util.Log
-import android.os.SystemClock
+import android.media.AudioAttributes
+import android.media.AudioFocusRequest
+import android.media.AudioManager
 import android.os.Handler
 import android.os.Looper
-import android.media.AudioManager
-import android.media.AudioFocusRequest
-import android.media.AudioAttributes
+import android.os.SystemClock
+import android.util.Log
 import com.brycewg.asrkb.asr.*
 import com.brycewg.asrkb.asr.BluetoothRouteManager
 import com.brycewg.asrkb.store.Prefs
 import com.brycewg.asrkb.store.debug.DebugLogManager
+import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import java.util.concurrent.atomic.AtomicLong
 
 /**
  * ASR 会话管理器：统一管理 ASR 引擎的生命周期和回调处理
@@ -32,7 +32,8 @@ class AsrSessionManager(
     private val context: Context,
     private val scope: CoroutineScope,
     private val prefs: Prefs
-) : StreamingAsrEngine.Listener, SenseVoiceFileAsrEngine.LocalModelLoadUi {
+) : StreamingAsrEngine.Listener,
+    SenseVoiceFileAsrEngine.LocalModelLoadUi {
 
     companion object {
         private const val TAG = "AsrSessionManager"
@@ -95,7 +96,13 @@ class AsrSessionManager(
     private var lastRequestDurationMs: Long? = null
 
     // 统计/历史：本次会话主/备供应商快照（避免设置变更导致 vendorId 串台）
-    private var sessionPrimaryVendor: AsrVendor = try { prefs.asrVendor } catch (_: Throwable) { AsrVendor.Volc }
+    private var sessionPrimaryVendor: AsrVendor = try {
+        prefs.asrVendor
+    } catch (
+        _: Throwable
+    ) {
+        AsrVendor.Volc
+    }
     private var lastFinalVendorForStats: AsrVendor? = null
 
     // 本地模型：Processing 阶段等待“模型就绪”的耗时（用于将处理耗时统计从模型就绪开始）
@@ -107,6 +114,7 @@ class AsrSessionManager(
     // 会话录音时长统计（毫秒）
     private var sessionStartUptimeMs: Long = 0L
     private var lastAudioMsForStats: Long = 0L
+
     // 统计/历史：端到端耗时起点（从开始录音到最终提交完成）
     private var sessionStartTotalUptimeMs: Long = 0L
 
@@ -141,9 +149,7 @@ class AsrSessionManager(
      */
     fun getLastRequestDuration(): Long? = lastRequestDurationMs
 
-    fun peekLastFinalVendorForStats(): AsrVendor {
-        return lastFinalVendorForStats ?: sessionPrimaryVendor
-    }
+    fun peekLastFinalVendorForStats(): AsrVendor = lastFinalVendorForStats ?: sessionPrimaryVendor
 
     /**
      * 构建符合当前配置的 ASR 引擎
@@ -174,11 +180,15 @@ class AsrSessionManager(
                         VolcFileAsrEngine(context, scope, prefs, this, ::onRequestDuration)
                     }
                 }
-            } else null
+            } else {
+                null
+            }
 
             AsrVendor.SiliconFlow -> if (prefs.hasSfKeys()) {
                 SiliconFlowFileAsrEngine(context, scope, prefs, this, ::onRequestDuration)
-            } else null
+            } else {
+                null
+            }
 
             AsrVendor.ElevenLabs -> if (prefs.hasElevenKeys()) {
                 if (prefs.elevenStreamingEnabled) {
@@ -186,11 +196,15 @@ class AsrSessionManager(
                 } else {
                     ElevenLabsFileAsrEngine(context, scope, prefs, this, ::onRequestDuration)
                 }
-            } else null
+            } else {
+                null
+            }
 
             AsrVendor.OpenAI -> if (prefs.hasOpenAiKeys()) {
                 OpenAiFileAsrEngine(context, scope, prefs, this, ::onRequestDuration)
-            } else null
+            } else {
+                null
+            }
 
             AsrVendor.DashScope -> if (prefs.hasDashKeys()) {
                 if (prefs.isDashStreamingModelSelected()) {
@@ -198,11 +212,15 @@ class AsrSessionManager(
                 } else {
                     DashscopeFileAsrEngine(context, scope, prefs, this, ::onRequestDuration)
                 }
-            } else null
+            } else {
+                null
+            }
 
             AsrVendor.Gemini -> if (prefs.hasGeminiKeys()) {
                 GeminiFileAsrEngine(context, scope, prefs, this, ::onRequestDuration)
-            } else null
+            } else {
+                null
+            }
 
             AsrVendor.Soniox -> if (prefs.hasSonioxKeys()) {
                 if (prefs.sonioxStreamingEnabled) {
@@ -210,16 +228,26 @@ class AsrSessionManager(
                 } else {
                     SonioxFileAsrEngine(context, scope, prefs, this, ::onRequestDuration)
                 }
-            } else null
+            } else {
+                null
+            }
 
             AsrVendor.Zhipu -> if (prefs.hasZhipuKeys()) {
                 ZhipuFileAsrEngine(context, scope, prefs, this, ::onRequestDuration)
-            } else null
+            } else {
+                null
+            }
 
             AsrVendor.SenseVoice -> {
                 if (prefs.svPseudoStreamEnabled) {
                     // 本地 SenseVoice：伪流式模式（VAD 分片预览 + 整段离线识别）
-                    SenseVoicePseudoStreamAsrEngine(context, scope, prefs, this, ::onRequestDuration)
+                    SenseVoicePseudoStreamAsrEngine(
+                        context,
+                        scope,
+                        prefs,
+                        this,
+                        ::onRequestDuration
+                    )
                 } else {
                     // 本地 SenseVoice：传统文件识别模式
                     SenseVoiceFileAsrEngine(context, scope, prefs, this, ::onRequestDuration)
@@ -232,7 +260,13 @@ class AsrSessionManager(
             AsrVendor.Telespeech -> {
                 if (prefs.tsPseudoStreamEnabled) {
                     // 本地 TeleSpeech：伪流式模式（VAD 分片预览 + 整段离线识别）
-                    TelespeechPseudoStreamAsrEngine(context, scope, prefs, this, ::onRequestDuration)
+                    TelespeechPseudoStreamAsrEngine(
+                        context,
+                        scope,
+                        prefs,
+                        this,
+                        ::onRequestDuration
+                    )
                 } else {
                     // 本地 TeleSpeech：传统文件识别模式
                     TelespeechFileAsrEngine(context, scope, prefs, this, ::onRequestDuration)
@@ -245,7 +279,11 @@ class AsrSessionManager(
     }
 
     private fun shouldUseBackupAsr(primaryVendor: AsrVendor, backupVendor: AsrVendor): Boolean {
-        val enabled = try { prefs.backupAsrEnabled } catch (_: Throwable) { false }
+        val enabled = try {
+            prefs.backupAsrEnabled
+        } catch (_: Throwable) {
+            false
+        }
         if (!enabled) return false
         if (backupVendor == primaryVendor) return false
         return try {
@@ -271,9 +309,13 @@ class AsrSessionManager(
         if (backupEnabled) {
             val current = asrEngine
             val matched = when (current) {
-                is ParallelAsrEngine -> if (current.primaryVendor == primaryVendor && current.backupVendor == backupVendor) {
+                is ParallelAsrEngine -> if (current.primaryVendor == primaryVendor &&
+                    current.backupVendor == backupVendor
+                ) {
                     current
-                } else null
+                } else {
+                    null
+                }
                 else -> null
             }
             val engine = matched ?: buildEngine()
@@ -289,8 +331,20 @@ class AsrSessionManager(
             AsrVendor.Volc -> {
                 when (current) {
                     is VolcStreamAsrEngine -> if (prefs.volcStreamingEnabled) current else null
-                    is VolcStandardFileAsrEngine -> if (!prefs.volcStreamingEnabled && prefs.volcFileStandardEnabled) current else null
-                    is VolcFileAsrEngine -> if (!prefs.volcStreamingEnabled && !prefs.volcFileStandardEnabled) current else null
+                    is VolcStandardFileAsrEngine -> if (!prefs.volcStreamingEnabled &&
+                        prefs.volcFileStandardEnabled
+                    ) {
+                        current
+                    } else {
+                        null
+                    }
+                    is VolcFileAsrEngine -> if (!prefs.volcStreamingEnabled &&
+                        !prefs.volcFileStandardEnabled
+                    ) {
+                        current
+                    } else {
+                        null
+                    }
                     else -> null
                 }
             }
@@ -373,7 +427,9 @@ class AsrSessionManager(
             Log.w(TAG, "Cancel local model wait job failed on startRecording", t)
         }
         localModelReadyWaitJob = null
-        try { sessionStartUptimeMs = SystemClock.uptimeMillis() } catch (t: Throwable) {
+        try {
+            sessionStartUptimeMs = SystemClock.uptimeMillis()
+        } catch (t: Throwable) {
             Log.w(TAG, "Failed to get uptime for session start", t)
             sessionStartUptimeMs = 0L
         }
@@ -467,7 +523,13 @@ class AsrSessionManager(
             )
         } catch (_: Throwable) { }
         // 录音期间保持耳机路由
-        try { BluetoothRouteManager.onRecordingStarted(context) } catch (t: Throwable) { Log.w(TAG, "BluetoothRouteManager onRecordingStarted", t) }
+        try {
+            BluetoothRouteManager.onRecordingStarted(context)
+        } catch (
+            t: Throwable
+        ) {
+            Log.w(TAG, "BluetoothRouteManager onRecordingStarted", t)
+        }
     }
 
     /**
@@ -494,7 +556,13 @@ class AsrSessionManager(
             Log.w(TAG, "abandonAudioFocusIfNeeded failed on stopRecording", t)
         }
         // 若无键盘可见，录音结束后可撤销预热
-        try { BluetoothRouteManager.onRecordingStopped(context) } catch (t: Throwable) { Log.w(TAG, "BluetoothRouteManager onRecordingStopped", t) }
+        try {
+            BluetoothRouteManager.onRecordingStopped(context)
+        } catch (
+            t: Throwable
+        ) {
+            Log.w(TAG, "BluetoothRouteManager onRecordingStopped", t)
+        }
     }
 
     /**
@@ -545,9 +613,7 @@ class AsrSessionManager(
      * 读取最近一次会话的录音时长（毫秒），不清空。
      * 用于在 onStopped 等场景下进行早停判断，避免影响后续统计/历史写入。
      */
-    fun peekLastAudioMsForStats(): Long {
-        return lastAudioMsForStats
-    }
+    fun peekLastAudioMsForStats(): Long = lastAudioMsForStats
 
     /**
      * 设置当前状态（用于外部状态变更）
@@ -713,7 +779,9 @@ class AsrSessionManager(
         Log.d(TAG, "onLocalModelLoadStart")
         try {
             Handler(Looper.getMainLooper()).post {
-                try { listener?.onLocalModelLoadStart() } catch (t: Throwable) {
+                try {
+                    listener?.onLocalModelLoadStart()
+                } catch (t: Throwable) {
                     Log.e(TAG, "Failed to deliver onLocalModelLoadStart to UI", t)
                 }
             }
@@ -726,7 +794,9 @@ class AsrSessionManager(
         Log.d(TAG, "onLocalModelLoadDone")
         try {
             Handler(Looper.getMainLooper()).post {
-                try { listener?.onLocalModelLoadDone() } catch (t: Throwable) {
+                try {
+                    listener?.onLocalModelLoadDone()
+                } catch (t: Throwable) {
                     Log.e(TAG, "Failed to deliver onLocalModelLoadDone to UI", t)
                 }
             }
@@ -738,14 +808,18 @@ class AsrSessionManager(
     // ========== 私有方法 ==========
 
     private fun markLocalModelProcessingStartIfNeeded() {
-        val vendor = try { prefs.asrVendor } catch (t: Throwable) {
+        val vendor = try {
+            prefs.asrVendor
+        } catch (t: Throwable) {
             Log.w(TAG, "Failed to read asrVendor for local model timing", t)
             return
         }
         if (!isLocalAsrVendor(vendor)) return
         if (localModelWaitStartUptimeMs != 0L) return
 
-        val startMs = try { SystemClock.uptimeMillis() } catch (t: Throwable) {
+        val startMs = try {
+            SystemClock.uptimeMillis()
+        } catch (t: Throwable) {
             Log.w(TAG, "Failed to read uptime for local model timing", t)
             0L
         }
@@ -765,7 +839,11 @@ class AsrSessionManager(
             val ok = awaitLocalAsrReady(prefs, maxWaitMs = LOCAL_MODEL_READY_WAIT_MAX_MS)
             if (!ok) return@launch
             if (sessionSeq != seq) return@launch
-            val readyAt = try { SystemClock.uptimeMillis() } catch (_: Throwable) { 0L }
+            val readyAt = try {
+                SystemClock.uptimeMillis()
+            } catch (_: Throwable) {
+                0L
+            }
             if (readyAt > 0L && startMs > 0L && readyAt >= startMs) {
                 localModelReadyWaitMs.compareAndSet(0L, (readyAt - startMs).coerceAtLeast(0L))
             }

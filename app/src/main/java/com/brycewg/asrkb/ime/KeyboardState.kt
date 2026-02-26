@@ -60,18 +60,12 @@ sealed class KeyboardState {
 /**
  * 撤销快照：记录操作前后的文本状态，用于全局撤销
  */
-data class UndoSnapshot(
-    val beforeCursor: CharSequence,
-    val afterCursor: CharSequence
-)
+data class UndoSnapshot(val beforeCursor: CharSequence, val afterCursor: CharSequence)
 
 /**
  * AI 后处理提交记录：记录原始识别结果和 AI 优化后的结果，用于撤销
  */
-data class PostprocCommit(
-    val processed: String,
-    val raw: String
-)
+data class PostprocCommit(val processed: String, val raw: String)
 
 /**
  * 剪贴板预览类型：区分文本与文件。

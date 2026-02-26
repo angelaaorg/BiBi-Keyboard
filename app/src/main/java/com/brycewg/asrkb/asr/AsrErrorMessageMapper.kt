@@ -17,7 +17,7 @@ internal object AsrErrorMessageMapper {
             "empty asr result",
             "empty audio",
             "识别返回为空",
-            "空音频",
+            "空音频"
         )
         if (containsAny(lower, emptyHints)) {
             return context.getString(R.string.asr_error_empty_result)
@@ -43,7 +43,7 @@ internal object AsrErrorMessageMapper {
         val permHints = listOf(
             context.getString(R.string.error_record_permission_denied),
             context.getString(R.string.hint_need_permission),
-            "record audio permission",
+            "record audio permission"
         )
         if (containsAny(lower, permHints)) {
             return context.getString(R.string.asr_error_mic_permission_denied)
@@ -55,7 +55,7 @@ internal object AsrErrorMessageMapper {
             "audio recorder busy",
             "resource busy",
             "in use",
-            "device busy",
+            "device busy"
         )
         if (containsAny(lower, micBusyHints)) {
             return context.getString(R.string.asr_error_mic_in_use)
@@ -86,10 +86,7 @@ internal object AsrErrorMessageMapper {
         return null
     }
 
-    private fun containsAny(lower: String, hints: List<String>): Boolean {
-        return hints.any { hint ->
-            hint.isNotBlank() && lower.contains(hint.lowercase(Locale.ROOT))
-        }
+    private fun containsAny(lower: String, hints: List<String>): Boolean = hints.any { hint ->
+        hint.isNotBlank() && lower.contains(hint.lowercase(Locale.ROOT))
     }
 }
-

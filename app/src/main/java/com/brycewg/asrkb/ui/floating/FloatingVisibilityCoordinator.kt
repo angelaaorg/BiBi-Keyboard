@@ -16,14 +16,24 @@ internal class FloatingVisibilityCoordinator(
     private val isImeVisible: () -> Boolean,
     private val isForceVisibleActive: () -> Boolean,
     private val showBall: (String) -> Unit,
-    private val hideBall: () -> Unit,
+    private val hideBall: () -> Unit
 ) {
     private var lastShowAttemptAt: Long = 0L
     private var lastShowAttemptSig: String? = null
 
     fun applyVisibility(src: String) {
-        val enabledPref = try { prefs.floatingAsrEnabled } catch (_: Throwable) { false }
-        val onlyWhenImeVisible = try { prefs.floatingSwitcherOnlyWhenImeVisible } catch (_: Throwable) { false }
+        val enabledPref = try {
+            prefs.floatingAsrEnabled
+        } catch (_: Throwable) {
+            false
+        }
+        val onlyWhenImeVisible = try {
+            prefs.floatingSwitcherOnlyWhenImeVisible
+        } catch (
+            _: Throwable
+        ) {
+            false
+        }
         val imeVisible = isImeVisible()
         val overlayGranted = hasOverlayPermission()
 
@@ -32,7 +42,7 @@ internal class FloatingVisibilityCoordinator(
             enabled = enabledPref,
             overlayGranted = overlayGranted,
             imeVisible = imeVisible,
-            onlyWhenImeVisible = onlyWhenImeVisible,
+            onlyWhenImeVisible = onlyWhenImeVisible
         )
 
         if (!enabledPref || !overlayGranted) {
@@ -41,10 +51,18 @@ internal class FloatingVisibilityCoordinator(
             return
         }
 
-        val completionActive = try { viewManager.isCompletionTickActive() } catch (_: Throwable) { false }
+        val completionActive = try {
+            viewManager.isCompletionTickActive()
+        } catch (_: Throwable) {
+            false
+        }
         val forceVisible = isForceVisibleActive()
-        if (onlyWhenImeVisible && !imeVisible &&
-            !stateMachine.isRecording && !stateMachine.isProcessing && !completionActive && !forceVisible
+        if (onlyWhenImeVisible &&
+            !imeVisible &&
+            !stateMachine.isRecording &&
+            !stateMachine.isProcessing &&
+            !completionActive &&
+            !forceVisible
         ) {
             DebugLogManager.log("float", "show_skip", mapOf("reason" to "ime_not_visible"))
             hideBall()
@@ -82,9 +100,9 @@ internal class FloatingVisibilityCoordinator(
         enabled: Boolean,
         overlayGranted: Boolean,
         imeVisible: Boolean,
-        onlyWhenImeVisible: Boolean,
+        onlyWhenImeVisible: Boolean
     ) {
-        val sig = "${src}|${enabled}|${overlayGranted}|${imeVisible}|${onlyWhenImeVisible}"
+        val sig = "$src|$enabled|$overlayGranted|$imeVisible|$onlyWhenImeVisible"
         val now = System.currentTimeMillis()
         if (now - lastShowAttemptAt < 300L && lastShowAttemptSig == sig) return
 
@@ -97,8 +115,8 @@ internal class FloatingVisibilityCoordinator(
                     "enabled" to enabled,
                     "overlay" to overlayGranted,
                     "imeVisible" to imeVisible,
-                    "onlyWhenImeVisible" to onlyWhenImeVisible,
-                ),
+                    "onlyWhenImeVisible" to onlyWhenImeVisible
+                )
             )
         } catch (_: Throwable) {
             // 仅用于调试统计，忽略记录失败

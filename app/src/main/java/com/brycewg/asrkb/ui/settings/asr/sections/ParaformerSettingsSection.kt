@@ -10,10 +10,10 @@ import com.brycewg.asrkb.ui.settings.asr.AsrSettingsSection
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.slider.Slider
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.File
 
 internal class ParaformerSettingsSection : AsrSettingsSection {
     override fun bind(binding: AsrSettingsBinding) {
@@ -26,7 +26,9 @@ internal class ParaformerSettingsSection : AsrSettingsSection {
 
         binding.view<MaterialButton>(R.id.btnPfGuide).setOnClickListener { v ->
             binding.hapticTapIfEnabled(v)
-            binding.openUrlSafely(binding.activity.getString(R.string.local_model_guide_config_doc_url))
+            binding.openUrlSafely(
+                binding.activity.getString(R.string.local_model_guide_config_doc_url)
+            )
         }
     }
 
@@ -58,7 +60,11 @@ internal class ParaformerSettingsSection : AsrSettingsSection {
         tvPfVariant.setOnClickListener { v ->
             binding.hapticTapIfEnabled(v)
             val cur = variantCodes.indexOf(binding.prefs.pfModelVariant).coerceAtLeast(0)
-            binding.showSingleChoiceDialog(R.string.label_pf_model_variant, variantLabels.toTypedArray(), cur) { which ->
+            binding.showSingleChoiceDialog(
+                R.string.label_pf_model_variant,
+                variantLabels.toTypedArray(),
+                cur
+            ) { which ->
                 val code = variantCodes.getOrNull(which) ?: "bilingual-int8"
                 if (code != binding.prefs.pfModelVariant) {
                     binding.viewModel.updatePfModelVariant(code)
@@ -81,14 +87,30 @@ internal class ParaformerSettingsSection : AsrSettingsSection {
         )
 
         fun updateKeepAliveSummary() {
-            val idx = values.indexOf(binding.prefs.pfKeepAliveMinutes).let { if (it >= 0) it else values.size - 1 }
+            val idx = values.indexOf(binding.prefs.pfKeepAliveMinutes).let {
+                if (it >=
+                    0
+                ) {
+                    it
+                } else {
+                    values.size - 1
+                }
+            }
             tvKeep.text = labels[idx]
         }
 
         updateKeepAliveSummary()
         tvKeep.setOnClickListener { v ->
             binding.hapticTapIfEnabled(v)
-            val cur = values.indexOf(binding.prefs.pfKeepAliveMinutes).let { if (it >= 0) it else values.size - 1 }
+            val cur = values.indexOf(binding.prefs.pfKeepAliveMinutes).let {
+                if (it >=
+                    0
+                ) {
+                    it
+                } else {
+                    values.size - 1
+                }
+            }
             binding.showSingleChoiceDialog(R.string.label_pf_keep_alive, labels, cur) { which ->
                 val vv = values.getOrNull(which) ?: -1
                 if (vv != binding.prefs.pfKeepAliveMinutes) {
@@ -149,13 +171,11 @@ internal class ParaformerSettingsSection : AsrSettingsSection {
         }
     }
 
-    private fun safeReadPfUseItn(binding: AsrSettingsBinding): Boolean {
-        return try {
-            binding.prefs.pfUseItn
-        } catch (t: Throwable) {
-            android.util.Log.w(TAG, "Failed to read pfUseItn; using default", t)
-            false
-        }
+    private fun safeReadPfUseItn(binding: AsrSettingsBinding): Boolean = try {
+        binding.prefs.pfUseItn
+    } catch (t: Throwable) {
+        android.util.Log.w(TAG, "Failed to read pfUseItn; using default", t)
+        false
     }
 
     private fun bindModelButtons(binding: AsrSettingsBinding) {
@@ -199,11 +219,24 @@ internal class ParaformerSettingsSection : AsrSettingsSection {
                     v.isEnabled = false
                     binding.activity.lifecycleScope.launch {
                         try {
-                            val base = binding.activity.getExternalFilesDir(null) ?: binding.activity.filesDir
+                            val base =
+                                binding.activity.getExternalFilesDir(null)
+                                    ?: binding.activity.filesDir
                             val root = File(base, "paraformer")
-                            val group = if (binding.prefs.pfModelVariant.startsWith("trilingual")) "trilingual" else "bilingual"
+                            val group = if (binding.prefs.pfModelVariant.startsWith(
+                                    "trilingual"
+                                )
+                            ) {
+                                "trilingual"
+                            } else {
+                                "bilingual"
+                            }
                             val outDir = File(root, group)
-                            if (outDir.exists()) withContext(Dispatchers.IO) { outDir.deleteRecursively() }
+                            if (outDir.exists()) {
+                                withContext(Dispatchers.IO) {
+                                    outDir.deleteRecursively()
+                                }
+                            }
                             try {
                                 com.brycewg.asrkb.asr.unloadParaformerRecognizer()
                             } catch (t: Throwable) {
@@ -245,4 +278,3 @@ internal class ParaformerSettingsSection : AsrSettingsSection {
         private const val TAG = "ParaformerSettingsSection"
     }
 }
-

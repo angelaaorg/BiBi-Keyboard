@@ -118,11 +118,12 @@ class FloatingAsrService : Service() {
             notifier = notifier,
             scope = serviceScope,
             tag = TAG,
-            isImeVisible = { imeVisible },
+            isImeVisible = { imeVisible }
         )
         asrSessionManager = AsrSessionManager(this, prefs, serviceScope, interactionController)
         interactionController.asrSessionManager = asrSessionManager
-        touchHandler = FloatingBallTouchHandler(this, prefs, viewManager, windowManager, interactionController)
+        touchHandler =
+            FloatingBallTouchHandler(this, prefs, viewManager, windowManager, interactionController)
 
         visibilityCoordinator = FloatingVisibilityCoordinator(
             prefs = prefs,
@@ -133,9 +134,10 @@ class FloatingAsrService : Service() {
             isImeVisible = { imeVisible },
             isForceVisibleActive = { interactionController.isForceVisibleActive() },
             showBall = { src -> showBall(src) },
-            hideBall = { hideBall() },
+            hideBall = { hideBall() }
         )
-        interactionController.applyVisibility = { src -> visibilityCoordinator.applyVisibility(src) }
+        interactionController.applyVisibility =
+            { src -> visibilityCoordinator.applyVisibility(src) }
 
         try {
             val filter = android.content.IntentFilter().apply {
@@ -143,10 +145,14 @@ class FloatingAsrService : Service() {
                 addAction(FloatingImeHints.ACTION_HINT_IME_HIDDEN)
             }
             ContextCompat.registerReceiver(
-                /* context = */ this,
-                /* receiver = */ hintReceiver,
-                /* filter = */ filter,
-                /* flags = */ ContextCompat.RECEIVER_NOT_EXPORTED,
+                /* context = */
+                this,
+                /* receiver = */
+                hintReceiver,
+                /* filter = */
+                filter,
+                /* flags = */
+                ContextCompat.RECEIVER_NOT_EXPORTED
             )
         } catch (e: Throwable) {
             Log.e(TAG, "Failed to register hint receiver", e)
@@ -157,14 +163,20 @@ class FloatingAsrService : Service() {
         super.onConfigurationChanged(newConfig)
         if (!::viewManager.isInitialized) return
         try {
-            viewManager.remapPositionForCurrentDisplay("service_onConfigurationChanged:${newConfig.orientation}")
+            viewManager.remapPositionForCurrentDisplay(
+                "service_onConfigurationChanged:${newConfig.orientation}"
+            )
         } catch (e: Throwable) {
             Log.w(TAG, "Failed to remap floating ball position on configuration change", e)
         }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val enabled = try { prefs.floatingAsrEnabled } catch (_: Throwable) { false }
+        val enabled = try {
+            prefs.floatingAsrEnabled
+        } catch (_: Throwable) {
+            false
+        }
         Log.d(TAG, "onStartCommand: action=${intent?.action}, floatingAsrEnabled=$enabled")
 
         when (intent?.action) {
@@ -249,7 +261,7 @@ class FloatingAsrService : Service() {
         val success = viewManager.showBall(
             onClickListener = { hapticTapIfEnabled(it) },
             onTouchListener = touchListener,
-            initialState = stateMachine.state,
+            initialState = stateMachine.state
         )
         if (!success) {
             DebugLogManager.log("float", "show_failed")

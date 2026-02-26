@@ -4,6 +4,9 @@ import android.content.Context
 import android.util.Log
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.store.Prefs
+import java.io.File
+import java.io.FileOutputStream
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import okhttp3.MediaType.Companion.toMediaType
@@ -13,9 +16,6 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
-import java.io.File
-import java.io.FileOutputStream
-import java.util.concurrent.TimeUnit
 
 /**
  * Soniox 异步文件 ASR 引擎实现。
@@ -28,7 +28,8 @@ class SonioxFileAsrEngine(
     listener: StreamingAsrEngine.Listener,
     onRequestDuration: ((Long) -> Unit)? = null,
     httpClient: OkHttpClient? = null
-) : BaseFileAsrEngine(context, scope, prefs, listener, onRequestDuration), PcmBatchRecognizer {
+) : BaseFileAsrEngine(context, scope, prefs, listener, onRequestDuration),
+    PcmBatchRecognizer {
 
     companion object {
         private const val TAG = "SonioxFileAsrEngine"
@@ -65,7 +66,9 @@ class SonioxFileAsrEngine(
 
             if (text.isNotBlank()) {
                 val dt = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - t0)
-                try { onRequestDuration?.invoke(dt) } catch (_: Throwable) {}
+                try {
+                    onRequestDuration?.invoke(dt)
+                } catch (_: Throwable) {}
                 listener.onFinal(text)
             } else {
                 listener.onError(context.getString(R.string.error_asr_empty_result))
@@ -77,7 +80,9 @@ class SonioxFileAsrEngine(
         }
     }
 
-    override suspend fun recognizeFromPcm(pcm: ByteArray) { recognize(pcm) }
+    override suspend fun recognizeFromPcm(pcm: ByteArray) {
+        recognize(pcm)
+    }
 
     private fun uploadAudioFile(apiKey: String, file: File): String {
         val multipart = MultipartBody.Builder().setType(MultipartBody.FORM)
@@ -97,9 +102,15 @@ class SonioxFileAsrEngine(
             val body = r.body?.string().orEmpty()
             if (!r.isSuccessful) {
                 val detail = formatHttpDetail(r.message, extractErrorHint(body))
-                throw RuntimeException(context.getString(R.string.error_request_failed_http, r.code, detail))
+                throw RuntimeException(
+                    context.getString(R.string.error_request_failed_http, r.code, detail)
+                )
             }
-            val id = try { JSONObject(body).optString("id").trim() } catch (_: Throwable) { "" }
+            val id = try {
+                JSONObject(body).optString("id").trim()
+            } catch (_: Throwable) {
+                ""
+            }
             if (id.isBlank()) throw RuntimeException("uploadAudio: empty file id")
             return id
         }
@@ -132,9 +143,15 @@ class SonioxFileAsrEngine(
             val body = r.body?.string().orEmpty()
             if (!r.isSuccessful) {
                 val detail = formatHttpDetail(r.message, extractErrorHint(body))
-                throw RuntimeException(context.getString(R.string.error_request_failed_http, r.code, detail))
+                throw RuntimeException(
+                    context.getString(R.string.error_request_failed_http, r.code, detail)
+                )
             }
-            val id = try { JSONObject(body).optString("id").trim() } catch (_: Throwable) { "" }
+            val id = try {
+                JSONObject(body).optString("id").trim()
+            } catch (_: Throwable) {
+                ""
+            }
             if (id.isBlank()) throw RuntimeException("createTranscription: empty id")
             return id
         }
@@ -152,13 +169,27 @@ class SonioxFileAsrEngine(
                 val body = r.body?.string().orEmpty()
                 if (!r.isSuccessful) {
                     val detail = formatHttpDetail(r.message, extractErrorHint(body))
-                    throw RuntimeException(context.getString(R.string.error_request_failed_http, r.code, detail))
+                    throw RuntimeException(
+                        context.getString(R.string.error_request_failed_http, r.code, detail)
+                    )
                 }
-                val status = try { JSONObject(body).optString("status").lowercase() } catch (_: Throwable) { "" }
+                val status = try {
+                    JSONObject(body).optString("status").lowercase()
+                } catch (
+                    _: Throwable
+                ) {
+                    ""
+                }
                 when (status) {
                     "completed" -> return
                     "error" -> {
-                        val err = try { JSONObject(body).optString("error_message") } catch (_: Throwable) { "" }
+                        val err = try {
+                            JSONObject(body).optString("error_message")
+                        } catch (
+                            _: Throwable
+                        ) {
+                            ""
+                        }
                         throw RuntimeException("Soniox error: $err")
                     }
                 }
@@ -178,7 +209,9 @@ class SonioxFileAsrEngine(
             val body = r.body?.string().orEmpty()
             if (!r.isSuccessful) {
                 val detail = formatHttpDetail(r.message, extractErrorHint(body))
-                throw RuntimeException(context.getString(R.string.error_request_failed_http, r.code, detail))
+                throw RuntimeException(
+                    context.getString(R.string.error_request_failed_http, r.code, detail)
+                )
             }
             return parseTokensToText(body)
         }

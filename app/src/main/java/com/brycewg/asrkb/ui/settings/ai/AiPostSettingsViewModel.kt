@@ -6,10 +6,10 @@ import com.brycewg.asrkb.asr.LlmVendor
 import com.brycewg.asrkb.asr.ReasoningMode
 import com.brycewg.asrkb.store.Prefs
 import com.brycewg.asrkb.store.PromptPreset
+import java.util.UUID
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import java.util.UUID
 
 /**
  * ViewModel for AI Post-Processing Settings
@@ -167,17 +167,15 @@ class AiPostSettingsViewModel : ViewModel() {
      * Checks if the current vendor/model supports reasoning mode switch
      * Returns true only for vendors with switch-controlled reasoning (not MODEL_SELECTION)
      */
-    fun supportsReasoningSwitch(vendor: LlmVendor, model: String): Boolean {
-        return when (vendor.reasoningMode) {
-            ReasoningMode.ENABLE_THINKING,
-            ReasoningMode.REASONING_EFFORT,
-            ReasoningMode.THINKING_TYPE -> {
-                // Only show switch if the model supports reasoning
-                vendor.reasoningModels.isEmpty() || vendor.reasoningModels.contains(model)
-            }
-            ReasoningMode.MODEL_SELECTION,
-            ReasoningMode.NONE -> false
+    fun supportsReasoningSwitch(vendor: LlmVendor, model: String): Boolean = when (vendor.reasoningMode) {
+        ReasoningMode.ENABLE_THINKING,
+        ReasoningMode.REASONING_EFFORT,
+        ReasoningMode.THINKING_TYPE -> {
+            // Only show switch if the model supports reasoning
+            vendor.reasoningModels.isEmpty() || vendor.reasoningModels.contains(model)
         }
+        ReasoningMode.MODEL_SELECTION,
+        ReasoningMode.NONE -> false
     }
 
     // ======== LLM Provider Management (Custom) ========
@@ -217,10 +215,7 @@ class AiPostSettingsViewModel : ViewModel() {
     /**
      * Updates the active LLM provider with a mutation function
      */
-    fun updateActiveLlmProvider(
-        prefs: Prefs,
-        mutator: (Prefs.LlmProvider) -> Prefs.LlmProvider
-    ) {
+    fun updateActiveLlmProvider(prefs: Prefs, mutator: (Prefs.LlmProvider) -> Prefs.LlmProvider) {
         try {
             val list = _llmProfiles.value.toMutableList()
             val activeId = prefs.activeLlmId
@@ -268,32 +263,30 @@ class AiPostSettingsViewModel : ViewModel() {
     /**
      * Adds a new LLM provider
      */
-    fun addLlmProvider(prefs: Prefs, defaultProfileName: String): Boolean {
-        return try {
-            val id = UUID.randomUUID().toString()
-            val newProvider = Prefs.LlmProvider(
-                id = id,
-                name = defaultProfileName,
-                endpoint = Prefs.DEFAULT_LLM_ENDPOINT,
-                apiKey = "",
-                model = Prefs.DEFAULT_LLM_MODEL,
-                temperature = Prefs.DEFAULT_LLM_TEMPERATURE,
-                models = emptyList()
-            )
+    fun addLlmProvider(prefs: Prefs, defaultProfileName: String): Boolean = try {
+        val id = UUID.randomUUID().toString()
+        val newProvider = Prefs.LlmProvider(
+            id = id,
+            name = defaultProfileName,
+            endpoint = Prefs.DEFAULT_LLM_ENDPOINT,
+            apiKey = "",
+            model = Prefs.DEFAULT_LLM_MODEL,
+            temperature = Prefs.DEFAULT_LLM_TEMPERATURE,
+            models = emptyList()
+        )
 
-            val list = _llmProfiles.value.toMutableList()
-            list.add(newProvider)
-            prefs.setLlmProviders(list)
-            prefs.activeLlmId = id
+        val list = _llmProfiles.value.toMutableList()
+        list.add(newProvider)
+        prefs.setLlmProviders(list)
+        prefs.activeLlmId = id
 
-            _llmProfiles.value = list
-            _activeLlmProvider.value = newProvider
-            Log.d(TAG, "Added new LLM provider: $defaultProfileName")
-            true
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to add LLM provider", e)
-            false
-        }
+        _llmProfiles.value = list
+        _activeLlmProvider.value = newProvider
+        Log.d(TAG, "Added new LLM provider: $defaultProfileName")
+        true
+    } catch (e: Exception) {
+        Log.e(TAG, "Failed to add LLM provider", e)
+        false
     }
 
     /**
@@ -369,10 +362,7 @@ class AiPostSettingsViewModel : ViewModel() {
     /**
      * Updates the active prompt preset with a mutation function
      */
-    fun updateActivePromptPreset(
-        prefs: Prefs,
-        mutator: (PromptPreset) -> PromptPreset
-    ) {
+    fun updateActivePromptPreset(prefs: Prefs, mutator: (PromptPreset) -> PromptPreset) {
         try {
             val list = _promptPresets.value.toMutableList()
             val activeId = prefs.activePromptId
@@ -394,27 +384,25 @@ class AiPostSettingsViewModel : ViewModel() {
     /**
      * Adds a new prompt preset
      */
-    fun addPromptPreset(prefs: Prefs, defaultTitle: String, defaultContent: String): Boolean {
-        return try {
-            val newPreset = PromptPreset(
-                id = UUID.randomUUID().toString(),
-                title = defaultTitle,
-                content = defaultContent
-            )
+    fun addPromptPreset(prefs: Prefs, defaultTitle: String, defaultContent: String): Boolean = try {
+        val newPreset = PromptPreset(
+            id = UUID.randomUUID().toString(),
+            title = defaultTitle,
+            content = defaultContent
+        )
 
-            val list = _promptPresets.value.toMutableList()
-            list.add(newPreset)
-            prefs.setPromptPresets(list)
-            prefs.activePromptId = newPreset.id
+        val list = _promptPresets.value.toMutableList()
+        list.add(newPreset)
+        prefs.setPromptPresets(list)
+        prefs.activePromptId = newPreset.id
 
-            _promptPresets.value = list
-            _activePromptPreset.value = newPreset
-            Log.d(TAG, "Added new prompt preset: $defaultTitle")
-            true
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to add prompt preset", e)
-            false
-        }
+        _promptPresets.value = list
+        _activePromptPreset.value = newPreset
+        Log.d(TAG, "Added new prompt preset: $defaultTitle")
+        true
+    } catch (e: Exception) {
+        Log.e(TAG, "Failed to add prompt preset", e)
+        false
     }
 
     /**

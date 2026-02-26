@@ -16,9 +16,7 @@ import kotlin.math.abs
  * - 向下滑动：撤销最近一次操作
  * - 清空后向下滑动：恢复清空前的文本
  */
-class BackspaceGestureHandler(
-    private val inputHelper: InputConnectionHelper
-) {
+class BackspaceGestureHandler(private val inputHelper: InputConnectionHelper) {
     // 回调接口
     interface Listener {
         fun onSingleDelete()
@@ -34,9 +32,11 @@ class BackspaceGestureHandler(
     private var startY: Float = 0f
     private var isPressed: Boolean = false
     private var clearedInGesture: Boolean = false
+
     // 单次手势内去抖标记：避免在 MOVE 过程中重复触发撤销/恢复
     private var undoTriggeredInGesture: Boolean = false
     private var restoredAfterClearInGesture: Boolean = false
+
     // 清空发生时的参考坐标：用于在同一手势中判定“清空后向下滑动恢复”
     private var clearRefX: Float = 0f
     private var clearRefY: Float = 0f
@@ -78,10 +78,11 @@ class BackspaceGestureHandler(
                 val absDy = abs(dy)
 
                 // 向上/向左滑动：清空所有文本（要求方向占优，减少误触）
-                if (!clearedInGesture && (
+                if (!clearedInGesture &&
+                    (
                         (dy <= -slop && absDy >= absDx) ||
-                        (dx <= -slop && absDx >= absDy)
-                    )
+                            (dx <= -slop && absDx >= absDy)
+                        )
                 ) {
                     // 记录清空时的参考坐标（用于后续“清空后下滑恢复”的判定）
                     clearRefX = event.x
@@ -114,8 +115,10 @@ class BackspaceGestureHandler(
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 val dx = event.x - startX
                 val dy = event.y - startY
-                val isTap = abs(dx) < slop && abs(dy) < slop &&
-                           !clearedInGesture && !longPressStarted
+                val isTap = abs(dx) < slop &&
+                    abs(dy) < slop &&
+                    !clearedInGesture &&
+                    !longPressStarted
 
                 onActionUp(view, isTap, event.actionMasked == MotionEvent.ACTION_UP)
                 return true
@@ -171,7 +174,13 @@ class BackspaceGestureHandler(
         listener?.onVibrateRequest()
 
         // 离开按压态
-        try { view.isPressed = false } catch (e: Throwable) { android.util.Log.w("BackspaceGestureHandler", "Failed to set pressed=false (clear)", e) }
+        try {
+            view.isPressed = false
+        } catch (
+            e: Throwable
+        ) {
+            android.util.Log.w("BackspaceGestureHandler", "Failed to set pressed=false (clear)", e)
+        }
     }
 
     private fun onSwipeToUndo(view: View) {
@@ -183,7 +192,13 @@ class BackspaceGestureHandler(
         listener?.onUndo()
 
         // 离开按压态
-        try { view.isPressed = false } catch (e: Throwable) { android.util.Log.w("BackspaceGestureHandler", "Failed to set pressed=false (undo)", e) }
+        try {
+            view.isPressed = false
+        } catch (
+            e: Throwable
+        ) {
+            android.util.Log.w("BackspaceGestureHandler", "Failed to set pressed=false (undo)", e)
+        }
     }
 
     private fun onRestoreAfterClear(view: View, ic: InputConnection) {
@@ -243,7 +258,12 @@ class BackspaceGestureHandler(
         repeatRunnable = null
 
         // 释放按压态
-        try { view.isPressed = false } catch (e: Throwable) { android.util.Log.w("BackspaceGestureHandler", "Failed to set pressed=false (up)", e) }
+        try {
+            view.isPressed = false
+        } catch (
+            e: Throwable
+        ) {
+            android.util.Log.w("BackspaceGestureHandler", "Failed to set pressed=false (up)", e)
+        }
     }
-
 }

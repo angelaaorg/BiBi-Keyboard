@@ -266,14 +266,10 @@ internal object PrefsBackup {
         return try {
             val o = org.json.JSONObject(jsonString)
             Log.i(TAG, "Starting import of settings from JSON")
-            fun optBool(key: String, default: Boolean? = null): Boolean? =
-                if (o.has(key)) o.optBoolean(key) else default
-            fun optString(key: String, default: String? = null): String? =
-                if (o.has(key)) o.optString(key) else default
-            fun optFloat(key: String, default: Float? = null): Float? =
-                if (o.has(key)) o.optDouble(key).toFloat() else default
-            fun optInt(key: String, default: Int? = null): Int? =
-                if (o.has(key)) o.optInt(key) else default
+            fun optBool(key: String, default: Boolean? = null): Boolean? = if (o.has(key)) o.optBoolean(key) else default
+            fun optString(key: String, default: String? = null): String? = if (o.has(key)) o.optString(key) else default
+            fun optFloat(key: String, default: Float? = null): Float? = if (o.has(key)) o.optDouble(key).toFloat() else default
+            fun optInt(key: String, default: Int? = null): Int? = if (o.has(key)) o.optInt(key) else default
 
             optString(KEY_APP_KEY)?.let { appKey = it }
             optString(KEY_ACCESS_KEY)?.let { accessKey = it }
@@ -314,7 +310,10 @@ internal object PrefsBackup {
             // 外部输入法联动（AIDL）
             optBool(KEY_EXTERNAL_AIDL_ENABLED)?.let { externalAidlEnabled = it }
             optBool(KEY_FLOATING_SWITCHER_ENABLED)?.let { floatingSwitcherEnabled = it }
-            optFloat(KEY_FLOATING_SWITCHER_ALPHA)?.let { floatingSwitcherAlpha = it.coerceIn(0.2f, 1.0f) }
+            optFloat(KEY_FLOATING_SWITCHER_ALPHA)?.let {
+                floatingSwitcherAlpha =
+                    it.coerceIn(0.2f, 1.0f)
+            }
             optInt(KEY_FLOATING_BALL_SIZE_DP)?.let { floatingBallSizeDp = it.coerceIn(28, 96) }
             optInt(KEY_FLOATING_POS_X)?.let { floatingBallPosX = it }
             optInt(KEY_FLOATING_POS_Y)?.let { floatingBallPosY = it }
@@ -323,16 +322,25 @@ internal object PrefsBackup {
             optBool(KEY_FLOATING_DOCK_HIDDEN)?.let { floatingBallDockHidden = it }
             optBool(KEY_FLOATING_DIRECT_DRAG_ENABLED)?.let { floatingBallDirectDragEnabled = it }
             optBool(KEY_FLOATING_ASR_ENABLED)?.let { floatingAsrEnabled = it }
-            optBool(KEY_FLOATING_ONLY_WHEN_IME_VISIBLE)?.let { floatingSwitcherOnlyWhenImeVisible = it }
+            optBool(KEY_FLOATING_ONLY_WHEN_IME_VISIBLE)?.let {
+                floatingSwitcherOnlyWhenImeVisible =
+                    it
+            }
             optBool(KEY_FLOATING_KEEP_ALIVE_ENABLED)?.let { floatingKeepAliveEnabled = it }
-            optBool(KEY_FLOATING_KEEP_ALIVE_PRIVILEGED_ENABLED)?.let { floatingKeepAlivePrivilegedEnabled = it }
+            optBool(KEY_FLOATING_KEEP_ALIVE_PRIVILEGED_ENABLED)?.let {
+                floatingKeepAlivePrivilegedEnabled =
+                    it
+            }
 
             optBool(KEY_FLOATING_WRITE_COMPAT_ENABLED)?.let { floatingWriteTextCompatEnabled = it }
             optString(KEY_FLOATING_WRITE_COMPAT_PACKAGES)?.let { floatingWriteCompatPackages = it }
             optBool(KEY_FLOATING_WRITE_PASTE_ENABLED)?.let { floatingWriteTextPasteEnabled = it }
             optString(KEY_FLOATING_WRITE_PASTE_PACKAGES)?.let { floatingWritePastePackages = it }
 
-            optString(KEY_LLM_ENDPOINT)?.let { llmEndpoint = it.ifBlank { Prefs.DEFAULT_LLM_ENDPOINT } }
+            optString(KEY_LLM_ENDPOINT)?.let {
+                llmEndpoint =
+                    it.ifBlank { Prefs.DEFAULT_LLM_ENDPOINT }
+            }
             optString(KEY_LLM_API_KEY)?.let { llmApiKey = it }
             optString(KEY_LLM_MODEL)?.let { llmModel = it.ifBlank { Prefs.DEFAULT_LLM_MODEL } }
             optFloat(KEY_LLM_TEMPERATURE)?.let { llmTemperature = it.coerceIn(0f, 2f) }
@@ -355,7 +363,10 @@ internal object PrefsBackup {
                 }
             }
             optString(KEY_DASH_REGION)?.let { dashRegion = it }
-            optBool(KEY_DASH_FUNASR_SEMANTIC_PUNCT_ENABLED)?.let { dashFunAsrSemanticPunctEnabled = it }
+            optBool(KEY_DASH_FUNASR_SEMANTIC_PUNCT_ENABLED)?.let {
+                dashFunAsrSemanticPunctEnabled =
+                    it
+            }
             optBool(KEY_VOLC_DDC_ENABLED)?.let { volcDdcEnabled = it }
             optBool(KEY_VOLC_VAD_ENABLED)?.let { volcVadEnabled = it }
             optBool(KEY_VOLC_NONSTREAM_ENABLED)?.let { volcNonstreamEnabled = it }
@@ -407,10 +418,22 @@ internal object PrefsBackup {
             optString(KEY_PUNCT_3)?.let { punct3 = it }
             optString(KEY_PUNCT_4)?.let { punct4 = it }
             // 自定义扩展按钮（可选）
-            optString(KEY_EXT_BTN_1)?.let { extBtn1 = com.brycewg.asrkb.ime.ExtensionButtonAction.fromId(it) }
-            optString(KEY_EXT_BTN_2)?.let { extBtn2 = com.brycewg.asrkb.ime.ExtensionButtonAction.fromId(it) }
-            optString(KEY_EXT_BTN_3)?.let { extBtn3 = com.brycewg.asrkb.ime.ExtensionButtonAction.fromId(it) }
-            optString(KEY_EXT_BTN_4)?.let { extBtn4 = com.brycewg.asrkb.ime.ExtensionButtonAction.fromId(it) }
+            optString(KEY_EXT_BTN_1)?.let {
+                extBtn1 =
+                    com.brycewg.asrkb.ime.ExtensionButtonAction.fromId(it)
+            }
+            optString(KEY_EXT_BTN_2)?.let {
+                extBtn2 =
+                    com.brycewg.asrkb.ime.ExtensionButtonAction.fromId(it)
+            }
+            optString(KEY_EXT_BTN_3)?.let {
+                extBtn3 =
+                    com.brycewg.asrkb.ime.ExtensionButtonAction.fromId(it)
+            }
+            optString(KEY_EXT_BTN_4)?.let {
+                extBtn4 =
+                    com.brycewg.asrkb.ime.ExtensionButtonAction.fromId(it)
+            }
             // 统计信息（可选）
             if (o.has(KEY_TOTAL_ASR_CHARS)) {
                 // 使用 optLong，若类型为字符串/浮点将尽力转换
@@ -481,9 +504,15 @@ internal object PrefsBackup {
                 optString("${keyPrefix}_api_key")?.let { setLlmVendorApiKey(vendor, it) }
                 optString("${keyPrefix}_model")?.let { setLlmVendorModel(vendor, it) }
                 optFloat("${keyPrefix}_temperature")?.let { setLlmVendorTemperature(vendor, it) }
-                optBool("${keyPrefix}_reasoning_enabled")?.let { setLlmVendorReasoningEnabled(vendor, it) }
-                optString("${keyPrefix}_reasoning_on_json")?.let { setLlmVendorReasoningParamsOnJson(vendor, it) }
-                optString("${keyPrefix}_reasoning_off_json")?.let { setLlmVendorReasoningParamsOffJson(vendor, it) }
+                optBool("${keyPrefix}_reasoning_enabled")?.let {
+                    setLlmVendorReasoningEnabled(vendor, it)
+                }
+                optString("${keyPrefix}_reasoning_on_json")?.let {
+                    setLlmVendorReasoningParamsOnJson(vendor, it)
+                }
+                optString("${keyPrefix}_reasoning_off_json")?.let {
+                    setLlmVendorReasoningParamsOffJson(vendor, it)
+                }
                 optString("${keyPrefix}_models_json")?.let { setLlmVendorModelsJson(vendor, it) }
             }
             true

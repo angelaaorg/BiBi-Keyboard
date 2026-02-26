@@ -2,11 +2,11 @@ package com.brycewg.asrkb.store
 
 import android.util.Log
 import com.brycewg.asrkb.asr.AsrVendor
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 
 /**
  * 使用统计聚合逻辑（从 [Prefs] 中拆出）。
@@ -29,7 +29,9 @@ internal object UsageStatsStore {
             val stats = json.decodeFromString<UsageStats>(usageStatsJson)
             // 兼容老数据：填充 firstUseDate
             if (stats.firstUseDate.isBlank()) {
-                val fud = prefs.firstUseDate.ifBlank { LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE) }
+                val fud = prefs.firstUseDate.ifBlank {
+                    LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE)
+                }
                 stats.firstUseDate = fud
                 setUsageStats(prefs, json, stats)
             }
@@ -172,4 +174,3 @@ data class UsageStats(
     var daily: MutableMap<String, DayAgg> = mutableMapOf(),
     var firstUseDate: String = ""
 )
-

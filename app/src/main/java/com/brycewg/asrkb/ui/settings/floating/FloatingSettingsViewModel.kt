@@ -149,15 +149,10 @@ class FloatingSettingsViewModel : ViewModel() {
         }
     }
 
-
     /**
      * 更新悬浮球透明度
      */
-    fun updateAlpha(
-        context: Context,
-        alphaPercent: Float,
-        serviceManager: FloatingServiceManager
-    ) {
+    fun updateAlpha(context: Context, alphaPercent: Float, serviceManager: FloatingServiceManager) {
         try {
             val prefs = Prefs(context)
             _alpha.value = alphaPercent
@@ -175,11 +170,7 @@ class FloatingSettingsViewModel : ViewModel() {
     /**
      * 更新悬浮球大小
      */
-    fun updateSize(
-        context: Context,
-        sizeDp: Int,
-        serviceManager: FloatingServiceManager
-    ) {
+    fun updateSize(context: Context, sizeDp: Int, serviceManager: FloatingServiceManager) {
         try {
             val prefs = Prefs(context)
             _sizeDp.value = sizeDp
@@ -273,14 +264,16 @@ class FloatingSettingsViewModel : ViewModel() {
         }
     }
 
-
     /**
      * 检查无障碍服务是否已启用
      */
     fun isAccessibilityServiceEnabled(context: Context): Boolean {
         val expectedComponentName = "${context.packageName}/com.brycewg.asrkb.ui.AsrAccessibilityService"
         val enabledServicesSetting = try {
-            Settings.Secure.getString(context.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES)
+            Settings.Secure.getString(
+                context.contentResolver,
+                Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+            )
         } catch (e: Throwable) {
             Log.e(TAG, "Failed to check accessibility service", e)
             return false

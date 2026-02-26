@@ -69,7 +69,11 @@ internal class SenseVoicePseudoStreamDelegate(
             val normalizedSegment = try {
                 TextSanitizer.trimTrailingPunctAndEmoji(trimmed)
             } catch (t: Throwable) {
-                Log.w(tag, "trimTrailingPunctAndEmoji failed for segment, fallback to raw trimmed text", t)
+                Log.w(
+                    tag,
+                    "trimTrailingPunctAndEmoji failed for segment, fallback to raw trimmed text",
+                    t
+                )
                 trimmed
             }
             if (normalizedSegment.isEmpty()) return@launch
@@ -85,7 +89,11 @@ internal class SenseVoicePseudoStreamDelegate(
                     val previewOut = try {
                         TextSanitizer.trimTrailingPunctAndEmoji(merged)
                     } catch (t: Throwable) {
-                        Log.w(tag, "trimTrailingPunctAndEmoji failed for preview, fallback to merged", t)
+                        Log.w(
+                            tag,
+                            "trimTrailingPunctAndEmoji failed for preview, fallback to merged",
+                            t
+                        )
                         merged
                     }
                     if (sessionId != activeSessionId) return@withLock
@@ -197,10 +205,7 @@ internal class SenseVoicePseudoStreamDelegate(
         }
     }
 
-    private suspend fun decodeOnce(
-        pcm: ByteArray,
-        reportErrorToUser: Boolean
-    ): String? {
+    private suspend fun decodeOnce(pcm: ByteArray, reportErrorToUser: Boolean): String? {
         val manager = SenseVoiceOnnxManager.getInstance()
         if (!manager.isOnnxAvailable()) {
             if (reportErrorToUser) {
@@ -253,7 +258,10 @@ internal class SenseVoicePseudoStreamDelegate(
         val modelFile = selectSvModelFile(auto, variant)
         val modelPath = modelFile?.absolutePath
         val minBytes = 8L * 1024L * 1024L
-        if (modelPath == null || !java.io.File(tokensPath).exists() || (modelFile?.length() ?: 0L) < minBytes) {
+        if (modelPath == null ||
+            !java.io.File(tokensPath).exists() ||
+            (modelFile?.length() ?: 0L) < minBytes
+        ) {
             if (reportErrorToUser) {
                 try {
                     listener.onError(context.getString(R.string.error_sensevoice_model_missing))
@@ -340,7 +348,11 @@ internal class SenseVoicePseudoStreamDelegate(
         while (i < n) {
             val s = bb.short.toInt()
             var f = s / 32768.0f
-            if (f > 1f) f = 1f else if (f < -1f) f = -1f
+            if (f > 1f) {
+                f = 1f
+            } else if (f < -1f) {
+                f = -1f
+            }
             out[i] = f
             i++
         }

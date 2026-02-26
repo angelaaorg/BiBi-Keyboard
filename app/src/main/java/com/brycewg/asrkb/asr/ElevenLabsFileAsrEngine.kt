@@ -4,6 +4,9 @@ import android.content.Context
 import android.util.Log
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.store.Prefs
+import java.io.File
+import java.io.FileOutputStream
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
@@ -11,9 +14,6 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.asRequestBody
 import org.json.JSONObject
-import java.io.File
-import java.io.FileOutputStream
-import java.util.concurrent.TimeUnit
 
 /**
  * 使用 ElevenLabs Speech-to-Text 多部分 API 的非流式 ASR 引擎。
@@ -25,7 +25,8 @@ class ElevenLabsFileAsrEngine(
     listener: StreamingAsrEngine.Listener,
     onRequestDuration: ((Long) -> Unit)? = null,
     httpClient: OkHttpClient? = null
-) : BaseFileAsrEngine(context, scope, prefs, listener, onRequestDuration), PcmBatchRecognizer {
+) : BaseFileAsrEngine(context, scope, prefs, listener, onRequestDuration),
+    PcmBatchRecognizer {
 
     companion object {
         private const val TAG = "ElevenLabsFileAsrEngine"
@@ -90,7 +91,9 @@ class ElevenLabsFileAsrEngine(
                 val text = parseTextFromResponse(bodyStr)
                 if (text.isNotBlank()) {
                     val dt = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - t0)
-                    try { onRequestDuration?.invoke(dt) } catch (_: Throwable) {}
+                    try {
+                        onRequestDuration?.invoke(dt)
+                    } catch (_: Throwable) {}
                     listener.onFinal(text)
                 } else {
                     listener.onError(context.getString(R.string.error_asr_empty_result))
@@ -103,7 +106,9 @@ class ElevenLabsFileAsrEngine(
         }
     }
 
-    override suspend fun recognizeFromPcm(pcm: ByteArray) { recognize(pcm) }
+    override suspend fun recognizeFromPcm(pcm: ByteArray) {
+        recognize(pcm)
+    }
 
     /**
      * 从响应体中提取错误提示信息
@@ -129,7 +134,9 @@ class ElevenLabsFileAsrEngine(
                     val msg = e.optString("msg").ifBlank { e.optString("message") }
                     if (msg.isNotBlank()) {
                         val locStr = when (loc) {
-                            is org.json.JSONArray -> (0 until loc.length()).joinToString(".") { loc.optString(it) }
+                            is org.json.JSONArray -> (0 until loc.length()).joinToString(".") {
+                                loc.optString(it)
+                            }
                             is String -> loc
                             else -> ""
                         }
@@ -163,7 +170,9 @@ class ElevenLabsFileAsrEngine(
                             if (t.isNotEmpty()) list.add(t)
                         }
                         list.joinToString("\n").trim()
-                    } else ""
+                    } else {
+                        ""
+                    }
                 }
                 else -> ""
             }

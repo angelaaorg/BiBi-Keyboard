@@ -47,7 +47,9 @@ internal class AiEditUseCase(
             if (prefs.aiEditDefaultToLastAsr) {
                 val lastText = getLastAsrCommitText()
                 if (lastText.isNullOrEmpty()) {
-                    uiListenerProvider()?.onStatusMessage(context.getString(R.string.status_last_asr_not_found))
+                    uiListenerProvider()?.onStatusMessage(
+                        context.getString(R.string.status_last_asr_not_found)
+                    )
                     return
                 }
                 lastText
@@ -56,7 +58,9 @@ internal class AiEditUseCase(
                 val after = inputHelper.getTextAfterCursor(ic, 10000)?.toString() ?: ""
                 val all = before + after
                 if (all.isEmpty()) {
-                    uiListenerProvider()?.onStatusMessage(context.getString(R.string.hint_cannot_read_text))
+                    uiListenerProvider()?.onStatusMessage(
+                        context.getString(R.string.hint_cannot_read_text)
+                    )
                     return
                 }
                 all
@@ -104,14 +108,18 @@ internal class AiEditUseCase(
         if (!ok) {
             uiListenerProvider()?.onVibrate()
             transitionToIdle(false)
-            uiListenerProvider()?.onStatusMessage(context.getString(R.string.status_llm_edit_failed))
+            uiListenerProvider()?.onStatusMessage(
+                context.getString(R.string.status_llm_edit_failed)
+            )
             return
         }
 
         if (edited.isBlank()) {
             uiListenerProvider()?.onVibrate()
             transitionToIdle(false)
-            uiListenerProvider()?.onStatusMessage(context.getString(R.string.status_llm_empty_result))
+            uiListenerProvider()?.onStatusMessage(
+                context.getString(R.string.status_llm_empty_result)
+            )
             return
         }
 
@@ -132,7 +140,9 @@ internal class AiEditUseCase(
                     prev.copy(lastAsrCommitText = editedFinal)
                 }
             } else {
-                uiListenerProvider()?.onStatusMessage(context.getString(R.string.status_last_asr_not_found))
+                uiListenerProvider()?.onStatusMessage(
+                    context.getString(R.string.status_last_asr_not_found)
+                )
                 uiListenerProvider()?.onVibrate()
                 transitionToIdleWithTiming(false)
                 return
@@ -156,4 +166,3 @@ internal class AiEditUseCase(
         private const val TAG = "AiEditUseCase"
     }
 }
-

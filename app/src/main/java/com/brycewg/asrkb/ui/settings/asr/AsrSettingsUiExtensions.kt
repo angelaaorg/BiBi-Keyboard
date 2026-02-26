@@ -15,4 +15,3 @@ internal fun EditText.bindString(onChange: (String) -> Unit) {
         }
     )
 }
-

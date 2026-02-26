@@ -6,12 +6,10 @@ import android.content.SharedPreferences
  * DashScope 偏好项的兼容/推导逻辑（从 [Prefs] / [PrefsBackup] 中拆出）。
  */
 internal object DashScopePrefsCompat {
-    fun getDashHttpBaseUrl(dashRegion: String): String {
-        return if (dashRegion.equals("intl", ignoreCase = true)) {
-            "https://dashscope-intl.aliyuncs.com/api/v1"
-        } else {
-            "https://dashscope.aliyuncs.com/api/v1"
-        }
+    fun getDashHttpBaseUrl(dashRegion: String): String = if (dashRegion.equals("intl", ignoreCase = true)) {
+        "https://dashscope-intl.aliyuncs.com/api/v1"
+    } else {
+        "https://dashscope.aliyuncs.com/api/v1"
     }
 
     fun deriveDashAsrModelFromLegacyFlags(sp: SharedPreferences): String {
@@ -21,4 +19,3 @@ internal object DashScopePrefsCompat {
         return if (funAsr) Prefs.DASH_MODEL_FUN_ASR_REALTIME else Prefs.DASH_MODEL_QWEN3_REALTIME
     }
 }
-

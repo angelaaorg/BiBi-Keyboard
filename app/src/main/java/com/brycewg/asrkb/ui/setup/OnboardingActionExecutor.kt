@@ -35,7 +35,11 @@ internal class OnboardingActionExecutor(private val activity: AppCompatActivity)
         prefs.asrVendor = AsrVendor.SiliconFlow
         prefs.sfFreeAsrEnabled = true
         prefs.sfFreeLlmEnabled = true
-        Toast.makeText(activity, activity.getString(R.string.model_guide_sf_free_ready), Toast.LENGTH_SHORT).show()
+        Toast.makeText(
+            activity,
+            activity.getString(R.string.model_guide_sf_free_ready),
+            Toast.LENGTH_SHORT
+        ).show()
         onFinished?.invoke()
     }
 

@@ -3,10 +3,10 @@ package com.brycewg.asrkb.ui.settings.asr.sections
 import android.widget.EditText
 import android.widget.TextView
 import com.brycewg.asrkb.R
-import com.brycewg.asrkb.ui.settings.asr.bindString
 import com.brycewg.asrkb.ui.installExplainedSwitch
 import com.brycewg.asrkb.ui.settings.asr.AsrSettingsBinding
 import com.brycewg.asrkb.ui.settings.asr.AsrSettingsSection
+import com.brycewg.asrkb.ui.settings.asr.bindString
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.materialswitch.MaterialSwitch
 
@@ -35,7 +35,9 @@ internal class ElevenLabsSettingsSection : AsrSettingsSection {
 
         binding.view<MaterialButton>(R.id.btnElevenGetKey).setOnClickListener { v ->
             binding.hapticTapIfEnabled(v)
-            binding.openUrlSafely("https://bibidocs.brycewg.com/getting-started/asr-providers.html#elevenlabs")
+            binding.openUrlSafely(
+                "https://bibidocs.brycewg.com/getting-started/asr-providers.html#elevenlabs"
+            )
         }
     }
 
@@ -65,9 +67,17 @@ internal class ElevenLabsSettingsSection : AsrSettingsSection {
         tvElevenLanguage.setOnClickListener { v ->
             binding.hapticTapIfEnabled(v)
             val cur = elCodes.indexOf(binding.prefs.elevenLanguageCode).coerceAtLeast(0)
-            binding.showSingleChoiceDialog(R.string.label_eleven_language, elLabels.toTypedArray(), cur) { which ->
+            binding.showSingleChoiceDialog(
+                R.string.label_eleven_language,
+                elLabels.toTypedArray(),
+                cur
+            ) { which ->
                 val code = elCodes.getOrNull(which) ?: ""
-                if (code != binding.prefs.elevenLanguageCode) binding.prefs.elevenLanguageCode = code
+                if (code !=
+                    binding.prefs.elevenLanguageCode
+                ) {
+                    binding.prefs.elevenLanguageCode = code
+                }
                 updateElSummary()
             }
         }

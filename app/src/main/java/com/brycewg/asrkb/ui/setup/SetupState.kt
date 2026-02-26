@@ -28,10 +28,7 @@ sealed class SetupState {
      * @property askedOnce 是否已经唤起过选择器
      * @property waitingSince 开始等待的时间戳（用于超时检测）
      */
-    data class SelectingIme(
-        val askedOnce: Boolean = false,
-        val waitingSince: Long = 0L
-    ) : SetupState()
+    data class SelectingIme(val askedOnce: Boolean = false, val waitingSince: Long = 0L) : SetupState()
 
     /**
      * 请求权限阶段（麦克风、悬浮窗、通知、无障碍）

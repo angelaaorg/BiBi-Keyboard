@@ -7,15 +7,15 @@ package com.brycewg.asrkb.ui.settings.asr
 
 import android.net.Uri
 import android.os.Bundle
-import android.widget.Toast
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.store.Prefs
-import com.brycewg.asrkb.ui.WindowInsetsHelper
 import com.brycewg.asrkb.ui.BaseActivity
+import com.brycewg.asrkb.ui.WindowInsetsHelper
 import com.brycewg.asrkb.ui.settings.asr.sections.AsrSettingsToolbarSection
 import com.brycewg.asrkb.ui.settings.asr.sections.AsrSettingsUiRendererSection
 import com.brycewg.asrkb.ui.settings.asr.sections.AsrSilenceDetectionSection
@@ -217,7 +217,9 @@ class AsrSettingsActivity : BaseActivity() {
     }
 
     private fun consumeSearchForcedVendorIfNeeded() {
-        val id = intent?.getStringExtra(SettingsSearchNavigator.EXTRA_FORCE_ASR_VENDOR_ID)?.trim().orEmpty()
+        val id = intent?.getStringExtra(
+            SettingsSearchNavigator.EXTRA_FORCE_ASR_VENDOR_ID
+        )?.trim().orEmpty()
         if (id.isBlank()) return
         val vendor = com.brycewg.asrkb.asr.AsrVendor.fromId(id)
         val oldVendor = prefs.asrVendor

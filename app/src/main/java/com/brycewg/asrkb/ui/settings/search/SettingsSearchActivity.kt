@@ -160,16 +160,11 @@ class SettingsSearchActivity : BaseActivity() {
         rv.visibility = if (filtered.isEmpty()) View.GONE else View.VISIBLE
     }
 
-    private fun normalizeForSearch(raw: String): String {
-        return raw
-            .lowercase(Locale.ROOT)
-            .filter { it.isLetterOrDigit() }
-    }
+    private fun normalizeForSearch(raw: String): String = raw
+        .lowercase(Locale.ROOT)
+        .filter { it.isLetterOrDigit() }
 
-    private data class QueryParts(
-        val normalizedAll: String,
-        val normalizedTerms: List<String>
-    ) {
+    private data class QueryParts(val normalizedAll: String, val normalizedTerms: List<String>) {
         companion object {
             fun from(raw: String, normalizer: (String) -> String): QueryParts {
                 val terms = raw
@@ -179,7 +174,12 @@ class SettingsSearchActivity : BaseActivity() {
                     .filter { it.isNotBlank() }
                     .toList()
                 val all = normalizer(raw)
-                return QueryParts(normalizedAll = all, normalizedTerms = terms.ifEmpty { listOf(all) }.filter { it.isNotBlank() })
+                return QueryParts(
+                    normalizedAll = all,
+                    normalizedTerms = terms.ifEmpty {
+                        listOf(all)
+                    }.filter { it.isNotBlank() }
+                )
             }
         }
     }
@@ -243,7 +243,12 @@ class SettingsSearchActivity : BaseActivity() {
         return false
     }
 
-    private fun isEditDistanceAtMostOne(needle: String, haystack: String, start: Int, len: Int): Boolean {
+    private fun isEditDistanceAtMostOne(
+        needle: String,
+        haystack: String,
+        start: Int,
+        len: Int
+    ): Boolean {
         if (abs(needle.length - len) > 1) return false
         if (needle.length == len) {
             var diff = 0
@@ -357,15 +362,17 @@ class SettingsSearchActivity : BaseActivity() {
 
         private companion object {
             val Diff = object : DiffUtil.ItemCallback<SettingsSearchEntry>() {
-                override fun areItemsTheSame(oldItem: SettingsSearchEntry, newItem: SettingsSearchEntry): Boolean {
-                    return oldItem.activityClass == newItem.activityClass &&
-                        oldItem.targetViewId == newItem.targetViewId &&
-                        oldItem.title == newItem.title
-                }
+                override fun areItemsTheSame(
+                    oldItem: SettingsSearchEntry,
+                    newItem: SettingsSearchEntry
+                ): Boolean = oldItem.activityClass == newItem.activityClass &&
+                    oldItem.targetViewId == newItem.targetViewId &&
+                    oldItem.title == newItem.title
 
-                override fun areContentsTheSame(oldItem: SettingsSearchEntry, newItem: SettingsSearchEntry): Boolean {
-                    return oldItem == newItem
-                }
+                override fun areContentsTheSame(
+                    oldItem: SettingsSearchEntry,
+                    newItem: SettingsSearchEntry
+                ): Boolean = oldItem == newItem
             }
         }
     }

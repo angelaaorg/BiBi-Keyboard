@@ -13,10 +13,10 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import com.brycewg.asrkb.BuildConfig
-import rikka.shizuku.Shizuku
 import java.io.File
 import java.util.concurrent.CopyOnWriteArraySet
 import java.util.concurrent.atomic.AtomicBoolean
+import rikka.shizuku.Shizuku
 
 internal object PrivilegedAccessManager {
 
@@ -48,10 +48,7 @@ internal object PrivilegedAccessManager {
         val reason: String? = null
     )
 
-    data class CapabilitySnapshot(
-        val shizukuGranted: Boolean,
-        val rootAvailable: Boolean
-    ) {
+    data class CapabilitySnapshot(val shizukuGranted: Boolean, val rootAvailable: Boolean) {
         val hasAny: Boolean
             get() = shizukuGranted || rootAvailable
     }
@@ -116,17 +113,11 @@ internal object PrivilegedAccessManager {
         )
     }
 
-    fun hasPrivilegedCapability(context: Context): Boolean {
-        return snapshotCapabilities(context).hasAny
-    }
+    fun hasPrivilegedCapability(context: Context): Boolean = snapshotCapabilities(context).hasAny
 
-    fun isShizukuManagerInstalled(context: Context): Boolean {
-        return getPackageInfoOrNull(context.packageManager, SHIZUKU_MANAGER_PACKAGE) != null
-    }
+    fun isShizukuManagerInstalled(context: Context): Boolean = getPackageInfoOrNull(context.packageManager, SHIZUKU_MANAGER_PACKAGE) != null
 
-    fun isShizukuPrivilegedApiInstalled(context: Context): Boolean {
-        return getPackageInfoOrNull(context.packageManager, SHIZUKU_PRIVILEGED_API_PACKAGE) != null
-    }
+    fun isShizukuPrivilegedApiInstalled(context: Context): Boolean = getPackageInfoOrNull(context.packageManager, SHIZUKU_PRIVILEGED_API_PACKAGE) != null
 
     fun isShizukuBinderReady(): Boolean {
         init()
@@ -195,18 +186,16 @@ internal object PrivilegedAccessManager {
         }
     }
 
-    private fun requestShizukuPermissionNow(): Boolean {
-        return try {
-            if (Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED) {
-                Shizuku.requestPermission(SHIZUKU_REQUEST_CODE)
-                true
-            } else {
-                true
-            }
-        } catch (t: Throwable) {
-            if (BuildConfig.DEBUG) Log.d(TAG, "request permission failed", t)
-            false
+    private fun requestShizukuPermissionNow(): Boolean = try {
+        if (Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED) {
+            Shizuku.requestPermission(SHIZUKU_REQUEST_CODE)
+            true
+        } else {
+            true
         }
+    } catch (t: Throwable) {
+        if (BuildConfig.DEBUG) Log.d(TAG, "request permission failed", t)
+        false
     }
 
     fun isRootProbablyAvailable(): Boolean {
@@ -248,8 +237,12 @@ internal object PrivilegedAccessManager {
     private fun runShizukuShell(command: String): ExecResult? {
         return try {
             val process = createShizukuProcess(arrayOf("sh", "-c", command)) ?: return null
-            val stdout = process.inputStream?.bufferedReader()?.use { it.readText() }?.trim().orEmpty()
-            val stderr = process.errorStream?.bufferedReader()?.use { it.readText() }?.trim().orEmpty()
+            val stdout = process.inputStream?.bufferedReader()?.use {
+                it.readText()
+            }?.trim().orEmpty()
+            val stderr = process.errorStream?.bufferedReader()?.use {
+                it.readText()
+            }?.trim().orEmpty()
             val exit = try {
                 process.waitFor()
             } catch (t: Throwable) {
@@ -262,7 +255,14 @@ internal object PrivilegedAccessManager {
                 exitCode = exit,
                 stdout = stdout.ifBlank { null },
                 stderr = stderr.ifBlank { null },
-                reason = if (exit != null && exit != 0 && stderr.isBlank()) "non_zero_exit" else null
+                reason = if (exit != null &&
+                    exit != 0 &&
+                    stderr.isBlank()
+                ) {
+                    "non_zero_exit"
+                } else {
+                    null
+                }
             )
         } catch (t: Throwable) {
             if (BuildConfig.DEBUG) Log.d(TAG, "runShizukuShell failed", t)
@@ -271,57 +271,65 @@ internal object PrivilegedAccessManager {
     }
 
     @Suppress("PrivateApi")
-    private fun createShizukuProcess(cmd: Array<String>): Process? {
-        return try {
-            val method = Shizuku::class.java.getDeclaredMethod(
-                "newProcess",
-                Array<String>::class.java,
-                Array<String>::class.java,
-                String::class.java
-            )
-            method.isAccessible = true
-            method.invoke(null, cmd, null, null) as? Process
-        } catch (t: Throwable) {
-            if (BuildConfig.DEBUG) Log.d(TAG, "Shizuku.newProcess reflection failed", t)
-            null
-        }
+    private fun createShizukuProcess(cmd: Array<String>): Process? = try {
+        val method = Shizuku::class.java.getDeclaredMethod(
+            "newProcess",
+            Array<String>::class.java,
+            Array<String>::class.java,
+            String::class.java
+        )
+        method.isAccessible = true
+        method.invoke(null, cmd, null, null) as? Process
+    } catch (t: Throwable) {
+        if (BuildConfig.DEBUG) Log.d(TAG, "Shizuku.newProcess reflection failed", t)
+        null
     }
 
-    private fun runRootShell(command: String): ExecResult? {
-        return try {
-            val process = ProcessBuilder("su", "-c", command).start()
-            val stdout = process.inputStream?.bufferedReader()?.use { it.readText() }?.trim().orEmpty()
-            val stderr = process.errorStream?.bufferedReader()?.use { it.readText() }?.trim().orEmpty()
-            val exit = try {
-                process.waitFor()
-            } catch (t: Throwable) {
-                if (BuildConfig.DEBUG) Log.d(TAG, "root process waitFor failed", t)
-                null
-            }
-            ExecResult(
-                ok = exit == null || exit == 0,
-                method = PrivilegedMethod.Root,
-                exitCode = exit,
-                stdout = stdout.ifBlank { null },
-                stderr = stderr.ifBlank { null },
-                reason = if (exit != null && exit != 0 && stderr.isBlank()) "non_zero_exit" else null
-            )
+    private fun runRootShell(command: String): ExecResult? = try {
+        val process = ProcessBuilder("su", "-c", command).start()
+        val stdout = process.inputStream?.bufferedReader()?.use {
+            it.readText()
+        }?.trim().orEmpty()
+        val stderr = process.errorStream?.bufferedReader()?.use {
+            it.readText()
+        }?.trim().orEmpty()
+        val exit = try {
+            process.waitFor()
         } catch (t: Throwable) {
-            if (BuildConfig.DEBUG) Log.d(TAG, "runRootShell failed", t)
+            if (BuildConfig.DEBUG) Log.d(TAG, "root process waitFor failed", t)
             null
         }
+        ExecResult(
+            ok = exit == null || exit == 0,
+            method = PrivilegedMethod.Root,
+            exitCode = exit,
+            stdout = stdout.ifBlank { null },
+            stderr = stderr.ifBlank { null },
+            reason = if (exit != null &&
+                exit != 0 &&
+                stderr.isBlank()
+            ) {
+                "non_zero_exit"
+            } else {
+                null
+            }
+        )
+    } catch (t: Throwable) {
+        if (BuildConfig.DEBUG) Log.d(TAG, "runRootShell failed", t)
+        null
     }
 
     @Suppress("DEPRECATION")
-    private fun getPackageInfoOrNull(packageManager: PackageManager, packageName: String): PackageInfo? {
-        return try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                packageManager.getPackageInfo(packageName, PackageManager.PackageInfoFlags.of(0))
-            } else {
-                packageManager.getPackageInfo(packageName, 0)
-            }
-        } catch (_: Throwable) {
-            null
+    private fun getPackageInfoOrNull(
+        packageManager: PackageManager,
+        packageName: String
+    ): PackageInfo? = try {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            packageManager.getPackageInfo(packageName, PackageManager.PackageInfoFlags.of(0))
+        } else {
+            packageManager.getPackageInfo(packageName, 0)
         }
+    } catch (_: Throwable) {
+        null
     }
 }

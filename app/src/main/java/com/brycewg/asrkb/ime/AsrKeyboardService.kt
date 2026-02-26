@@ -1,36 +1,36 @@
 package com.brycewg.asrkb.ime
 
 import android.Manifest
-import android.content.BroadcastReceiver
-import android.content.IntentFilter
-import android.content.Intent
 import android.annotation.SuppressLint
+import android.content.BroadcastReceiver
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.inputmethodservice.InputMethodService
-import android.view.LayoutInflater
 import android.view.ContextThemeWrapper
+import android.view.LayoutInflater
 import android.view.View
-import android.view.inputmethod.InputMethodManager
 import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
+import androidx.appcompat.widget.PopupMenu
 import androidx.core.content.ContextCompat
+import com.brycewg.asrkb.LocaleHelper
 import com.brycewg.asrkb.R
+import com.brycewg.asrkb.UiColors
 import com.brycewg.asrkb.asr.AsrVendor
 import com.brycewg.asrkb.asr.BluetoothRouteManager
 import com.brycewg.asrkb.asr.LlmPostProcessor
 import com.brycewg.asrkb.asr.partitionAsrVendorsByConfigured
 import com.brycewg.asrkb.store.Prefs
-import com.brycewg.asrkb.util.HapticFeedbackHelper
-import com.brycewg.asrkb.ui.SettingsActivity
+import com.brycewg.asrkb.store.debug.DebugLogManager
 import com.brycewg.asrkb.ui.AsrVendorUi
+import com.brycewg.asrkb.ui.SettingsActivity
+import com.brycewg.asrkb.util.HapticFeedbackHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
-import com.brycewg.asrkb.LocaleHelper
-import com.brycewg.asrkb.UiColors
-import com.brycewg.asrkb.store.debug.DebugLogManager
-import androidx.appcompat.widget.PopupMenu
 
 /**
  * ASR 键盘服务
@@ -48,7 +48,9 @@ import androidx.appcompat.widget.PopupMenu
  * - InputConnectionHelper: 输入连接操作封装
  * - BackspaceGestureHandler: 退格手势处理
  */
-class AsrKeyboardService : InputMethodService(), KeyboardActionHandler.UiListener {
+class AsrKeyboardService :
+    InputMethodService(),
+    KeyboardActionHandler.UiListener {
 
     companion object {
         const val ACTION_REFRESH_IME_UI = "com.brycewg.asrkb.action.REFRESH_IME_UI"
@@ -93,9 +95,11 @@ class AsrKeyboardService : InputMethodService(), KeyboardActionHandler.UiListene
 
     // ========== 剪贴板和其他辅助功能 ==========
     private var prefsReceiver: BroadcastReceiver? = null
+
     // 本地模型首次出现预热仅触发一次
     private var localPreloadTriggered: Boolean = false
     private var suppressReturnPrevImeOnHideOnce: Boolean = false
+
     // 记录最近一次在 IME 内弹出菜单的时间，用于限制“防误收起”逻辑的作用窗口
     private var lastPopupMenuShownAt: Long = 0L
 
@@ -153,12 +157,16 @@ class AsrKeyboardService : InputMethodService(), KeyboardActionHandler.UiListene
         prefsReceiver = r
         try {
             androidx.core.content.ContextCompat.registerReceiver(
-                /* context = */ this,
-                /* receiver = */ r,
-                /* filter = */ IntentFilter().apply {
+                /* context = */
+                this,
+                /* receiver = */
+                r,
+                /* filter = */
+                IntentFilter().apply {
                     addAction(ACTION_REFRESH_IME_UI)
                 },
-                /* flags = */ androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
+                /* flags = */
+                androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
             )
         } catch (e: Throwable) {
             android.util.Log.e("AsrKeyboardService", "Failed to register prefsReceiver", e)
@@ -180,22 +188,22 @@ class AsrKeyboardService : InputMethodService(), KeyboardActionHandler.UiListene
     }
 
     @SuppressLint("InflateParams")
-    override fun onCreateInputView(): View {
-        return createKeyboardView()
+    override fun onCreateInputView(): View = createKeyboardView()
+
+    private fun createKeyboardView(): View {
+        val themedContext = ContextThemeWrapper(this, R.style.Theme_ASRKeyboard_Ime)
+        val dynamicContext = com.google.android.material.color.DynamicColors.wrapContextIfAvailable(
+            themedContext
+        )
+        val view = LayoutInflater.from(dynamicContext).inflate(R.layout.keyboard_view, null, false)
+        return setupKeyboardView(view)
     }
 
-  private fun createKeyboardView(): View {
-    val themedContext = ContextThemeWrapper(this, R.style.Theme_ASRKeyboard_Ime)
-    val dynamicContext = com.google.android.material.color.DynamicColors.wrapContextIfAvailable(themedContext)
-    val view = LayoutInflater.from(dynamicContext).inflate(R.layout.keyboard_view, null, false)
-    return setupKeyboardView(view)
-  }
+    private fun setupKeyboardView(view: View): View {
+        rootView = view
 
-  private fun setupKeyboardView(view: View): View {
-    rootView = view
-
-    // 根据主题动态调整键盘背景色，使其略浅于当前容器色但仍明显深于普通按键与麦克风按钮
-    themeStyler.applyKeyboardBackgroundColor(view)
+        // 根据主题动态调整键盘背景色，使其略浅于当前容器色但仍明显深于普通按键与麦克风按钮
+        themeStyler.applyKeyboardBackgroundColor(view)
 
         // 应用 Window Insets 以适配 Android 15 边缘到边缘显示
         layoutController?.installKeyboardInsetsListener(view)
@@ -240,14 +248,18 @@ class AsrKeyboardService : InputMethodService(), KeyboardActionHandler.UiListene
                 "inputType" to (info?.inputType ?: 0),
                 "imeOptions" to (info?.imeOptions ?: 0),
                 "icNull" to (currentInputConnection == null),
-                "isMultiLine" to ((info?.inputType ?: 0) and android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE != 0),
-                "actionId" to ((info?.imeOptions ?: 0) and android.view.inputmethod.EditorInfo.IME_MASK_ACTION)
+                "isMultiLine" to
+                    (
+                        (info?.inputType ?: 0) and android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE !=
+                            0
+                        ),
+                "actionId" to
+                    ((info?.imeOptions ?: 0) and android.view.inputmethod.EditorInfo.IME_MASK_ACTION)
             )
         )
 
         // 键盘面板首次出现时，按需异步预加载本地模型（SenseVoice/FunASR Nano/Paraformer）
         tryPreloadLocalModel()
-
 
         // 刷新 UI
         viewRefs?.btnImeSwitcher?.visibility = View.VISIBLE
@@ -259,7 +271,6 @@ class AsrKeyboardService : InputMethodService(), KeyboardActionHandler.UiListene
         if (asrManager.isRunning()) {
             onStateChanged(actionHandler.getCurrentState())
         }
-
 
         // 同步系统栏颜色
         rootView?.post { syncSystemBarsToKeyboardBackground(rootView) }
@@ -276,7 +287,13 @@ class AsrKeyboardService : InputMethodService(), KeyboardActionHandler.UiListene
         clipboardCoordinator?.startClipboardPreviewListener()
 
         // 预热耳机路由（键盘显示）
-        try { BluetoothRouteManager.setImeActive(this, true) } catch (t: Throwable) { android.util.Log.w("AsrKeyboardService", "BluetoothRouteManager setImeActive(true)", t) }
+        try {
+            BluetoothRouteManager.setImeActive(this, true)
+        } catch (
+            t: Throwable
+        ) {
+            android.util.Log.w("AsrKeyboardService", "BluetoothRouteManager setImeActive(true)", t)
+        }
 
         // 自动启动录音（如果开启了设置）
         if (prefs.autoStartRecordingOnShow) {
@@ -294,7 +311,6 @@ class AsrKeyboardService : InputMethodService(), KeyboardActionHandler.UiListene
                 }, 100)
             }
         }
-
     }
 
     override fun onUpdateSelection(
@@ -305,7 +321,14 @@ class AsrKeyboardService : InputMethodService(), KeyboardActionHandler.UiListene
         candidatesStart: Int,
         candidatesEnd: Int
     ) {
-        super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd, candidatesStart, candidatesEnd)
+        super.onUpdateSelection(
+            oldSelStart,
+            oldSelEnd,
+            newSelStart,
+            newSelEnd,
+            candidatesStart,
+            candidatesEnd
+        )
         aiEditPanelController?.onSelectionChanged(newSelStart, newSelEnd)
     }
 
@@ -321,7 +344,13 @@ class AsrKeyboardService : InputMethodService(), KeyboardActionHandler.UiListene
         resetPanelsToMainKeyboard()
 
         // 键盘收起，解除预热（若未在录音）
-        try { BluetoothRouteManager.setImeActive(this, false) } catch (t: Throwable) { android.util.Log.w("AsrKeyboardService", "BluetoothRouteManager setImeActive(false)", t) }
+        try {
+            BluetoothRouteManager.setImeActive(this, false)
+        } catch (
+            t: Throwable
+        ) {
+            android.util.Log.w("AsrKeyboardService", "BluetoothRouteManager setImeActive(false)", t)
+        }
 
         // 如开启：键盘收起后自动切回上一个输入法
         if (prefs.returnPrevImeOnHide) {
@@ -415,7 +444,7 @@ class AsrKeyboardService : InputMethodService(), KeyboardActionHandler.UiListene
             isClipboardPanelVisible = { clipboardPanelController?.isVisible == true },
             refreshClipboardPanelList = { clipboardPanelController?.refreshList() ?: Unit },
             clipStoreProvider = { clipboardPanelController?.store },
-            showStatusMessage = { msg -> uiRenderer?.showStatusMessage(msg) ?: Unit },
+            showStatusMessage = { msg -> uiRenderer?.showStatusMessage(msg) ?: Unit }
         )
         clipboardCoordinator = coordinator
 
@@ -430,7 +459,7 @@ class AsrKeyboardService : InputMethodService(), KeyboardActionHandler.UiListene
             showAiEditHint = { message -> uiRenderer?.showAiEditFunctionHint(message) ?: Unit },
             showPopupMenuKeepingIme = ::showPopupMenuKeepingIme,
             inputConnectionProvider = { currentInputConnection },
-            onRequestShowNumpad = { returnToAiPanel -> showNumpadPanel(returnToAiPanel) },
+            onRequestShowNumpad = { returnToAiPanel -> showNumpadPanel(returnToAiPanel) }
         )
         numpadPanelController = NumpadPanelController(
             prefs = prefs,
@@ -441,7 +470,7 @@ class AsrKeyboardService : InputMethodService(), KeyboardActionHandler.UiListene
             performKeyHaptic = ::performKeyHaptic,
             inputConnectionProvider = { currentInputConnection },
             editorInfoProvider = { currentInputEditorInfo },
-            onRequestShowAiEditPanel = { showAiEditPanel() },
+            onRequestShowAiEditPanel = { showAiEditPanel() }
         )
         clipboardPanelController = ClipboardPanelController(
             context = this,
@@ -452,7 +481,7 @@ class AsrKeyboardService : InputMethodService(), KeyboardActionHandler.UiListene
             inputConnectionProvider = { currentInputConnection },
             showPopupMenuKeepingIme = ::showPopupMenuKeepingIme,
             onOpenFile = coordinator::openFile,
-            onDownloadFile = coordinator::downloadClipboardFile,
+            onDownloadFile = coordinator::downloadClipboardFile
         )
         micGestureController = MicGestureController(
             prefs = prefs,
@@ -462,7 +491,7 @@ class AsrKeyboardService : InputMethodService(), KeyboardActionHandler.UiListene
             checkAsrReady = ::checkAsrReady,
             inputConnectionProvider = { currentInputConnection },
             isAiEditPanelVisible = { isAiEditPanelVisible },
-            onLockedBySwipeChanged = { onStateChanged(actionHandler.getCurrentState()) },
+            onLockedBySwipeChanged = { onStateChanged(actionHandler.getCurrentState()) }
         )
 
         uiRenderer = ImeUiRenderer(
@@ -477,7 +506,7 @@ class AsrKeyboardService : InputMethodService(), KeyboardActionHandler.UiListene
             micGestureController = { micGestureController },
             downloadClipboardFileById = coordinator::downloadClipboardFileById,
             markShownClipboardText = coordinator::markShownText,
-            copyTextToSystemClipboard = coordinator::copyPlainTextToSystemClipboard,
+            copyTextToSystemClipboard = coordinator::copyPlainTextToSystemClipboard
         )
         mainKeyboardBinder = ImeMainKeyboardBinder(
             context = this,
@@ -501,7 +530,7 @@ class AsrKeyboardService : InputMethodService(), KeyboardActionHandler.UiListene
             showVendorPicker = ::showVendorPicker,
             onImeSwitchButtonClicked = ::handleImeSwitchClick,
             inputConnectionProvider = { currentInputConnection },
-            editorInfoProvider = { currentInputEditorInfo },
+            editorInfoProvider = { currentInputEditorInfo }
         )
         extensionButtonsController = ImeExtensionButtonsController(
             prefs = prefs,
@@ -514,7 +543,7 @@ class AsrKeyboardService : InputMethodService(), KeyboardActionHandler.UiListene
             updateSelectExtButtonsUi = { aiEditPanelController?.applySelectExtButtonsUi() },
             showNumpadPanel = { showNumpadPanel(returnToAiPanel = false) },
             showClipboardPanel = { showClipboardPanel() },
-            hideKeyboardPanel = { hideKeyboardPanel() },
+            hideKeyboardPanel = { hideKeyboardPanel() }
         )
     }
 
@@ -600,7 +629,11 @@ class AsrKeyboardService : InputMethodService(), KeyboardActionHandler.UiListene
                 try {
                     requestShowSelf(0)
                 } catch (t: Throwable) {
-                    android.util.Log.w("AsrKeyboardService", "Failed to re-show IME after popup dismiss", t)
+                    android.util.Log.w(
+                        "AsrKeyboardService",
+                        "Failed to re-show IME after popup dismiss",
+                        t
+                    )
                 }
             }
         }
@@ -635,7 +668,8 @@ class AsrKeyboardService : InputMethodService(), KeyboardActionHandler.UiListene
                     ?: com.brycewg.asrkb.asr.findSvModelDir(probeRoot)
                 if (found == null) {
                     uiRenderer?.clearStatusTextStyle()
-                    viewRefs?.txtStatusText?.text = getString(R.string.error_sensevoice_model_missing)
+                    viewRefs?.txtStatusText?.text =
+                        getString(R.string.error_sensevoice_model_missing)
                     return false
                 }
             }
@@ -675,12 +709,10 @@ class AsrKeyboardService : InputMethodService(), KeyboardActionHandler.UiListene
         }
     }
 
-    private fun hasRecordAudioPermission(): Boolean {
-        return ContextCompat.checkSelfPermission(
-            this,
-            Manifest.permission.RECORD_AUDIO
-        ) == PackageManager.PERMISSION_GRANTED
-    }
+    private fun hasRecordAudioPermission(): Boolean = ContextCompat.checkSelfPermission(
+        this,
+        Manifest.permission.RECORD_AUDIO
+    ) == PackageManager.PERMISSION_GRANTED
 
     private fun vibrateTick() {
         HapticFeedbackHelper.performTap(this, prefs, rootView)
@@ -746,13 +778,11 @@ class AsrKeyboardService : InputMethodService(), KeyboardActionHandler.UiListene
         return true
     }
 
-    private fun safeSwitchToPreviousInputMethod(): Boolean {
-        return try {
-            switchToPreviousInputMethod()
-        } catch (t: Throwable) {
-            android.util.Log.w("AsrKeyboardService", "Failed to switch to previous input method", t)
-            false
-        }
+    private fun safeSwitchToPreviousInputMethod(): Boolean = try {
+        switchToPreviousInputMethod()
+    } catch (t: Throwable) {
+        android.util.Log.w("AsrKeyboardService", "Failed to switch to previous input method", t)
+        false
     }
 
     private fun showPromptPicker(anchor: View) {
@@ -796,16 +826,24 @@ class AsrKeyboardService : InputMethodService(), KeyboardActionHandler.UiListene
 
                 // 离开本地引擎时卸载缓存识别器，释放内存
                 try {
-                    if (old == com.brycewg.asrkb.asr.AsrVendor.SenseVoice && vendor != com.brycewg.asrkb.asr.AsrVendor.SenseVoice) {
+                    if (old == com.brycewg.asrkb.asr.AsrVendor.SenseVoice &&
+                        vendor != com.brycewg.asrkb.asr.AsrVendor.SenseVoice
+                    ) {
                         com.brycewg.asrkb.asr.unloadSenseVoiceRecognizer()
                     }
-                    if (old == com.brycewg.asrkb.asr.AsrVendor.FunAsrNano && vendor != com.brycewg.asrkb.asr.AsrVendor.FunAsrNano) {
+                    if (old == com.brycewg.asrkb.asr.AsrVendor.FunAsrNano &&
+                        vendor != com.brycewg.asrkb.asr.AsrVendor.FunAsrNano
+                    ) {
                         com.brycewg.asrkb.asr.unloadFunAsrNanoRecognizer()
                     }
-                    if (old == com.brycewg.asrkb.asr.AsrVendor.Telespeech && vendor != com.brycewg.asrkb.asr.AsrVendor.Telespeech) {
+                    if (old == com.brycewg.asrkb.asr.AsrVendor.Telespeech &&
+                        vendor != com.brycewg.asrkb.asr.AsrVendor.Telespeech
+                    ) {
                         com.brycewg.asrkb.asr.unloadTelespeechRecognizer()
                     }
-                    if (old == com.brycewg.asrkb.asr.AsrVendor.Paraformer && vendor != com.brycewg.asrkb.asr.AsrVendor.Paraformer) {
+                    if (old == com.brycewg.asrkb.asr.AsrVendor.Paraformer &&
+                        vendor != com.brycewg.asrkb.asr.AsrVendor.Paraformer
+                    ) {
                         com.brycewg.asrkb.asr.unloadParaformerRecognizer()
                     }
                 } catch (t: Throwable) {
@@ -820,14 +858,38 @@ class AsrKeyboardService : InputMethodService(), KeyboardActionHandler.UiListene
                 // 切换到本地引擎且启用预加载时，尝试预加载
                 try {
                     when (vendor) {
-                        com.brycewg.asrkb.asr.AsrVendor.SenseVoice -> if (prefs.svPreloadEnabled) com.brycewg.asrkb.asr.preloadSenseVoiceIfConfigured(this, prefs)
-                        com.brycewg.asrkb.asr.AsrVendor.FunAsrNano -> if (prefs.fnPreloadEnabled) com.brycewg.asrkb.asr.preloadFunAsrNanoIfConfigured(this, prefs)
-                        com.brycewg.asrkb.asr.AsrVendor.Telespeech -> if (prefs.tsPreloadEnabled) com.brycewg.asrkb.asr.preloadTelespeechIfConfigured(this, prefs)
-                        com.brycewg.asrkb.asr.AsrVendor.Paraformer -> if (prefs.pfPreloadEnabled) com.brycewg.asrkb.asr.preloadParaformerIfConfigured(this, prefs)
+                        com.brycewg.asrkb.asr.AsrVendor.SenseVoice -> if (prefs.svPreloadEnabled) {
+                            com.brycewg.asrkb.asr.preloadSenseVoiceIfConfigured(
+                                this,
+                                prefs
+                            )
+                        }
+                        com.brycewg.asrkb.asr.AsrVendor.FunAsrNano -> if (prefs.fnPreloadEnabled) {
+                            com.brycewg.asrkb.asr.preloadFunAsrNanoIfConfigured(
+                                this,
+                                prefs
+                            )
+                        }
+                        com.brycewg.asrkb.asr.AsrVendor.Telespeech -> if (prefs.tsPreloadEnabled) {
+                            com.brycewg.asrkb.asr.preloadTelespeechIfConfigured(
+                                this,
+                                prefs
+                            )
+                        }
+                        com.brycewg.asrkb.asr.AsrVendor.Paraformer -> if (prefs.pfPreloadEnabled) {
+                            com.brycewg.asrkb.asr.preloadParaformerIfConfigured(
+                                this,
+                                prefs
+                            )
+                        }
                         else -> {}
                     }
                 } catch (t: Throwable) {
-                    android.util.Log.e("AsrKeyboardService", "Failed to preload local recognizer", t)
+                    android.util.Log.e(
+                        "AsrKeyboardService",
+                        "Failed to preload local recognizer",
+                        t
+                    )
                 }
 
                 // 状态栏提示
@@ -835,7 +897,11 @@ class AsrKeyboardService : InputMethodService(), KeyboardActionHandler.UiListene
                 val name = try {
                     AsrVendorUi.name(this, vendor)
                 } catch (t: Throwable) {
-                    android.util.Log.w("AsrKeyboardService", "Failed to resolve AsrVendorUi name: $vendor", t)
+                    android.util.Log.w(
+                        "AsrKeyboardService",
+                        "Failed to resolve AsrVendorUi name: $vendor",
+                        t
+                    )
                     vendor.name
                 }
                 viewRefs?.txtStatusText?.text = getString(R.string.switched_preset, name)
@@ -856,7 +922,10 @@ class AsrKeyboardService : InputMethodService(), KeyboardActionHandler.UiListene
             else -> false
         }
         if (!enabled) return
-        if (com.brycewg.asrkb.asr.isLocalAsrPrepared(p)) { localPreloadTriggered = true; return }
+        if (com.brycewg.asrkb.asr.isLocalAsrPrepared(p)) {
+            localPreloadTriggered = true
+            return
+        }
 
         // 信息栏显示"加载中…"，完成后回退状态
         rootView?.post {
@@ -875,11 +944,18 @@ class AsrKeyboardService : InputMethodService(), KeyboardActionHandler.UiListene
                     val dt = (android.os.SystemClock.uptimeMillis() - t0).coerceAtLeast(0)
                     rootView?.post {
                         uiRenderer?.clearStatusTextStyle()
-                        viewRefs?.txtStatusText?.text = getString(R.string.sv_model_ready_with_ms, dt)
+                        viewRefs?.txtStatusText?.text =
+                            getString(R.string.sv_model_ready_with_ms, dt)
                         rootView?.postDelayed({
                             uiRenderer?.clearStatusTextStyle()
                             viewRefs?.txtStatusText?.text =
-                                if (asrManager.isRunning()) getString(R.string.status_listening) else getString(R.string.status_idle)
+                                if (asrManager.isRunning()) {
+                                    getString(
+                                        R.string.status_listening
+                                    )
+                                } else {
+                                    getString(R.string.status_idle)
+                                }
                         }, 1200)
                     }
                 },

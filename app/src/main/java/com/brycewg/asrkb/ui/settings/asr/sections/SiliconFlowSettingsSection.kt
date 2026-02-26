@@ -6,9 +6,9 @@ import android.widget.ImageView
 import android.widget.TextView
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.store.Prefs
-import com.brycewg.asrkb.ui.settings.asr.bindString
 import com.brycewg.asrkb.ui.settings.asr.AsrSettingsBinding
 import com.brycewg.asrkb.ui.settings.asr.AsrSettingsSection
+import com.brycewg.asrkb.ui.settings.asr.bindString
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.materialswitch.MaterialSwitch
 
@@ -21,14 +21,17 @@ internal class SiliconFlowSettingsSection : AsrSettingsSection {
         val imgSfFreePoweredBy = binding.view<ImageView>(R.id.imgSfFreePoweredBy)
 
         val isDarkMode =
-            (binding.activity.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+            (binding.activity.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
+                Configuration.UI_MODE_NIGHT_YES
         imgSfFreePoweredBy.setImageResource(
             if (isDarkMode) R.drawable.powered_by_siliconflow_dark else R.drawable.powered_by_siliconflow_light
         )
 
         fun updateSfFreeUi(freeEnabled: Boolean) {
-            groupSfFreeModel.visibility = if (freeEnabled) android.view.View.VISIBLE else android.view.View.GONE
-            groupSfApiKey.visibility = if (freeEnabled) android.view.View.GONE else android.view.View.VISIBLE
+            groupSfFreeModel.visibility =
+                if (freeEnabled) android.view.View.VISIBLE else android.view.View.GONE
+            groupSfApiKey.visibility =
+                if (freeEnabled) android.view.View.GONE else android.view.View.VISIBLE
         }
 
         switchSfFreeEnabled.isChecked = binding.prefs.sfFreeAsrEnabled
@@ -41,8 +44,14 @@ internal class SiliconFlowSettingsSection : AsrSettingsSection {
         }
 
         val sfFreeModels = Prefs.SF_FREE_ASR_MODELS
-        val initialFreeModel = binding.prefs.sfFreeAsrModel.ifBlank { Prefs.DEFAULT_SF_FREE_ASR_MODEL }
-        if (initialFreeModel != binding.prefs.sfFreeAsrModel) binding.prefs.sfFreeAsrModel = initialFreeModel
+        val initialFreeModel = binding.prefs.sfFreeAsrModel.ifBlank {
+            Prefs.DEFAULT_SF_FREE_ASR_MODEL
+        }
+        if (initialFreeModel !=
+            binding.prefs.sfFreeAsrModel
+        ) {
+            binding.prefs.sfFreeAsrModel = initialFreeModel
+        }
         tvSfFreeModelValue.text = initialFreeModel
 
         tvSfFreeModelValue.setOnClickListener { v ->
@@ -68,7 +77,9 @@ internal class SiliconFlowSettingsSection : AsrSettingsSection {
 
         binding.view<MaterialButton>(R.id.btnSfFreeGuide).setOnClickListener { v ->
             binding.hapticTapIfEnabled(v)
-            binding.openUrlSafely("https://bibidocs.brycewg.com/getting-started/asr-providers.html#%E7%A1%85%E5%9F%BA%E6%B5%81%E5%8A%A8-siliconflow")
+            binding.openUrlSafely(
+                "https://bibidocs.brycewg.com/getting-started/asr-providers.html#%E7%A1%85%E5%9F%BA%E6%B5%81%E5%8A%A8-siliconflow"
+            )
         }
 
         binding.view<EditText>(R.id.etSfApiKey).apply {
@@ -86,15 +97,14 @@ internal class SiliconFlowSettingsSection : AsrSettingsSection {
 
         fun isOmni(model: String): Boolean = model.startsWith("Qwen/Qwen3-Omni-30B-A3B-")
 
-        fun ensureValidModel(current: String): String {
-            return if (current in sfModels) {
-                current
-            } else {
-                if (binding.prefs.sfUseOmni) Prefs.DEFAULT_SF_OMNI_MODEL else Prefs.DEFAULT_SF_MODEL
-            }
+        fun ensureValidModel(current: String): String = if (current in sfModels) {
+            current
+        } else {
+            if (binding.prefs.sfUseOmni) Prefs.DEFAULT_SF_OMNI_MODEL else Prefs.DEFAULT_SF_MODEL
         }
 
-        val initialModel = ensureValidModel(binding.prefs.sfModel.ifBlank { Prefs.DEFAULT_SF_MODEL })
+        val initialModel =
+            ensureValidModel(binding.prefs.sfModel.ifBlank { Prefs.DEFAULT_SF_MODEL })
         if (initialModel != binding.prefs.sfModel) binding.prefs.sfModel = initialModel
         tvSfModelValue.text = initialModel
 
@@ -122,7 +132,9 @@ internal class SiliconFlowSettingsSection : AsrSettingsSection {
 
         binding.view<MaterialButton>(R.id.btnSfGetKey).setOnClickListener { v ->
             binding.hapticTapIfEnabled(v)
-            binding.openUrlSafely("https://bibidocs.brycewg.com/getting-started/asr-providers.html#%E7%A1%85%E5%9F%BA%E6%B5%81%E5%8A%A8-siliconflow")
+            binding.openUrlSafely(
+                "https://bibidocs.brycewg.com/getting-started/asr-providers.html#%E7%A1%85%E5%9F%BA%E6%B5%81%E5%8A%A8-siliconflow"
+            )
         }
     }
 }

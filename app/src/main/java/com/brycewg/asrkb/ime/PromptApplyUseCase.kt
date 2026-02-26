@@ -25,7 +25,9 @@ internal class PromptApplyUseCase(
         if (ic == null) return
         scope.launch {
             if (!prefs.hasLlmKeys()) {
-                uiListenerProvider()?.onStatusMessage(context.getString(R.string.hint_need_llm_keys))
+                uiListenerProvider()?.onStatusMessage(
+                    context.getString(R.string.hint_need_llm_keys)
+                )
                 return@launch
             }
 
@@ -58,7 +60,9 @@ internal class PromptApplyUseCase(
                 TargetMode.LAST_ASR -> {
                     val replaced = inputHelper.replaceText(ic, target.text, out)
                     if (!replaced) {
-                        uiListenerProvider()?.onStatusMessage(context.getString(R.string.status_last_asr_not_found))
+                        uiListenerProvider()?.onStatusMessage(
+                            context.getString(R.string.status_last_asr_not_found)
+                        )
                         return@launch
                     }
                     updateSessionContext { prev -> prev.copy(lastAsrCommitText = out) }
@@ -83,17 +87,16 @@ internal class PromptApplyUseCase(
             }
 
             if (!ok) {
-                uiListenerProvider()?.onStatusMessage(context.getString(R.string.status_llm_failed_used_raw))
+                uiListenerProvider()?.onStatusMessage(
+                    context.getString(R.string.status_llm_failed_used_raw)
+                )
             } else {
                 uiListenerProvider()?.onStatusMessage(context.getString(R.string.status_idle))
             }
         }
     }
 
-    private data class Target(
-        val mode: TargetMode,
-        val text: String
-    )
+    private data class Target(val mode: TargetMode, val text: String)
 
     private enum class TargetMode {
         SELECTION,
@@ -124,4 +127,3 @@ internal class PromptApplyUseCase(
         return Target(TargetMode.ENTIRE, all)
     }
 }
-

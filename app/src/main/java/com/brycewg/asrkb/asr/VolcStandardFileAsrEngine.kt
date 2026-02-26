@@ -5,6 +5,8 @@ import android.util.Base64
 import android.util.Log
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.store.Prefs
+import java.util.UUID
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import okhttp3.MediaType.Companion.toMediaType
@@ -12,8 +14,6 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
-import java.util.UUID
-import java.util.concurrent.TimeUnit
 
 /**
  * 火山引擎 ASR 2.0 录音文件识别（标准版，submit/query）引擎。
@@ -26,7 +26,8 @@ class VolcStandardFileAsrEngine(
     listener: StreamingAsrEngine.Listener,
     onRequestDuration: ((Long) -> Unit)? = null,
     httpClient: OkHttpClient? = null
-) : BaseFileAsrEngine(context, scope, prefs, listener, onRequestDuration), PcmBatchRecognizer {
+) : BaseFileAsrEngine(context, scope, prefs, listener, onRequestDuration),
+    PcmBatchRecognizer {
 
     companion object {
         private const val TAG = "VolcStandardFileAsr"
@@ -201,17 +202,15 @@ class VolcStandardFileAsrEngine(
         return header.toLongOrNull()
     }
 
-    private fun extractText(bodyStr: String): String {
-        return try {
-            val obj = JSONObject(bodyStr)
-            if (obj.has("result")) {
-                obj.getJSONObject("result").optString("text", "")
-            } else {
-                ""
-            }
-        } catch (t: Throwable) {
-            Log.e(TAG, "Failed to parse standard file ASR result", t)
+    private fun extractText(bodyStr: String): String = try {
+        val obj = JSONObject(bodyStr)
+        if (obj.has("result")) {
+            obj.getJSONObject("result").optString("text", "")
+        } else {
             ""
         }
+    } catch (t: Throwable) {
+        Log.e(TAG, "Failed to parse standard file ASR result", t)
+        ""
     }
 }

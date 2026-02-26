@@ -115,10 +115,5 @@ object WindowInsetsHelper {
         return null
     }
 
-    private data class Rect(
-        val left: Int,
-        val top: Int,
-        val right: Int,
-        val bottom: Int
-    )
+    private data class Rect(val left: Int, val top: Int, val right: Int, val bottom: Int)
 }
