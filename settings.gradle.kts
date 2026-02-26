@@ -17,4 +17,3 @@ dependencyResolutionManagement {
 
 rootProject.name = "BiBi-Keyboard"
 include(":app")
-

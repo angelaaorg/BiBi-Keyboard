@@ -21,7 +21,8 @@ dist/
 app/src/pro/
 app/oss
 pro-dev/
-fcitx5-android-lexi-keyboard/
+fcitx5-android-bibi-keyboard/
+trime-bibi-keyboard/
 website/
 openspec/
 speechrecognizer-tester/
