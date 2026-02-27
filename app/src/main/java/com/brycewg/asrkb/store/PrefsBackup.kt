@@ -76,7 +76,8 @@ internal object PrefsBackup {
         o.put(KEY_SF_FREE_ASR_MODEL, sfFreeAsrModel)
         o.put(KEY_SF_USE_OMNI, sfUseOmni)
         o.put(KEY_SF_OMNI_PROMPT, sfOmniPrompt)
-        // OpenAI ASR：Prompt 开关（布尔）
+        // OpenAI ASR：流式/Prompt 开关（布尔）
+        o.put(KEY_OA_ASR_STREAMING_ENABLED, oaAsrStreamingEnabled)
         o.put(KEY_OA_ASR_USE_PROMPT, oaAsrUsePrompt)
         // Volcano streaming toggle
         o.put(KEY_VOLC_STREAMING_ENABLED, volcStreamingEnabled)
@@ -346,7 +347,8 @@ internal object PrefsBackup {
             optFloat(KEY_LLM_TEMPERATURE)?.let { llmTemperature = it.coerceIn(0f, 2f) }
             optBool(KEY_AI_EDIT_DEFAULT_TO_LAST_ASR)?.let { aiEditDefaultToLastAsr = it }
             optInt(KEY_POSTPROC_SKIP_UNDER_CHARS)?.let { postprocSkipUnderChars = it }
-            // OpenAI ASR：Prompt 开关
+            // OpenAI ASR：流式/Prompt 开关
+            optBool(KEY_OA_ASR_STREAMING_ENABLED)?.let { oaAsrStreamingEnabled = it }
             optBool(KEY_OA_ASR_USE_PROMPT)?.let { oaAsrUsePrompt = it }
             optBool(KEY_VOLC_STREAMING_ENABLED)?.let { volcStreamingEnabled = it }
             // DashScope：优先读取新模型字段；否则回退旧开关并迁移

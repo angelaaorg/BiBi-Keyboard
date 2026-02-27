@@ -4,6 +4,7 @@
     <string name="label_openai_asr_endpoint">ASRエンドポイント（例：https://api.openai.com/v1/audio/transcriptions）</string>
     <string name="label_openai_api_key">APIキー（Bearer）</string>
     <string name="label_openai_model">モデル（例：gpt-4o-mini-transcribe または whisper-1）</string>
+    <string name="label_openai_streaming">ストリーミング認識（Realtime）</string>
     <string name="label_openai_use_prompt">カスタムプロンプトを使用（一部のモデルでは非対応）</string>
     <string name="label_openai_prompt">カスタムプロンプト（オプション）</string>
     <string name="label_openai_language">言語（オプション）</string>
@@ -15,4 +16,8 @@
     <!-- OpenAI - プロンプトを使用 -->
     <string name="feature_openai_use_prompt_off_desc">ガイダンスなしで音声を直接文字起こしします。</string>
     <string name="feature_openai_use_prompt_on_desc">プロンプトを使用して認識結果をガイドし、特定の用語やコンテキストの精度を向上させることができます。</string>
+
+    <!-- OpenAI - ストリーミング -->
+    <string name="feature_openai_streaming_off_desc">オフの場合、録音終了後に音声ファイルをアップロードして結果を取得します。</string>
+    <string name="feature_openai_streaming_on_desc">オンの場合、Realtime WebSocket で音声を送信し、話している間に中間結果を表示します。プロバイダー側が Realtime API に対応している必要があります。</string>
 </resources>

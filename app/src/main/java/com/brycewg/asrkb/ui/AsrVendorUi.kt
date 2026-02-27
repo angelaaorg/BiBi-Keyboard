@@ -61,6 +61,7 @@ object AsrVendorUi {
         )
         AsrVendor.OpenAI -> listOf(
             AsrVendorTag.Online,
+            AsrVendorTag.Streaming,
             AsrVendorTag.NonStreaming,
             AsrVendorTag.Custom
         )

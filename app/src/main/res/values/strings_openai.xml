@@ -4,6 +4,7 @@
     <string name="label_openai_asr_endpoint">ASR Endpoint (e.g., https://api.openai.com/v1/audio/transcriptions)</string>
     <string name="label_openai_api_key">API Key (Bearer)</string>
     <string name="label_openai_model">Model (e.g., gpt-4o-mini-transcribe or whisper-1)</string>
+    <string name="label_openai_streaming">Enable streaming (Realtime)</string>
     <string name="label_openai_use_prompt">Use custom prompt (some models unsupported)</string>
     <string name="label_openai_prompt">Custom prompt (optional)</string>
     <string name="label_openai_language">Language (optional)</string>
@@ -15,4 +16,8 @@
     <!-- OpenAI - Use prompt -->
     <string name="feature_openai_use_prompt_off_desc">Transcribes audio directly without guidance.</string>
     <string name="feature_openai_use_prompt_on_desc">Uses a prompt to guide the recognition results, which can improve accuracy for specific terminology or contexts.</string>
+
+    <!-- OpenAI - Streaming -->
+    <string name="feature_openai_streaming_off_desc">Uses file upload transcription. Results are returned after recording stops.</string>
+    <string name="feature_openai_streaming_on_desc">Uses Realtime WebSocket streaming. Shows partial results while speaking. Requires the provider to support the Realtime API.</string>
 </resources>

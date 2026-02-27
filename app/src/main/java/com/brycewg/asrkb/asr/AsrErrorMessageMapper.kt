@@ -23,6 +23,14 @@ internal object AsrErrorMessageMapper {
             return context.getString(R.string.asr_error_empty_result)
         }
 
+        // Realtime / streaming：音频太短导致提交失败
+        if (lower.contains("buffer too small") ||
+            lower.contains("expected at least 100ms") ||
+            (lower.contains("commit") && lower.contains("input audio buffer") && lower.contains("too small"))
+        ) {
+            return context.getString(R.string.asr_error_empty_result)
+        }
+
         // HTTP 状态码
         val httpCode = Regex("HTTP\\s+(\\d{3})").find(raw)?.groupValues?.getOrNull(1)?.toIntOrNull()
         when (httpCode) {

@@ -4,6 +4,7 @@
     <string name="label_openai_asr_endpoint">ASR Endpoint（例如：https://api.openai.com/v1/audio/transcriptions）</string>
     <string name="label_openai_api_key">API Key（Bearer）</string>
     <string name="label_openai_model">模型名稱（如：gpt-4o-mini-transcribe 或 whisper-1）</string>
+    <string name="label_openai_streaming">啟用串流識別（Realtime）</string>
     <string name="label_openai_use_prompt">使用自訂 Prompt（部分模型不支援）</string>
     <string name="label_openai_prompt">自訂 Prompt（可選）</string>
     <string name="label_openai_language">識別語言（可選）</string>
@@ -15,4 +16,8 @@
     <!-- OpenAI - 使用提示詞 -->
     <string name="feature_openai_use_prompt_off_desc">直接轉寫音訊，不使用引導。</string>
     <string name="feature_openai_use_prompt_on_desc">使用提示詞引導識別結果，可以提高特定術語或場景的識別準確率。</string>
+
+    <!-- OpenAI - 串流識別 -->
+    <string name="feature_openai_streaming_off_desc">關閉時使用檔案上傳識別，停止錄音後回傳結果。</string>
+    <string name="feature_openai_streaming_on_desc">開啟後使用 Realtime WebSocket 串流識別，說話時即時顯示中間結果。需要服務商支援 Realtime API。</string>
 </resources>

@@ -351,6 +351,11 @@
           </com.google.android.material.textfield.TextInputLayout>
 
           <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchOpenAiStreaming"
+            style="@style/SettingsSwitch"
+            android:text="@string/label_openai_streaming" />
+
+          <com.google.android.material.materialswitch.MaterialSwitch
             android:id="@+id/switchOpenAiUsePrompt"
             style="@style/SettingsSwitch"
             android:text="@string/label_openai_use_prompt" />

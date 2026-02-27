@@ -29,6 +29,20 @@ internal class OpenAiAsrSettingsSection : AsrSettingsSection {
             bindString { binding.prefs.oaAsrPrompt = it }
         }
 
+        binding.view<MaterialSwitch>(R.id.switchOpenAiStreaming).apply {
+            isChecked = binding.prefs.oaAsrStreamingEnabled
+            installExplainedSwitch(
+                context = binding.activity,
+                titleRes = R.string.label_openai_streaming,
+                offDescRes = R.string.feature_openai_streaming_off_desc,
+                onDescRes = R.string.feature_openai_streaming_on_desc,
+                preferenceKey = "openai_streaming_explained",
+                readPref = { binding.prefs.oaAsrStreamingEnabled },
+                writePref = { v -> binding.viewModel.updateOpenAiStreaming(v) },
+                hapticFeedback = { binding.hapticTapIfEnabled(it) }
+            )
+        }
+
         binding.view<MaterialSwitch>(R.id.switchOpenAiUsePrompt).apply {
             isChecked = binding.prefs.oaAsrUsePrompt
             installExplainedSwitch(

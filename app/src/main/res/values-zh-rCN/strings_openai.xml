@@ -4,6 +4,7 @@
     <string name="label_openai_asr_endpoint">ASR Endpoint（例如：https://api.openai.com/v1/audio/transcriptions）</string>
     <string name="label_openai_api_key">API Key（Bearer）</string>
     <string name="label_openai_model">模型名称（如：gpt-4o-mini-transcribe 或 whisper-1）</string>
+    <string name="label_openai_streaming">启用流式识别（Realtime）</string>
     <string name="label_openai_use_prompt">使用自定义 Prompt（部分模型不支持）</string>
     <string name="label_openai_prompt">自定义 Prompt（可选）</string>
     <string name="label_openai_language">识别语言（可选）</string>
@@ -16,4 +17,8 @@
     <!-- 使用提示词 - Use prompt -->
     <string name="feature_openai_use_prompt_off_desc">直接转写音频，不使用引导。</string>
     <string name="feature_openai_use_prompt_on_desc">使用提示词引导识别结果，可以提高特定术语或场景的识别准确率。</string>
+
+    <!-- 流式识别 - Streaming -->
+    <string name="feature_openai_streaming_off_desc">关闭时使用文件上传识别，停止录音后返回结果。</string>
+    <string name="feature_openai_streaming_on_desc">开启后使用 Realtime WebSocket 流式识别，说话时实时显示中间结果。需要服务商支持 Realtime API。</string>
 </resources>

@@ -29,6 +29,12 @@ internal class AsrSettingsUiRendererSection : AsrSettingsSection {
             state.volcFileStandardEnabled
         )
 
+        binding.view<MaterialSwitch>(R.id.switchOpenAiStreaming).let { sw ->
+            if (sw.isChecked != state.oaAsrStreamingEnabled) {
+                sw.isChecked = state.oaAsrStreamingEnabled
+            }
+        }
+
         binding.view<MaterialSwitch>(R.id.switchVolcFileStandard).let { sw ->
             if (sw.isChecked != state.volcFileStandardEnabled) {
                 sw.isChecked = state.volcFileStandardEnabled

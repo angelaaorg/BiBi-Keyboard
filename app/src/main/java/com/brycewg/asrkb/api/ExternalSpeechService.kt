@@ -575,6 +575,8 @@ class ExternalSpeechService : Service() {
                 false
             }
             if (!enabled) return false
+            // OpenAI Realtime 官方要求 24kHz 输入；备用并行引擎使用 Push-PCM（16kHz）模式，不兼容。
+            if (primaryVendor == AsrVendor.OpenAI && prefs.oaAsrStreamingEnabled) return false
             if (backupVendor == primaryVendor) return false
             return try {
                 when (backupVendor) {
@@ -595,8 +597,9 @@ class ExternalSpeechService : Service() {
             AsrVendor.Paraformer -> true
             AsrVendor.SenseVoice, AsrVendor.FunAsrNano, AsrVendor.Telespeech -> false
             AsrVendor.ElevenLabs -> prefs.elevenStreamingEnabled
-            // 其他云厂商（OpenAI/Gemini/SiliconFlow/Zhipu）仅非流式
-            AsrVendor.OpenAI, AsrVendor.Gemini, AsrVendor.SiliconFlow, AsrVendor.Zhipu -> false
+            AsrVendor.OpenAI -> prefs.oaAsrStreamingEnabled
+            // 其他云厂商（Gemini/SiliconFlow/Zhipu）仅非流式
+            AsrVendor.Gemini, AsrVendor.SiliconFlow, AsrVendor.Zhipu -> false
         }
 
         private fun buildEngine(
@@ -634,13 +637,17 @@ class ExternalSpeechService : Service() {
                         onRequestDuration = ::onRequestDuration
                     )
                 }
-                AsrVendor.OpenAI -> OpenAiFileAsrEngine(
-                    context,
-                    scope,
-                    prefs,
-                    this,
-                    onRequestDuration = ::onRequestDuration
-                )
+                AsrVendor.OpenAI -> if (streamingPreferred) {
+                    OpenAiRealtimeAsrEngine(context, scope, prefs, this)
+                } else {
+                    OpenAiFileAsrEngine(
+                        context,
+                        scope,
+                        prefs,
+                        this,
+                        onRequestDuration = ::onRequestDuration
+                    )
+                }
                 AsrVendor.DashScope -> if (streamingPreferred) {
                     DashscopeStreamAsrEngine(context, scope, prefs, this)
                 } else {
@@ -813,6 +820,8 @@ class ExternalSpeechService : Service() {
                         )
                     )
                 }
+                // OpenAI Realtime 官方要求 24kHz 输入；外部 Push-PCM 约定为 16kHz，
+                // 因此在 Push-PCM 模式下强制使用 File ASR（WAV 上传）。
                 AsrVendor.OpenAI -> com.brycewg.asrkb.asr.GenericPushFileAsrAdapter(
                     context,
                     scope,

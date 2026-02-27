@@ -705,6 +705,11 @@ class Prefs(context: Context) {
 
     var oaAsrModel: String by stringPref(KEY_OA_ASR_MODEL, DEFAULT_OA_ASR_MODEL)
 
+    // OpenAI：Realtime WebSocket 流式识别开关（默认关闭）
+    var oaAsrStreamingEnabled: Boolean
+        get() = sp.getBoolean(KEY_OA_ASR_STREAMING_ENABLED, false)
+        set(value) = sp.edit { putBoolean(KEY_OA_ASR_STREAMING_ENABLED, value) }
+
     // OpenAI：是否启用自定义 Prompt（部分模型不支持）
     var oaAsrUsePrompt: Boolean
         get() = sp.getBoolean(KEY_OA_ASR_USE_PROMPT, false)

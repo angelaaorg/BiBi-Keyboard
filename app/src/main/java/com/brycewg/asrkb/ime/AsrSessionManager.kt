@@ -201,7 +201,11 @@ class AsrSessionManager(
             }
 
             AsrVendor.OpenAI -> if (prefs.hasOpenAiKeys()) {
-                OpenAiFileAsrEngine(context, scope, prefs, this, ::onRequestDuration)
+                if (prefs.oaAsrStreamingEnabled) {
+                    OpenAiRealtimeAsrEngine(context, scope, prefs, this)
+                } else {
+                    OpenAiFileAsrEngine(context, scope, prefs, this, ::onRequestDuration)
+                }
             } else {
                 null
             }
@@ -285,6 +289,8 @@ class AsrSessionManager(
             false
         }
         if (!enabled) return false
+        // OpenAI Realtime 官方要求 24kHz 输入；备用并行引擎使用 Push-PCM（16kHz）模式，不兼容。
+        if (primaryVendor == AsrVendor.OpenAI && prefs.oaAsrStreamingEnabled) return false
         if (backupVendor == primaryVendor) return false
         return try {
             when (backupVendor) {
@@ -354,7 +360,11 @@ class AsrSessionManager(
                 is ElevenLabsStreamAsrEngine -> if (prefs.elevenStreamingEnabled) current else null
                 else -> null
             }
-            AsrVendor.OpenAI -> if (current is OpenAiFileAsrEngine) current else null
+            AsrVendor.OpenAI -> when (current) {
+                is OpenAiRealtimeAsrEngine -> if (prefs.oaAsrStreamingEnabled) current else null
+                is OpenAiFileAsrEngine -> if (!prefs.oaAsrStreamingEnabled) current else null
+                else -> null
+            }
             AsrVendor.DashScope -> when (current) {
                 is DashscopeFileAsrEngine -> if (!prefs.isDashStreamingModelSelected()) current else null
                 is DashscopeStreamAsrEngine -> if (prefs.isDashStreamingModelSelected()) current else null

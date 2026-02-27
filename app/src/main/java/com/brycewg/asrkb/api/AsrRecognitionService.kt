@@ -211,7 +211,11 @@ class AsrRecognitionService : RecognitionService() {
             } else {
                 ElevenLabsFileAsrEngine(engineContext, scope, prefs, listener)
             }
-            AsrVendor.OpenAI -> OpenAiFileAsrEngine(engineContext, scope, prefs, listener)
+            AsrVendor.OpenAI -> if (streamingPref) {
+                OpenAiRealtimeAsrEngine(engineContext, scope, prefs, listener)
+            } else {
+                OpenAiFileAsrEngine(engineContext, scope, prefs, listener)
+            }
             AsrVendor.DashScope -> if (streamingPref) {
                 DashscopeStreamAsrEngine(engineContext, scope, prefs, listener)
             } else {
@@ -253,6 +257,8 @@ class AsrRecognitionService : RecognitionService() {
             false
         }
         if (!enabled) return false
+        // OpenAI Realtime 官方要求 24kHz 输入；备用并行引擎使用 Push-PCM（16kHz）模式，不兼容。
+        if (primaryVendor == AsrVendor.OpenAI && prefs.oaAsrStreamingEnabled) return false
         if (backupVendor == primaryVendor) return false
         return try {
             when (backupVendor) {
@@ -273,9 +279,10 @@ class AsrRecognitionService : RecognitionService() {
         AsrVendor.DashScope -> prefs.isDashStreamingModelSelected()
         AsrVendor.Soniox -> prefs.sonioxStreamingEnabled
         AsrVendor.ElevenLabs -> prefs.elevenStreamingEnabled
+        AsrVendor.OpenAI -> prefs.oaAsrStreamingEnabled
         AsrVendor.Paraformer -> true
         AsrVendor.SenseVoice, AsrVendor.FunAsrNano, AsrVendor.Telespeech -> false
-        AsrVendor.OpenAI, AsrVendor.Gemini, AsrVendor.SiliconFlow, AsrVendor.Zhipu -> false
+        AsrVendor.Gemini, AsrVendor.SiliconFlow, AsrVendor.Zhipu -> false
     }
 
     /**
