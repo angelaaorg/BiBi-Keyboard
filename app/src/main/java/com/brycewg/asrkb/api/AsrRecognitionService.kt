@@ -257,8 +257,6 @@ class AsrRecognitionService : RecognitionService() {
             false
         }
         if (!enabled) return false
-        // OpenAI Realtime 官方要求 24kHz 输入；备用并行引擎使用 Push-PCM（16kHz）模式，不兼容。
-        if (primaryVendor == AsrVendor.OpenAI && prefs.oaAsrStreamingEnabled) return false
         if (backupVendor == primaryVendor) return false
         return try {
             when (backupVendor) {

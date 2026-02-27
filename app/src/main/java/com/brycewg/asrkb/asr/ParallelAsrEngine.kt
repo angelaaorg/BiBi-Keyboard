@@ -673,15 +673,23 @@ class ParallelAsrEngine(
                 )
                     .let { GenericPushFileAsrAdapter(context, scope, prefs, engineListener, it) }
             }
-            // OpenAI Realtime 官方要求 24kHz 输入；ParallelAsrEngine 的 Push-PCM 约定为 16kHz，
-            // 因此在 Push-PCM 模式下强制使用 File ASR（WAV 上传），避免 silent failure。
-            AsrVendor.OpenAI -> OpenAiFileAsrEngine(
-                context,
-                scope,
-                prefs,
-                engineListener,
-                onRequestDuration = onRequestDuration
-            ).let { GenericPushFileAsrAdapter(context, scope, prefs, engineListener, it) }
+            AsrVendor.OpenAI -> if (prefs.oaAsrStreamingEnabled) {
+                OpenAiRealtimeAsrEngine(
+                    context,
+                    scope,
+                    prefs,
+                    engineListener,
+                    externalPcmMode = true
+                )
+            } else {
+                OpenAiFileAsrEngine(
+                    context,
+                    scope,
+                    prefs,
+                    engineListener,
+                    onRequestDuration = onRequestDuration
+                ).let { GenericPushFileAsrAdapter(context, scope, prefs, engineListener, it) }
+            }
             AsrVendor.DashScope -> if (prefs.isDashStreamingModelSelected()) {
                 DashscopeStreamAsrEngine(
                     context,

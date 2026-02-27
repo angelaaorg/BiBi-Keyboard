@@ -554,7 +554,7 @@ class ExternalSpeechService : Service() {
             val e = engine
             if (e !is com.brycewg.asrkb.asr.ExternalPcmConsumer) return
 
-            if (sampleRate == 16000 && channels == 1 && pcm.isNotEmpty()) {
+            if (sampleRate > 0 && channels > 0 && pcm.isNotEmpty()) {
                 pcmBytesForStats += pcm.size.toLong()
                 val denom = sampleRate.toLong() * channels.toLong() * 2L
                 if (denom > 0L) {
@@ -575,8 +575,6 @@ class ExternalSpeechService : Service() {
                 false
             }
             if (!enabled) return false
-            // OpenAI Realtime 官方要求 24kHz 输入；备用并行引擎使用 Push-PCM（16kHz）模式，不兼容。
-            if (primaryVendor == AsrVendor.OpenAI && prefs.oaAsrStreamingEnabled) return false
             if (backupVendor == primaryVendor) return false
             return try {
                 when (backupVendor) {
@@ -820,21 +818,29 @@ class ExternalSpeechService : Service() {
                         )
                     )
                 }
-                // OpenAI Realtime 官方要求 24kHz 输入；外部 Push-PCM 约定为 16kHz，
-                // 因此在 Push-PCM 模式下强制使用 File ASR（WAV 上传）。
-                AsrVendor.OpenAI -> com.brycewg.asrkb.asr.GenericPushFileAsrAdapter(
-                    context,
-                    scope,
-                    prefs,
-                    this,
-                    com.brycewg.asrkb.asr.OpenAiFileAsrEngine(
+                AsrVendor.OpenAI -> if (streamingPreferred) {
+                    com.brycewg.asrkb.asr.OpenAiRealtimeAsrEngine(
                         context,
                         scope,
                         prefs,
                         this,
-                        onRequestDuration = ::onRequestDuration
+                        externalPcmMode = true
                     )
-                )
+                } else {
+                    com.brycewg.asrkb.asr.GenericPushFileAsrAdapter(
+                        context,
+                        scope,
+                        prefs,
+                        this,
+                        com.brycewg.asrkb.asr.OpenAiFileAsrEngine(
+                            context,
+                            scope,
+                            prefs,
+                            this,
+                            onRequestDuration = ::onRequestDuration
+                        )
+                    )
+                }
                 AsrVendor.Gemini -> com.brycewg.asrkb.asr.GenericPushFileAsrAdapter(
                     context,
                     scope,

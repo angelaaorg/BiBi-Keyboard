@@ -52,6 +52,9 @@ class OpenAiRealtimeAsrEngine(
         private const val FINAL_WAIT_TIMEOUT_MS = 10_000L
         private const val PREBUFFER_MS = 2_000
         private const val MIN_COMMIT_AUDIO_MS = 100L
+        private const val OFFICIAL_HOST = "api.openai.com"
+        private const val SAMPLE_RATE_OFFICIAL = 24_000
+        private const val SAMPLE_RATE_NON_OFFICIAL = 16_000
     }
 
     private val http: OkHttpClient = OkHttpClient.Builder()
@@ -72,8 +75,7 @@ class OpenAiRealtimeAsrEngine(
     private var audioJob: Job? = null
     private var finalizeJob: Job? = null
 
-    // 官方文档：audio/pcm only supports 24000
-    private val sampleRate = 24000
+    @Volatile private var targetSampleRate: Int = SAMPLE_RATE_OFFICIAL
     private val channelConfig = AudioFormat.CHANNEL_IN_MONO
     private val audioFormat = AudioFormat.ENCODING_PCM_16BIT
 
@@ -100,8 +102,9 @@ class OpenAiRealtimeAsrEngine(
 
         val endpoint = prefs.oaAsrEndpoint.ifBlank { Prefs.DEFAULT_OA_ASR_ENDPOINT }.trim()
         val url = endpoint.toHttpUrlOrNull()
+        targetSampleRate = resolveTargetSampleRate(endpoint)
         if (url != null &&
-            url.host.equals("api.openai.com", ignoreCase = true) &&
+            url.host.equals(OFFICIAL_HOST, ignoreCase = true) &&
             prefs.oaAsrApiKey.isBlank()
         ) {
             listener.onError(context.getString(R.string.asr_error_auth_invalid))
@@ -183,18 +186,23 @@ class OpenAiRealtimeAsrEngine(
     }
 
     private fun openWebSocket(startAudio: Boolean) {
-        if (startAudio) startCaptureAndSendAudio()
-
         val endpoint = prefs.oaAsrEndpoint.ifBlank { Prefs.DEFAULT_OA_ASR_ENDPOINT }.trim()
-        val wsUrl = buildRealtimeWsUrl(endpoint)
+        val primaryWsUrl = buildRealtimeWsUrl(endpoint)
+        val effectiveEndpoint = if (primaryWsUrl != null) endpoint else Prefs.DEFAULT_OA_ASR_ENDPOINT
+        targetSampleRate = resolveTargetSampleRate(effectiveEndpoint)
+        val wsUrl = primaryWsUrl
             ?: buildRealtimeWsUrl(Prefs.DEFAULT_OA_ASR_ENDPOINT)
             ?: run {
                 listener.onError(
                     context.getString(R.string.error_recognize_failed_with_reason, "invalid endpoint")
                 )
                 running.set(false)
+                awaitingFinal.set(false)
+                closeWebSocket("invalid_endpoint")
                 return
             }
+
+        if (startAudio) startCaptureAndSendAudio()
 
         val apiKey = prefs.oaAsrApiKey.trim()
         val reqBuilder = Request.Builder().url(wsUrl)
@@ -282,7 +290,7 @@ class OpenAiRealtimeAsrEngine(
             val chunkMillis = 100
             val audioManager = AudioCaptureManager(
                 context = context,
-                sampleRate = sampleRate,
+                sampleRate = targetSampleRate,
                 channelConfig = channelConfig,
                 audioFormat = audioFormat,
                 chunkMillis = chunkMillis
@@ -297,7 +305,7 @@ class OpenAiRealtimeAsrEngine(
             val vadDetector = if (isVadAutoStopEnabled(context, prefs)) {
                 VadDetector(
                     context,
-                    sampleRate,
+                    targetSampleRate,
                     prefs.autoStopSilenceWindowMs,
                     prefs.autoStopSilenceSensitivity
                 )
@@ -355,34 +363,29 @@ class OpenAiRealtimeAsrEngine(
     override fun appendPcm(pcm: ByteArray, sampleRate: Int, channels: Int) {
         if (!running.get()) return
         if (channels != 1) return
-        if (sampleRate != 24000) {
-            // 外部推流接口约定为 16kHz，这里按官方文档拒绝非 24kHz，避免默默失败。
-            notifyError(
-                context.getString(
-                    R.string.error_recognize_failed_with_reason,
-                    "OpenAI Realtime requires 24kHz PCM (audio/pcm). Got ${sampleRate}Hz."
-                ),
-                "pcm_rate_mismatch",
-                null
-            )
-            running.set(false)
-            awaitingFinal.set(false)
-            closeWebSocket("pcm_rate_mismatch")
-            return
+
+        val targetRate = targetSampleRate
+        val pcmForSend = when {
+            targetRate == SAMPLE_RATE_OFFICIAL && sampleRate == SAMPLE_RATE_OFFICIAL -> pcm
+            targetRate == SAMPLE_RATE_OFFICIAL && sampleRate > 0 ->
+                resamplePcm16Mono(pcm, sampleRate, SAMPLE_RATE_OFFICIAL)
+            targetRate == SAMPLE_RATE_NON_OFFICIAL && sampleRate == SAMPLE_RATE_NON_OFFICIAL -> pcm
+            else -> return
         }
+
         try {
             listener.onAmplitude(calculateNormalizedAmplitude(pcm))
         } catch (_: Throwable) {}
 
         if (!wsReady.get()) {
             synchronized(prebufferLock) {
-                prebuffer.addLast(pcm.copyOf())
+                prebuffer.addLast(pcmForSend)
                 while (prebuffer.size > 20) prebuffer.removeFirst()
             }
         } else {
             flushPrebuffer()
             val socket = ws ?: return
-            sendAppendAudio(socket, pcm)
+            sendAppendAudio(socket, pcmForSend)
         }
     }
 
@@ -416,7 +419,7 @@ class OpenAiRealtimeAsrEngine(
                                         "format",
                                         JSONObject().apply {
                                             put("type", "audio/pcm")
-                                            put("rate", 24000)
+                                            put("rate", targetSampleRate)
                                         }
                                     )
                                     put(
@@ -493,15 +496,13 @@ class OpenAiRealtimeAsrEngine(
     }
 
     private fun minCommitAudioBytes(): Long {
-        // 24kHz * 16bit * mono => bytes/sec = 24000 * 2
-        val bytesPerSec = 24000L * 2L
+        val bytesPerSec = targetSampleRate.toLong() * 2L
         return bytesPerSec * MIN_COMMIT_AUDIO_MS / 1000L
     }
 
     private fun audioMsFromBytes(bytes: Long): Long {
         if (bytes <= 0L) return 0L
-        // bytes/ms = (24000 * 2) / 1000 = 48
-        val bytesPerMs = (24000L * 2L) / 1000L
+        val bytesPerMs = (targetSampleRate.toLong() * 2L) / 1000L
         if (bytesPerMs <= 0L) return 0L
         return (bytes / bytesPerMs).coerceAtLeast(0L)
     }
@@ -542,7 +543,8 @@ class OpenAiRealtimeAsrEngine(
 
             val type = o.optString("type", "")
             when (type) {
-                "session.created", "session.updated" -> {
+                "session.created" -> Unit
+                "session.updated" -> {
                     if (!wsReady.get()) {
                         wsReady.set(true)
                         flushPrebuffer()
@@ -704,6 +706,9 @@ class OpenAiRealtimeAsrEngine(
     }
 
     private fun closeWebSocket(reason: String) {
+        audioJob?.cancel()
+        audioJob = null
+
         val socket = ws
         if (socket != null) {
             try {
@@ -737,6 +742,51 @@ class OpenAiRealtimeAsrEngine(
     private fun stripEndMarkers(s: String): String {
         if (s.isEmpty()) return s
         return s.replace("<end>", "").replace("<fin>", "").trimEnd()
+    }
+
+    private fun resolveTargetSampleRate(endpoint: String): Int {
+        val host = endpoint.toHttpUrlOrNull()?.host.orEmpty()
+        return if (host.equals(OFFICIAL_HOST, ignoreCase = true)) {
+            SAMPLE_RATE_OFFICIAL
+        } else {
+            SAMPLE_RATE_NON_OFFICIAL
+        }
+    }
+
+    private fun resamplePcm16Mono(pcm: ByteArray, fromRate: Int, toRate: Int): ByteArray {
+        if (fromRate <= 0 || toRate <= 0 || pcm.isEmpty()) return pcm
+        if (fromRate == toRate) return pcm
+        val srcSamples = pcm.size / 2
+        if (srcSamples <= 1) return pcm
+
+        val dstSamples = ((srcSamples.toLong() * toRate) / fromRate).toInt().coerceAtLeast(1)
+        val out = ByteArray(dstSamples * 2)
+        var i = 0
+        while (i < dstSamples) {
+            val srcPos = i.toDouble() * fromRate.toDouble() / toRate.toDouble()
+            val idx0 = srcPos.toInt().coerceIn(0, srcSamples - 1)
+            val idx1 = (idx0 + 1).coerceAtMost(srcSamples - 1)
+            val frac = srcPos - idx0
+            val s0 = readPcm16LE(pcm, idx0)
+            val s1 = readPcm16LE(pcm, idx1)
+            val v = (s0 + (s1 - s0) * frac).toInt().coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt())
+            writePcm16LE(out, i, v.toShort())
+            i++
+        }
+        return out
+    }
+
+    private fun readPcm16LE(src: ByteArray, sampleIndex: Int): Int {
+        val o = sampleIndex * 2
+        val lo = src[o].toInt() and 0xFF
+        val hi = src[o + 1].toInt()
+        return (hi shl 8) or lo
+    }
+
+    private fun writePcm16LE(dst: ByteArray, sampleIndex: Int, value: Short) {
+        val o = sampleIndex * 2
+        dst[o] = (value.toInt() and 0xFF).toByte()
+        dst[o + 1] = ((value.toInt() shr 8) and 0xFF).toByte()
     }
 
     private fun hasRecordPermission(): Boolean = ContextCompat.checkSelfPermission(
