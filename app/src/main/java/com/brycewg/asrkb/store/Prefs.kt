@@ -640,6 +640,12 @@ class Prefs(context: Context) {
 
     fun getDashHttpBaseUrl(): String = DashScopePrefsCompat.getDashHttpBaseUrl(dashRegion)
 
+    private fun isDashStreamingModelId(modelId: String): Boolean {
+        // DashScope realtime/streaming 模型的 ID 不保证以 "-realtime" 结尾：
+        // 例如 qwen3-asr-flash-realtime-2026-02-10。
+        return modelId.contains("-realtime", ignoreCase = true)
+    }
+
     // DashScope：ASR 模型选择（用于替代“流式开关 + Fun-ASR 开关”的组合）
     // - qwen3-asr-flash：非流式
     // - qwen3-asr-flash-realtime：流式（Qwen3）
@@ -665,13 +671,13 @@ class Prefs(context: Context) {
                 // 同步旧开关，便于兼容旧版本导入/导出
                 putBoolean(
                     KEY_DASH_STREAMING_ENABLED,
-                    model.endsWith("-realtime", ignoreCase = true)
+                    isDashStreamingModelId(model)
                 )
                 putBoolean(KEY_DASH_FUNASR_ENABLED, model.startsWith("fun-asr", ignoreCase = true))
             }
         }
 
-    fun isDashStreamingModelSelected(): Boolean = dashAsrModel.endsWith("-realtime", ignoreCase = true)
+    fun isDashStreamingModelSelected(): Boolean = isDashStreamingModelId(dashAsrModel)
 
     fun isDashPromptSupportedByModel(): Boolean = !dashAsrModel.startsWith("fun-asr", ignoreCase = true)
 
