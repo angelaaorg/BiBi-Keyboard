@@ -41,7 +41,7 @@
         android:localeConfig="@xml/locale_config"
         android:theme="@style/Theme.ASRKeyboard"
         android:usesCleartextTraffic="true"
-        tools:targetApi="33">
+        tools:targetApi="tiramisu">
 
         <activity
             android:name=".ui.SettingsActivity"

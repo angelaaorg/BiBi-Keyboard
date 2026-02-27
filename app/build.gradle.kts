@@ -10,7 +10,7 @@ android {
 
     defaultConfig {
         applicationId = "com.brycewg.asrkb"
-        minSdk = 29
+        minSdk = 26
         targetSdk = 35
         versionCode = 146
         versionName = "3.13.3"
