@@ -12,8 +12,8 @@ android {
         applicationId = "com.brycewg.asrkb"
         minSdk = 26
         targetSdk = 35
-        versionCode = 146
-        versionName = "3.13.3"
+        versionCode = 147
+        versionName = "3.13.4"
 
         // 仅构建 arm64-v8a 以减小包体体积
         ndk {

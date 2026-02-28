@@ -1,5 +1,18 @@
 # Changelog
 
+## v3.13.4 (2025-02-28)
+
+### New Features
+
+- **OpenAI Realtime Streaming Recognition**: Added OpenAI Realtime streaming speech recognition support
+- **Alibaba DashScope Model Upgrade**: Upgraded Alibaba DashScope streaming recognition model to qwen3-asr-flash-realtime-2026-02-10
+
+### Improvements
+
+- **Compatibility Enhancement**: Lowered minSdk to 26, supporting Android 8.0 and above
+
+---
+
 ## v3.13.3 (2025-02-23)
 
 ### New Features
