@@ -133,7 +133,7 @@ If you are interested in BiBi Keyboard, join our [Telegram Group](https://t.me/+
 
 ### 📋 System Requirements
 
-- Android 10.0 (API 29) or higher
+- Android 8.0 (API 26) or higher
 - Microphone permission (for voice recognition)
 - Overlay permission (optional, for floating ball feature)
 - Accessibility permission (optional, for automatic text insertion)
