@@ -10,13 +10,6 @@ import com.brycewg.asrkb.store.Prefs
 import java.io.File
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.ensureActive
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 /**
@@ -281,7 +274,7 @@ private fun isFnModelDir(dir: File): Boolean {
 /**
  * FunASR Nano ONNX 识别器管理器（基于 OfflineRecognizer）
  */
-class FunAsrNanoOnnxManager private constructor() {
+internal class FunAsrNanoOnnxManager private constructor() : BaseSherpaOfflineRecognizerManager() {
 
     companion object {
         private const val TAG = "FunAsrNanoOnnxManager"
@@ -294,17 +287,7 @@ class FunAsrNanoOnnxManager private constructor() {
         }
     }
 
-    private val scope = CoroutineScope(SupervisorJob())
-    private val mutex = Mutex()
-
-    @Volatile
-    private var cachedConfig: RecognizerConfig? = null
-
-    @Volatile
-    private var cachedRecognizer: ReflectiveRecognizer? = null
-
-    @Volatile
-    private var preparing: Boolean = false
+    protected override val tag: String = TAG
 
     @Volatile
     private var clsOfflineRecognizer: Class<*>? = null
@@ -321,68 +304,11 @@ class FunAsrNanoOnnxManager private constructor() {
     @Volatile
     private var clsOfflineFunAsrNanoModelConfig: Class<*>? = null
 
-    @Volatile
-    private var unloadJob: Job? = null
-
-    @Volatile
-    private var lastKeepAliveMs: Long = 0L
-
-    @Volatile
-    private var lastAlwaysKeep: Boolean = false
-
-    fun isOnnxAvailable(): Boolean = try {
-        Class.forName("com.k2fsa.sherpa.onnx.OfflineRecognizer")
-        Class.forName("com.k2fsa.sherpa.onnx.OfflineFunAsrNanoModelConfig")
-        true
-    } catch (t: Throwable) {
-        Log.d(TAG, "sherpa-onnx not available", t)
-        false
-    }
-
-    fun unload() {
-        val snapshot = cachedRecognizer ?: return
-        scope.launch {
-            val shouldRelease = mutex.withLock {
-                if (cachedRecognizer !== snapshot) return@withLock false
-                cachedRecognizer = null
-                cachedConfig = null
-                unloadJob?.cancel()
-                unloadJob = null
-                true
-            }
-            if (shouldRelease) {
-                try {
-                    snapshot.release()
-                } catch (t: Throwable) {
-                    Log.e(TAG, "Failed to release recognizer on unload", t)
-                }
-                Log.d(TAG, "Recognizer unloaded")
-            }
-        }
-    }
-
-    fun isPrepared(): Boolean = cachedRecognizer != null
-
-    fun isPreparing(): Boolean = preparing
-
-    private fun scheduleAutoUnload(keepAliveMs: Long, alwaysKeep: Boolean) {
-        unloadJob?.cancel()
-        if (alwaysKeep) {
-            Log.d(TAG, "Recognizer will be kept alive indefinitely")
-            return
-        }
-        if (keepAliveMs <= 0L) {
-            Log.d(TAG, "Auto-unloading immediately (keepAliveMs=$keepAliveMs)")
-            unload()
-            return
-        }
-        Log.d(TAG, "Scheduling auto-unload in ${keepAliveMs}ms")
-        unloadJob = scope.launch {
-            delay(keepAliveMs)
-            Log.d(TAG, "Auto-unloading recognizer after timeout")
-            unload()
-        }
-    }
+    fun isOnnxAvailable(): Boolean = sherpaIsClassAvailable(
+        TAG,
+        "com.k2fsa.sherpa.onnx.OfflineRecognizer",
+        "com.k2fsa.sherpa.onnx.OfflineFunAsrNanoModelConfig"
+    )
 
     private data class RecognizerConfig(
         val encoderAdaptor: String,
@@ -396,7 +322,7 @@ class FunAsrNanoOnnxManager private constructor() {
         val featureDim: Int
     )
 
-    private fun initClasses() {
+    protected override fun initClasses() {
         if (clsOfflineRecognizer == null) {
             clsOfflineRecognizer = Class.forName("com.k2fsa.sherpa.onnx.OfflineRecognizer")
             clsOfflineRecognizerConfig =
@@ -409,28 +335,7 @@ class FunAsrNanoOnnxManager private constructor() {
         }
     }
 
-    private fun trySetField(target: Any, name: String, value: Any?): Boolean = try {
-        val f = target.javaClass.getDeclaredField(name)
-        f.isAccessible = true
-        f.set(target, value)
-        true
-    } catch (t: Throwable) {
-        try {
-            val methodName = "set" + name.replaceFirstChar {
-                if (it.isLowerCase()) it.titlecase() else it.toString()
-            }
-            val m = if (value == null) {
-                target.javaClass.getMethod(methodName, Any::class.java)
-            } else {
-                target.javaClass.getMethod(methodName, value.javaClass)
-            }
-            m.invoke(target, value)
-            true
-        } catch (t2: Throwable) {
-            Log.w(TAG, "Failed to set field '$name'", t2)
-            false
-        }
-    }
+    private fun trySetField(target: Any, name: String, value: Any?): Boolean = sherpaTrySetField(TAG, target, name, value)
 
     private fun buildFeatureConfig(sampleRate: Int, featureDim: Int): Any {
         val feat = clsFeatureConfig!!.getDeclaredConstructor().newInstance()
@@ -478,7 +383,8 @@ class FunAsrNanoOnnxManager private constructor() {
         return modelConfig
     }
 
-    private fun buildRecognizerConfig(config: RecognizerConfig): Any {
+    protected override fun buildRecognizerConfig(config: Any): Any {
+        config as RecognizerConfig
         val modelConfig = buildModelConfig(
             encoderAdaptor = config.encoderAdaptor,
             llm = config.llm,
@@ -501,101 +407,18 @@ class FunAsrNanoOnnxManager private constructor() {
         return recConfig
     }
 
-    private fun createRecognizer(
+    protected override fun createRecognizer(
         assetManager: android.content.res.AssetManager?,
-        recConfig: Any
-    ): Any {
-        val ctor = if (assetManager == null) {
-            try {
-                clsOfflineRecognizer!!.getDeclaredConstructor(clsOfflineRecognizerConfig)
-            } catch (t: Throwable) {
-                Log.d(TAG, "No single-param constructor, using AssetManager variant", t)
-                clsOfflineRecognizer!!.getDeclaredConstructor(
-                    android.content.res.AssetManager::class.java,
-                    clsOfflineRecognizerConfig
-                )
-            }
-        } else {
-            try {
-                clsOfflineRecognizer!!.getDeclaredConstructor(
-                    android.content.res.AssetManager::class.java,
-                    clsOfflineRecognizerConfig
-                )
-            } catch (t: Throwable) {
-                Log.d(TAG, "No AssetManager constructor, using single-param variant", t)
-                clsOfflineRecognizer!!.getDeclaredConstructor(clsOfflineRecognizerConfig)
-            }
-        }
-        return if (ctor.parameterCount == 2) {
-            ctor.newInstance(assetManager, recConfig)
-        } else {
-            ctor.newInstance(recConfig)
-        }
-    }
+        recognizerConfig: Any
+    ): Any = sherpaCreateOfflineRecognizer(
+        tag = TAG,
+        recognizerClass = clsOfflineRecognizer!!,
+        recognizerConfigClass = clsOfflineRecognizerConfig!!,
+        assetManager = assetManager,
+        recognizerConfig = recognizerConfig
+    )
 
-    private fun releaseRecognizerSafely(recognizer: ReflectiveRecognizer?, reason: String) {
-        if (recognizer == null) return
-        try {
-            recognizer.release()
-        } catch (t: Throwable) {
-            Log.e(TAG, "Failed to release recognizer ($reason)", t)
-        }
-    }
-
-    private fun invokeCallbackSafely(name: String, callback: (() -> Unit)?) {
-        if (callback == null) return
-        try {
-            callback()
-        } catch (t: Throwable) {
-            Log.e(TAG, "$name callback failed", t)
-        }
-    }
-
-    private suspend fun ensurePreparedLocked(
-        assetManager: android.content.res.AssetManager?,
-        config: RecognizerConfig,
-        onLoadStart: (() -> Unit)?,
-        onLoadDone: (() -> Unit)?
-    ): ReflectiveRecognizer? {
-        initClasses()
-        val cached = cachedRecognizer
-        if (cached != null && cachedConfig == config) return cached
-
-        preparing = true
-        unloadJob?.cancel()
-        unloadJob = null
-
-        var newRecognizer: ReflectiveRecognizer? = null
-        try {
-            currentCoroutineContext().ensureActive()
-            invokeCallbackSafely("onLoadStart", onLoadStart)
-            currentCoroutineContext().ensureActive()
-
-            val recConfig = buildRecognizerConfig(config)
-            currentCoroutineContext().ensureActive()
-            val raw = createRecognizer(assetManager, recConfig)
-            newRecognizer = ReflectiveRecognizer(raw, clsOfflineRecognizer!!)
-            currentCoroutineContext().ensureActive()
-
-            val oldRecognizer = cachedRecognizer
-            cachedRecognizer = newRecognizer
-            cachedConfig = config
-            invokeCallbackSafely("onLoadDone", onLoadDone)
-
-            if (oldRecognizer != null && oldRecognizer !== newRecognizer) {
-                releaseRecognizerSafely(oldRecognizer, "old")
-            }
-            return newRecognizer
-        } catch (t: CancellationException) {
-            releaseRecognizerSafely(newRecognizer, "canceled")
-            throw t
-        } catch (t: Throwable) {
-            releaseRecognizerSafely(newRecognizer, "failed")
-            throw t
-        } finally {
-            preparing = false
-        }
-    }
+    protected override fun offlineRecognizerClass(): Class<*> = clsOfflineRecognizer!!
 
     suspend fun decodeOffline(
         assetManager: android.content.res.AssetManager?,
@@ -627,8 +450,6 @@ class FunAsrNanoOnnxManager private constructor() {
             )
             val recognizer = ensurePreparedLocked(assetManager, cfg, onLoadStart, onLoadDone)
                 ?: return@withLock null
-            lastKeepAliveMs = keepAliveMs
-            lastAlwaysKeep = alwaysKeep
             val stream = recognizer.createStream()
             try {
                 stream.acceptWaveform(samples, sampleRate)
@@ -674,8 +495,6 @@ class FunAsrNanoOnnxManager private constructor() {
             )
             val ok = ensurePreparedLocked(assetManager, cfg, onLoadStart, onLoadDone) != null
             if (!ok) return@withLock false
-            lastKeepAliveMs = keepAliveMs
-            lastAlwaysKeep = alwaysKeep
             true
         } catch (t: CancellationException) {
             throw t

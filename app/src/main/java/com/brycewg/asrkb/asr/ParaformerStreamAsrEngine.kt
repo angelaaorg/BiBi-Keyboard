@@ -20,7 +20,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -693,13 +692,10 @@ class ParaformerOnnxManager private constructor() {
 
     @Volatile private var pendingUnload: Boolean = false
 
-    fun isOnnxAvailable(): Boolean = try {
-        Class.forName("com.k2fsa.sherpa.onnx.OnlineRecognizer")
-        true
-    } catch (t: Throwable) {
-        Log.d(TAG, "sherpa-onnx online not available", t)
-        false
-    }
+    fun isOnnxAvailable(): Boolean = sherpaIsClassAvailable(
+        TAG,
+        "com.k2fsa.sherpa.onnx.OnlineRecognizer"
+    )
 
     fun unload() {
         pendingUnload = true
@@ -713,12 +709,7 @@ class ParaformerOnnxManager private constructor() {
     fun isPreparing(): Boolean = preparing
 
     private fun invokeCallbackSafely(name: String, callback: (() -> Unit)?) {
-        if (callback == null) return
-        try {
-            callback()
-        } catch (t: Throwable) {
-            Log.e(TAG, "$name callback failed", t)
-        }
+        sherpaInvokeCallbackSafely(TAG, name, callback)
     }
 	
     private suspend fun tryUnloadIfIdle() {
@@ -740,14 +731,7 @@ class ParaformerOnnxManager private constructor() {
     }
 
     private fun scheduleAutoUnload(keepAliveMs: Long, alwaysKeep: Boolean) {
-        unloadJob?.cancel()
-        if (alwaysKeep) return
-        if (keepAliveMs <= 0L) {
-            unload()
-            return
-        }
-        unloadJob = scope.launch {
-            delay(keepAliveMs)
+        unloadJob = sherpaScheduleAutoUnload(TAG, scope, unloadJob, keepAliveMs, alwaysKeep) {
             unload()
         }
     }
@@ -765,27 +749,7 @@ class ParaformerOnnxManager private constructor() {
         }
     }
 
-    private fun trySetField(target: Any, name: String, value: Any?): Boolean = try {
-        val f = target.javaClass.getDeclaredField(name)
-        f.isAccessible = true
-        f.set(target, value)
-        true
-    } catch (t: Throwable) {
-        try {
-            val m = target.javaClass.getMethod(
-                "set" +
-                    name.replaceFirstChar {
-                        if (it.isLowerCase()) it.titlecase() else it.toString()
-                    },
-                value?.javaClass ?: Any::class.java
-            )
-            m.invoke(target, value)
-            true
-        } catch (t2: Throwable) {
-            Log.w(TAG, "Failed to set field '$name'", t2)
-            false
-        }
-    }
+    private fun trySetField(target: Any, name: String, value: Any?): Boolean = sherpaTrySetField(TAG, target, name, value)
 
     private data class RecognizerConfig(
         val tokens: String,

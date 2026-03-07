@@ -27,6 +27,7 @@ website/
 openspec/
 speechrecognizer-tester/
 analysis/
+sherpa-onnx/
 
 # Node modules for docs
 node_modules/

@@ -9,13 +9,6 @@ import com.brycewg.asrkb.R
 import com.brycewg.asrkb.store.Prefs
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.ensureActive
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 /**
@@ -395,89 +388,13 @@ private data class RecognizerConfig(
 /**
  * 反射式音频流包装
  */
-internal class ReflectiveStream(val instance: Any) {
-    val streamClass: Class<*> = instance.javaClass
-
-    fun acceptWaveform(samples: FloatArray, sampleRate: Int) {
-        try {
-            streamClass.getMethod(
-                "acceptWaveform",
-                FloatArray::class.java,
-                Int::class.javaPrimitiveType
-            )
-                .invoke(instance, samples, sampleRate)
-        } catch (t: Throwable) {
-            Log.d("ReflectiveStream", "Failed with sampleRate param, trying without", t)
-            // 兼容仅 FloatArray 的重载
-            streamClass.getMethod("acceptWaveform", FloatArray::class.java)
-                .invoke(instance, samples)
-        }
-    }
-
-    fun release() {
-        try {
-            streamClass.getMethod("release").invoke(instance)
-        } catch (t: Throwable) {
-            Log.e("ReflectiveStream", "Failed to release stream", t)
-        }
-    }
-}
-
-/**
- * 反射式识别器包装
- * 封装所有反射调用，对外提供类型安全的接口
- */
-internal class ReflectiveRecognizer(
-    private val instance: Any,
-    private val clsOfflineRecognizer: Class<*>
-) {
-
-    fun createStream(): ReflectiveStream {
-        val stream = clsOfflineRecognizer
-            .getMethod("createStream")
-            .invoke(instance)
-            ?: throw IllegalStateException("Failed to create stream")
-        return ReflectiveStream(stream)
-    }
-
-    fun decode(stream: ReflectiveStream): String? {
-        val clsStream = stream.streamClass
-        clsOfflineRecognizer.getMethod("decode", clsStream).invoke(instance, stream.instance)
-        val result = clsOfflineRecognizer.getMethod(
-            "getResult",
-            clsStream
-        ).invoke(instance, stream.instance)
-        return tryGetStringField(result, "text") ?: result?.toString()
-    }
-
-    fun release() {
-        try {
-            clsOfflineRecognizer.getMethod("release").invoke(instance)
-        } catch (t: Throwable) {
-            Log.e("ReflectiveRecognizer", "Failed to release recognizer", t)
-        }
-    }
-
-    private fun tryGetStringField(target: Any?, name: String): String? {
-        if (target == null) return null
-        return try {
-            val f = target.javaClass.getDeclaredField(name)
-            f.isAccessible = true
-            (f.get(target) as? String)
-        } catch (t: Throwable) {
-            Log.d("ReflectiveRecognizer", "Failed to get string field '$name'", t)
-            null
-        }
-    }
-}
-
 /**
  * SenseVoice ONNX 识别器管理器
  *
  * 通过反射调用 sherpa-onnx Kotlin API，实现离线语音识别。
  * 使用单例模式管理识别器实例和生命周期。
  */
-class SenseVoiceOnnxManager private constructor() {
+internal class SenseVoiceOnnxManager private constructor() : BaseSherpaOfflineRecognizerManager() {
 
     companion object {
         private const val TAG = "SenseVoiceOnnxManager"
@@ -490,14 +407,7 @@ class SenseVoiceOnnxManager private constructor() {
         }
     }
 
-    private val scope = CoroutineScope(SupervisorJob())
-    private val mutex = Mutex()
-
-    @Volatile private var cachedConfig: RecognizerConfig? = null
-
-    @Volatile private var cachedRecognizer: ReflectiveRecognizer? = null
-
-    @Volatile private var preparing: Boolean = false
+    protected override val tag: String = TAG
 
     @Volatile private var clsOfflineRecognizer: Class<*>? = null
 
@@ -507,72 +417,10 @@ class SenseVoiceOnnxManager private constructor() {
 
     @Volatile private var clsOfflineSenseVoiceModelConfig: Class<*>? = null
 
-    @Volatile private var unloadJob: Job? = null
-
-    fun isOnnxAvailable(): Boolean = try {
-        Class.forName("com.k2fsa.sherpa.onnx.OfflineRecognizer")
-        true
-    } catch (t: Throwable) {
-        Log.d(TAG, "sherpa-onnx not available", t)
-        false
-    }
-
-    fun unload() {
-        val snapshot = cachedRecognizer ?: return
-        scope.launch {
-            val shouldRelease = mutex.withLock {
-                if (cachedRecognizer !== snapshot) return@withLock false
-                cachedRecognizer = null
-                cachedConfig = null
-                unloadJob?.cancel()
-                unloadJob = null
-                true
-            }
-            if (shouldRelease) {
-                try {
-                    snapshot.release()
-                } catch (t: Throwable) {
-                    Log.e(TAG, "Failed to release recognizer on unload", t)
-                }
-                Log.d(TAG, "Recognizer unloaded")
-            }
-        }
-    }
-
-    fun isPrepared(): Boolean = cachedRecognizer != null
-
-    fun isPreparing(): Boolean = preparing
-
-    // 记录最近一次配置，用于解码完成后按用户设置调度卸载
-    @Volatile private var lastKeepAliveMs: Long = 0L
-
-    @Volatile private var lastAlwaysKeep: Boolean = false
-
-    /**
-     * 调度自动卸载
-     */
-    private fun scheduleAutoUnload(keepAliveMs: Long, alwaysKeep: Boolean) {
-        // 取消上一次计划
-        unloadJob?.cancel()
-
-        if (alwaysKeep) {
-            Log.d(TAG, "Recognizer will be kept alive indefinitely")
-            return
-        }
-
-        if (keepAliveMs <= 0L) {
-            Log.d(TAG, "Auto-unloading immediately (keepAliveMs=$keepAliveMs)")
-            unload()
-            return
-        }
-
-        Log.d(TAG, "Scheduling auto-unload in ${keepAliveMs}ms")
-        unloadJob = scope.launch {
-            delay(keepAliveMs)
-            Log.d(TAG, "Auto-unloading recognizer after timeout")
-            unload()
-        }
-    }
+    fun isOnnxAvailable(): Boolean = sherpaIsClassAvailable(
+        TAG,
+        "com.k2fsa.sherpa.onnx.OfflineRecognizer"
+    )
 
     /**
      * 构建 SenseVoice 模型配置
@@ -612,7 +460,8 @@ class SenseVoiceOnnxManager private constructor() {
     /**
      * 构建识别器配置
      */
-    private fun buildRecognizerConfig(config: RecognizerConfig): Any {
+    protected override fun buildRecognizerConfig(config: Any): Any {
+        config as RecognizerConfig
         val senseVoice = buildSenseVoiceConfig(config.model, config.language, config.useItn)
         val modelConfig =
             buildModelConfig(config.tokens, config.numThreads, config.provider, senseVoice)
@@ -627,45 +476,21 @@ class SenseVoiceOnnxManager private constructor() {
     /**
      * 创建识别器实例
      */
-    private fun createRecognizer(
+    protected override fun createRecognizer(
         assetManager: android.content.res.AssetManager?,
-        recConfig: Any
-    ): Any {
-        // 当 assetManager 为空（从绝对路径加载）时，优先尝试无 assetManager 的构造函数
-        val ctor = if (assetManager == null) {
-            try {
-                clsOfflineRecognizer!!.getDeclaredConstructor(clsOfflineRecognizerConfig)
-            } catch (t: Throwable) {
-                Log.d(TAG, "No single-param constructor, using AssetManager variant", t)
-                // 回退到带 assetManager 的构造（以 null 传入）
-                clsOfflineRecognizer!!.getDeclaredConstructor(
-                    android.content.res.AssetManager::class.java,
-                    clsOfflineRecognizerConfig
-                )
-            }
-        } else {
-            try {
-                clsOfflineRecognizer!!.getDeclaredConstructor(
-                    android.content.res.AssetManager::class.java,
-                    clsOfflineRecognizerConfig
-                )
-            } catch (t: Throwable) {
-                Log.d(TAG, "No AssetManager constructor, using single-param variant", t)
-                clsOfflineRecognizer!!.getDeclaredConstructor(clsOfflineRecognizerConfig)
-            }
-        }
-
-        return if (ctor.parameterCount == 2) {
-            ctor.newInstance(assetManager, recConfig)
-        } else {
-            ctor.newInstance(recConfig)
-        }
-    }
+        recognizerConfig: Any
+    ): Any = sherpaCreateOfflineRecognizer(
+        tag = TAG,
+        recognizerClass = clsOfflineRecognizer!!,
+        recognizerConfigClass = clsOfflineRecognizerConfig!!,
+        assetManager = assetManager,
+        recognizerConfig = recognizerConfig
+    )
 
     /**
      * 初始化反射类引用
      */
-    private fun initClasses() {
+    protected override fun initClasses() {
         if (clsOfflineRecognizer == null) {
             clsOfflineRecognizer = Class.forName("com.k2fsa.sherpa.onnx.OfflineRecognizer")
             clsOfflineRecognizerConfig =
@@ -680,92 +505,9 @@ class SenseVoiceOnnxManager private constructor() {
     /**
      * 尝试设置对象字段
      */
-    private fun trySetField(target: Any, name: String, value: Any?): Boolean = try {
-        val f = target.javaClass.getDeclaredField(name)
-        f.isAccessible = true
-        f.set(target, value)
-        Log.d(TAG, "Successfully set field '$name' to ${value?.javaClass?.simpleName}")
-        true
-    } catch (t: Throwable) {
-        Log.d(TAG, "Failed to set field '$name', trying setter method", t)
-        try {
-            val methodName = "set" + name.replaceFirstChar {
-                if (it.isLowerCase()) it.titlecase() else it.toString()
-            }
-            val m = target.javaClass.getMethod(methodName, value?.javaClass ?: Any::class.java)
-            m.invoke(target, value)
-            Log.d(TAG, "Successfully set field '$name' via setter")
-            true
-        } catch (t2: Throwable) {
-            Log.w(TAG, "Failed to set field '$name' via both direct access and setter", t2)
-            false
-        }
-    }
+    private fun trySetField(target: Any, name: String, value: Any?): Boolean = sherpaTrySetField(TAG, target, name, value)
 
-    private fun releaseRecognizerSafely(recognizer: ReflectiveRecognizer?, reason: String) {
-        if (recognizer == null) return
-        try {
-            recognizer.release()
-        } catch (t: Throwable) {
-            Log.e(TAG, "Failed to release recognizer ($reason)", t)
-        }
-    }
-
-    private fun invokeCallbackSafely(name: String, callback: (() -> Unit)?) {
-        if (callback == null) return
-        try {
-            callback()
-        } catch (t: Throwable) {
-            Log.e(TAG, "$name callback failed", t)
-        }
-    }
-
-    private suspend fun ensurePreparedLocked(
-        assetManager: android.content.res.AssetManager?,
-        config: RecognizerConfig,
-        onLoadStart: (() -> Unit)?,
-        onLoadDone: (() -> Unit)?
-    ): ReflectiveRecognizer? {
-        initClasses()
-
-        val cached = cachedRecognizer
-        if (cached != null && cachedConfig == config) return cached
-
-        preparing = true
-        unloadJob?.cancel()
-        unloadJob = null
-
-        var newRecognizer: ReflectiveRecognizer? = null
-        try {
-            currentCoroutineContext().ensureActive()
-            invokeCallbackSafely("onLoadStart", onLoadStart)
-            currentCoroutineContext().ensureActive()
-
-            val recConfig = buildRecognizerConfig(config)
-            currentCoroutineContext().ensureActive()
-            val rawRecognizer = createRecognizer(assetManager, recConfig)
-            newRecognizer = ReflectiveRecognizer(rawRecognizer, clsOfflineRecognizer!!)
-            currentCoroutineContext().ensureActive()
-
-            val oldRecognizer = cachedRecognizer
-            cachedRecognizer = newRecognizer
-            cachedConfig = config
-
-            invokeCallbackSafely("onLoadDone", onLoadDone)
-            if (oldRecognizer != null && oldRecognizer !== newRecognizer) {
-                releaseRecognizerSafely(oldRecognizer, "old")
-            }
-            return newRecognizer
-        } catch (t: CancellationException) {
-            releaseRecognizerSafely(newRecognizer, "canceled")
-            throw t
-        } catch (t: Throwable) {
-            releaseRecognizerSafely(newRecognizer, "failed")
-            throw t
-        } finally {
-            preparing = false
-        }
-    }
+    protected override fun offlineRecognizerClass(): Class<*> = clsOfflineRecognizer!!
 
     /**
      * 通过反射完成一次离线解码。依赖于 sherpa-onnx Kotlin API 在运行时可用。
@@ -789,10 +531,6 @@ class SenseVoiceOnnxManager private constructor() {
             val config = RecognizerConfig(tokens, model, language, useItn, provider, numThreads)
             val recognizer = ensurePreparedLocked(assetManager, config, onLoadStart, onLoadDone)
                 ?: return@withLock null
-
-            // 记录本次配置
-            lastKeepAliveMs = keepAliveMs
-            lastAlwaysKeep = alwaysKeep
 
             val stream = recognizer.createStream()
             try {
@@ -831,10 +569,6 @@ class SenseVoiceOnnxManager private constructor() {
             val config = RecognizerConfig(tokens, model, language, useItn, provider, numThreads)
             val ok = ensurePreparedLocked(assetManager, config, onLoadStart, onLoadDone) != null
             if (!ok) return@withLock false
-            // 记录本次配置。注意：不在预加载时立即调度卸载，
-            // 将在实际使用（decodeOffline）后再依据设置调度。
-            lastKeepAliveMs = keepAliveMs
-            lastAlwaysKeep = alwaysKeep
             return@withLock true
         } catch (t: CancellationException) {
             throw t
