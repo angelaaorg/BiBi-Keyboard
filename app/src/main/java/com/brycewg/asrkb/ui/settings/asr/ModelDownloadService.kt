@@ -57,12 +57,12 @@ class ModelDownloadService : Service() {
         private const val EXTRA_URI = "uri"
         private const val EXTRA_VARIANT = "variant"
         private const val EXTRA_KEY = "key"
-        private const val EXTRA_MODEL_TYPE = "modelType" // sensevoice | funasr_nano | paraformer | telespeech | punctuation
+        private const val EXTRA_MODEL_TYPE = "modelType" // sensevoice | funasr_nano | paraformer | firered_asr | punctuation
 
         private fun buildDownloadKey(variant: String, modelType: String): DownloadKey {
             val sourceId = when (modelType) {
                 "paraformer" -> "download_paraformer"
-                "telespeech" -> "download_telespeech"
+                "firered_asr" -> "download_firered_asr"
                 "punctuation" -> "download_punctuation"
                 "funasr_nano" -> "download_funasr_nano"
                 else -> "download_sensevoice"
@@ -256,7 +256,7 @@ class ModelDownloadService : Service() {
 
             val doneText = when (modelType) {
                 "paraformer" -> getString(R.string.pf_download_status_done)
-                "telespeech" -> getString(R.string.ts_download_status_done)
+                "firered_asr" -> getString(R.string.fr_download_status_done)
                 "punctuation" -> getString(R.string.punct_download_status_done)
                 "funasr_nano" -> getString(R.string.fn_download_status_done)
                 else -> getString(R.string.sv_download_status_done)
@@ -268,7 +268,7 @@ class ModelDownloadService : Service() {
             val failText = when {
                 t.message == onlyZipMsg -> onlyZipMsg
                 modelType == "paraformer" -> getString(R.string.pf_download_status_failed)
-                modelType == "telespeech" -> getString(R.string.ts_download_status_failed)
+                modelType == "firered_asr" -> getString(R.string.fr_download_status_failed)
                 modelType == "punctuation" -> getString(R.string.punct_download_status_failed)
                 modelType == "funasr_nano" -> getString(R.string.fn_download_status_failed)
                 else -> getString(R.string.sv_download_status_failed)
@@ -352,8 +352,8 @@ class ModelDownloadService : Service() {
                         "sensevoice" -> prefs.svModelVariant = detectedVariant
                         // FunASR Nano：二选一，直接同步用户选择
                         "funasr_nano" -> prefs.fnModelVariant = detectedVariant
-                        // TeleSpeech：离线 CTC，int8/full 二选一，直接同步用户选择
-                        "telespeech" -> prefs.tsModelVariant = detectedVariant
+                        // FireRedASR：离线 CTC，int8/full 二选一，直接同步用户选择
+                        "firered_asr" -> prefs.frModelVariant = detectedVariant
                         // Paraformer：单包含 int8+fp32，两者均可用，不覆盖用户当前偏好
                         "paraformer" -> { /* no-op */ }
                     }
@@ -463,7 +463,10 @@ class ModelDownloadService : Service() {
         val n = name.lowercase()
         return when {
             n.contains("paraformer") -> "paraformer"
-            n.contains("telespeech") -> "telespeech"
+            n.contains("fire-red-asr2") ||
+                n.contains("fire_red_asr2") ||
+                n.contains("firered_asr") ||
+                n.contains("fireredasr") -> "firered_asr"
             n.contains("funasr-nano") -> "funasr_nano"
             n.contains("sense-voice") || n.contains("sensevoice") -> "sensevoice"
             n.contains("punct-ct-transformer") || n.contains("punctuation") -> "punctuation"
@@ -495,9 +498,10 @@ class ModelDownloadService : Service() {
                 "paraformer" to
                     "trilingual-int8"
 
-            // TeleSpeech（离线 CTC）
-            "sherpa-onnx-telespeech-ctc-int8-zh-2024-06-04" -> "telespeech" to "int8"
-            "sherpa-onnx-telespeech-ctc-zh-2024-06-04" -> "telespeech" to "full"
+            // FireRedASR V2
+            "sherpa-onnx-fire-red-asr2-ctc-zh_en-int8-2026-02-25" ->
+                "firered_asr" to
+                    "ctc-int8"
 
             // Punctuation（ct-transformer zh+en）
             "sherpa-onnx-punct-ct-transformer-zh-en-vocab272727-2024-04-12-int8" ->
@@ -527,10 +531,7 @@ class ModelDownloadService : Service() {
             }
             "FunASR $versionName"
         }
-        "telespeech" -> {
-            val versionName = if (variant == "full") "Zh (fp32)" else "Zh (int8)"
-            "TeleSpeech $versionName"
-        }
+        "firered_asr" -> "FireRedASR CTC (int8)"
         "paraformer" -> {
             val versionName = when (variant) {
                 "bilingual" -> "双语版"
@@ -624,7 +625,7 @@ class ModelDownloadService : Service() {
         val base = getExternalFilesDir(null) ?: filesDir
         val outRoot = when (modelType) {
             "paraformer" -> File(base, "paraformer")
-            "telespeech" -> File(base, "telespeech")
+            "firered_asr" -> File(base, "firered_asr")
             "punctuation" -> File(base, "punctuation_tmp")
             "funasr_nano" -> File(base, "funasr_nano")
             else -> File(base, "sensevoice")
@@ -684,13 +685,11 @@ class ModelDownloadService : Service() {
             if (!((encInt8.exists() && decInt8.exists()) || (encF32.exists() && decF32.exists()))) {
                 throw IllegalStateException("paraformer files missing after extract")
             }
-        } else if (modelType == "telespeech") {
-            if (!(
-                    File(modelDir, "model.int8.onnx").exists() ||
-                        File(modelDir, "model.onnx").exists()
-                    )
-            ) {
-                throw IllegalStateException("telespeech files missing after extract")
+        } else if (modelType == "firered_asr") {
+            val hasCtc = File(modelDir, "model.int8.onnx").exists() ||
+                File(modelDir, "model.onnx").exists()
+            if (!hasCtc) {
+                throw IllegalStateException("firered_asr files missing after extract")
             }
         } else if (modelType == "funasr_nano") {
             val encoderAdaptor = File(modelDir, "encoder_adaptor.int8.onnx")
@@ -740,9 +739,9 @@ class ModelDownloadService : Service() {
                 val group = if (variant.startsWith("trilingual")) "trilingual" else "bilingual"
                 File(outRoot, group)
             }
-            "telespeech" -> {
-                val outRoot = File(base, "telespeech")
-                if (variant == "full") File(outRoot, "full") else File(outRoot, "int8")
+            "firered_asr" -> {
+                val outRoot = File(base, "firered_asr")
+                File(outRoot, variant)
             }
             "funasr_nano" -> {
                 val outRoot = File(base, "funasr_nano")
@@ -1132,7 +1131,7 @@ class NotificationHandler(
     fun notifyDownloadProgress(progress: Int, cancelIntent: PendingIntent) {
         val text = when (modelType) {
             "paraformer" -> context.getString(R.string.pf_download_status_downloading, progress)
-            "telespeech" -> context.getString(R.string.ts_download_status_downloading, progress)
+            "firered_asr" -> context.getString(R.string.fr_download_status_downloading, progress)
             "punctuation" -> context.getString(R.string.punct_download_status_downloading, progress)
             "funasr_nano" -> context.getString(R.string.fn_download_status_downloading, progress)
             else -> context.getString(R.string.sv_download_status_downloading, progress)
@@ -1157,8 +1156,8 @@ class NotificationHandler(
                 R.string.pf_download_status_extracting_progress,
                 progress
             )
-            "telespeech" -> context.getString(
-                R.string.ts_download_status_extracting_progress,
+            "firered_asr" -> context.getString(
+                R.string.fr_download_status_extracting_progress,
                 progress
             )
             "punctuation" -> context.getString(
@@ -1191,8 +1190,8 @@ class NotificationHandler(
                 R.string.pf_download_status_extracting_progress,
                 progress
             )
-            "telespeech" -> context.getString(
-                R.string.ts_download_status_extracting_progress,
+            "firered_asr" -> context.getString(
+                R.string.fr_download_status_extracting_progress,
                 progress
             )
             "punctuation" -> context.getString(
@@ -1249,7 +1248,7 @@ class NotificationHandler(
 
     fun getFailedText(): String = when (modelType) {
         "paraformer" -> context.getString(R.string.pf_download_status_failed)
-        "telespeech" -> context.getString(R.string.ts_download_status_failed)
+        "firered_asr" -> context.getString(R.string.fr_download_status_failed)
         "punctuation" -> context.getString(R.string.punct_download_status_failed)
         "funasr_nano" -> context.getString(R.string.fn_download_status_failed)
         else -> context.getString(R.string.sv_download_status_failed)
@@ -1332,13 +1331,7 @@ class NotificationHandler(
                 context.getString(R.string.notif_pf_title_bilingual)
             }
         }
-        "telespeech" -> {
-            if (variant == "full") {
-                context.getString(R.string.notif_ts_title_full)
-            } else {
-                context.getString(R.string.notif_ts_title_int8)
-            }
-        }
+        "firered_asr" -> context.getString(R.string.notif_fr_title_ctc_int8)
         "punctuation" -> context.getString(R.string.notif_punct_title)
         "funasr_nano" -> context.getString(R.string.notif_fn_title_nano_int8)
         else -> {

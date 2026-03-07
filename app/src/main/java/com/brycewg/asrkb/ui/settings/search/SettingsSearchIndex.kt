@@ -566,10 +566,10 @@ object SettingsSearchIndex {
             asrVendorId = "funasr_nano",
             keywords = listOf("funasr", "funasr_nano")
         )
-        R.id.groupTelespeech -> VendorHint(
-            title = context.getString(R.string.vendor_telespeech),
-            asrVendorId = "telespeech",
-            keywords = listOf("telespeech")
+        R.id.groupFireRedAsr -> VendorHint(
+            title = context.getString(R.string.vendor_firered_asr),
+            asrVendorId = "firered_asr",
+            keywords = listOf("firered_asr", "firered", "fire-red-asr2", "fire red asr")
         )
         R.id.groupParaformer -> VendorHint(
             title = context.getString(R.string.vendor_paraformer),

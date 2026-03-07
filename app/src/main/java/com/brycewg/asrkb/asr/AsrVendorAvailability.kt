@@ -39,7 +39,7 @@ internal fun isAsrVendorConfigured(context: Context, prefs: Prefs, vendor: AsrVe
     when (vendor) {
         AsrVendor.SenseVoice -> hasSenseVoiceModelInstalled(context, prefs)
         AsrVendor.FunAsrNano -> hasFunAsrNanoModelInstalled(context)
-        AsrVendor.Telespeech -> hasTelespeechModelInstalled(context, prefs)
+        AsrVendor.FireRedAsr -> hasFireRedAsrModelInstalled(context, prefs)
         AsrVendor.Paraformer -> hasParaformerModelInstalled(context, prefs)
         AsrVendor.SiliconFlow -> prefs.hasSfKeys()
         else -> prefs.hasVendorKeys(vendor)
@@ -80,21 +80,11 @@ private fun hasFunAsrNanoModelInstalled(context: Context): Boolean {
         File(tokenizerDir, "tokenizer.json").exists()
 }
 
-private fun hasTelespeechModelInstalled(context: Context, prefs: Prefs): Boolean {
+private fun hasFireRedAsrModelInstalled(context: Context, prefs: Prefs): Boolean {
     val base = context.getExternalFilesDir(null) ?: context.filesDir
-    val root = File(base, "telespeech")
-    val variantDir = if (prefs.tsModelVariant == "full") {
-        File(root, "full")
-    } else {
-        File(root, "int8")
-    }
-    val modelDir = findTsModelDir(variantDir) ?: findTsModelDir(root)
-    return modelDir != null &&
-        File(modelDir, "tokens.txt").exists() &&
-        (
-            File(modelDir, "model.int8.onnx").exists() ||
-                File(modelDir, "model.onnx").exists()
-            )
+    val root = File(base, "firered_asr")
+    val variantDir = File(root, prefs.frModelVariant)
+    return findFireRedAsrModelDir(variantDir) != null || findFireRedAsrModelDir(root) != null
 }
 
 private fun hasParaformerModelInstalled(context: Context, prefs: Prefs): Boolean {

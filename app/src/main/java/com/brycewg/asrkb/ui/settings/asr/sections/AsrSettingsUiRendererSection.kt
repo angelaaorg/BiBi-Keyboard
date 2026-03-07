@@ -76,7 +76,7 @@ internal class AsrSettingsUiRendererSection : AsrSettingsSection {
             AsrVendor.Zhipu to binding.view<View>(R.id.groupZhipu),
             AsrVendor.SenseVoice to binding.view<View>(R.id.groupSenseVoice),
             AsrVendor.FunAsrNano to binding.view<View>(R.id.groupFunAsrNano),
-            AsrVendor.Telespeech to binding.view<View>(R.id.groupTelespeech),
+            AsrVendor.FireRedAsr to binding.view<View>(R.id.groupFireRedAsr),
             AsrVendor.Paraformer to binding.view<View>(R.id.groupParaformer)
         )
         visMap.forEach { (vendor, view) ->

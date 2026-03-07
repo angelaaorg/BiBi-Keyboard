@@ -168,7 +168,7 @@ class AsrSessionManager(
         // 检查本地 SenseVoice 模型（如果需要）
         if (!checkSenseVoiceModel()) {
             val errRes = when (prefs.asrVendor) {
-                AsrVendor.Telespeech -> com.brycewg.asrkb.R.string.error_telespeech_model_missing
+                AsrVendor.FireRedAsr -> com.brycewg.asrkb.R.string.error_firered_asr_model_missing
                 else -> com.brycewg.asrkb.R.string.error_sensevoice_model_missing
             }
             releaseRecordingResources("model_missing")
@@ -574,7 +574,7 @@ class AsrSessionManager(
         if (
             prefs.asrVendor != AsrVendor.SenseVoice &&
             prefs.asrVendor != AsrVendor.FunAsrNano &&
-            prefs.asrVendor != AsrVendor.Telespeech
+            prefs.asrVendor != AsrVendor.FireRedAsr
         ) {
             return true
         }
@@ -583,7 +583,7 @@ class AsrSessionManager(
             when (prefs.asrVendor) {
                 AsrVendor.SenseVoice -> com.brycewg.asrkb.asr.isSenseVoicePrepared()
                 AsrVendor.FunAsrNano -> com.brycewg.asrkb.asr.isFunAsrNanoPrepared()
-                AsrVendor.Telespeech -> com.brycewg.asrkb.asr.isTelespeechPrepared()
+                AsrVendor.FireRedAsr -> com.brycewg.asrkb.asr.isFireRedAsrPrepared()
                 else -> true
             }
         } catch (e: Throwable) {
@@ -599,20 +599,17 @@ class AsrSessionManager(
             Log.w(TAG, "Failed to get external files dir", e)
             context.filesDir
         }
-        return if (prefs.asrVendor == AsrVendor.Telespeech) {
-            val probeRoot = java.io.File(base, "telespeech")
+        return if (prefs.asrVendor == AsrVendor.FireRedAsr) {
+            val probeRoot = java.io.File(base, "firered_asr")
             val variant = try {
-                prefs.tsModelVariant
+                prefs.frModelVariant
             } catch (e: Throwable) {
-                Log.w(TAG, "Failed to get TeleSpeech variant", e)
-                "int8"
+                Log.w(TAG, "Failed to get FireRedASR variant", e)
+                "ctc-int8"
             }
-            val variantDir = when (variant) {
-                "full" -> java.io.File(probeRoot, "full")
-                else -> java.io.File(probeRoot, "int8")
-            }
-            val found = com.brycewg.asrkb.asr.findTsModelDir(variantDir)
-                ?: com.brycewg.asrkb.asr.findTsModelDir(probeRoot)
+            val variantDir = java.io.File(probeRoot, variant)
+            val found = com.brycewg.asrkb.asr.findFireRedAsrModelDir(variantDir)
+                ?: com.brycewg.asrkb.asr.findFireRedAsrModelDir(probeRoot)
             found != null
         } else if (prefs.asrVendor == AsrVendor.FunAsrNano) {
             val probeRoot = java.io.File(base, "funasr_nano")
@@ -804,9 +801,9 @@ class AsrSessionManager(
                     onRequestDuration = ::onRequestDuration
                 )
             }
-            AsrVendor.Telespeech -> {
-                if (prefs.tsPseudoStreamEnabled) {
-                    TelespeechPseudoStreamAsrEngine(
+            AsrVendor.FireRedAsr -> {
+                if (prefs.frPseudoStreamEnabled) {
+                    FireRedAsrPseudoStreamAsrEngine(
                         context,
                         serviceScope,
                         prefs,
@@ -814,7 +811,7 @@ class AsrSessionManager(
                         onRequestDuration = ::onRequestDuration
                     )
                 } else {
-                    TelespeechFileAsrEngine(
+                    FireRedAsrFileAsrEngine(
                         context,
                         serviceScope,
                         prefs,

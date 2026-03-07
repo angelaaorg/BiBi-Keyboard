@@ -591,9 +591,9 @@ class ExternalSpeechService : Service() {
             AsrVendor.Volc -> prefs.volcStreamingEnabled
             AsrVendor.DashScope -> prefs.isDashStreamingModelSelected()
             AsrVendor.Soniox -> prefs.sonioxStreamingEnabled
-            // 本地 sherpa-onnx：Paraformer 仅流式；SenseVoice/FunASR Nano/TeleSpeech 仅非流式
+            // 本地 sherpa-onnx：Paraformer 仅流式；SenseVoice/FunASR Nano/FireRedASR 仅非流式
             AsrVendor.Paraformer -> true
-            AsrVendor.SenseVoice, AsrVendor.FunAsrNano, AsrVendor.Telespeech -> false
+            AsrVendor.SenseVoice, AsrVendor.FunAsrNano, AsrVendor.FireRedAsr -> false
             AsrVendor.ElevenLabs -> prefs.elevenStreamingEnabled
             AsrVendor.OpenAI -> prefs.oaAsrStreamingEnabled
             // 其他云厂商（Gemini/SiliconFlow/Zhipu）仅非流式
@@ -696,7 +696,7 @@ class ExternalSpeechService : Service() {
                     this,
                     onRequestDuration = ::onRequestDuration
                 )
-                AsrVendor.Telespeech -> TelespeechFileAsrEngine(
+                AsrVendor.FireRedAsr -> FireRedAsrFileAsrEngine(
                     context,
                     scope,
                     prefs,
@@ -931,10 +931,10 @@ class ExternalSpeechService : Service() {
                         )
                     )
                 }
-                // TeleSpeech：支持伪流式（VAD 分片预览 + 整段离线识别）
-                AsrVendor.Telespeech -> {
-                    if (prefs.tsPseudoStreamEnabled) {
-                        com.brycewg.asrkb.asr.TelespeechPushPcmPseudoStreamAsrEngine(
+                // FireRedASR：当前沿用整段离线转录；伪流式开关仅复用整段转录链路
+                AsrVendor.FireRedAsr -> {
+                    if (prefs.frPseudoStreamEnabled) {
+                        com.brycewg.asrkb.asr.FireRedAsrPushPcmPseudoStreamAsrEngine(
                             context,
                             scope,
                             prefs,
@@ -947,7 +947,7 @@ class ExternalSpeechService : Service() {
                             scope,
                             prefs,
                             this,
-                            com.brycewg.asrkb.asr.TelespeechFileAsrEngine(
+                            com.brycewg.asrkb.asr.FireRedAsrFileAsrEngine(
                                 context,
                                 scope,
                                 prefs,

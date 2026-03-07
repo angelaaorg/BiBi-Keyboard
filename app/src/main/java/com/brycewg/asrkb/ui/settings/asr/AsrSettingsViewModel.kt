@@ -76,13 +76,13 @@ class AsrSettingsViewModel : ViewModel() {
             fnUserPrompt = prefs.fnUserPrompt,
             fnPreloadEnabled = prefs.fnPreloadEnabled,
             fnKeepAliveMinutes = prefs.fnKeepAliveMinutes,
-            // TeleSpeech settings
-            tsModelVariant = prefs.tsModelVariant,
-            tsNumThreads = prefs.tsNumThreads,
-            tsKeepAliveMinutes = prefs.tsKeepAliveMinutes,
-            tsPreloadEnabled = prefs.tsPreloadEnabled,
-            tsUseItn = prefs.tsUseItn,
-            tsPseudoStreamEnabled = prefs.tsPseudoStreamEnabled,
+            // FireRedASR settings
+            frModelVariant = prefs.frModelVariant,
+            frNumThreads = prefs.frNumThreads,
+            frKeepAliveMinutes = prefs.frKeepAliveMinutes,
+            frPreloadEnabled = prefs.frPreloadEnabled,
+            frUseItn = prefs.frUseItn,
+            frPseudoStreamEnabled = prefs.frPseudoStreamEnabled,
             // Paraformer settings
             pfModelVariant = prefs.pfModelVariant,
             pfNumThreads = prefs.pfNumThreads,
@@ -116,13 +116,13 @@ class AsrSettingsViewModel : ViewModel() {
                 Log.e(TAG, "Failed to unload FunASR Nano recognizer", e)
             }
         }
-        if (oldVendor == AsrVendor.Telespeech && vendor != AsrVendor.Telespeech) {
+        if (oldVendor == AsrVendor.FireRedAsr && vendor != AsrVendor.FireRedAsr) {
             try {
-                com.brycewg.asrkb.asr.unloadTelespeechRecognizer()
+                com.brycewg.asrkb.asr.unloadFireRedAsrRecognizer()
             } catch (
                 e: Throwable
             ) {
-                Log.e(TAG, "Failed to unload TeleSpeech recognizer", e)
+                Log.e(TAG, "Failed to unload FireRedASR recognizer", e)
             }
         }
         if (oldVendor == AsrVendor.Paraformer && vendor != AsrVendor.Paraformer) {
@@ -135,8 +135,8 @@ class AsrSettingsViewModel : ViewModel() {
             }
         }
 
-        // 当切换到本地模型（TeleSpeech / Paraformer）时，如未安装标点模型则提示一次
-        if (vendor == AsrVendor.Telespeech || vendor == AsrVendor.Paraformer) {
+        // 当切换到本地模型（FireRedASR / Paraformer）时，如未安装标点模型则提示一次
+        if (vendor == AsrVendor.FireRedAsr || vendor == AsrVendor.Paraformer) {
             try {
                 com.brycewg.asrkb.asr.SherpaPunctuationManager.maybeWarnModelMissing(appContext)
             } catch (t: Throwable) {
@@ -168,15 +168,15 @@ class AsrSettingsViewModel : ViewModel() {
                 }
             }
         }
-        if (vendor == AsrVendor.Telespeech && prefs.tsPreloadEnabled) {
+        if (vendor == AsrVendor.FireRedAsr && prefs.frPreloadEnabled) {
             viewModelScope.launch(Dispatchers.Default) {
                 try {
-                    com.brycewg.asrkb.asr.preloadTelespeechIfConfigured(
+                    com.brycewg.asrkb.asr.preloadFireRedAsrIfConfigured(
                         appContext,
                         prefs
                     )
                 } catch (e: Throwable) {
-                    Log.e(TAG, "Failed to preload TeleSpeech model", e)
+                    Log.e(TAG, "Failed to preload FireRedASR model", e)
                 }
             }
         }
@@ -321,14 +321,14 @@ class AsrSettingsViewModel : ViewModel() {
         }
     }
 
-    fun updateTsUseItn(enabled: Boolean) {
-        if (prefs.tsUseItn != enabled) {
-            prefs.tsUseItn = enabled
-            _uiState.value = _uiState.value.copy(tsUseItn = enabled)
+    fun updateFrUseItn(enabled: Boolean) {
+        if (prefs.frUseItn != enabled) {
+            prefs.frUseItn = enabled
+            _uiState.value = _uiState.value.copy(frUseItn = enabled)
             try {
-                com.brycewg.asrkb.asr.unloadTelespeechRecognizer()
+                com.brycewg.asrkb.asr.unloadFireRedAsrRecognizer()
             } catch (e: Throwable) {
-                Log.e(TAG, "Failed to unload TeleSpeech recognizer after ITN change", e)
+                Log.e(TAG, "Failed to unload FireRedASR recognizer after ITN change", e)
             }
             triggerTsPreloadIfEnabledAndActive("ts ITN change")
         }
@@ -438,59 +438,59 @@ class AsrSettingsViewModel : ViewModel() {
         }
     }
 
-    fun updateTsModelVariant(variant: String) {
-        prefs.tsModelVariant = variant
-        _uiState.value = _uiState.value.copy(tsModelVariant = variant)
+    fun updateFrModelVariant(variant: String) {
+        prefs.frModelVariant = variant
+        _uiState.value = _uiState.value.copy(frModelVariant = variant)
         try {
-            com.brycewg.asrkb.asr.unloadTelespeechRecognizer()
+            com.brycewg.asrkb.asr.unloadFireRedAsrRecognizer()
         } catch (
             e: Throwable
         ) {
-            Log.e(TAG, "Failed to unload TeleSpeech recognizer after variant change", e)
+            Log.e(TAG, "Failed to unload FireRedASR recognizer after variant change", e)
         }
         triggerTsPreloadIfEnabledAndActive("variant change")
     }
 
-    fun updateTsKeepAlive(minutes: Int) {
-        prefs.tsKeepAliveMinutes = minutes
-        _uiState.value = _uiState.value.copy(tsKeepAliveMinutes = minutes)
+    fun updateFrKeepAlive(minutes: Int) {
+        prefs.frKeepAliveMinutes = minutes
+        _uiState.value = _uiState.value.copy(frKeepAliveMinutes = minutes)
     }
 
-    fun updateTsNumThreads(v: Int) {
+    fun updateFrNumThreads(v: Int) {
         val vv = v.coerceIn(1, 8)
-        prefs.tsNumThreads = vv
-        _uiState.value = _uiState.value.copy(tsNumThreads = vv)
+        prefs.frNumThreads = vv
+        _uiState.value = _uiState.value.copy(frNumThreads = vv)
         try {
-            com.brycewg.asrkb.asr.unloadTelespeechRecognizer()
+            com.brycewg.asrkb.asr.unloadFireRedAsrRecognizer()
         } catch (
             e: Throwable
         ) {
-            Log.e(TAG, "Failed to unload TeleSpeech recognizer after threads change", e)
+            Log.e(TAG, "Failed to unload FireRedASR recognizer after threads change", e)
         }
         triggerTsPreloadIfEnabledAndActive("threads change")
     }
 
-    fun updateTsPreload(enabled: Boolean) {
-        prefs.tsPreloadEnabled = enabled
-        _uiState.value = _uiState.value.copy(tsPreloadEnabled = enabled)
+    fun updateFrPreload(enabled: Boolean) {
+        prefs.frPreloadEnabled = enabled
+        _uiState.value = _uiState.value.copy(frPreloadEnabled = enabled)
 
-        if (enabled && prefs.asrVendor == AsrVendor.Telespeech) {
+        if (enabled && prefs.asrVendor == AsrVendor.FireRedAsr) {
             viewModelScope.launch(Dispatchers.Default) {
                 try {
-                    com.brycewg.asrkb.asr.preloadTelespeechIfConfigured(
+                    com.brycewg.asrkb.asr.preloadFireRedAsrIfConfigured(
                         appContext,
                         prefs
                     )
                 } catch (e: Throwable) {
-                    Log.e(TAG, "Failed to preload TeleSpeech model", e)
+                    Log.e(TAG, "Failed to preload FireRedASR model", e)
                 }
             }
         }
     }
 
-    fun updateTsPseudoStream(enabled: Boolean) {
-        prefs.tsPseudoStreamEnabled = enabled
-        _uiState.value = _uiState.value.copy(tsPseudoStreamEnabled = enabled)
+    fun updateFrPseudoStream(enabled: Boolean) {
+        prefs.frPseudoStreamEnabled = enabled
+        _uiState.value = _uiState.value.copy(frPseudoStreamEnabled = enabled)
     }
 
     fun updateSvKeepAlive(minutes: Int) {
@@ -555,12 +555,12 @@ class AsrSettingsViewModel : ViewModel() {
     }
 
     private fun triggerTsPreloadIfEnabledAndActive(reason: String) {
-        if (prefs.tsPreloadEnabled && prefs.asrVendor == AsrVendor.Telespeech) {
+        if (prefs.frPreloadEnabled && prefs.asrVendor == AsrVendor.FireRedAsr) {
             viewModelScope.launch(Dispatchers.Default) {
                 try {
-                    com.brycewg.asrkb.asr.preloadTelespeechIfConfigured(appContext, prefs)
+                    com.brycewg.asrkb.asr.preloadFireRedAsrIfConfigured(appContext, prefs)
                 } catch (t: Throwable) {
-                    Log.e(TAG, "Failed to preload TeleSpeech after $reason", t)
+                    Log.e(TAG, "Failed to preload FireRedASR after $reason", t)
                 }
             }
         }
@@ -655,24 +655,16 @@ class AsrSettingsViewModel : ViewModel() {
             File(tokenizerDir, "tokenizer.json").exists()
     }
 
-    fun checkTsModelDownloaded(context: Context): Boolean {
-        val base = context.getExternalFilesDir(null) ?: context.filesDir
-        val root = File(base, "telespeech")
-        val variant = prefs.tsModelVariant
-        val dir = when (variant) {
-            "full" -> File(root, "full")
-            else -> File(root, "int8")
-        }
-        val modelDir = findModelDir(dir)
-        return modelDir != null &&
-            File(modelDir, "tokens.txt").exists() &&
-            (
-                File(
-                    modelDir,
-                    "model.int8.onnx"
-                ).exists() ||
-                    File(modelDir, "model.onnx").exists()
-                )
+    fun checkFrModelDownloaded(context: Context): Boolean {
+        val resolved = try {
+            com.brycewg.asrkb.asr.resolveFireRedAsrModelFiles(context, prefs)
+        } catch (t: Throwable) {
+            Log.w(TAG, "Failed to resolve FireRedASR model files", t)
+            null
+        } ?: return false
+        return File(resolved.tokensPath).exists() &&
+            !resolved.ctcModelPath.isNullOrBlank() &&
+            File(resolved.ctcModelPath).exists()
     }
 
     fun isPunctuationModelInstalled(context: Context): Boolean = try {
@@ -744,13 +736,13 @@ data class AsrSettingsUiState(
     val fnUserPrompt: String = "语音转写：",
     val fnPreloadEnabled: Boolean = false,
     val fnKeepAliveMinutes: Int = -1,
-    // TeleSpeech settings
-    val tsModelVariant: String = "int8",
-    val tsNumThreads: Int = 2,
-    val tsKeepAliveMinutes: Int = -1,
-    val tsPreloadEnabled: Boolean = false,
-    val tsUseItn: Boolean = true,
-    val tsPseudoStreamEnabled: Boolean = false,
+    // FireRedASR settings
+    val frModelVariant: String = "ctc-int8",
+    val frNumThreads: Int = 2,
+    val frKeepAliveMinutes: Int = -1,
+    val frPreloadEnabled: Boolean = false,
+    val frUseItn: Boolean = true,
+    val frPseudoStreamEnabled: Boolean = false,
     // Paraformer settings
     val pfModelVariant: String = "bilingual-int8",
     val pfNumThreads: Int = 2,
@@ -768,6 +760,6 @@ data class AsrSettingsUiState(
     val isSonioxVisible: Boolean get() = selectedVendor == AsrVendor.Soniox
     val isSenseVoiceVisible: Boolean get() = selectedVendor == AsrVendor.SenseVoice
     val isFunAsrNanoVisible: Boolean get() = selectedVendor == AsrVendor.FunAsrNano
-    val isTelespeechVisible: Boolean get() = selectedVendor == AsrVendor.Telespeech
+    val isFireRedAsrVisible: Boolean get() = selectedVendor == AsrVendor.FireRedAsr
     val isParaformerVisible: Boolean get() = selectedVendor == AsrVendor.Paraformer
 }

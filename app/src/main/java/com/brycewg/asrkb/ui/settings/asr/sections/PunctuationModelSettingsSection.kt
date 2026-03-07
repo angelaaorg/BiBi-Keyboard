@@ -16,10 +16,10 @@ internal class PunctuationModelSettingsSection : AsrSettingsSection {
     override fun bind(binding: AsrSettingsBinding) {
         bindPunctButtons(
             binding = binding,
-            btnDownloadId = R.id.btnTsDownloadPunct,
-            btnImportId = R.id.btnTsImportPunct,
-            btnClearId = R.id.btnTsClearPunct,
-            statusTextId = R.id.tvTsPunctStatus
+            btnDownloadId = R.id.btnFrDownloadPunct,
+            btnImportId = R.id.btnFrImportPunct,
+            btnClearId = R.id.btnFrClearPunct,
+            statusTextId = R.id.tvFrPunctStatus
         )
         bindPunctButtons(
             binding = binding,
@@ -125,10 +125,10 @@ internal class PunctuationModelSettingsSection : AsrSettingsSection {
         }
 
         apply(
-            R.id.btnTsDownloadPunct,
-            R.id.btnTsImportPunct,
-            R.id.btnTsClearPunct,
-            R.id.tvTsPunctStatus
+            R.id.btnFrDownloadPunct,
+            R.id.btnFrImportPunct,
+            R.id.btnFrClearPunct,
+            R.id.tvFrPunctStatus
         )
         apply(
             R.id.btnPfDownloadPunct,

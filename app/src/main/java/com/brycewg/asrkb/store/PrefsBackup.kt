@@ -178,13 +178,13 @@ internal object PrefsBackup {
         o.put(KEY_FN_USER_PROMPT, fnUserPrompt)
         o.put(KEY_FN_PRELOAD_ENABLED, fnPreloadEnabled)
         o.put(KEY_FN_KEEP_ALIVE_MINUTES, fnKeepAliveMinutes)
-        // TeleSpeech（本地 ASR）
-        o.put(KEY_TS_MODEL_VARIANT, tsModelVariant)
-        o.put(KEY_TS_NUM_THREADS, tsNumThreads)
-        o.put(KEY_TS_KEEP_ALIVE_MINUTES, tsKeepAliveMinutes)
-        o.put(KEY_TS_PRELOAD_ENABLED, tsPreloadEnabled)
-        o.put(KEY_TS_USE_ITN, tsUseItn)
-        o.put(KEY_TS_PSEUDO_STREAM_ENABLED, tsPseudoStreamEnabled)
+        // FireRedASR（本地 ASR）
+        o.put(KEY_FR_MODEL_VARIANT, frModelVariant)
+        o.put(KEY_FR_NUM_THREADS, frNumThreads)
+        o.put(KEY_FR_KEEP_ALIVE_MINUTES, frKeepAliveMinutes)
+        o.put(KEY_FR_PRELOAD_ENABLED, frPreloadEnabled)
+        o.put(KEY_FR_USE_ITN, frUseItn)
+        o.put(KEY_FR_PSEUDO_STREAM_ENABLED, frPseudoStreamEnabled)
         // Paraformer（本地 ASR）
         o.put(KEY_PF_MODEL_VARIANT, pfModelVariant)
         o.put(KEY_PF_NUM_THREADS, pfNumThreads)
@@ -468,13 +468,23 @@ internal object PrefsBackup {
             optString(KEY_FN_USER_PROMPT)?.let { fnUserPrompt = it }
             optBool(KEY_FN_PRELOAD_ENABLED)?.let { fnPreloadEnabled = it }
             optInt(KEY_FN_KEEP_ALIVE_MINUTES)?.let { fnKeepAliveMinutes = it }
-            // TeleSpeech（本地 ASR）
-            optString(KEY_TS_MODEL_VARIANT)?.let { tsModelVariant = it }
-            optInt(KEY_TS_NUM_THREADS)?.let { tsNumThreads = it.coerceIn(1, 8) }
-            optInt(KEY_TS_KEEP_ALIVE_MINUTES)?.let { tsKeepAliveMinutes = it }
-            optBool(KEY_TS_PRELOAD_ENABLED)?.let { tsPreloadEnabled = it }
-            optBool(KEY_TS_USE_ITN)?.let { tsUseItn = it }
-            optBool(KEY_TS_PSEUDO_STREAM_ENABLED)?.let { tsPseudoStreamEnabled = it }
+            // FireRedASR（本地 ASR）
+            (optString(KEY_FR_MODEL_VARIANT) ?: optString(KEY_TS_MODEL_VARIANT))?.let {
+                frModelVariant = it
+            }
+            (optInt(KEY_FR_NUM_THREADS) ?: optInt(KEY_TS_NUM_THREADS))?.let {
+                frNumThreads = it.coerceIn(1, 8)
+            }
+            (optInt(KEY_FR_KEEP_ALIVE_MINUTES) ?: optInt(KEY_TS_KEEP_ALIVE_MINUTES))?.let {
+                frKeepAliveMinutes = it
+            }
+            (optBool(KEY_FR_PRELOAD_ENABLED) ?: optBool(KEY_TS_PRELOAD_ENABLED))?.let {
+                frPreloadEnabled = it
+            }
+            (optBool(KEY_FR_USE_ITN) ?: optBool(KEY_TS_USE_ITN))?.let { frUseItn = it }
+            (optBool(KEY_FR_PSEUDO_STREAM_ENABLED) ?: optBool(KEY_TS_PSEUDO_STREAM_ENABLED))?.let {
+                frPseudoStreamEnabled = it
+            }
             // Paraformer（本地 ASR）
             optString(KEY_PF_MODEL_VARIANT)?.let { pfModelVariant = it }
             optInt(KEY_PF_NUM_THREADS)?.let { pfNumThreads = it.coerceIn(1, 8) }

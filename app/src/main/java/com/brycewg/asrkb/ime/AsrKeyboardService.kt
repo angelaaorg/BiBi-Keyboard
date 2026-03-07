@@ -836,10 +836,10 @@ class AsrKeyboardService :
                     ) {
                         com.brycewg.asrkb.asr.unloadFunAsrNanoRecognizer()
                     }
-                    if (old == com.brycewg.asrkb.asr.AsrVendor.Telespeech &&
-                        vendor != com.brycewg.asrkb.asr.AsrVendor.Telespeech
+                    if (old == com.brycewg.asrkb.asr.AsrVendor.FireRedAsr &&
+                        vendor != com.brycewg.asrkb.asr.AsrVendor.FireRedAsr
                     ) {
-                        com.brycewg.asrkb.asr.unloadTelespeechRecognizer()
+                        com.brycewg.asrkb.asr.unloadFireRedAsrRecognizer()
                     }
                     if (old == com.brycewg.asrkb.asr.AsrVendor.Paraformer &&
                         vendor != com.brycewg.asrkb.asr.AsrVendor.Paraformer
@@ -870,8 +870,8 @@ class AsrKeyboardService :
                                 prefs
                             )
                         }
-                        com.brycewg.asrkb.asr.AsrVendor.Telespeech -> if (prefs.tsPreloadEnabled) {
-                            com.brycewg.asrkb.asr.preloadTelespeechIfConfigured(
+                        com.brycewg.asrkb.asr.AsrVendor.FireRedAsr -> if (prefs.frPreloadEnabled) {
+                            com.brycewg.asrkb.asr.preloadFireRedAsrIfConfigured(
                                 this,
                                 prefs
                             )
@@ -917,7 +917,7 @@ class AsrKeyboardService :
         val enabled = when (p.asrVendor) {
             AsrVendor.SenseVoice -> p.svPreloadEnabled
             AsrVendor.FunAsrNano -> p.fnPreloadEnabled
-            AsrVendor.Telespeech -> p.tsPreloadEnabled
+            AsrVendor.FireRedAsr -> p.frPreloadEnabled
             AsrVendor.Paraformer -> p.pfPreloadEnabled
             else -> false
         }

@@ -239,11 +239,11 @@ class AsrRecognitionService : RecognitionService() {
                 // FunASR Nano 模型算力开销高：不支持伪流式预览，仅保留整段离线识别
                 FunAsrNanoFileAsrEngine(engineContext, scope, prefs, listener)
             }
-            AsrVendor.Telespeech -> {
-                if (prefs.tsPseudoStreamEnabled) {
-                    TelespeechPseudoStreamAsrEngine(engineContext, scope, prefs, listener)
+            AsrVendor.FireRedAsr -> {
+                if (prefs.frPseudoStreamEnabled) {
+                    FireRedAsrPseudoStreamAsrEngine(engineContext, scope, prefs, listener)
                 } else {
-                    TelespeechFileAsrEngine(engineContext, scope, prefs, listener)
+                    FireRedAsrFileAsrEngine(engineContext, scope, prefs, listener)
                 }
             }
             AsrVendor.Paraformer -> ParaformerStreamAsrEngine(engineContext, scope, prefs, listener)
@@ -279,7 +279,7 @@ class AsrRecognitionService : RecognitionService() {
         AsrVendor.ElevenLabs -> prefs.elevenStreamingEnabled
         AsrVendor.OpenAI -> prefs.oaAsrStreamingEnabled
         AsrVendor.Paraformer -> true
-        AsrVendor.SenseVoice, AsrVendor.FunAsrNano, AsrVendor.Telespeech -> false
+        AsrVendor.SenseVoice, AsrVendor.FunAsrNano, AsrVendor.FireRedAsr -> false
         AsrVendor.Gemini, AsrVendor.SiliconFlow, AsrVendor.Zhipu -> false
     }
 

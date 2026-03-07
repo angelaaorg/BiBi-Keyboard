@@ -1,15 +1,15 @@
+/**
+ * FireRedASR V2 麦克风伪流式引擎：按固定分片提供 onPartial 预览，结束时输出最终结果。
+ *
+ * 归属模块：asr
+ */
 package com.brycewg.asrkb.asr
 
 import android.content.Context
 import com.brycewg.asrkb.store.Prefs
 import kotlinx.coroutines.CoroutineScope
 
-/**
- * TeleSpeech 本地模型伪流式引擎：
- * - 定时分片，小片段离线识别后通过 onPartial 预览；
- * - 会话结束时对整段音频再识别一次，通过 onFinal 覆盖最终结果。
- */
-class TelespeechPseudoStreamAsrEngine(
+internal class FireRedAsrPseudoStreamAsrEngine(
     context: Context,
     scope: CoroutineScope,
     prefs: Prefs,
@@ -18,10 +18,10 @@ class TelespeechPseudoStreamAsrEngine(
 ) : LocalModelPseudoStreamAsrEngine(context, scope, prefs, listener, onRequestDuration) {
 
     companion object {
-        private const val TAG = "TsPseudoStreamEngine"
+        private const val TAG = "FireRedPseudoStream"
     }
 
-    private val delegate = TelespeechPseudoStreamDelegate(
+    private val delegate = FireRedAsrPseudoStreamDelegate(
         context = context,
         scope = scope,
         prefs = prefs,

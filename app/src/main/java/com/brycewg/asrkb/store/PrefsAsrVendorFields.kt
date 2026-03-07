@@ -58,8 +58,8 @@ internal object PrefsAsrVendorFields {
         AsrVendor.SenseVoice to emptyList(),
         // 本地 FunASR Nano（sherpa-onnx）无需鉴权
         AsrVendor.FunAsrNano to emptyList(),
-        // 本地 TeleSpeech（sherpa-onnx）无需鉴权
-        AsrVendor.Telespeech to emptyList(),
+        // 本地 FireRedASR（sherpa-onnx）无需鉴权
+        AsrVendor.FireRedAsr to emptyList(),
         // 本地 Paraformer（sherpa-onnx）无需鉴权
         AsrVendor.Paraformer to emptyList()
     )

@@ -261,10 +261,10 @@ class AsrSessionManager(
                 // 本地 FunASR Nano：算力开销高，不支持伪流式预览，仅保留整段离线识别
                 FunAsrNanoFileAsrEngine(context, scope, prefs, this, ::onRequestDuration)
             }
-            AsrVendor.Telespeech -> {
-                if (prefs.tsPseudoStreamEnabled) {
-                    // 本地 TeleSpeech：伪流式模式（VAD 分片预览 + 整段离线识别）
-                    TelespeechPseudoStreamAsrEngine(
+            AsrVendor.FireRedAsr -> {
+                if (prefs.frPseudoStreamEnabled) {
+                    // 本地 FireRedASR：当前伪流式开关仍走整段离线转录链路
+                    FireRedAsrPseudoStreamAsrEngine(
                         context,
                         scope,
                         prefs,
@@ -272,8 +272,8 @@ class AsrSessionManager(
                         ::onRequestDuration
                     )
                 } else {
-                    // 本地 TeleSpeech：传统文件识别模式
-                    TelespeechFileAsrEngine(context, scope, prefs, this, ::onRequestDuration)
+                    // 本地 FireRedASR：传统文件识别模式
+                    FireRedAsrFileAsrEngine(context, scope, prefs, this, ::onRequestDuration)
                 }
             }
             AsrVendor.Paraformer -> {
@@ -387,9 +387,9 @@ class AsrSessionManager(
                 is FunAsrNanoFileAsrEngine -> current
                 else -> null
             }
-            AsrVendor.Telespeech -> when (current) {
-                is TelespeechPseudoStreamAsrEngine -> if (prefs.tsPseudoStreamEnabled) current else null
-                is TelespeechFileAsrEngine -> if (!prefs.tsPseudoStreamEnabled) current else null
+            AsrVendor.FireRedAsr -> when (current) {
+                is FireRedAsrPseudoStreamAsrEngine -> if (prefs.frPseudoStreamEnabled) current else null
+                is FireRedAsrFileAsrEngine -> if (!prefs.frPseudoStreamEnabled) current else null
                 else -> null
             }
             AsrVendor.Paraformer -> when (current) {
@@ -465,18 +465,18 @@ class AsrSessionManager(
         } else {
             Log.d(TAG, "Audio ducking disabled by user; skip audio focus request")
         }
-        // 若为本地 SenseVoice / FunASR Nano / TeleSpeech，在录音触发时后台开始加载模型
+        // 若为本地 SenseVoice / FunASR Nano / FireRedASR，在录音触发时后台开始加载模型
         try {
             if (
                 prefs.asrVendor == AsrVendor.SenseVoice ||
                 prefs.asrVendor == AsrVendor.FunAsrNano ||
-                prefs.asrVendor == AsrVendor.Telespeech
+                prefs.asrVendor == AsrVendor.FireRedAsr
             ) {
                 val prepared = try {
                     when (prefs.asrVendor) {
                         AsrVendor.SenseVoice -> com.brycewg.asrkb.asr.isSenseVoicePrepared()
                         AsrVendor.FunAsrNano -> com.brycewg.asrkb.asr.isFunAsrNanoPrepared()
-                        AsrVendor.Telespeech -> com.brycewg.asrkb.asr.isTelespeechPrepared()
+                        AsrVendor.FireRedAsr -> com.brycewg.asrkb.asr.isFireRedAsrPrepared()
                         else -> false
                     }
                 } catch (t: Throwable) {
@@ -494,7 +494,7 @@ class AsrSessionManager(
                                 suppressToastOnStart = true,
                                 forImmediateUse = true
                             )
-                            AsrVendor.Telespeech -> com.brycewg.asrkb.asr.preloadTelespeechIfConfigured(
+                            AsrVendor.FireRedAsr -> com.brycewg.asrkb.asr.preloadFireRedAsrIfConfigured(
                                 context,
                                 prefs,
                                 onLoadStart = { onLocalModelLoadStart() },

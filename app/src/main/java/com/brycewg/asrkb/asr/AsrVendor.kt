@@ -11,7 +11,7 @@ enum class AsrVendor(val id: String) {
     Zhipu("zhipu"),
     SenseVoice("sensevoice"),
     FunAsrNano("funasr_nano"),
-    Telespeech("telespeech"),
+    FireRedAsr("firered_asr"),
     Paraformer("paraformer");
 
     companion object {
@@ -25,7 +25,7 @@ enum class AsrVendor(val id: String) {
             Zhipu.id -> Zhipu
             SenseVoice.id -> SenseVoice
             FunAsrNano.id -> FunAsrNano
-            Telespeech.id -> Telespeech
+            FireRedAsr.id, "telespeech" -> FireRedAsr
             Paraformer.id -> Paraformer
             "zipformer" -> Paraformer
             "funasr" -> FunAsrNano

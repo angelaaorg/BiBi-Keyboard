@@ -622,11 +622,11 @@ internal class FloatingAsrInteractionController(
                                 Log.e(tag, "Failed to unload FunASR Nano", e)
                             }
                         }
-                        if (old == AsrVendor.Telespeech && v != AsrVendor.Telespeech) {
+                        if (old == AsrVendor.FireRedAsr && v != AsrVendor.FireRedAsr) {
                             try {
-                                com.brycewg.asrkb.asr.unloadTelespeechRecognizer()
+                                com.brycewg.asrkb.asr.unloadFireRedAsrRecognizer()
                             } catch (e: Throwable) {
-                                Log.e(tag, "Failed to unload TeleSpeech", e)
+                                Log.e(tag, "Failed to unload FireRedASR", e)
                             }
                         }
                         if (old == AsrVendor.Paraformer && v != AsrVendor.Paraformer) {
@@ -652,11 +652,11 @@ internal class FloatingAsrInteractionController(
                                 Log.e(tag, "Failed to preload FunASR Nano", e)
                             }
                         }
-                        if (v == AsrVendor.Telespeech && prefs.tsPreloadEnabled) {
+                        if (v == AsrVendor.FireRedAsr && prefs.frPreloadEnabled) {
                             try {
-                                com.brycewg.asrkb.asr.preloadTelespeechIfConfigured(context, prefs)
+                                com.brycewg.asrkb.asr.preloadFireRedAsrIfConfigured(context, prefs)
                             } catch (e: Throwable) {
-                                Log.e(tag, "Failed to preload TeleSpeech", e)
+                                Log.e(tag, "Failed to preload FireRedASR", e)
                             }
                         }
                         if (v == AsrVendor.Paraformer && prefs.pfPreloadEnabled) {

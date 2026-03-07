@@ -26,6 +26,8 @@ internal object PrefsInitTasks {
 
     @Volatile private var fnLegacyCleanupStarted: Boolean = false
 
+    @Volatile private var frLegacyTelespeechCleanupStarted: Boolean = false
+
     private val globalToggleListener = SharedPreferences.OnSharedPreferenceChangeListener {
             prefs,
             key
@@ -46,10 +48,118 @@ internal object PrefsInitTasks {
     fun run(appContext: Context, sp: SharedPreferences) {
         registerGlobalToggleListenerIfNeeded(sp)
         migrateOnboardingGuideStateIfNeeded(sp)
+        migrateTeleSpeechToFireRedAsrIfNeeded(sp)
+        normalizeFireRedVariantIfNeeded(sp)
+        cleanupLegacyTelespeechModelsIfNeeded(appContext, sp)
         normalizeBackupAsrTimeoutSensitivityIfNeeded(sp)
         migrateFunAsrFromSenseVoiceIfNeeded(sp)
         normalizeFunAsrVariantIfNeeded(sp)
         cleanupLegacyFunAsrModelsIfNeeded(appContext, sp)
+    }
+
+    private fun migrateTeleSpeechToFireRedAsrIfNeeded(sp: SharedPreferences) {
+        try {
+            val currentVendor = sp.getString(KEY_ASR_VENDOR, null)
+            val backupVendor = sp.getString(KEY_BACKUP_ASR_VENDOR, null)
+            val needsVendorMigration =
+                currentVendor == "telespeech" || backupVendor == "telespeech"
+            val needsPrefMigration =
+                !sp.contains(KEY_FR_MODEL_VARIANT) &&
+                    (
+                        sp.contains(KEY_TS_MODEL_VARIANT) ||
+                            sp.contains(KEY_TS_NUM_THREADS) ||
+                            sp.contains(KEY_TS_KEEP_ALIVE_MINUTES) ||
+                            sp.contains(KEY_TS_PRELOAD_ENABLED) ||
+                            sp.contains(KEY_TS_USE_ITN) ||
+                            sp.contains(KEY_TS_PSEUDO_STREAM_ENABLED)
+                        )
+            if (!needsVendorMigration && !needsPrefMigration) return
+
+            sp.edit {
+                if (currentVendor == "telespeech") {
+                    putString(KEY_ASR_VENDOR, AsrVendor.FireRedAsr.id)
+                }
+                if (backupVendor == "telespeech") {
+                    putString(KEY_BACKUP_ASR_VENDOR, AsrVendor.FireRedAsr.id)
+                }
+                if (!sp.contains(KEY_FR_MODEL_VARIANT) && sp.contains(KEY_TS_MODEL_VARIANT)) {
+                    putString(KEY_FR_MODEL_VARIANT, "ctc-int8")
+                }
+                if (!sp.contains(KEY_FR_NUM_THREADS) && sp.contains(KEY_TS_NUM_THREADS)) {
+                    putInt(KEY_FR_NUM_THREADS, sp.getInt(KEY_TS_NUM_THREADS, 2).coerceIn(1, 8))
+                }
+                if (!sp.contains(KEY_FR_KEEP_ALIVE_MINUTES) &&
+                    sp.contains(KEY_TS_KEEP_ALIVE_MINUTES)
+                ) {
+                    putInt(KEY_FR_KEEP_ALIVE_MINUTES, sp.getInt(KEY_TS_KEEP_ALIVE_MINUTES, -1))
+                }
+                if (!sp.contains(KEY_FR_PRELOAD_ENABLED) && sp.contains(KEY_TS_PRELOAD_ENABLED)) {
+                    putBoolean(KEY_FR_PRELOAD_ENABLED, sp.getBoolean(KEY_TS_PRELOAD_ENABLED, true))
+                }
+                if (!sp.contains(KEY_FR_USE_ITN) && sp.contains(KEY_TS_USE_ITN)) {
+                    putBoolean(KEY_FR_USE_ITN, sp.getBoolean(KEY_TS_USE_ITN, true))
+                }
+                if (!sp.contains(KEY_FR_PSEUDO_STREAM_ENABLED) &&
+                    sp.contains(KEY_TS_PSEUDO_STREAM_ENABLED)
+                ) {
+                    putBoolean(
+                        KEY_FR_PSEUDO_STREAM_ENABLED,
+                        sp.getBoolean(KEY_TS_PSEUDO_STREAM_ENABLED, false)
+                    )
+                }
+            }
+        } catch (t: Throwable) {
+            Log.w(TAG, "Failed to migrate TeleSpeech prefs to FireRedASR", t)
+        }
+    }
+
+    private fun normalizeFireRedVariantIfNeeded(sp: SharedPreferences) {
+        try {
+            if (!sp.contains(KEY_FR_MODEL_VARIANT)) return
+            val variant = sp.getString(KEY_FR_MODEL_VARIANT, "ctc-int8") ?: "ctc-int8"
+            if (variant == "ctc-int8") return
+            sp.edit { putString(KEY_FR_MODEL_VARIANT, "ctc-int8") }
+        } catch (t: Throwable) {
+            Log.w(TAG, "Failed to normalize FireRedASR variant", t)
+        }
+    }
+
+    private fun cleanupLegacyTelespeechModelsIfNeeded(appContext: Context, sp: SharedPreferences) {
+        try {
+            if (sp.getBoolean(KEY_FR_LEGACY_TELESPEECH_MODEL_CLEANED, false)) return
+            if (frLegacyTelespeechCleanupStarted) return
+            frLegacyTelespeechCleanupStarted = true
+            sp.edit { putBoolean(KEY_FR_LEGACY_TELESPEECH_MODEL_CLEANED, true) }
+
+            val externalBase = try {
+                appContext.getExternalFilesDir(null)
+            } catch (t: Throwable) {
+                Log.w(TAG, "Failed to get external files dir for TeleSpeech cleanup", t)
+                null
+            }
+            val targets = buildList {
+                add(File(appContext.filesDir, "telespeech"))
+                if (externalBase != null) {
+                    add(File(externalBase, "telespeech"))
+                }
+            }.distinctBy { it.absolutePath }
+
+            CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+                targets.forEach { dir ->
+                    if (!dir.exists()) return@forEach
+                    try {
+                        if (!dir.deleteRecursively()) {
+                            Log.w(TAG, "Failed to delete legacy TeleSpeech dir: ${dir.path}")
+                        }
+                    } catch (t: Throwable) {
+                        Log.w(TAG, "Error deleting legacy TeleSpeech dir: ${dir.path}", t)
+                    }
+                }
+                frLegacyTelespeechCleanupStarted = false
+            }
+        } catch (t: Throwable) {
+            Log.w(TAG, "Failed to cleanup legacy TeleSpeech models", t)
+        }
     }
 
     private fun normalizeBackupAsrTimeoutSensitivityIfNeeded(sp: SharedPreferences) {

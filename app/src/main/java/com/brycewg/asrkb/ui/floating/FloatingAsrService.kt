@@ -313,7 +313,7 @@ class FloatingAsrService : Service() {
         val enabled = when (prefs.asrVendor) {
             AsrVendor.SenseVoice -> prefs.svPreloadEnabled
             AsrVendor.FunAsrNano -> prefs.fnPreloadEnabled
-            AsrVendor.Telespeech -> prefs.tsPreloadEnabled
+            AsrVendor.FireRedAsr -> prefs.frPreloadEnabled
             AsrVendor.Paraformer -> prefs.pfPreloadEnabled
             else -> false
         }

@@ -1,3 +1,8 @@
+/**
+ * FireRedASR V2 设置区块。
+ *
+ * 归属模块：ui/settings/asr/sections
+ */
 package com.brycewg.asrkb.ui.settings.asr.sections
 
 import android.widget.TextView
@@ -15,7 +20,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-internal class TelespeechSettingsSection : AsrSettingsSection {
+internal class FireRedAsrSettingsSection : AsrSettingsSection {
     override fun bind(binding: AsrSettingsBinding) {
         bindVariantSelection(binding)
         bindKeepAliveSelection(binding)
@@ -23,7 +28,7 @@ internal class TelespeechSettingsSection : AsrSettingsSection {
         bindSwitches(binding)
         bindModelButtons(binding)
 
-        binding.view<MaterialButton>(R.id.btnTsGuide).setOnClickListener { v ->
+        binding.view<MaterialButton>(R.id.btnFrGuide).setOnClickListener { v ->
             binding.hapticTapIfEnabled(v)
             binding.openUrlSafely(
                 binding.activity.getString(R.string.local_model_guide_config_doc_url)
@@ -36,30 +41,29 @@ internal class TelespeechSettingsSection : AsrSettingsSection {
     }
 
     private fun bindVariantSelection(binding: AsrSettingsBinding) {
-        val tvVariant = binding.view<TextView>(R.id.tvTsModelVariantValue)
+        val tvVariant = binding.view<TextView>(R.id.tvFrModelVariantValue)
         val variantLabels = arrayOf(
-            binding.activity.getString(R.string.ts_model_int8),
-            binding.activity.getString(R.string.ts_model_full)
+            binding.activity.getString(R.string.fr_model_ctc_int8)
         )
-        val variantCodes = arrayOf("int8", "full")
+        val variantCodes = arrayOf("ctc-int8")
 
         fun updateVariantSummary() {
-            val idx = variantCodes.indexOf(binding.prefs.tsModelVariant).coerceAtLeast(0)
+            val idx = variantCodes.indexOf(binding.prefs.frModelVariant).coerceAtLeast(0)
             tvVariant.text = variantLabels[idx]
         }
 
         updateVariantSummary()
         tvVariant.setOnClickListener { v ->
             binding.hapticTapIfEnabled(v)
-            val cur = variantCodes.indexOf(binding.prefs.tsModelVariant).coerceAtLeast(0)
+            val cur = variantCodes.indexOf(binding.prefs.frModelVariant).coerceAtLeast(0)
             binding.showSingleChoiceDialog(
-                R.string.label_ts_model_variant,
+                R.string.label_fr_model_variant,
                 variantLabels,
                 cur
             ) { which ->
-                val code = variantCodes.getOrNull(which) ?: "int8"
-                if (code != binding.prefs.tsModelVariant) {
-                    binding.viewModel.updateTsModelVariant(code)
+                val code = variantCodes.getOrNull(which) ?: "ctc-int8"
+                if (code != binding.prefs.frModelVariant) {
+                    binding.viewModel.updateFrModelVariant(code)
                 }
                 updateVariantSummary()
                 updateDownloadUiVisibility(binding)
@@ -68,7 +72,7 @@ internal class TelespeechSettingsSection : AsrSettingsSection {
     }
 
     private fun bindKeepAliveSelection(binding: AsrSettingsBinding) {
-        val tvKeep = binding.view<TextView>(R.id.tvTsKeepAliveValue)
+        val tvKeep = binding.view<TextView>(R.id.tvFrKeepAliveValue)
         val values = listOf(0, 5, 15, 30, -1)
         val labels = arrayOf(
             binding.activity.getString(R.string.sv_keep_alive_immediate),
@@ -79,7 +83,7 @@ internal class TelespeechSettingsSection : AsrSettingsSection {
         )
 
         fun updateKeepAliveSummary() {
-            val idx = values.indexOf(binding.prefs.tsKeepAliveMinutes).let {
+            val idx = values.indexOf(binding.prefs.frKeepAliveMinutes).let {
                 if (it >=
                     0
                 ) {
@@ -94,7 +98,7 @@ internal class TelespeechSettingsSection : AsrSettingsSection {
         updateKeepAliveSummary()
         tvKeep.setOnClickListener { v ->
             binding.hapticTapIfEnabled(v)
-            val cur = values.indexOf(binding.prefs.tsKeepAliveMinutes).let {
+            val cur = values.indexOf(binding.prefs.frKeepAliveMinutes).let {
                 if (it >=
                     0
                 ) {
@@ -103,10 +107,10 @@ internal class TelespeechSettingsSection : AsrSettingsSection {
                     values.size - 1
                 }
             }
-            binding.showSingleChoiceDialog(R.string.label_ts_keep_alive, labels, cur) { which ->
+            binding.showSingleChoiceDialog(R.string.label_fr_keep_alive, labels, cur) { which ->
                 val vv = values.getOrNull(which) ?: -1
-                if (vv != binding.prefs.tsKeepAliveMinutes) {
-                    binding.viewModel.updateTsKeepAlive(vv)
+                if (vv != binding.prefs.frKeepAliveMinutes) {
+                    binding.viewModel.updateFrKeepAlive(vv)
                 }
                 updateKeepAliveSummary()
             }
@@ -114,13 +118,13 @@ internal class TelespeechSettingsSection : AsrSettingsSection {
     }
 
     private fun bindThreadsSlider(binding: AsrSettingsBinding) {
-        binding.view<Slider>(R.id.sliderTsThreads).apply {
-            value = binding.prefs.tsNumThreads.coerceIn(1, 8).toFloat()
+        binding.view<Slider>(R.id.sliderFrThreads).apply {
+            value = binding.prefs.frNumThreads.coerceIn(1, 8).toFloat()
             addOnChangeListener { _, value, fromUser ->
                 if (fromUser) {
                     val v = value.toInt().coerceIn(1, 8)
-                    if (v != binding.prefs.tsNumThreads) {
-                        binding.viewModel.updateTsNumThreads(v)
+                    if (v != binding.prefs.frNumThreads) {
+                        binding.viewModel.updateFrNumThreads(v)
                     }
                 }
             }
@@ -132,83 +136,80 @@ internal class TelespeechSettingsSection : AsrSettingsSection {
     }
 
     private fun bindSwitches(binding: AsrSettingsBinding) {
-        binding.view<MaterialSwitch>(R.id.switchTsPreload).apply {
-            isChecked = binding.prefs.tsPreloadEnabled
+        binding.view<MaterialSwitch>(R.id.switchFrPreload).apply {
+            isChecked = binding.prefs.frPreloadEnabled
             installExplainedSwitch(
                 context = binding.activity,
-                titleRes = R.string.label_ts_preload,
-                offDescRes = R.string.feature_ts_preload_off_desc,
-                onDescRes = R.string.feature_ts_preload_on_desc,
-                preferenceKey = "ts_preload_explained",
-                readPref = { binding.prefs.tsPreloadEnabled },
-                writePref = { v -> binding.viewModel.updateTsPreload(v) },
+                titleRes = R.string.label_fr_preload,
+                offDescRes = R.string.feature_fr_preload_off_desc,
+                onDescRes = R.string.feature_fr_preload_on_desc,
+                preferenceKey = "fr_preload_explained",
+                readPref = { binding.prefs.frPreloadEnabled },
+                writePref = { v -> binding.viewModel.updateFrPreload(v) },
                 hapticFeedback = { binding.hapticTapIfEnabled(it) }
             )
         }
 
-        binding.view<MaterialSwitch>(R.id.switchTsUseItn).apply {
-            isChecked = binding.prefs.tsUseItn
+        binding.view<MaterialSwitch>(R.id.switchFrUseItn).apply {
+            isChecked = binding.prefs.frUseItn
             installExplainedSwitch(
                 context = binding.activity,
-                titleRes = R.string.label_ts_use_itn,
-                offDescRes = R.string.feature_ts_use_itn_off_desc,
-                onDescRes = R.string.feature_ts_use_itn_on_desc,
-                preferenceKey = "ts_use_itn_explained",
-                readPref = { binding.prefs.tsUseItn },
-                writePref = { v -> binding.viewModel.updateTsUseItn(v) },
+                titleRes = R.string.label_fr_use_itn,
+                offDescRes = R.string.feature_fr_use_itn_off_desc,
+                onDescRes = R.string.feature_fr_use_itn_on_desc,
+                preferenceKey = "fr_use_itn_explained",
+                readPref = { binding.prefs.frUseItn },
+                writePref = { v -> binding.viewModel.updateFrUseItn(v) },
                 hapticFeedback = { binding.hapticTapIfEnabled(it) }
             )
         }
 
-        binding.view<MaterialSwitch>(R.id.switchTsPseudoStream).apply {
-            isChecked = binding.prefs.tsPseudoStreamEnabled
+        binding.view<MaterialSwitch>(R.id.switchFrPseudoStream).apply {
+            isChecked = binding.prefs.frPseudoStreamEnabled
             installExplainedSwitch(
                 context = binding.activity,
-                titleRes = R.string.label_ts_pseudo_stream,
-                offDescRes = R.string.feature_ts_pseudo_stream_off_desc,
-                onDescRes = R.string.feature_ts_pseudo_stream_on_desc,
-                preferenceKey = "ts_pseudo_stream_explained",
-                readPref = { binding.prefs.tsPseudoStreamEnabled },
-                writePref = { v -> binding.viewModel.updateTsPseudoStream(v) },
+                titleRes = R.string.label_fr_pseudo_stream,
+                offDescRes = R.string.feature_fr_pseudo_stream_off_desc,
+                onDescRes = R.string.feature_fr_pseudo_stream_on_desc,
+                preferenceKey = "fr_pseudo_stream_explained",
+                readPref = { binding.prefs.frPseudoStreamEnabled },
+                writePref = { v -> binding.viewModel.updateFrPseudoStream(v) },
                 hapticFeedback = { binding.hapticTapIfEnabled(it) }
             )
         }
     }
 
     private fun bindModelButtons(binding: AsrSettingsBinding) {
-        val btnDl = binding.view<MaterialButton>(R.id.btnTsDownloadModel)
-        val btnImport = binding.view<MaterialButton>(R.id.btnTsImportModel)
-        val btnClear = binding.view<MaterialButton>(R.id.btnTsClearModel)
-        val tvStatus = binding.view<TextView>(R.id.tvTsDownloadStatus)
+        val btnDl = binding.view<MaterialButton>(R.id.btnFrDownloadModel)
+        val btnImport = binding.view<MaterialButton>(R.id.btnFrImportModel)
+        val btnClear = binding.view<MaterialButton>(R.id.btnFrClearModel)
+        val tvStatus = binding.view<TextView>(R.id.tvFrDownloadStatus)
 
         btnImport.setOnClickListener { v ->
             binding.hapticTapIfEnabled(v)
-            binding.telespeechModelPicker.launch("application/zip")
+            binding.fireRedAsrModelPicker.launch("application/zip")
         }
 
         btnDl.setOnClickListener { v ->
-            val variant = binding.prefs.tsModelVariant
-            val urlOfficial = when (variant) {
-                "full" -> "https://github.com/BryceWG/BiBi-Keyboard/releases/download/models/sherpa-onnx-telespeech-ctc-zh-2024-06-04.zip"
-                else -> "https://github.com/BryceWG/BiBi-Keyboard/releases/download/models/sherpa-onnx-telespeech-ctc-int8-zh-2024-06-04.zip"
-            }
+            val variant = "ctc-int8"
+            val urlOfficial = "https://github.com/BryceWG/BiBi-Keyboard/releases/download/models/sherpa-onnx-fire-red-asr2-ctc-zh_en-int8-2026-02-25.zip"
             binding.modelDownloadUiController.startDownloadFromSourceDialog(
                 downloadButton = v,
                 statusTextViews = listOf(tvStatus),
                 urlOfficial = urlOfficial,
                 variant = variant,
-                modelType = "telespeech",
-                startedTextResId = R.string.ts_download_started_in_bg,
-                failedTextResId = R.string.ts_download_status_failed,
+                modelType = "firered_asr",
+                startedTextResId = R.string.fr_download_started_in_bg,
+                failedTextResId = R.string.fr_download_status_failed,
                 logTag = TAG,
-                logMessage = "Failed to start telespeech model download"
+                logMessage = "Failed to start FireRedASR model download"
             )
         }
 
         btnClear.setOnClickListener { v ->
             AlertDialog.Builder(binding.activity)
-                .setTitle(R.string.ts_clear_confirm_title)
-                .setMessage(R.string.ts_clear_confirm_message)
+                .setTitle(R.string.fr_clear_confirm_title)
+                .setMessage(R.string.fr_clear_confirm_message)
                 .setPositiveButton(android.R.string.ok) { d, _ ->
                     d.dismiss()
                     v.isEnabled = false
@@ -217,25 +218,21 @@ internal class TelespeechSettingsSection : AsrSettingsSection {
                             val base =
                                 binding.activity.getExternalFilesDir(null)
                                     ?: binding.activity.filesDir
-                            val variant = binding.prefs.tsModelVariant
-                            val outDirRoot = File(base, "telespeech")
-                            val outDir = if (variant == "full") {
-                                File(outDirRoot, "full")
-                            } else {
-                                File(outDirRoot, "int8")
-                            }
+                            val variant = binding.prefs.frModelVariant
+                            val outDirRoot = File(base, "firered_asr")
+                            val outDir = File(outDirRoot, variant)
                             if (outDir.exists()) {
                                 withContext(Dispatchers.IO) { outDir.deleteRecursively() }
                             }
                             try {
-                                com.brycewg.asrkb.asr.unloadTelespeechRecognizer()
+                                com.brycewg.asrkb.asr.unloadFireRedAsrRecognizer()
                             } catch (t: Throwable) {
-                                android.util.Log.e(TAG, "Failed to unload TeleSpeech recognizer", t)
+                                android.util.Log.e(TAG, "Failed to unload FireRedASR recognizer", t)
                             }
-                            tvStatus.text = binding.activity.getString(R.string.ts_clear_done)
+                            tvStatus.text = binding.activity.getString(R.string.fr_clear_done)
                         } catch (t: Throwable) {
-                            android.util.Log.e(TAG, "Failed to clear telespeech model", t)
-                            tvStatus.text = binding.activity.getString(R.string.ts_clear_failed)
+                            android.util.Log.e(TAG, "Failed to clear FireRedASR model", t)
+                            tvStatus.text = binding.activity.getString(R.string.fr_clear_failed)
                         } finally {
                             v.isEnabled = true
                             updateDownloadUiVisibility(binding)
@@ -249,22 +246,22 @@ internal class TelespeechSettingsSection : AsrSettingsSection {
     }
 
     private fun updateDownloadUiVisibility(binding: AsrSettingsBinding) {
-        val ready = binding.viewModel.checkTsModelDownloaded(binding.activity)
-        val btn = binding.view<MaterialButton>(R.id.btnTsDownloadModel)
-        val btnImport = binding.view<MaterialButton>(R.id.btnTsImportModel)
-        val btnClear = binding.view<MaterialButton>(R.id.btnTsClearModel)
-        val tv = binding.view<TextView>(R.id.tvTsDownloadStatus)
+        val ready = binding.viewModel.checkFrModelDownloaded(binding.activity)
+        val btn = binding.view<MaterialButton>(R.id.btnFrDownloadModel)
+        val btnImport = binding.view<MaterialButton>(R.id.btnFrImportModel)
+        val btnClear = binding.view<MaterialButton>(R.id.btnFrClearModel)
+        val tv = binding.view<TextView>(R.id.tvFrDownloadStatus)
 
         btn.visibility = if (ready) android.view.View.GONE else android.view.View.VISIBLE
         btnImport.visibility = if (ready) android.view.View.GONE else android.view.View.VISIBLE
         btnClear.visibility = if (ready) android.view.View.VISIBLE else android.view.View.GONE
 
         if (ready && tv.text.isNullOrBlank()) {
-            tv.text = binding.activity.getString(R.string.ts_download_status_done)
+            tv.text = binding.activity.getString(R.string.fr_download_status_done)
         }
     }
 
     private companion object {
-        private const val TAG = "TelespeechSettingsSection"
+        private const val TAG = "FireRedAsrSettingsSection"
     }
 }

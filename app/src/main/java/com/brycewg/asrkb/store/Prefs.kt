@@ -942,32 +942,32 @@ class Prefs(context: Context) {
         get() = sp.getInt(KEY_FN_KEEP_ALIVE_MINUTES, -1)
         set(value) = sp.edit { putInt(KEY_FN_KEEP_ALIVE_MINUTES, value) }
 
-    // TeleSpeech（本地 ASR）
-    var tsModelVariant: String
-        get() = sp.getString(KEY_TS_MODEL_VARIANT, "int8") ?: "int8"
-        set(value) = sp.edit { putString(KEY_TS_MODEL_VARIANT, value.trim().ifBlank { "int8" }) }
+    // FireRedASR（本地 ASR）
+    var frModelVariant: String
+        get() = sp.getString(KEY_FR_MODEL_VARIANT, "ctc-int8") ?: "ctc-int8"
+        set(@Suppress("UNUSED_PARAMETER") value) = sp.edit { putString(KEY_FR_MODEL_VARIANT, "ctc-int8") }
 
-    var tsNumThreads: Int
-        get() = sp.getInt(KEY_TS_NUM_THREADS, 2).coerceIn(1, 8)
-        set(value) = sp.edit { putInt(KEY_TS_NUM_THREADS, value.coerceIn(1, 8)) }
+    var frNumThreads: Int
+        get() = sp.getInt(KEY_FR_NUM_THREADS, 2).coerceIn(1, 8)
+        set(value) = sp.edit { putInt(KEY_FR_NUM_THREADS, value.coerceIn(1, 8)) }
 
-    var tsKeepAliveMinutes: Int
-        get() = sp.getInt(KEY_TS_KEEP_ALIVE_MINUTES, -1)
-        set(value) = sp.edit { putInt(KEY_TS_KEEP_ALIVE_MINUTES, value) }
+    var frKeepAliveMinutes: Int
+        get() = sp.getInt(KEY_FR_KEEP_ALIVE_MINUTES, -1)
+        set(value) = sp.edit { putInt(KEY_FR_KEEP_ALIVE_MINUTES, value) }
 
-    var tsPreloadEnabled: Boolean
-        get() = sp.getBoolean(KEY_TS_PRELOAD_ENABLED, true)
-        set(value) = sp.edit { putBoolean(KEY_TS_PRELOAD_ENABLED, value) }
+    var frPreloadEnabled: Boolean
+        get() = sp.getBoolean(KEY_FR_PRELOAD_ENABLED, true)
+        set(value) = sp.edit { putBoolean(KEY_FR_PRELOAD_ENABLED, value) }
 
-    // TeleSpeech：ITN 开关（反向文本规范化）
-    var tsUseItn: Boolean
-        get() = sp.getBoolean(KEY_TS_USE_ITN, true)
-        set(value) = sp.edit { putBoolean(KEY_TS_USE_ITN, value) }
+    // FireRedASR：ITN 开关（反向文本规范化）
+    var frUseItn: Boolean
+        get() = sp.getBoolean(KEY_FR_USE_ITN, true)
+        set(value) = sp.edit { putBoolean(KEY_FR_USE_ITN, value) }
 
-    // TeleSpeech：伪流式模式开关（基于 VAD 分句预览）
-    var tsPseudoStreamEnabled: Boolean
-        get() = sp.getBoolean(KEY_TS_PSEUDO_STREAM_ENABLED, false)
-        set(value) = sp.edit { putBoolean(KEY_TS_PSEUDO_STREAM_ENABLED, value) }
+    // FireRedASR：伪流式模式开关（基于 VAD 分句预览）
+    var frPseudoStreamEnabled: Boolean
+        get() = sp.getBoolean(KEY_FR_PSEUDO_STREAM_ENABLED, false)
+        set(value) = sp.edit { putBoolean(KEY_FR_PSEUDO_STREAM_ENABLED, value) }
 
     // Paraformer（本地 ASR）
     var pfModelVariant: String

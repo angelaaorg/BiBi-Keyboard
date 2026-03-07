@@ -1,3 +1,8 @@
+/**
+ * FireRedASR V2 外部 PCM 伪流式引擎：按固定分片提供 onPartial 预览，结束时输出最终结果。
+ *
+ * 归属模块：asr
+ */
 package com.brycewg.asrkb.asr
 
 import android.content.Context
@@ -5,13 +10,7 @@ import com.brycewg.asrkb.store.Prefs
 import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.CoroutineScope
 
-/**
- * TeleSpeech（本地离线）推 PCM 伪流式引擎：
- * - AIDL writePcm 推流；
- * - 定时分片做离线预览（onPartial）；
- * - finishPcm/stop 时对整段音频做一次离线识别（onFinal）。
- */
-class TelespeechPushPcmPseudoStreamAsrEngine(
+internal class FireRedAsrPushPcmPseudoStreamAsrEngine(
     context: Context,
     scope: CoroutineScope,
     prefs: Prefs,
@@ -20,10 +19,10 @@ class TelespeechPushPcmPseudoStreamAsrEngine(
 ) : PushPcmPseudoStreamAsrEngine(context, scope, prefs, listener, onRequestDuration) {
 
     companion object {
-        private const val TAG = "TsPushPcmPseudo"
+        private const val TAG = "FireRedPushPcmPseudo"
     }
 
-    private val delegate = TelespeechPseudoStreamDelegate(
+    private val delegate = FireRedAsrPseudoStreamDelegate(
         context = context,
         scope = scope,
         prefs = prefs,

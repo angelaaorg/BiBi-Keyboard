@@ -13,7 +13,7 @@ internal const val LOCAL_MODEL_READY_WAIT_MAX_MS = 60_000L
 
 /**
  * 统一的本地 ASR 预加载入口：根据供应商调用对应实现。
- * - 目前支持 SenseVoice / FunASR Nano / TeleSpeech / Paraformer
+ * - 目前支持 SenseVoice / FunASR Nano / FireRedASR / Paraformer
  */
 fun preloadLocalAsrIfConfigured(
     context: Context,
@@ -41,7 +41,7 @@ fun preloadLocalAsrIfConfigured(
                 suppressToastOnStart,
                 forImmediateUse
             )
-            AsrVendor.Telespeech -> preloadTelespeechIfConfigured(
+            AsrVendor.FireRedAsr -> preloadFireRedAsrIfConfigured(
                 context,
                 prefs,
                 onLoadStart,
@@ -71,7 +71,7 @@ fun isLocalAsrPrepared(prefs: Prefs): Boolean = try {
     when (prefs.asrVendor) {
         AsrVendor.SenseVoice -> isSenseVoicePrepared()
         AsrVendor.FunAsrNano -> isFunAsrNanoPrepared()
-        AsrVendor.Telespeech -> isTelespeechPrepared()
+        AsrVendor.FireRedAsr -> isFireRedAsrPrepared()
         AsrVendor.Paraformer -> isParaformerPrepared()
         else -> false
     }
@@ -87,7 +87,7 @@ fun isLocalAsrPrepared(prefs: Prefs): Boolean = try {
 fun isLocalAsrVendor(vendor: AsrVendor): Boolean = when (vendor) {
     AsrVendor.SenseVoice,
     AsrVendor.FunAsrNano,
-    AsrVendor.Telespeech,
+    AsrVendor.FireRedAsr,
     AsrVendor.Paraformer -> true
     else -> false
 }
@@ -106,8 +106,8 @@ fun isLocalAsrReady(prefs: Prefs): Boolean = try {
             val manager = FunAsrNanoOnnxManager.getInstance()
             manager.isPrepared() && !manager.isPreparing()
         }
-        AsrVendor.Telespeech -> {
-            val manager = TelespeechOnnxManager.getInstance()
+        AsrVendor.FireRedAsr -> {
+            val manager = FireRedAsrOnnxManager.getInstance()
             manager.isPrepared() && !manager.isPreparing()
         }
         AsrVendor.Paraformer -> {

@@ -762,8 +762,8 @@ class ParallelAsrEngine(
                 onRequestDuration = onRequestDuration
             )
                 .let { GenericPushFileAsrAdapter(context, scope, prefs, engineListener, it) }
-            AsrVendor.Telespeech -> if (prefs.tsPseudoStreamEnabled) {
-                TelespeechPushPcmPseudoStreamAsrEngine(
+            AsrVendor.FireRedAsr -> if (prefs.frPseudoStreamEnabled) {
+                FireRedAsrPushPcmPseudoStreamAsrEngine(
                     context,
                     scope,
                     prefs,
@@ -771,7 +771,7 @@ class ParallelAsrEngine(
                     onRequestDuration = onRequestDuration
                 )
             } else {
-                TelespeechFileAsrEngine(
+                FireRedAsrFileAsrEngine(
                     context,
                     scope,
                     prefs,

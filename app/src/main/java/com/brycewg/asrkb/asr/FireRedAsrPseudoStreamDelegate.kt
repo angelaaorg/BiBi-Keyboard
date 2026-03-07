@@ -1,3 +1,8 @@
+/**
+ * FireRedASR 伪流式预览委托：负责分段预览、整段终识别与模型就绪检查。
+ *
+ * 归属模块：asr
+ */
 package com.brycewg.asrkb.asr
 
 import android.content.Context
@@ -15,7 +20,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-internal class TelespeechPseudoStreamDelegate(
+internal class FireRedAsrPseudoStreamDelegate(
     private val context: Context,
     private val scope: CoroutineScope,
     private val prefs: Prefs,
@@ -38,7 +43,7 @@ internal class TelespeechPseudoStreamDelegate(
     }
 
     fun ensureReady(): Boolean {
-        val manager = TelespeechOnnxManager.getInstance()
+        val manager = FireRedAsrOnnxManager.getInstance()
         if (!manager.isOnnxAvailable()) {
             try {
                 listener.onError(context.getString(R.string.error_local_asr_not_ready))
@@ -51,7 +56,6 @@ internal class TelespeechPseudoStreamDelegate(
     }
 
     fun onSegmentBoundary(sessionId: Long, pcmSegment: ByteArray) {
-        // 预览识别放到后台，避免阻塞录音
         scope.launch(Dispatchers.IO) {
             if (sessionId != activeSessionId) return@launch
             val text = try {
@@ -66,9 +70,9 @@ internal class TelespeechPseudoStreamDelegate(
             if (trimmed.isEmpty()) return@launch
 
             val useItn = try {
-                prefs.tsUseItn
+                prefs.frUseItn
             } catch (t: Throwable) {
-                Log.w(tag, "Failed to get tsUseItn for segment", t)
+                Log.w(tag, "Failed to get frUseItn for segment", t)
                 false
             }
             val segmentText = if (useItn) ChineseItn.normalize(trimmed) else trimmed
@@ -137,9 +141,9 @@ internal class TelespeechPseudoStreamDelegate(
             } else {
                 val raw = text.trim()
                 val useItn = try {
-                    prefs.tsUseItn
+                    prefs.frUseItn
                 } catch (t: Throwable) {
-                    Log.w(tag, "Failed to get tsUseItn for final", t)
+                    Log.w(tag, "Failed to get frUseItn for final", t)
                     false
                 }
                 val normalized = if (useItn) ChineseItn.normalize(raw) else raw
@@ -188,7 +192,7 @@ internal class TelespeechPseudoStreamDelegate(
     }
 
     private fun notifyLoadStart() {
-        val ui = (listener as? SenseVoiceFileAsrEngine.LocalModelLoadUi)
+        val ui = listener as? SenseVoiceFileAsrEngine.LocalModelLoadUi
         if (ui != null) {
             try {
                 ui.onLocalModelLoadStart()
@@ -215,7 +219,7 @@ internal class TelespeechPseudoStreamDelegate(
     }
 
     private fun notifyLoadDone() {
-        val ui = (listener as? SenseVoiceFileAsrEngine.LocalModelLoadUi)
+        val ui = listener as? SenseVoiceFileAsrEngine.LocalModelLoadUi
         if (ui != null) {
             try {
                 ui.onLocalModelLoadDone()
@@ -226,7 +230,7 @@ internal class TelespeechPseudoStreamDelegate(
     }
 
     private suspend fun decodeOnce(pcm: ByteArray, reportErrorToUser: Boolean): String? {
-        val manager = TelespeechOnnxManager.getInstance()
+        val manager = FireRedAsrOnnxManager.getInstance()
         if (!manager.isOnnxAvailable()) {
             if (reportErrorToUser) {
                 try {
@@ -235,71 +239,26 @@ internal class TelespeechPseudoStreamDelegate(
                     Log.e(tag, "Failed to send not-ready error", t)
                 }
             } else {
-                Log.w(tag, "TeleSpeech model not available")
+                Log.w(tag, "FireRedASR model not available")
             }
             return null
         }
 
-        val base = try {
-            context.getExternalFilesDir(null)
-        } catch (t: Throwable) {
-            Log.w(tag, "Failed to get external files dir", t)
-            null
-        } ?: context.filesDir
-
-        val probeRoot = java.io.File(base, "telespeech")
-        val variant = try {
-            prefs.tsModelVariant
-        } catch (t: Throwable) {
-            Log.w(tag, "Failed to get TeleSpeech variant", t)
-            "int8"
-        }
-        val variantDir = when (variant) {
-            "full" -> java.io.File(probeRoot, "full")
-            else -> java.io.File(probeRoot, "int8")
-        }
-        val auto = findTsModelDir(variantDir) ?: findTsModelDir(probeRoot)
-        if (auto == null) {
+        val modelFiles = resolveFireRedAsrModelFiles(context, prefs)
+        if (modelFiles == null) {
             if (reportErrorToUser) {
                 try {
-                    listener.onError(context.getString(R.string.error_telespeech_model_missing))
+                    listener.onError(context.getString(R.string.error_firered_asr_model_missing))
                 } catch (t: Throwable) {
                     Log.e(tag, "Failed to notify model-missing error", t)
                 }
             } else {
-                Log.w(tag, "TeleSpeech model directory missing")
-            }
-            return null
-        }
-        val dir = auto.absolutePath
-
-        val tokensPath = java.io.File(dir, "tokens.txt").absolutePath
-        val int8File = java.io.File(dir, "model.int8.onnx")
-        val f32File = java.io.File(dir, "model.onnx")
-        val modelFile = when {
-            int8File.exists() -> int8File
-            f32File.exists() -> f32File
-            else -> null
-        }
-        val modelPath = modelFile?.absolutePath
-        val minBytes = 8L * 1024L * 1024L
-        if (modelPath == null ||
-            !java.io.File(tokensPath).exists() ||
-            (modelFile?.length() ?: 0L) < minBytes
-        ) {
-            if (reportErrorToUser) {
-                try {
-                    listener.onError(context.getString(R.string.error_telespeech_model_missing))
-                } catch (t: Throwable) {
-                    Log.e(tag, "Failed to notify invalid model error", t)
-                }
-            } else {
-                Log.w(tag, "TeleSpeech model files invalid or missing")
+                Log.w(tag, "FireRedASR model directory missing")
             }
             return null
         }
 
-        val samples = pcmToFloatArray(pcm)
+        val samples = fireRedAsrPcmToFloatArray(pcm)
         if (samples.isEmpty()) {
             if (reportErrorToUser) {
                 try {
@@ -312,7 +271,7 @@ internal class TelespeechPseudoStreamDelegate(
         }
 
         val keepMinutes = try {
-            prefs.tsKeepAliveMinutes
+            prefs.frKeepAliveMinutes
         } catch (t: Throwable) {
             Log.w(tag, "Failed to get keep alive minutes", t)
             -1
@@ -322,11 +281,13 @@ internal class TelespeechPseudoStreamDelegate(
 
         val text = manager.decodeOffline(
             assetManager = null,
-            tokens = tokensPath,
-            model = modelPath,
+            tokens = modelFiles.tokensPath,
+            ctcModel = modelFiles.ctcModelPath,
+            encoder = modelFiles.encoderPath,
+            decoder = modelFiles.decoderPath,
             provider = "cpu",
             numThreads = try {
-                prefs.tsNumThreads
+                prefs.frNumThreads
             } catch (t: Throwable) {
                 Log.w(tag, "Failed to get num threads", t)
                 2
@@ -351,25 +312,5 @@ internal class TelespeechPseudoStreamDelegate(
         }
 
         return text.trim()
-    }
-
-    private fun pcmToFloatArray(pcm: ByteArray): FloatArray {
-        if (pcm.isEmpty()) return FloatArray(0)
-        val n = pcm.size / 2
-        val out = FloatArray(n)
-        val bb = java.nio.ByteBuffer.wrap(pcm).order(java.nio.ByteOrder.LITTLE_ENDIAN)
-        var i = 0
-        while (i < n) {
-            val s = bb.short.toInt()
-            var f = s / 32768.0f
-            if (f > 1f) {
-                f = 1f
-            } else if (f < -1f) {
-                f = -1f
-            }
-            out[i] = f
-            i++
-        }
-        return out
     }
 }

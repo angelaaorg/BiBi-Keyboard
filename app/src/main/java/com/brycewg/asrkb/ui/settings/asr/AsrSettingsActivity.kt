@@ -23,6 +23,7 @@ import com.brycewg.asrkb.ui.settings.asr.sections.AsrVendorSelectionSection
 import com.brycewg.asrkb.ui.settings.asr.sections.BackupAsrSection
 import com.brycewg.asrkb.ui.settings.asr.sections.DashScopeAsrSettingsSection
 import com.brycewg.asrkb.ui.settings.asr.sections.ElevenLabsSettingsSection
+import com.brycewg.asrkb.ui.settings.asr.sections.FireRedAsrSettingsSection
 import com.brycewg.asrkb.ui.settings.asr.sections.FunAsrNanoSettingsSection
 import com.brycewg.asrkb.ui.settings.asr.sections.GeminiAsrSettingsSection
 import com.brycewg.asrkb.ui.settings.asr.sections.OpenAiAsrSettingsSection
@@ -31,7 +32,6 @@ import com.brycewg.asrkb.ui.settings.asr.sections.PunctuationModelSettingsSectio
 import com.brycewg.asrkb.ui.settings.asr.sections.SenseVoiceSettingsSection
 import com.brycewg.asrkb.ui.settings.asr.sections.SiliconFlowSettingsSection
 import com.brycewg.asrkb.ui.settings.asr.sections.SonioxAsrSettingsSection
-import com.brycewg.asrkb.ui.settings.asr.sections.TelespeechSettingsSection
 import com.brycewg.asrkb.ui.settings.asr.sections.VolcengineSettingsSection
 import com.brycewg.asrkb.ui.settings.asr.sections.ZhipuAsrSettingsSection
 import com.brycewg.asrkb.ui.settings.search.SettingsSearchNavigator
@@ -59,9 +59,9 @@ class AsrSettingsActivity : BaseActivity() {
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
             uri?.let { handleFunAsrNanoModelImport(it) }
         }
-    private val telespeechModelPicker =
+    private val fireRedAsrModelPicker =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-            uri?.let { handleTelespeechModelImport(it) }
+            uri?.let { handleFireRedAsrModelImport(it) }
         }
     private val paraformerModelPicker =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
@@ -93,7 +93,7 @@ class AsrSettingsActivity : BaseActivity() {
             modelDownloadUiController = modelDownloadUiController,
             senseVoiceModelPicker = senseVoiceModelPicker,
             funAsrNanoModelPicker = funAsrNanoModelPicker,
-            telespeechModelPicker = telespeechModelPicker,
+            fireRedAsrModelPicker = fireRedAsrModelPicker,
             paraformerModelPicker = paraformerModelPicker,
             punctuationModelPicker = punctuationModelPicker
         )
@@ -112,7 +112,7 @@ class AsrSettingsActivity : BaseActivity() {
             ZhipuAsrSettingsSection(),
             SenseVoiceSettingsSection(),
             FunAsrNanoSettingsSection(),
-            TelespeechSettingsSection(),
+            FireRedAsrSettingsSection(),
             ParaformerSettingsSection(),
             PunctuationModelSettingsSection(),
             BackupAsrSection(),
@@ -151,16 +151,17 @@ class AsrSettingsActivity : BaseActivity() {
         )
     }
 
-    private fun handleTelespeechModelImport(uri: Uri) {
-        val tv = findViewById<TextView>(R.id.tvTsDownloadStatus)
+    private fun handleFireRedAsrModelImport(uri: Uri) {
+        val tv = findViewById<TextView>(R.id.tvFrDownloadStatus)
         modelImportUiController.startZipImport(
             uri = uri,
             statusTextViews = listOf(tv),
-            startedTextResId = R.string.ts_import_started_in_bg,
-            failedTextTemplateResId = R.string.ts_import_failed,
-            variant = prefs.tsModelVariant,
+            startedTextResId = R.string.fr_import_started_in_bg,
+            failedTextTemplateResId = R.string.fr_import_failed,
+            variant = prefs.frModelVariant,
+            modelType = "firered_asr",
             logTag = TAG,
-            logMessage = "Failed to start telespeech model import"
+            logMessage = "Failed to start FireRedASR model import"
         )
     }
 
@@ -193,7 +194,7 @@ class AsrSettingsActivity : BaseActivity() {
 
     private fun handlePunctuationModelImport(uri: Uri) {
         val statusTextViews = listOf(
-            findViewById<TextView?>(R.id.tvTsPunctStatus),
+            findViewById<TextView?>(R.id.tvFrPunctStatus),
             findViewById<TextView?>(R.id.tvPfPunctStatus)
         ).filterNotNull()
         modelImportUiController.startZipImport(
@@ -246,7 +247,7 @@ class AsrSettingsActivity : BaseActivity() {
             com.brycewg.asrkb.asr.AsrVendor.Zhipu -> R.string.vendor_zhipu
             com.brycewg.asrkb.asr.AsrVendor.SenseVoice -> R.string.vendor_sensevoice
             com.brycewg.asrkb.asr.AsrVendor.FunAsrNano -> R.string.vendor_funasr_nano
-            com.brycewg.asrkb.asr.AsrVendor.Telespeech -> R.string.vendor_telespeech
+            com.brycewg.asrkb.asr.AsrVendor.FireRedAsr -> R.string.vendor_firered_asr
             com.brycewg.asrkb.asr.AsrVendor.Paraformer -> R.string.vendor_paraformer
         }
         return getString(resId)
