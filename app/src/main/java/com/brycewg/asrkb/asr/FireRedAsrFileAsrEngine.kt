@@ -137,17 +137,17 @@ internal class FireRedAsrFileAsrEngine(
                 onLoadDone = { notifyLoadDone() }
             )
 
-            if (text.isNullOrBlank()) {
+            val sanitizedText = sanitizeFireRedAsrResult(text)
+            if (sanitizedText.isNullOrEmpty()) {
                 listener.onError(context.getString(R.string.error_asr_empty_result))
             } else {
-                val raw = text.trim()
                 val useItn = try {
                     prefs.frUseItn
                 } catch (t: Throwable) {
                     Log.w(TAG, "Failed to get frUseItn", t)
                     false
                 }
-                val normalized = if (useItn) ChineseItn.normalize(raw) else raw
+                val normalized = if (useItn) ChineseItn.normalize(sanitizedText) else sanitizedText
                 val finalText = try {
                     SherpaPunctuationManager.getInstance().addOfflinePunctuation(context, normalized)
                 } catch (t: Throwable) {
@@ -334,6 +334,14 @@ private fun firstExistingFile(dir: File, vararg names: String): File? {
         if (file.exists()) return file
     }
     return null
+}
+
+internal fun sanitizeFireRedAsrResult(text: String?): String {
+    if (text.isNullOrBlank()) return ""
+    return text
+        .replace("<sil>", "")
+        .replace(Regex("\\s{2,}"), " ")
+        .trim()
 }
 
 internal fun fireRedAsrPcmToFloatArray(pcm: ByteArray): FloatArray {

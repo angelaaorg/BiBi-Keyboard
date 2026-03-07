@@ -300,7 +300,8 @@ internal class FireRedAsrPseudoStreamDelegate(
             onLoadDone = { notifyLoadDone() }
         )
 
-        if (text.isNullOrBlank()) {
+        val sanitizedText = sanitizeFireRedAsrResult(text)
+        if (sanitizedText.isEmpty()) {
             if (reportErrorToUser) {
                 try {
                     listener.onError(context.getString(R.string.error_asr_empty_result))
@@ -311,6 +312,6 @@ internal class FireRedAsrPseudoStreamDelegate(
             return null
         }
 
-        return text.trim()
+        return sanitizedText
     }
 }
