@@ -552,19 +552,11 @@ class AsrSessionManager(
                 Log.w(TAG, "Failed to cancel timeout job in onError", e)
             }
             processingTimeoutJob = null
-            hasCommittedResult = true
             stopActiveEngineIfRunning("listener_onError")
             releaseRecordingResources("listener_onError")
-            sessionStartUptimeMs = 0L
 
             listener.onSessionStateChanged(FloatingBallState.Error(message))
             listener.onError(message)
-
-            // 清理会话上下文
-            focusContext = null
-            lastPartialForPreview = null
-            markerInserted = false
-            markerChar = null
         }
     }
 
@@ -915,7 +907,6 @@ class AsrSessionManager(
         Log.w(TAG, "Finalize timeout; fallback with preview='$candidate'")
         if (candidate.isEmpty()) {
             Log.w(TAG, "Fallback has no candidate text; only clear state")
-            hasCommittedResult = true
             listener.onSessionStateChanged(FloatingBallState.Idle)
             return
         }
