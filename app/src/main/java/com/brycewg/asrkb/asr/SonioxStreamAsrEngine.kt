@@ -190,6 +190,12 @@ class SonioxStreamAsrEngine(
                     running.set(false)
                     awaitingFinal.set(false)
                     finalizeJob?.cancel()
+                    try {
+                        audioJob?.cancel()
+                    } catch (cancelError: Throwable) {
+                        Log.w(TAG, "Failed to cancel audio job on websocket failure", cancelError)
+                    }
+                    audioJob = null
                     closeWebSocket("failure")
                 }
 
@@ -206,6 +212,12 @@ class SonioxStreamAsrEngine(
                     }
                     running.set(false)
                     finalizeJob?.cancel()
+                    try {
+                        audioJob?.cancel()
+                    } catch (cancelError: Throwable) {
+                        Log.w(TAG, "Failed to cancel audio job on websocket close", cancelError)
+                    }
+                    audioJob = null
                     ws = null
                     wsReady.set(false)
                     synchronized(prebufferLock) { prebuffer.clear() }
@@ -395,6 +407,12 @@ class SonioxStreamAsrEngine(
                 running.set(false)
                 awaitingFinal.set(false)
                 finalizeJob?.cancel()
+                try {
+                    audioJob?.cancel()
+                } catch (t: Throwable) {
+                    Log.w(TAG, "Failed to cancel audio job on server error", t)
+                }
+                audioJob = null
                 closeWebSocket("server_error")
                 return
             }

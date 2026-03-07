@@ -480,6 +480,14 @@ class DashscopeStreamAsrEngine(
                         Log.e(TAG, "notify error failed", t)
                     }
                 }
+                try {
+                    audioJob?.cancel()
+                } catch (t: Throwable) {
+                    Log.w(TAG, "cancel audio job after server error failed", t)
+                }
+                audioJob = null
+                finalResultDeferred?.complete(null)
+                safeClose()
             }
             else -> {
                 Log.d(TAG, "Unknown event: $eventType")

@@ -102,9 +102,41 @@ class AsrSessionManager(
         }
     }
 
+    private fun stopActiveEngineIfRunning(reason: String) {
+        val engine = asrEngine ?: return
+        val running = try {
+            engine.isRunning
+        } catch (t: Throwable) {
+            Log.w(TAG, "Failed to read engine running state on $reason", t)
+            false
+        }
+        if (!running) return
+        try {
+            Log.w(TAG, "Force stopping active engine: reason=$reason")
+            engine.stop()
+        } catch (t: Throwable) {
+            Log.w(TAG, "Failed to stop active engine on $reason", t)
+        }
+    }
+
+    private fun releaseRecordingResources(reason: String) {
+        try {
+            abandonAudioFocusIfNeeded()
+        } catch (t: Throwable) {
+            Log.w(TAG, "abandonAudioFocusIfNeeded failed on $reason", t)
+        }
+        try {
+            BluetoothRouteManager.onRecordingStopped(context)
+        } catch (t: Throwable) {
+            Log.w(TAG, "BluetoothRouteManager.onRecordingStopped failed on $reason", t)
+        }
+    }
+
     /** 开始录音 */
     fun startRecording() {
         Log.d(TAG, "startRecording called")
+        stopActiveEngineIfRunning("start_recording")
+        releaseRecordingResources("start_recording")
         try {
             sessionPrimaryVendor = prefs.asrVendor
         } catch (t: Throwable) {
@@ -139,6 +171,7 @@ class AsrSessionManager(
                 AsrVendor.Telespeech -> com.brycewg.asrkb.R.string.error_telespeech_model_missing
                 else -> com.brycewg.asrkb.R.string.error_sensevoice_model_missing
             }
+            releaseRecordingResources("model_missing")
             listener.onError(context.getString(errRes))
             return
         }
@@ -187,19 +220,7 @@ class AsrSessionManager(
         Log.d(TAG, "stopRecording called")
         snapshotAudioDurationIfPossible()
         asrEngine?.stop()
-        // 归还音频焦点
-        try {
-            abandonAudioFocusIfNeeded()
-        } catch (t: Throwable) {
-            Log.w(TAG, "abandonAudioFocusIfNeeded failed on stopRecording", t)
-        }
-        try {
-            BluetoothRouteManager.onRecordingStopped(context)
-        } catch (
-            t: Throwable
-        ) {
-            Log.w(TAG, "BluetoothRouteManager onRecordingStopped", t)
-        }
+        releaseRecordingResources("stop_recording")
 
         // 进入处理阶段
         listener.onSessionStateChanged(FloatingBallState.Processing)
@@ -254,16 +275,12 @@ class AsrSessionManager(
         } catch (e: Throwable) {
             Log.e(TAG, "Failed to stop ASR engine", e)
         }
+        releaseRecordingResources("cleanup")
         sessionStartTotalUptimeMs = 0L
         try {
             processingTimeoutJob?.cancel()
         } catch (e: Throwable) {
             Log.w(TAG, "Failed to cancel timeout job", e)
-        }
-        try {
-            abandonAudioFocusIfNeeded()
-        } catch (e: Throwable) {
-            Log.w(TAG, "Failed to abandon audio focus in cleanup", e)
         }
     }
 
@@ -535,6 +552,10 @@ class AsrSessionManager(
                 Log.w(TAG, "Failed to cancel timeout job in onError", e)
             }
             processingTimeoutJob = null
+            hasCommittedResult = true
+            stopActiveEngineIfRunning("listener_onError")
+            releaseRecordingResources("listener_onError")
+            sessionStartUptimeMs = 0L
 
             listener.onSessionStateChanged(FloatingBallState.Error(message))
             listener.onError(message)
@@ -891,10 +912,13 @@ class AsrSessionManager(
     }
 
     private suspend fun handleProcessingTimeout() {
+        stopActiveEngineIfRunning("processing_timeout")
+        releaseRecordingResources("processing_timeout")
         val candidate = lastPartialForPreview?.trim().orEmpty()
         Log.w(TAG, "Finalize timeout; fallback with preview='$candidate'")
         if (candidate.isEmpty()) {
             Log.w(TAG, "Fallback has no candidate text; only clear state")
+            hasCommittedResult = true
             listener.onSessionStateChanged(FloatingBallState.Idle)
             return
         }

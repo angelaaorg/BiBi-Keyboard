@@ -269,6 +269,19 @@ class VolcStreamAsrEngine(
                         )
                     }
                     running.set(false)
+                    awaitingFinal.set(false)
+                    try {
+                        audioJob?.cancel()
+                    } catch (cancelError: Throwable) {
+                        Log.w(TAG, "Failed to cancel audio job on websocket failure", cancelError)
+                    }
+                    audioJob = null
+                    try {
+                        closeJob?.cancel()
+                    } catch (closeError: Throwable) {
+                        Log.w(TAG, "Failed to cancel close job on websocket failure", closeError)
+                    }
+                    ws = null
                 }
             }
         )
@@ -576,6 +589,16 @@ class VolcStreamAsrEngine(
                 return
             }
             Log.e(TAG, "ASR server error: $code - $msg")
+            try {
+                audioJob?.cancel()
+            } catch (t: Throwable) {
+                Log.w(TAG, "Failed to cancel audio job on server error", t)
+            }
+            audioJob = null
+            awaitingFinal.set(false)
+            running.set(false)
+            ws = null
+            wsReady.set(false)
             listener.onError("ASR Error $code: $msg")
         }
     }
