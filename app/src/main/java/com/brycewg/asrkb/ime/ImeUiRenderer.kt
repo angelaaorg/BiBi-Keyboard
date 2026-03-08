@@ -43,6 +43,10 @@ internal class ImeUiRenderer(
     private var forceNextStructuralRender: Boolean = true
     private val imageResCache = WeakHashMap<android.widget.ImageView, Int>()
 
+    fun forceStructuralRenderOnNextFrame() {
+        forceNextStructuralRender = true
+    }
+
     fun render(state: KeyboardState) {
         val renderMode = state.toRenderMode()
         if (forceNextStructuralRender || lastRenderMode != renderMode) {

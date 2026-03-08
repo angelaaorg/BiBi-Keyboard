@@ -97,6 +97,11 @@ class FloatingSettingsActivity : BaseActivity() {
         syncAsrToggleAfterPermissions()
     }
 
+    override fun onPause() {
+        flushPendingPackageEdits()
+        super.onPause()
+    }
+
     override fun onPostResume() {
         super.onPostResume()
         SettingsSearchNavigator.applyScrollAndHighlightIfNeeded(this)
@@ -365,6 +370,25 @@ class FloatingSettingsActivity : BaseActivity() {
                 etFloatingWritePastePkgs.postDelayed(runnable, 300L)
             }
         })
+    }
+
+    private fun flushPendingPackageEdits() {
+        writeCompatCommitRunnable?.let {
+            etFloatingWriteCompatPkgs.removeCallbacks(it)
+            writeCompatCommitRunnable = null
+        }
+        writePasteCommitRunnable?.let {
+            etFloatingWritePastePkgs.removeCallbacks(it)
+            writePasteCommitRunnable = null
+        }
+        viewModel.updateWriteCompatPackages(
+            this,
+            etFloatingWriteCompatPkgs.text?.toString().orEmpty()
+        )
+        viewModel.updateWritePastePackages(
+            this,
+            etFloatingWritePastePkgs.text?.toString().orEmpty()
+        )
     }
 
     /**

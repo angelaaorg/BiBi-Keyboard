@@ -229,6 +229,7 @@ class AsrKeyboardService :
 
         // 更新初始 UI 状态
         refreshPermissionUi()
+        uiRenderer?.forceStructuralRenderOnNextFrame()
         onStateChanged(actionHandler.getCurrentState())
 
         // 同步系统导航栏颜色
@@ -278,6 +279,7 @@ class AsrKeyboardService :
         resetPanelsToMainKeyboard()
         // 如果此时引擎仍在运行（键盘收起期间继续录音），需要把 UI 恢复为 Listening
         if (asrManager.isRunning()) {
+            uiRenderer?.forceStructuralRenderOnNextFrame()
             onStateChanged(actionHandler.getCurrentState())
         }
 
