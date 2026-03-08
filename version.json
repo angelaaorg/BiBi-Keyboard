@@ -1,11 +1,11 @@
 {
-  "version": "3.13.4",
-  "version_code": 147,
-  "download_url": "https://github.com/BryceWG/BiBi-Keyboard/releases/tag/v3.13.4",
-  "release_notes": "### 新增功能\n\n- **OpenAI Realtime 流式识别**: 新增 OpenAI Realtime 流式语音识别支持\n- **阿里云百炼模型升级**: 阿里云百炼流式识别模型版本升级至 qwen3-asr-flash-realtime-2026-02-10\n\n### 改进优化\n\n- **兼容性提升**: 降低 minSdk 至 26，支持 Android 8.0 及以上设备",
-  "release_notes_en": "### New Features\n\n- **OpenAI Realtime Streaming Recognition**: Added OpenAI Realtime streaming speech recognition support\n- **Alibaba DashScope Model Upgrade**: Upgraded Alibaba DashScope streaming recognition model to qwen3-asr-flash-realtime-2026-02-10\n\n### Improvements\n\n- **Compatibility Enhancement**: Lowered minSdk to 26, supporting Android 8.0 and above",
+  "version": "3.14.0",
+  "version_code": 148,
+  "download_url": "https://github.com/BryceWG/BiBi-Keyboard/releases/tag/v3.14.0",
+  "release_notes": "### 新增功能\n\n- **FireRedASR V2 引擎支持**: 替换 TeleSpeech 并新增 FireRedASR V2 引擎支持\n\n### 改进优化\n\n- **识别性能优化**: 优化本地模型发现与 PCM 转换流程，减少冗余处理开销\n- **界面渲染优化**: 减少冗余 UI 更新，提升界面渲染效率\n- **本地识别依赖升级**: 升级 sherpa-onnx 至 1.12.28\n\n### 问题修复\n\n- 修复悬浮球下录音状态清理问题，提升稳定性",
+  "release_notes_en": "### New Features\n\n- **FireRedASR V2 Engine Support**: Replaced TeleSpeech and added support for the FireRedASR V2 engine\n\n### Improvements\n\n- **Recognition Performance Optimization**: Optimized model discovery and PCM conversion flow to reduce redundant processing overhead\n- **UI Rendering Optimization**: Reduced redundant UI updates to improve rendering efficiency\n- **Local ASR Dependency Upgrade**: Upgraded sherpa-onnx to 1.12.28\n\n### Bug Fixes\n\n- Fixed FireRedASR result sanitization and resource cleanup issues on error paths to improve recognition stability\n- Fixed delayed UI updates caused by structural render refresh not being flushed in some scenarios",
   "important_notice": "0. 3.13.0版本迎来大量重构，已经过初步测试，如果您有疑虑可以暂不更新\n1. 已支持通过同文输入法与说点啥进行联动，具体操作步骤见https://github.com/BryceWG/trime-bibi-keyboard/releases\n2. BiBi Keyboard Pro版本已上架，欢迎在3.8.6后版本-关于页面中了解详情。\n3. 官方网站和使用文档均已上线,网址分别为: bibi.brycewg.com bibidocs.brycewg.com",
   "notice_level": "info",
   "min_supported_version": "2.6.5",
-  "update_time": "2026-02-28T08:17:41Z"
+  "update_time": "2026-03-08T15:40:49Z"
 }
