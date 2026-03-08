@@ -90,39 +90,8 @@ class FunAsrNanoFileAsrEngine(
                 return
             }
 
-            val base = try {
-                context.getExternalFilesDir(null)
-            } catch (t: Throwable) {
-                Log.w("FunAsrNanoFileAsrEngine", "Failed to get external files dir", t)
-                null
-            } ?: context.filesDir
-
-            val probeRoot = File(base, "funasr_nano")
-            val variantDir = File(probeRoot, "nano-int8")
-            val modelDir = findFnModelDir(variantDir) ?: findFnModelDir(probeRoot)
-            if (modelDir == null) {
-                listener.onError(context.getString(R.string.error_funasr_model_missing))
-                return
-            }
-
-            val encoderAdaptor = File(modelDir, "encoder_adaptor.int8.onnx")
-            val llm = File(modelDir, "llm.int8.onnx")
-            val embedding = File(modelDir, "embedding.int8.onnx")
-            val tokenizerDir = findFnTokenizerDir(modelDir)
-
-            val minOnnxBytes = 8L * 1024L * 1024L
-            val minLlmBytes = 32L * 1024L * 1024L
-            val tokenizerJsonOk = tokenizerDir?.let { File(it, "tokenizer.json").exists() } == true
-            if (
-                !encoderAdaptor.exists() ||
-                !embedding.exists() ||
-                !llm.exists() ||
-                tokenizerDir == null ||
-                !tokenizerJsonOk ||
-                encoderAdaptor.length() < minOnnxBytes ||
-                embedding.length() < minOnnxBytes ||
-                llm.length() < minLlmBytes
-            ) {
+            val resolvedModel = resolveFunAsrNanoModel(context)
+            if (resolvedModel == null) {
                 listener.onError(context.getString(R.string.error_funasr_model_missing))
                 return
             }
@@ -151,10 +120,10 @@ class FunAsrNanoFileAsrEngine(
 
             val text = manager.decodeOffline(
                 assetManager = null,
-                encoderAdaptor = encoderAdaptor.absolutePath,
-                llm = llm.absolutePath,
-                embedding = embedding.absolutePath,
-                tokenizerDir = tokenizerDir.absolutePath,
+                encoderAdaptor = resolvedModel.encoderAdaptorPath,
+                llm = resolvedModel.llmPath,
+                embedding = resolvedModel.embeddingPath,
+                tokenizerDir = resolvedModel.tokenizerDirPath,
                 userPrompt = userPrompt,
                 provider = "cpu",
                 numThreads = try {
@@ -210,10 +179,10 @@ class FunAsrNanoFileAsrEngine(
         if (pcm.isEmpty()) return FloatArray(0)
         val n = pcm.size / 2
         val out = FloatArray(n)
-        val bb = java.nio.ByteBuffer.wrap(pcm).order(java.nio.ByteOrder.LITTLE_ENDIAN)
         var i = 0
+        var offset = 0
         while (i < n) {
-            val s = bb.short.toInt()
+            val s = (pcm[offset + 1].toInt() shl 8) or (pcm[offset].toInt() and 0xFF)
             var f = s / 32768.0f
             if (f > 1f) {
                 f = 1f
@@ -222,6 +191,7 @@ class FunAsrNanoFileAsrEngine(
             }
             out[i] = f
             i++
+            offset += 2
         }
         return out
     }
@@ -520,30 +490,7 @@ fun preloadFunAsrNanoIfConfigured(
         val manager = FunAsrNanoOnnxManager.getInstance()
         if (!manager.isOnnxAvailable()) return
 
-        val base = context.getExternalFilesDir(null) ?: context.filesDir
-
-        val probeRoot = File(base, "funasr_nano")
-        val variantDir = File(probeRoot, "nano-int8")
-        val modelDir = findFnModelDir(variantDir) ?: findFnModelDir(probeRoot) ?: return
-
-        val encoderAdaptor = File(modelDir, "encoder_adaptor.int8.onnx")
-        val llm = File(modelDir, "llm.int8.onnx")
-        val embedding = File(modelDir, "embedding.int8.onnx")
-        val tokenizerDir = findFnTokenizerDir(modelDir) ?: return
-
-        val minOnnxBytes = 8L * 1024L * 1024L
-        val minLlmBytes = 32L * 1024L * 1024L
-        if (
-            !encoderAdaptor.exists() ||
-            !embedding.exists() ||
-            !llm.exists() ||
-            encoderAdaptor.length() < minOnnxBytes ||
-            embedding.length() < minOnnxBytes ||
-            llm.length() < minLlmBytes ||
-            !File(tokenizerDir, "tokenizer.json").exists()
-        ) {
-            return
-        }
+        val resolvedModel = resolveFunAsrNanoModel(context) ?: return
 
         val keepMinutes = prefs.fnKeepAliveMinutes
         val keepMs = if (keepMinutes <= 0) 0L else keepMinutes.toLong() * 60_000L
@@ -553,10 +500,10 @@ fun preloadFunAsrNanoIfConfigured(
 
         val numThreads = prefs.fnNumThreads
         val key = "funasr_nano|" +
-            "encoder=${encoderAdaptor.absolutePath}|" +
-            "llm=${llm.absolutePath}|" +
-            "embedding=${embedding.absolutePath}|" +
-            "tokenizer=${tokenizerDir.absolutePath}|" +
+            "encoder=${resolvedModel.encoderAdaptorPath}|" +
+            "llm=${resolvedModel.llmPath}|" +
+            "embedding=${resolvedModel.embeddingPath}|" +
+            "tokenizer=${resolvedModel.tokenizerDirPath}|" +
             "prompt=$userPrompt|" +
             "provider=cpu|" +
             "threads=$numThreads"
@@ -566,10 +513,10 @@ fun preloadFunAsrNanoIfConfigured(
             val t0 = android.os.SystemClock.uptimeMillis()
             val ok = manager.prepare(
                 assetManager = null,
-                encoderAdaptor = encoderAdaptor.absolutePath,
-                llm = llm.absolutePath,
-                embedding = embedding.absolutePath,
-                tokenizerDir = tokenizerDir.absolutePath,
+                encoderAdaptor = resolvedModel.encoderAdaptorPath,
+                llm = resolvedModel.llmPath,
+                embedding = resolvedModel.embeddingPath,
+                tokenizerDir = resolvedModel.tokenizerDirPath,
                 userPrompt = userPrompt,
                 provider = "cpu",
                 numThreads = numThreads,
@@ -605,3 +552,69 @@ fun preloadFunAsrNanoIfConfigured(
         Log.e("FunAsrNanoFileAsrEngine", "Failed to preload FunASR Nano model", t)
     }
 }
+
+private const val FUNASR_NANO_MIN_ONNX_BYTES = 8L * 1024L * 1024L
+private const val FUNASR_NANO_MIN_LLM_BYTES = 32L * 1024L * 1024L
+
+internal data class FunAsrNanoResolvedModel(
+    val modelDir: File,
+    val encoderAdaptorPath: String,
+    val llmPath: String,
+    val embeddingPath: String,
+    val tokenizerDirPath: String
+)
+
+private object FunAsrNanoModelResolverCache {
+    @Volatile private var cachedKey: String? = null
+
+    @Volatile private var cachedValue: FunAsrNanoResolvedModel? = null
+
+    fun resolve(context: Context): FunAsrNanoResolvedModel? {
+        val base = try {
+            context.getExternalFilesDir(null)
+        } catch (t: Throwable) {
+            Log.w("FunAsrNanoResolver", "Failed to get external files dir", t)
+            null
+        } ?: context.filesDir
+        val probeRoot = File(base, "funasr_nano")
+        val cacheKey = probeRoot.absolutePath + "|nano-int8"
+        val cached = if (cachedKey == cacheKey) cachedValue else null
+        if (cached != null && isUsable(cached)) return cached
+
+        val variantDir = File(probeRoot, "nano-int8")
+        val modelDir = findFnModelDir(variantDir) ?: findFnModelDir(probeRoot) ?: return null
+        val encoderAdaptor = File(modelDir, "encoder_adaptor.int8.onnx")
+        val llm = File(modelDir, "llm.int8.onnx")
+        val embedding = File(modelDir, "embedding.int8.onnx")
+        val tokenizerDir = findFnTokenizerDir(modelDir) ?: return null
+        val tokenizerJson = File(tokenizerDir, "tokenizer.json")
+        if (!encoderAdaptor.exists() || !embedding.exists() || !llm.exists() || !tokenizerJson.exists()) {
+            return null
+        }
+        if (
+            encoderAdaptor.length() < FUNASR_NANO_MIN_ONNX_BYTES ||
+            embedding.length() < FUNASR_NANO_MIN_ONNX_BYTES ||
+            llm.length() < FUNASR_NANO_MIN_LLM_BYTES
+        ) {
+            return null
+        }
+
+        return FunAsrNanoResolvedModel(
+            modelDir = modelDir,
+            encoderAdaptorPath = encoderAdaptor.absolutePath,
+            llmPath = llm.absolutePath,
+            embeddingPath = embedding.absolutePath,
+            tokenizerDirPath = tokenizerDir.absolutePath
+        ).also {
+            cachedKey = cacheKey
+            cachedValue = it
+        }
+    }
+
+    private fun isUsable(model: FunAsrNanoResolvedModel): Boolean = File(model.encoderAdaptorPath).let { it.exists() && it.length() >= FUNASR_NANO_MIN_ONNX_BYTES } &&
+        File(model.embeddingPath).let { it.exists() && it.length() >= FUNASR_NANO_MIN_ONNX_BYTES } &&
+        File(model.llmPath).let { it.exists() && it.length() >= FUNASR_NANO_MIN_LLM_BYTES } &&
+        File(model.tokenizerDirPath, "tokenizer.json").exists()
+}
+
+internal fun resolveFunAsrNanoModel(context: Context): FunAsrNanoResolvedModel? = FunAsrNanoModelResolverCache.resolve(context)

@@ -9,8 +9,8 @@ import android.util.Log
 import androidx.core.content.ContextCompat
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.store.Prefs
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
+import java.lang.reflect.Method
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.CancellationException
@@ -52,6 +52,8 @@ class ParaformerStreamAsrEngine(
     private val closeSilently = AtomicBoolean(false)
 
     @Volatile private var useItnForSession: Boolean = false
+
+    @Volatile private var punctuationThreadsForSession: Int = 1
     private var audioJob: Job? = null
     private val mgr = ParaformerOnnxManager.getInstance()
 
@@ -102,6 +104,12 @@ class ParaformerStreamAsrEngine(
             Log.w(TAG, "Failed to read pfUseItn", t)
             false
         }
+        punctuationThreadsForSession = try {
+            prefs.pfNumThreads
+        } catch (t: Throwable) {
+            Log.w(TAG, "Failed to read pfNumThreads", t)
+            1
+        }.coerceAtLeast(1)
 
         // 若通用标点模型未安装，给出一次性提示（不阻断识别）
         try {
@@ -484,7 +492,11 @@ class ParaformerStreamAsrEngine(
             out = ChineseItn.normalize(out)
         }
         out = try {
-            SherpaPunctuationManager.getInstance().addOfflinePunctuation(context, out)
+            SherpaPunctuationManager.getInstance().addOfflinePunctuation(
+                context = context,
+                text = out,
+                numThreads = punctuationThreadsForSession
+            )
         } catch (t: Throwable) {
             Log.e(TAG, "Failed to apply offline punctuation", t)
             out
@@ -535,10 +547,10 @@ class ParaformerStreamAsrEngine(
         if (len <= 1) return FloatArray(0)
         val n = len / 2
         val out = FloatArray(n)
-        val bb = ByteBuffer.wrap(src, 0, n * 2).order(ByteOrder.LITTLE_ENDIAN)
         var i = 0
+        var offset = 0
         while (i < n) {
-            val s = bb.short.toInt()
+            val s = (src[offset + 1].toInt() shl 8) or (src[offset].toInt() and 0xFF)
             var f = s / 32768.0f
             if (f > 1f) {
                 f = 1f
@@ -547,6 +559,7 @@ class ParaformerStreamAsrEngine(
             }
             out[i] = f
             i++
+            offset += 2
         }
         return out
     }
@@ -591,10 +604,25 @@ fun isParaformerPrepared(): Boolean {
 
 private class ReflectiveOnlineStream(val instance: Any) {
     private val cls = instance.javaClass
+    private val acceptWaveformMethod: Method? = try {
+        cls.getMethod("acceptWaveform", FloatArray::class.java, Int::class.javaPrimitiveType)
+    } catch (_: Throwable) {
+        null
+    }
+    private val inputFinishedMethod: Method? = try {
+        cls.getMethod("inputFinished")
+    } catch (_: Throwable) {
+        null
+    }
+    private val releaseMethod: Method? = try {
+        cls.getMethod("release")
+    } catch (_: Throwable) {
+        null
+    }
 
     fun acceptWaveform(samples: FloatArray, sampleRate: Int) {
         try {
-            cls.getMethod("acceptWaveform", FloatArray::class.java, Int::class.javaPrimitiveType)
+            (acceptWaveformMethod ?: throw NoSuchMethodException("acceptWaveform"))
                 .invoke(instance, samples, sampleRate)
         } catch (t: Throwable) {
             Log.e("ROnlineStream", "acceptWaveform reflection failed", t)
@@ -603,7 +631,7 @@ private class ReflectiveOnlineStream(val instance: Any) {
 
     fun inputFinished() {
         try {
-            cls.getMethod("inputFinished").invoke(instance)
+            (inputFinishedMethod ?: throw NoSuchMethodException("inputFinished")).invoke(instance)
         } catch (t: Throwable) {
             Log.e("ROnlineStream", "inputFinished failed", t)
         }
@@ -611,7 +639,7 @@ private class ReflectiveOnlineStream(val instance: Any) {
 
     fun release() {
         try {
-            cls.getMethod("release").invoke(instance)
+            (releaseMethod ?: throw NoSuchMethodException("release")).invoke(instance)
         } catch (t: Throwable) {
             Log.e("ROnlineStream", "release failed", t)
         }
@@ -619,24 +647,50 @@ private class ReflectiveOnlineStream(val instance: Any) {
 }
 
 private class ReflectiveOnlineRecognizer(private val instance: Any, private val cls: Class<*>) {
+    private val createStreamMethod: Method = cls.getMethod("createStream", String::class.java)
+    private val decodeMethodCache = ConcurrentHashMap<Class<*>, Method>()
+    private val isReadyMethodCache = ConcurrentHashMap<Class<*>, Method>()
+    private val getResultMethodCache = ConcurrentHashMap<Class<*>, Method>()
+    private val resultTextMethodCache = ConcurrentHashMap<Class<*>, Method>()
+    private val releaseMethod: Method? = try {
+        cls.getMethod("release")
+    } catch (_: Throwable) {
+        null
+    }
+
     fun createStream(): ReflectiveOnlineStream {
-        val s = cls.getMethod("createStream", String::class.java).invoke(instance, "") as Any
+        val s = createStreamMethod.invoke(instance, "") as Any
         return ReflectiveOnlineStream(s)
     }
 
-    fun isReady(stream: ReflectiveOnlineStream): Boolean = cls.getMethod("isReady", stream.instance.javaClass)
-        .invoke(instance, stream.instance) as Boolean
+    fun isReady(stream: ReflectiveOnlineStream): Boolean {
+        val streamClass = stream.instance.javaClass
+        val method = isReadyMethodCache.getOrPut(streamClass) {
+            cls.getMethod("isReady", streamClass)
+        }
+        return method.invoke(instance, stream.instance) as Boolean
+    }
 
     fun decode(stream: ReflectiveOnlineStream) {
-        cls.getMethod("decode", stream.instance.javaClass)
-            .invoke(instance, stream.instance)
+        val streamClass = stream.instance.javaClass
+        val method = decodeMethodCache.getOrPut(streamClass) {
+            cls.getMethod("decode", streamClass)
+        }
+        method.invoke(instance, stream.instance)
     }
 
     fun getResultText(stream: ReflectiveOnlineStream): String? {
-        val res = cls.getMethod("getResult", stream.instance.javaClass)
-            .invoke(instance, stream.instance)
+        val streamClass = stream.instance.javaClass
+        val getResultMethod = getResultMethodCache.getOrPut(streamClass) {
+            cls.getMethod("getResult", streamClass)
+        }
+        val res = getResultMethod.invoke(instance, stream.instance)
         return try {
-            res.javaClass.getMethod("getText").invoke(res) as? String
+            val resultClass = res.javaClass
+            val textMethod = resultTextMethodCache.getOrPut(resultClass) {
+                resultClass.getMethod("getText")
+            }
+            textMethod.invoke(res) as? String
         } catch (t: Throwable) {
             Log.e("ROnlineRecognizer", "getResultText getter not found", t)
             null
@@ -645,7 +699,7 @@ private class ReflectiveOnlineRecognizer(private val instance: Any, private val 
 
     fun release() {
         try {
-            cls.getMethod("release").invoke(instance)
+            (releaseMethod ?: throw NoSuchMethodException("release")).invoke(instance)
         } catch (t: Throwable) {
             Log.e("ROnlineRecognizer", "release failed", t)
         }
@@ -1069,6 +1123,16 @@ fun preloadParaformerIfConfigured(
                 },
                 onLoadDone = onLoadDone
             )
+            if (ok) {
+                try {
+                    SherpaPunctuationManager.getInstance().ensureOfflineLoaded(
+                        context = context,
+                        numThreads = numThreads
+                    )
+                } catch (t: Throwable) {
+                    Log.w("ParaformerPreload", "Failed to preload punctuation model with Paraformer", t)
+                }
+            }
             if (ok && !forImmediateUse) {
                 val dt = (android.os.SystemClock.uptimeMillis() - t0).coerceAtLeast(0)
                 mainHandler.post {

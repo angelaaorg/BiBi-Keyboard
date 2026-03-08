@@ -170,7 +170,7 @@ class SherpaPunctuationManager private constructor() {
     private var offline: ReflectiveOfflinePunctuation? = null
 
     @Volatile
-    private var offlineModelPath: String? = null
+    private var offlineModelKey: OfflineModelKey? = null
 
     // OnlinePunctuation 反射类与缓存实例（为流式模型预留）
     @Volatile
@@ -187,6 +187,8 @@ class SherpaPunctuationManager private constructor() {
 
     @Volatile
     private var onlineModelKey: OnlineModelKey? = null
+
+    private data class OfflineModelKey(val modelPath: String, val numThreads: Int)
 
     private data class OnlineModelKey(val cnnBilstm: String, val bpeVocab: String?)
 
@@ -210,20 +212,21 @@ class SherpaPunctuationManager private constructor() {
      * 确保 OfflinePunctuation 已按当前文件路径加载。
      * 不触发任何下载，仅根据现有文件构建实例。
      */
-    suspend fun ensureOfflineLoaded(context: Context): Boolean = mutex.withLock {
+    suspend fun ensureOfflineLoaded(context: Context, numThreads: Int): Boolean = mutex.withLock {
         if (!isOfflineSupported()) return@withLock false
         val modelPath = findOfflineModelPath(context) ?: return@withLock false
-        if (offline != null && offlineModelPath == modelPath) return@withLock true
+        val modelKey = OfflineModelKey(modelPath = modelPath, numThreads = numThreads.coerceAtLeast(1))
+        if (offline != null && offlineModelKey == modelKey) return@withLock true
 
         initOfflineClasses()
-        val inst = createOfflineInstance(modelPath) ?: return@withLock false
+        val inst = createOfflineInstance(modelPath, modelKey.numThreads) ?: return@withLock false
         try {
             offline?.release()
         } catch (t: Throwable) {
             Log.e(TAG, "Failed to release previous OfflinePunctuation", t)
         }
         offline = inst
-        offlineModelPath = modelPath
+        offlineModelKey = modelKey
         true
     }
 
@@ -252,9 +255,9 @@ class SherpaPunctuationManager private constructor() {
     /**
      * 对文本执行离线标点（ct-transformer），失败时返回原文。
      */
-    suspend fun addOfflinePunctuation(context: Context, text: String): String {
+    suspend fun addOfflinePunctuation(context: Context, text: String, numThreads: Int): String {
         if (text.isEmpty()) return text
-        val ok = ensureOfflineLoaded(context)
+        val ok = ensureOfflineLoaded(context, numThreads)
         val p = offline
         if (!ok || p == null) return text
 
@@ -289,7 +292,7 @@ class SherpaPunctuationManager private constructor() {
         try {
             val inst = offline
             offline = null
-            offlineModelPath = null
+            offlineModelKey = null
             inst?.release()
         } catch (t: Throwable) {
             Log.e(TAG, "unloadOffline failed", t)
@@ -350,10 +353,10 @@ class SherpaPunctuationManager private constructor() {
         }
     }
 
-    private fun createOfflineInstance(modelPath: String): ReflectiveOfflinePunctuation? = try {
+    private fun createOfflineInstance(modelPath: String, numThreads: Int): ReflectiveOfflinePunctuation? = try {
         val modelCfg = clsOfflinePuncModelConfig!!.getDeclaredConstructor().newInstance()
         trySetField(modelCfg, "ctTransformer", modelPath)
-        trySetField(modelCfg, "numThreads", 1)
+        trySetField(modelCfg, "numThreads", numThreads.coerceAtLeast(1))
         trySetField(modelCfg, "debug", false)
         trySetField(modelCfg, "provider", "cpu")
 

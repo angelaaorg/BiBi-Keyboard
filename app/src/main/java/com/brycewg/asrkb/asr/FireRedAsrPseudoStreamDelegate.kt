@@ -16,6 +16,7 @@ import com.brycewg.asrkb.util.TextSanitizer
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -37,7 +38,12 @@ internal class FireRedAsrPseudoStreamDelegate(
     @Volatile
     private var previewSegments = mutableListOf<String>()
 
+    @Volatile
+    private var previewJob: Job? = null
+
     fun onSessionStart(sessionId: Long) {
+        previewJob?.cancel()
+        previewJob = null
         activeSessionId = sessionId
         previewSegments = mutableListOf()
     }
@@ -56,7 +62,8 @@ internal class FireRedAsrPseudoStreamDelegate(
     }
 
     fun onSegmentBoundary(sessionId: Long, pcmSegment: ByteArray) {
-        scope.launch(Dispatchers.IO) {
+        previewJob?.cancel()
+        previewJob = scope.launch(Dispatchers.IO) {
             if (sessionId != activeSessionId) return@launch
             val text = try {
                 decodeOnce(pcmSegment, reportErrorToUser = false)
@@ -121,6 +128,8 @@ internal class FireRedAsrPseudoStreamDelegate(
         val t0 = System.currentTimeMillis()
         try {
             if (sessionId != activeSessionId) return
+            previewJob?.cancel()
+            previewJob = null
             val text = decodeOnce(fullPcm, reportErrorToUser = true)
             val dt = System.currentTimeMillis() - t0
             if (sessionId != activeSessionId) return
@@ -147,10 +156,17 @@ internal class FireRedAsrPseudoStreamDelegate(
                     false
                 }
                 val normalized = if (useItn) ChineseItn.normalize(raw) else raw
+                val numThreads = try {
+                    prefs.frNumThreads
+                } catch (t: Throwable) {
+                    Log.w(tag, "Failed to get frNumThreads for final", t)
+                    1
+                }
                 val finalText = try {
                     SherpaPunctuationManager.getInstance().addOfflinePunctuation(
-                        context,
-                        normalized
+                        context = context,
+                        text = normalized,
+                        numThreads = numThreads
                     )
                 } catch (t: Throwable) {
                     Log.e(tag, "Failed to apply offline punctuation", t)
@@ -179,6 +195,7 @@ internal class FireRedAsrPseudoStreamDelegate(
                 Log.e(tag, "Failed to notify final recognition error", e)
             }
         } finally {
+            previewJob = null
             try {
                 previewMutex.withLock {
                     val segments = previewSegments

@@ -7,6 +7,7 @@ import android.util.Log
 import android.widget.Toast
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.store.Prefs
+import java.io.File
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.sync.withLock
@@ -98,42 +99,8 @@ class SenseVoiceFileAsrEngine(
                 listener.onError(context.getString(R.string.error_local_asr_not_ready))
                 return
             }
-            // 模型目录：固定为外部专属目录（不可配置）；外部不可用时回退内部目录
-            val base = try {
-                context.getExternalFilesDir(null)
-            } catch (t: Throwable) {
-                Log.w("SenseVoiceFileAsrEngine", "Failed to get external files dir", t)
-                null
-            } ?: context.filesDir
-            val probeRoot = java.io.File(base, "sensevoice")
-            val rawVariant = try {
-                prefs.svModelVariant
-            } catch (t: Throwable) {
-                Log.w("SenseVoiceFileAsrEngine", "Failed to get model variant", t)
-                "small-int8"
-            }
-            val variant = if (rawVariant == "small-full") "small-full" else "small-int8"
-            val variantDir = if (variant == "small-full") {
-                java.io.File(probeRoot, "small-full")
-            } else {
-                java.io.File(probeRoot, "small-int8")
-            }
-            val auto = findSvModelDir(variantDir) ?: findSvModelDir(probeRoot)
-            if (auto == null) {
-                listener.onError(context.getString(R.string.error_sensevoice_model_missing))
-                return
-            }
-            val dir = auto.absolutePath
-
-            // 准备模型文件：根据变体优先选择 fp32 或 int8
-            val tokensPath = java.io.File(auto, "tokens.txt").absolutePath
-            val modelFile = selectSvModelFile(auto, variant)
-            val modelPath = modelFile?.absolutePath
-            val minBytes = 8L * 1024L * 1024L // 粗略下限，避免明显的截断文件
-            if (modelPath == null ||
-                !java.io.File(tokensPath).exists() ||
-                (modelFile?.length() ?: 0L) < minBytes
-            ) {
+            val resolvedModel = resolveSenseVoiceModel(context, prefs)
+            if (resolvedModel == null) {
                 listener.onError(context.getString(R.string.error_sensevoice_model_missing))
                 return
             }
@@ -160,10 +127,10 @@ class SenseVoiceFileAsrEngine(
 
             val text = manager.decodeOffline(
                 assetManager = null,
-                tokens = tokensPath,
-                model = modelPath,
+                tokens = resolvedModel.tokensPath,
+                model = resolvedModel.modelPath,
                 language = try {
-                    resolveSvLanguageForVariant(prefs.svLanguage, variant)
+                    resolveSvLanguageForVariant(prefs.svLanguage, resolvedModel.variant)
                 } catch (t: Throwable) {
                     Log.w("SenseVoiceFileAsrEngine", "Failed to get language", t)
                     "auto"
@@ -221,10 +188,10 @@ class SenseVoiceFileAsrEngine(
         if (pcm.isEmpty()) return FloatArray(0)
         val n = pcm.size / 2
         val out = FloatArray(n)
-        val bb = java.nio.ByteBuffer.wrap(pcm).order(java.nio.ByteOrder.LITTLE_ENDIAN)
         var i = 0
+        var offset = 0
         while (i < n) {
-            val s = bb.short.toInt()
+            val s = (pcm[offset + 1].toInt() shl 8) or (pcm[offset].toInt() and 0xFF)
             // 32768f 防止 -32768 溢出；限制到 [-1, 1]
             var f = s / 32768.0f
             if (f > 1f) {
@@ -234,6 +201,7 @@ class SenseVoiceFileAsrEngine(
             }
             out[i] = f
             i++
+            offset += 2
         }
         return out
     }
@@ -264,35 +232,25 @@ fun preloadSenseVoiceIfConfigured(
         val manager = SenseVoiceOnnxManager.getInstance()
         if (!manager.isOnnxAvailable()) return
 
-        val base = context.getExternalFilesDir(null) ?: context.filesDir
-        val probeRoot = java.io.File(base, "sensevoice")
-        val variant = if (prefs.svModelVariant == "small-full") "small-full" else "small-int8"
-        val variantDir = java.io.File(probeRoot, variant)
-        val modelDir = findSvModelDir(variantDir) ?: findSvModelDir(probeRoot) ?: return
-
-        val tokensPath = java.io.File(modelDir, "tokens.txt").absolutePath
-        val modelFile = selectSvModelFile(modelDir, variant) ?: return
-        val minBytes = 8L * 1024L * 1024L
-        if (!java.io.File(tokensPath).exists() || modelFile.length() < minBytes) return
+        val resolvedModel = resolveSenseVoiceModel(context, prefs) ?: return
 
         val keepMinutes = prefs.svKeepAliveMinutes
         val keepMs = if (keepMinutes <= 0) 0L else keepMinutes.toLong() * 60_000L
         val alwaysKeep = keepMinutes < 0
 
-        val language = resolveSvLanguageForVariant(prefs.svLanguage, variant)
+        val language = resolveSvLanguageForVariant(prefs.svLanguage, resolvedModel.variant)
         val useItn = prefs.svUseItn
         val numThreads = prefs.svNumThreads
 
-        val modelPath = modelFile.absolutePath
-        val key = "sensevoice|tokens=$tokensPath|model=$modelPath|lang=$language|itn=$useItn|provider=cpu|threads=$numThreads"
+        val key = "sensevoice|tokens=${resolvedModel.tokensPath}|model=${resolvedModel.modelPath}|lang=$language|itn=$useItn|provider=cpu|threads=$numThreads"
         val mainHandler = Handler(Looper.getMainLooper())
 
         LocalModelLoadCoordinator.request(key) {
             val t0 = android.os.SystemClock.uptimeMillis()
             val ok = manager.prepare(
                 assetManager = null,
-                tokens = tokensPath,
-                model = modelPath,
+                tokens = resolvedModel.tokensPath,
+                model = resolvedModel.modelPath,
                 language = language,
                 useItn = useItn,
                 provider = "cpu",
@@ -328,6 +286,79 @@ fun preloadSenseVoiceIfConfigured(
         Log.e("SenseVoiceFileAsrEngine", "Failed to preload SenseVoice", t)
     }
 }
+
+private const val SENSEVOICE_MIN_MODEL_BYTES = 8L * 1024L * 1024L
+
+internal data class SenseVoiceResolvedModel(
+    val variant: String,
+    val modelDir: File,
+    val tokensPath: String,
+    val modelPath: String
+)
+
+private object SenseVoiceModelResolverCache {
+    @Volatile private var cachedKey: String? = null
+
+    @Volatile private var cachedValue: SenseVoiceResolvedModel? = null
+
+    fun resolve(context: Context, prefs: Prefs): SenseVoiceResolvedModel? {
+        val base = try {
+            context.getExternalFilesDir(null)
+        } catch (t: Throwable) {
+            Log.w("SenseVoiceResolver", "Failed to get external files dir", t)
+            null
+        } ?: context.filesDir
+        val probeRoot = File(base, "sensevoice")
+        val rawVariant = try {
+            prefs.svModelVariant
+        } catch (t: Throwable) {
+            Log.w("SenseVoiceResolver", "Failed to get model variant", t)
+            "small-int8"
+        }
+        val variant = if (rawVariant == "small-full") "small-full" else "small-int8"
+        val cacheKey = probeRoot.absolutePath + "|" + variant
+        val cached = if (cachedKey == cacheKey) cachedValue else null
+        if (cached != null && isUsable(cached)) return cached
+
+        val variantDir = File(probeRoot, variant)
+        val modelDir = findSvModelDir(variantDir) ?: return resolveFallback(probeRoot, variant)
+        val tokensPath = File(modelDir, "tokens.txt").absolutePath
+        val modelFile = selectSvModelFile(modelDir, variant) ?: return null
+        if (!File(tokensPath).exists() || modelFile.length() < SENSEVOICE_MIN_MODEL_BYTES) {
+            return null
+        }
+
+        return SenseVoiceResolvedModel(
+            variant = variant,
+            modelDir = modelDir,
+            tokensPath = tokensPath,
+            modelPath = modelFile.absolutePath
+        ).also {
+            cachedKey = cacheKey
+            cachedValue = it
+        }
+    }
+
+    private fun resolveFallback(probeRoot: File, requestedVariant: String): SenseVoiceResolvedModel? {
+        val modelDir = findSvModelDir(probeRoot) ?: return null
+        val tokensPath = File(modelDir, "tokens.txt").absolutePath
+        val modelFile = selectSvModelFile(modelDir, requestedVariant) ?: return null
+        if (!File(tokensPath).exists() || modelFile.length() < SENSEVOICE_MIN_MODEL_BYTES) {
+            return null
+        }
+        return SenseVoiceResolvedModel(
+            variant = requestedVariant,
+            modelDir = modelDir,
+            tokensPath = tokensPath,
+            modelPath = modelFile.absolutePath
+        )
+    }
+
+    private fun isUsable(model: SenseVoiceResolvedModel): Boolean = File(model.tokensPath).exists() &&
+        File(model.modelPath).let { it.exists() && it.length() >= SENSEVOICE_MIN_MODEL_BYTES }
+}
+
+internal fun resolveSenseVoiceModel(context: Context, prefs: Prefs): SenseVoiceResolvedModel? = SenseVoiceModelResolverCache.resolve(context, prefs)
 
 // 顶层工具：在指定根目录下寻找包含 tokens.txt 的模型目录（最多一层）
 fun findSvModelDir(root: java.io.File?): java.io.File? {

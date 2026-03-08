@@ -115,6 +115,12 @@ internal class FireRedAsrFileAsrEngine(
             }
             val keepMs = if (keepMinutes <= 0) 0L else keepMinutes.toLong() * 60_000L
             val alwaysKeep = keepMinutes < 0
+            val numThreads = try {
+                prefs.frNumThreads
+            } catch (t: Throwable) {
+                Log.w(TAG, "Failed to get num threads", t)
+                2
+            }
 
             val text = manager.decodeOffline(
                 assetManager = null,
@@ -123,12 +129,7 @@ internal class FireRedAsrFileAsrEngine(
                 encoder = modelFiles.encoderPath,
                 decoder = modelFiles.decoderPath,
                 provider = "cpu",
-                numThreads = try {
-                    prefs.frNumThreads
-                } catch (t: Throwable) {
-                    Log.w(TAG, "Failed to get num threads", t)
-                    2
-                },
+                numThreads = numThreads,
                 samples = samples,
                 sampleRate = sampleRate,
                 keepAliveMs = keepMs,
@@ -149,7 +150,11 @@ internal class FireRedAsrFileAsrEngine(
                 }
                 val normalized = if (useItn) ChineseItn.normalize(sanitizedText) else sanitizedText
                 val finalText = try {
-                    SherpaPunctuationManager.getInstance().addOfflinePunctuation(context, normalized)
+                    SherpaPunctuationManager.getInstance().addOfflinePunctuation(
+                        context = context,
+                        text = normalized,
+                        numThreads = numThreads
+                    )
                 } catch (t: Throwable) {
                     Log.e(TAG, "Failed to apply offline punctuation", t)
                     normalized
@@ -262,6 +267,16 @@ internal fun preloadFireRedAsrIfConfigured(
                 },
                 onLoadDone = onLoadDone
             )
+            if (ok) {
+                try {
+                    SherpaPunctuationManager.getInstance().ensureOfflineLoaded(
+                        context = context,
+                        numThreads = numThreads
+                    )
+                } catch (t: Throwable) {
+                    Log.w("FireRedAsrFileAsrEngine", "Failed to preload punctuation model with FireRedASR", t)
+                }
+            }
             if (ok && !forImmediateUse) {
                 val dt = (android.os.SystemClock.uptimeMillis() - t0).coerceAtLeast(0)
                 mainHandler.post {
@@ -310,6 +325,10 @@ internal fun resolveFireRedAsrModelFiles(context: Context, prefs: Prefs): FireRe
         Log.w("FireRedAsrResolver", "Failed to get frModelVariant", t)
         "ctc-int8"
     }
+    val cacheKey = probeRoot.absolutePath + "|" + preferredVariant
+    val cached = FireRedAsrModelResolverCache.get(cacheKey)
+    if (cached != null) return cached
+
     val variantDir = File(probeRoot, preferredVariant)
     val modelDir = findFireRedAsrModelDir(variantDir) ?: findFireRedAsrModelDir(probeRoot) ?: return null
 
@@ -325,7 +344,36 @@ internal fun resolveFireRedAsrModelFiles(context: Context, prefs: Prefs): FireRe
         ctcModelPath = ctcModel.absolutePath,
         encoderPath = null,
         decoderPath = null
-    )
+    ).also {
+        FireRedAsrModelResolverCache.put(cacheKey, it)
+    }
+}
+
+private object FireRedAsrModelResolverCache {
+    @Volatile private var cachedKey: String? = null
+
+    @Volatile private var cachedValue: FireRedAsrResolvedModel? = null
+
+    fun get(key: String): FireRedAsrResolvedModel? {
+        val cached = if (cachedKey == key) cachedValue else null
+        return cached?.takeIf(::isUsable)
+    }
+
+    fun put(key: String, model: FireRedAsrResolvedModel) {
+        cachedKey = key
+        cachedValue = model
+    }
+
+    private fun isUsable(model: FireRedAsrResolvedModel): Boolean {
+        if (!File(model.tokensPath).exists()) return false
+        val ctcModelPath = model.ctcModelPath
+        if (ctcModelPath != null) {
+            return File(ctcModelPath).exists()
+        }
+        val encoderPath = model.encoderPath ?: return false
+        val decoderPath = model.decoderPath ?: return false
+        return File(encoderPath).exists() && File(decoderPath).exists()
+    }
 }
 
 private fun firstExistingFile(dir: File, vararg names: String): File? {
@@ -348,10 +396,10 @@ internal fun fireRedAsrPcmToFloatArray(pcm: ByteArray): FloatArray {
     if (pcm.isEmpty()) return FloatArray(0)
     val n = pcm.size / 2
     val out = FloatArray(n)
-    val bb = java.nio.ByteBuffer.wrap(pcm).order(java.nio.ByteOrder.LITTLE_ENDIAN)
     var index = 0
+    var offset = 0
     while (index < n) {
-        val sample = bb.short.toInt()
+        val sample = (pcm[offset + 1].toInt() shl 8) or (pcm[offset].toInt() and 0xFF)
         var value = sample / 32768.0f
         if (value > 1f) {
             value = 1f
@@ -360,6 +408,7 @@ internal fun fireRedAsrPcmToFloatArray(pcm: ByteArray): FloatArray {
         }
         out[index] = value
         index++
+        offset += 2
     }
     return out
 }

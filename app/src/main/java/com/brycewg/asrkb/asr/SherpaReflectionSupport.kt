@@ -2,6 +2,9 @@ package com.brycewg.asrkb.asr
 
 import android.content.res.AssetManager
 import android.util.Log
+import java.lang.reflect.Field
+import java.lang.reflect.Method
+import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -15,25 +18,49 @@ import kotlinx.coroutines.launch
 
 internal class ReflectiveStream(val instance: Any) {
     val streamClass: Class<*> = instance.javaClass
+    private val acceptWaveformWithSampleRateMethod: Method? = try {
+        streamClass.getMethod(
+            "acceptWaveform",
+            FloatArray::class.java,
+            Int::class.javaPrimitiveType
+        )
+    } catch (_: Throwable) {
+        null
+    }
+    private val acceptWaveformMethod: Method? = try {
+        streamClass.getMethod("acceptWaveform", FloatArray::class.java)
+    } catch (_: Throwable) {
+        null
+    }
+    private val releaseMethod: Method? = try {
+        streamClass.getMethod("release")
+    } catch (_: Throwable) {
+        null
+    }
 
     fun acceptWaveform(samples: FloatArray, sampleRate: Int) {
+        val withSampleRate = acceptWaveformWithSampleRateMethod
+        if (withSampleRate != null) {
+            try {
+                withSampleRate.invoke(instance, samples, sampleRate)
+                return
+            } catch (t: Throwable) {
+                Log.d("ReflectiveStream", "Failed with sampleRate param, trying without", t)
+            }
+        }
         try {
-            streamClass.getMethod(
-                "acceptWaveform",
-                FloatArray::class.java,
-                Int::class.javaPrimitiveType
-            )
-                .invoke(instance, samples, sampleRate)
+            val withoutSampleRate = acceptWaveformMethod
+                ?: throw NoSuchMethodException("acceptWaveform")
+            withoutSampleRate.invoke(instance, samples)
         } catch (t: Throwable) {
-            Log.d("ReflectiveStream", "Failed with sampleRate param, trying without", t)
-            streamClass.getMethod("acceptWaveform", FloatArray::class.java)
-                .invoke(instance, samples)
+            Log.e("ReflectiveStream", "acceptWaveform failed", t)
+            throw IllegalStateException("acceptWaveform failed", t)
         }
     }
 
     fun release() {
         try {
-            streamClass.getMethod("release").invoke(instance)
+            (releaseMethod ?: throw NoSuchMethodException("release")).invoke(instance)
         } catch (t: Throwable) {
             Log.e("ReflectiveStream", "Failed to release stream", t)
         }
@@ -47,28 +74,38 @@ internal class ReflectiveRecognizer(
     private val instance: Any,
     private val clsOfflineRecognizer: Class<*>
 ) {
+    private val createStreamMethod: Method = clsOfflineRecognizer.getMethod("createStream")
+    private val releaseMethod: Method? = try {
+        clsOfflineRecognizer.getMethod("release")
+    } catch (_: Throwable) {
+        null
+    }
+    private val decodeMethodCache = ConcurrentHashMap<Class<*>, Method>()
+    private val getResultMethodCache = ConcurrentHashMap<Class<*>, Method>()
+    private val textFieldCache = ConcurrentHashMap<Class<*>, Field>()
 
     fun createStream(): ReflectiveStream {
-        val stream = clsOfflineRecognizer
-            .getMethod("createStream")
-            .invoke(instance)
+        val stream = createStreamMethod.invoke(instance)
             ?: throw IllegalStateException("Failed to create stream")
         return ReflectiveStream(stream)
     }
 
     fun decode(stream: ReflectiveStream): String? {
         val clsStream = stream.streamClass
-        clsOfflineRecognizer.getMethod("decode", clsStream).invoke(instance, stream.instance)
-        val result = clsOfflineRecognizer.getMethod(
-            "getResult",
-            clsStream
-        ).invoke(instance, stream.instance)
+        val decodeMethod = decodeMethodCache.getOrPut(clsStream) {
+            clsOfflineRecognizer.getMethod("decode", clsStream)
+        }
+        val getResultMethod = getResultMethodCache.getOrPut(clsStream) {
+            clsOfflineRecognizer.getMethod("getResult", clsStream)
+        }
+        decodeMethod.invoke(instance, stream.instance)
+        val result = getResultMethod.invoke(instance, stream.instance)
         return tryGetStringField(result, "text") ?: result?.toString()
     }
 
     fun release() {
         try {
-            clsOfflineRecognizer.getMethod("release").invoke(instance)
+            (releaseMethod ?: throw NoSuchMethodException("release")).invoke(instance)
         } catch (t: Throwable) {
             Log.e("ReflectiveRecognizer", "Failed to release recognizer", t)
         }
@@ -76,12 +113,20 @@ internal class ReflectiveRecognizer(
 
     private fun tryGetStringField(target: Any?, name: String): String? {
         if (target == null) return null
-        return try {
-            val field = target.javaClass.getDeclaredField(name)
-            field.isAccessible = true
-            field.get(target) as? String
+        val field = textFieldCache[target.javaClass] ?: try {
+            target.javaClass.getDeclaredField(name).apply {
+                isAccessible = true
+            }.also {
+                textFieldCache[target.javaClass] = it
+            }
         } catch (t: Throwable) {
             Log.d("ReflectiveRecognizer", "Failed to get string field '$name'", t)
+            return null
+        }
+        return try {
+            field.get(target) as? String
+        } catch (t: Throwable) {
+            Log.d("ReflectiveRecognizer", "Failed to read string field '$name'", t)
             null
         }
     }

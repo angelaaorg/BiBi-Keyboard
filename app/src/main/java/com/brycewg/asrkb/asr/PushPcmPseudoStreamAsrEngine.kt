@@ -91,6 +91,13 @@ abstract class PushPcmPseudoStreamAsrEngine(
         }
 
         try {
+            sessionBuffer.write(pcm)
+        } catch (t: Throwable) {
+            Log.e(TAG, "Failed to append audio chunk to session buffer", t)
+            return
+        }
+
+        try {
             segmentBuffer.write(pcm)
         } catch (t: Throwable) {
             Log.e(TAG, "Failed to buffer audio chunk", t)
@@ -113,11 +120,6 @@ abstract class PushPcmPseudoStreamAsrEngine(
                 null
             } ?: return
             try {
-                sessionBuffer.write(segBytes)
-            } catch (t: Throwable) {
-                Log.e(TAG, "Failed to append segment to session buffer", t)
-            }
-            try {
                 onSegmentBoundary(segBytes)
             } catch (t: Throwable) {
                 Log.e(TAG, "onSegmentBoundary failed", t)
@@ -130,19 +132,6 @@ abstract class PushPcmPseudoStreamAsrEngine(
     private fun finalizeOnce() {
         if (!finalized.compareAndSet(false, true)) return
         if (segmentBuffer.size() > 0) {
-            val segBytes = try {
-                segmentBuffer.toByteArray()
-            } catch (t: Throwable) {
-                Log.e(TAG, "Failed to toByteArray for tail segment", t)
-                null
-            }
-            if (segBytes != null) {
-                try {
-                    sessionBuffer.write(segBytes)
-                } catch (t: Throwable) {
-                    Log.e(TAG, "Failed to append tail segment to session buffer", t)
-                }
-            }
             segmentBuffer.reset()
         }
         val fullPcm = try {

@@ -11,6 +11,7 @@ import com.brycewg.asrkb.util.TextSanitizer
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -32,7 +33,12 @@ internal class SenseVoicePseudoStreamDelegate(
     @Volatile
     private var previewSegments = mutableListOf<String>()
 
+    @Volatile
+    private var previewJob: Job? = null
+
     fun onSessionStart(sessionId: Long) {
+        previewJob?.cancel()
+        previewJob = null
         activeSessionId = sessionId
         previewSegments = mutableListOf()
     }
@@ -52,7 +58,8 @@ internal class SenseVoicePseudoStreamDelegate(
 
     fun onSegmentBoundary(sessionId: Long, pcmSegment: ByteArray) {
         // 预览识别放到后台，避免阻塞录音
-        scope.launch(Dispatchers.IO) {
+        previewJob?.cancel()
+        previewJob = scope.launch(Dispatchers.IO) {
             if (sessionId != activeSessionId) return@launch
             val text = try {
                 decodeOnce(pcmSegment, reportErrorToUser = false)
@@ -113,6 +120,8 @@ internal class SenseVoicePseudoStreamDelegate(
         val t0 = System.currentTimeMillis()
         try {
             if (sessionId != activeSessionId) return
+            previewJob?.cancel()
+            previewJob = null
             val text = decodeOnce(fullPcm, reportErrorToUser = true)
             val dt = System.currentTimeMillis() - t0
             if (sessionId != activeSessionId) return
@@ -155,6 +164,7 @@ internal class SenseVoicePseudoStreamDelegate(
                 Log.e(tag, "Failed to notify final recognition error", e)
             }
         } finally {
+            previewJob = null
             try {
                 previewMutex.withLock {
                     val segments = previewSegments
@@ -220,28 +230,8 @@ internal class SenseVoicePseudoStreamDelegate(
             return null
         }
 
-        val base = try {
-            context.getExternalFilesDir(null)
-        } catch (t: Throwable) {
-            Log.w(tag, "Failed to get external files dir", t)
-            null
-        } ?: context.filesDir
-
-        val probeRoot = java.io.File(base, "sensevoice")
-        val rawVariant = try {
-            prefs.svModelVariant
-        } catch (t: Throwable) {
-            Log.w(tag, "Failed to get model variant", t)
-            "small-int8"
-        }
-        val variant = if (rawVariant == "small-full") "small-full" else "small-int8"
-        val variantDir = if (variant == "small-full") {
-            java.io.File(probeRoot, "small-full")
-        } else {
-            java.io.File(probeRoot, "small-int8")
-        }
-        val auto = findSvModelDir(variantDir) ?: findSvModelDir(probeRoot)
-        if (auto == null) {
+        val resolvedModel = resolveSenseVoiceModel(context, prefs)
+        if (resolvedModel == null) {
             if (reportErrorToUser) {
                 try {
                     listener.onError(context.getString(R.string.error_sensevoice_model_missing))
@@ -250,26 +240,6 @@ internal class SenseVoicePseudoStreamDelegate(
                 }
             } else {
                 Log.w(tag, "SenseVoice model directory missing")
-            }
-            return null
-        }
-
-        val tokensPath = java.io.File(auto, "tokens.txt").absolutePath
-        val modelFile = selectSvModelFile(auto, variant)
-        val modelPath = modelFile?.absolutePath
-        val minBytes = 8L * 1024L * 1024L
-        if (modelPath == null ||
-            !java.io.File(tokensPath).exists() ||
-            (modelFile?.length() ?: 0L) < minBytes
-        ) {
-            if (reportErrorToUser) {
-                try {
-                    listener.onError(context.getString(R.string.error_sensevoice_model_missing))
-                } catch (t: Throwable) {
-                    Log.e(tag, "Failed to notify invalid model error", t)
-                }
-            } else {
-                Log.w(tag, "SenseVoice model files invalid or missing")
             }
             return null
         }
@@ -296,10 +266,10 @@ internal class SenseVoicePseudoStreamDelegate(
         val alwaysKeep = keepMinutes < 0
         val text = manager.decodeOffline(
             assetManager = null,
-            tokens = tokensPath,
-            model = modelPath,
+            tokens = resolvedModel.tokensPath,
+            model = resolvedModel.modelPath,
             language = try {
-                resolveSvLanguageForVariant(prefs.svLanguage, variant)
+                resolveSvLanguageForVariant(prefs.svLanguage, resolvedModel.variant)
             } catch (t: Throwable) {
                 Log.w(tag, "Failed to get language", t)
                 "auto"
@@ -343,10 +313,10 @@ internal class SenseVoicePseudoStreamDelegate(
         if (pcm.isEmpty()) return FloatArray(0)
         val n = pcm.size / 2
         val out = FloatArray(n)
-        val bb = java.nio.ByteBuffer.wrap(pcm).order(java.nio.ByteOrder.LITTLE_ENDIAN)
         var i = 0
+        var offset = 0
         while (i < n) {
-            val s = bb.short.toInt()
+            val s = (pcm[offset + 1].toInt() shl 8) or (pcm[offset].toInt() and 0xFF)
             var f = s / 32768.0f
             if (f > 1f) {
                 f = 1f
@@ -355,6 +325,7 @@ internal class SenseVoicePseudoStreamDelegate(
             }
             out[i] = f
             i++
+            offset += 2
         }
         return out
     }
