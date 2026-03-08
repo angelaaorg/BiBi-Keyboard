@@ -1,5 +1,24 @@
 # Changelog
 
+## v3.14.0 (2025-03-08)
+
+### New Features
+
+- **FireRedASR V2 Engine Support**: Replaced TeleSpeech and added support for the FireRedASR V2 engine
+
+### Improvements
+
+- **Recognition Performance Optimization**: Optimized model discovery and PCM conversion flow to reduce redundant processing overhead
+- **UI Rendering Optimization**: Reduced redundant UI updates to improve rendering efficiency
+- **Local ASR Dependency Upgrade**: Upgraded sherpa-onnx to 1.12.28
+
+### Bug Fixes
+
+- Fixed FireRedASR result sanitization and resource cleanup issues on error paths to improve recognition stability
+- Fixed delayed UI updates caused by structural render refresh not being flushed in some scenarios
+
+---
+
 ## v3.13.4 (2025-02-28)
 
 ### New Features
