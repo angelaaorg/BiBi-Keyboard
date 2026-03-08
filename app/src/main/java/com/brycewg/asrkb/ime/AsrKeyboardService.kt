@@ -1,3 +1,8 @@
+/**
+ * 输入法主服务与键盘面板装配入口。
+ *
+ * 归属模块：ime
+ */
 package com.brycewg.asrkb.ime
 
 import android.Manifest
@@ -139,15 +144,18 @@ class AsrKeyboardService :
                     ACTION_REFRESH_IME_UI -> {
                         val v = rootView
                         if (v != null) {
-                            layoutController?.applyKeyboardHeightScale()
+                            val layoutChanged = layoutController?.applyKeyboardHeightScale() == true
                             extensionButtonsController?.applyConfig()
                             uiRenderer?.updateWaveformSensitivity()
                             uiRenderer?.updatePostprocIcon()
-                            v.requestLayout()
+                            if (layoutChanged) {
+                                v.requestLayout()
+                            }
                             // 第二次异步重算，确保尺寸变化与父容器测量完成后 padding/overlay 位置也被同步
                             v.post {
-                                layoutController?.applyKeyboardHeightScale()
-                                v.requestLayout()
+                                if (layoutController?.applyKeyboardHeightScale() == true) {
+                                    v.requestLayout()
+                                }
                             }
                         }
                     }
@@ -233,8 +241,9 @@ class AsrKeyboardService :
         super.onStartInputView(info, restarting)
         imeViewVisible = true
         // 每次键盘视图启动时应用一次高度/底部间距等缩放
-        layoutController?.applyKeyboardHeightScale()
-        rootView?.requestLayout()
+        if (layoutController?.applyKeyboardHeightScale() == true) {
+            rootView?.requestLayout()
+        }
         // 冷启动首帧偶现 system insets 迟到/不稳定：主动触发一次重新分发，降低高度异常概率
         rootView?.let {
             androidx.core.view.ViewCompat.requestApplyInsets(it)
@@ -564,8 +573,9 @@ class AsrKeyboardService :
                 if (rootView !== view) return@postDelayed
                 if (layoutController?.hasResolvedBottomInset() == true) return@postDelayed
                 androidx.core.view.ViewCompat.requestApplyInsets(view)
-                layoutController?.applyKeyboardHeightScale()
-                view.requestLayout()
+                if (layoutController?.applyKeyboardHeightScale() == true) {
+                    view.requestLayout()
+                }
             }, delayMs)
         }
     }

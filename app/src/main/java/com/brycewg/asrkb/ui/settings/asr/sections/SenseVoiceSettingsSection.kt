@@ -1,3 +1,8 @@
+/**
+ * SenseVoice 设置区块。
+ *
+ * 归属模块：ui/settings/asr/sections
+ */
 package com.brycewg.asrkb.ui.settings.asr.sections
 
 import android.widget.TextView
@@ -16,6 +21,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 internal class SenseVoiceSettingsSection : AsrSettingsSection {
+    private var downloadUiRequestSeq: Long = 0L
+
     override fun bind(binding: AsrSettingsBinding) {
         bindModelVariantSelection(binding)
         bindLanguageSelection(binding)
@@ -33,7 +40,7 @@ internal class SenseVoiceSettingsSection : AsrSettingsSection {
     }
 
     override fun onResume(binding: AsrSettingsBinding) {
-        updateDownloadUiVisibility(binding)
+        refreshDownloadUiVisibility(binding)
     }
 
     private fun bindModelVariantSelection(binding: AsrSettingsBinding) {
@@ -73,7 +80,7 @@ internal class SenseVoiceSettingsSection : AsrSettingsSection {
                 updateVariantSummary()
                 updateDownloadButtonText()
                 updateSvLanguageVisibility(binding)
-                updateDownloadUiVisibility(binding)
+                refreshDownloadUiVisibility(binding)
             }
         }
     }
@@ -292,7 +299,7 @@ internal class SenseVoiceSettingsSection : AsrSettingsSection {
                                 binding.activity.getString(R.string.sv_clear_failed)
                         } finally {
                             v.isEnabled = true
-                            updateDownloadUiVisibility(binding)
+                            refreshDownloadUiVisibility(binding)
                         }
                     }
                 }
@@ -307,8 +314,18 @@ internal class SenseVoiceSettingsSection : AsrSettingsSection {
         }
     }
 
-    private fun updateDownloadUiVisibility(binding: AsrSettingsBinding) {
-        val ready = binding.viewModel.checkSvModelDownloaded(binding.activity)
+    private fun refreshDownloadUiVisibility(binding: AsrSettingsBinding) {
+        val requestSeq = ++downloadUiRequestSeq
+        binding.activity.lifecycleScope.launch {
+            val ready = withContext(Dispatchers.IO) {
+                binding.viewModel.checkSvModelDownloaded(binding.activity)
+            }
+            if (requestSeq != downloadUiRequestSeq || binding.activity.isDestroyed) return@launch
+            renderDownloadUiVisibility(binding, ready)
+        }
+    }
+
+    private fun renderDownloadUiVisibility(binding: AsrSettingsBinding, ready: Boolean) {
         val btn = binding.view<MaterialButton>(R.id.btnSvDownloadModel)
         val btnImport = binding.view<MaterialButton>(R.id.btnSvImportModel)
         val btnClear = binding.view<MaterialButton>(R.id.btnSvClearModel)

@@ -1,3 +1,8 @@
+/**
+ * FunASR Nano 设置区块。
+ *
+ * 归属模块：ui/settings/asr/sections
+ */
 package com.brycewg.asrkb.ui.settings.asr.sections
 
 import android.widget.EditText
@@ -17,6 +22,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 internal class FunAsrNanoSettingsSection : AsrSettingsSection {
+    private var downloadUiRequestSeq: Long = 0L
 
     private var etFnUserPrompt: EditText? = null
 
@@ -46,7 +52,7 @@ internal class FunAsrNanoSettingsSection : AsrSettingsSection {
     }
 
     override fun onResume(binding: AsrSettingsBinding) {
-        updateDownloadUiVisibility(binding)
+        refreshDownloadUiVisibility(binding)
     }
 
     override fun onPause(binding: AsrSettingsBinding) {
@@ -95,7 +101,7 @@ internal class FunAsrNanoSettingsSection : AsrSettingsSection {
                 }
                 updateVariantSummary()
                 updateDownloadButtonText()
-                updateDownloadUiVisibility(binding)
+                refreshDownloadUiVisibility(binding)
             }
         }
     }
@@ -256,7 +262,7 @@ internal class FunAsrNanoSettingsSection : AsrSettingsSection {
                                 binding.activity.getString(R.string.fn_clear_failed)
                         } finally {
                             v.isEnabled = true
-                            updateDownloadUiVisibility(binding)
+                            refreshDownloadUiVisibility(binding)
                         }
                     }
                 }
@@ -271,8 +277,18 @@ internal class FunAsrNanoSettingsSection : AsrSettingsSection {
         }
     }
 
-    private fun updateDownloadUiVisibility(binding: AsrSettingsBinding) {
-        val ready = binding.viewModel.checkFnModelDownloaded(binding.activity)
+    private fun refreshDownloadUiVisibility(binding: AsrSettingsBinding) {
+        val requestSeq = ++downloadUiRequestSeq
+        binding.activity.lifecycleScope.launch {
+            val ready = withContext(Dispatchers.IO) {
+                binding.viewModel.checkFnModelDownloaded(binding.activity)
+            }
+            if (requestSeq != downloadUiRequestSeq || binding.activity.isDestroyed) return@launch
+            renderDownloadUiVisibility(binding, ready)
+        }
+    }
+
+    private fun renderDownloadUiVisibility(binding: AsrSettingsBinding, ready: Boolean) {
         val btn = binding.view<MaterialButton>(R.id.btnFnDownloadModel)
         val btnImport = binding.view<MaterialButton>(R.id.btnFnImportModel)
         val btnClear = binding.view<MaterialButton>(R.id.btnFnClearModel)

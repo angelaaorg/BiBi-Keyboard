@@ -14,8 +14,10 @@ import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.core.net.toUri
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.store.Prefs
 import com.brycewg.asrkb.ui.BaseActivity
@@ -55,6 +57,8 @@ class FloatingSettingsActivity : BaseActivity() {
     private lateinit var switchFloatingWritePaste: MaterialSwitch
     private lateinit var etFloatingWritePastePkgs: TextInputEditText
     private lateinit var btnResetFloatingPos: MaterialButton
+    private var writeCompatCommitRunnable: Runnable? = null
+    private var writePasteCommitRunnable: Runnable? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -119,64 +123,55 @@ class FloatingSettingsActivity : BaseActivity() {
      */
     private fun bindStateToViews() {
         lifecycleScope.launch {
-            // 语音识别球开关
-            viewModel.asrEnabled.collect { enabled ->
-                if (switchFloatingAsr.isChecked != enabled) {
-                    switchFloatingAsr.isChecked = enabled
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                launch {
+                    viewModel.asrEnabled.collect { enabled ->
+                        if (switchFloatingAsr.isChecked != enabled) {
+                            switchFloatingAsr.isChecked = enabled
+                        }
+                    }
                 }
-            }
-        }
-
-        lifecycleScope.launch {
-            // 仅在键盘显示时显示
-            viewModel.onlyWhenImeVisible.collect { enabled ->
-                if (switchFloatingOnlyWhenImeVisible.isChecked != enabled) {
-                    switchFloatingOnlyWhenImeVisible.isChecked = enabled
+                launch {
+                    viewModel.onlyWhenImeVisible.collect { enabled ->
+                        if (switchFloatingOnlyWhenImeVisible.isChecked != enabled) {
+                            switchFloatingOnlyWhenImeVisible.isChecked = enabled
+                        }
+                    }
                 }
-            }
-        }
-
-        lifecycleScope.launch {
-            // 直接拖动移动悬浮球
-            viewModel.directDragEnabled.collect { enabled ->
-                if (switchFloatingDirectDrag.isChecked != enabled) {
-                    switchFloatingDirectDrag.isChecked = enabled
+                launch {
+                    viewModel.directDragEnabled.collect { enabled ->
+                        if (switchFloatingDirectDrag.isChecked != enabled) {
+                            switchFloatingDirectDrag.isChecked = enabled
+                        }
+                    }
                 }
-            }
-        }
-
-        lifecycleScope.launch {
-            // 透明度
-            viewModel.alpha.collect { alpha ->
-                if (sliderFloatingAlpha.value != alpha) {
-                    sliderFloatingAlpha.value = alpha
+                launch {
+                    viewModel.alpha.collect { alpha ->
+                        if (sliderFloatingAlpha.value != alpha) {
+                            sliderFloatingAlpha.value = alpha
+                        }
+                    }
                 }
-            }
-        }
-
-        lifecycleScope.launch {
-            // 大小
-            viewModel.sizeDp.collect { size ->
-                if (sliderFloatingSize.value != size.toFloat()) {
-                    sliderFloatingSize.value = size.toFloat()
+                launch {
+                    viewModel.sizeDp.collect { size ->
+                        if (sliderFloatingSize.value != size.toFloat()) {
+                            sliderFloatingSize.value = size.toFloat()
+                        }
+                    }
                 }
-            }
-        }
-
-        lifecycleScope.launch {
-            // 写入兼容模式
-            viewModel.writeCompatEnabled.collect { enabled ->
-                if (switchFloatingWriteCompat.isChecked != enabled) {
-                    switchFloatingWriteCompat.isChecked = enabled
+                launch {
+                    viewModel.writeCompatEnabled.collect { enabled ->
+                        if (switchFloatingWriteCompat.isChecked != enabled) {
+                            switchFloatingWriteCompat.isChecked = enabled
+                        }
+                    }
                 }
-            }
-        }
-
-        lifecycleScope.launch {
-            // 写入粘贴方案
-            viewModel.writePasteEnabled.collect { enabled ->
-                if (switchFloatingWritePaste.isChecked != enabled) {
-                    switchFloatingWritePaste.isChecked = enabled
+                launch {
+                    viewModel.writePasteEnabled.collect { enabled ->
+                        if (switchFloatingWritePaste.isChecked != enabled) {
+                            switchFloatingWritePaste.isChecked = enabled
+                        }
+                    }
                 }
             }
         }
@@ -236,11 +231,6 @@ class FloatingSettingsActivity : BaseActivity() {
         )
 
         // 悬浮窗透明度
-        sliderFloatingAlpha.addOnChangeListener { _, value, fromUser ->
-            if (fromUser) {
-                viewModel.updateAlpha(this, value, serviceManager)
-            }
-        }
         sliderFloatingAlpha.addOnSliderTouchListener(object : Slider.OnSliderTouchListener {
             override fun onStartTrackingTouch(slider: Slider) {
                 hapticTapIfEnabled(slider)
@@ -248,15 +238,11 @@ class FloatingSettingsActivity : BaseActivity() {
 
             override fun onStopTrackingTouch(slider: Slider) {
                 hapticTapIfEnabled(slider)
+                viewModel.updateAlpha(this@FloatingSettingsActivity, slider.value, serviceManager)
             }
         })
 
         // 悬浮球大小
-        sliderFloatingSize.addOnChangeListener { _, value, fromUser ->
-            if (fromUser) {
-                viewModel.updateSize(this, value.toInt(), serviceManager)
-            }
-        }
         sliderFloatingSize.addOnSliderTouchListener(object : Slider.OnSliderTouchListener {
             override fun onStartTrackingTouch(slider: Slider) {
                 hapticTapIfEnabled(slider)
@@ -264,6 +250,7 @@ class FloatingSettingsActivity : BaseActivity() {
 
             override fun onStopTrackingTouch(slider: Slider) {
                 hapticTapIfEnabled(slider)
+                viewModel.updateSize(this@FloatingSettingsActivity, slider.value.toInt(), serviceManager)
             }
         })
 
@@ -348,10 +335,16 @@ class FloatingSettingsActivity : BaseActivity() {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: Editable?) {
-                viewModel.updateWriteCompatPackages(
-                    this@FloatingSettingsActivity,
-                    s?.toString() ?: ""
-                )
+                val value = s?.toString() ?: ""
+                writeCompatCommitRunnable?.let(etFloatingWriteCompatPkgs::removeCallbacks)
+                val runnable = Runnable {
+                    viewModel.updateWriteCompatPackages(
+                        this@FloatingSettingsActivity,
+                        value
+                    )
+                }
+                writeCompatCommitRunnable = runnable
+                etFloatingWriteCompatPkgs.postDelayed(runnable, 300L)
             }
         })
 
@@ -360,10 +353,16 @@ class FloatingSettingsActivity : BaseActivity() {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: Editable?) {
-                viewModel.updateWritePastePackages(
-                    this@FloatingSettingsActivity,
-                    s?.toString() ?: ""
-                )
+                val value = s?.toString() ?: ""
+                writePasteCommitRunnable?.let(etFloatingWritePastePkgs::removeCallbacks)
+                val runnable = Runnable {
+                    viewModel.updateWritePastePackages(
+                        this@FloatingSettingsActivity,
+                        value
+                    )
+                }
+                writePasteCommitRunnable = runnable
+                etFloatingWritePastePkgs.postDelayed(runnable, 300L)
             }
         })
     }

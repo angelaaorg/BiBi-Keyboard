@@ -1,7 +1,13 @@
+/**
+ * IME 录音波形视图。
+ *
+ * 归属模块：ui/widgets
+ */
 package com.brycewg.asrkb.ui.widgets
 
 import android.content.Context
 import android.graphics.Color
+import android.os.SystemClock
 import android.util.AttributeSet
 import android.view.View
 import android.widget.FrameLayout
@@ -19,13 +25,23 @@ class WaveformView @JvmOverloads constructor(
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
 ) : FrameLayout(context, attrs, defStyleAttr) {
+    private companion object {
+        private const val MIN_UPDATE_INTERVAL_MS = 16L
+        private const val MIN_VOLUME_DELTA = 2
+    }
 
     private var isActive = false
+    private var cachedGain: Float = computeGain(5)
+    private var lastVolume: Int = -1
+    private var lastVolumeDispatchUptimeMs: Long = 0L
 
     /** 波形灵敏度（1-10），数值越大响应越明显 */
     var sensitivity: Int = 5
         set(value) {
-            field = value.coerceIn(1, 10)
+            val normalized = value.coerceIn(1, 10)
+            if (field == normalized) return
+            field = normalized
+            cachedGain = computeGain(normalized)
         }
 
     private val waveView: WaveLineView = WaveLineView(context).apply {
@@ -52,11 +68,18 @@ class WaveformView @JvmOverloads constructor(
     /** 更新振幅（0.0 - 1.0） */
     fun updateAmplitude(amplitude: Float) {
         if (!isActive) return
-        // 根据灵敏度计算增益：sens=1→0.25, sens=5→1.0, sens=10→12.0
-        val gain = 0.25f * (48.0).pow((sensitivity - 1) / 9.0).toFloat()
-        val boosted = (amplitude * gain).coerceIn(0f, 1f)
+        val boosted = (amplitude * cachedGain).coerceIn(0f, 1f)
         // 映射到 [0,100] 并设置音量，WaveLineView 内部做平滑
         val vol = (boosted * 100f).toInt()
+        val now = SystemClock.uptimeMillis()
+        if (lastVolume >= 0) {
+            val dt = now - lastVolumeDispatchUptimeMs
+            if (dt < MIN_UPDATE_INTERVAL_MS && kotlin.math.abs(vol - lastVolume) < MIN_VOLUME_DELTA) {
+                return
+            }
+        }
+        lastVolume = vol
+        lastVolumeDispatchUptimeMs = now
         waveView.setVolume(vol)
     }
 
@@ -64,6 +87,8 @@ class WaveformView @JvmOverloads constructor(
     fun start() {
         if (isActive) return
         isActive = true
+        lastVolume = -1
+        lastVolumeDispatchUptimeMs = 0L
         try {
             waveView.startAnim()
         } catch (t: Throwable) {
@@ -75,6 +100,8 @@ class WaveformView @JvmOverloads constructor(
     fun stop() {
         if (!isActive) return
         isActive = false
+        lastVolume = -1
+        lastVolumeDispatchUptimeMs = 0L
         try {
             waveView.stopAnim()
         } catch (t: Throwable) {
@@ -107,4 +134,6 @@ class WaveformView @JvmOverloads constructor(
             android.util.Log.w("WaveformView", "release failed", t)
         }
     }
+
+    private fun computeGain(sensitivity: Int): Float = 0.25f * (48.0).pow((sensitivity - 1) / 9.0).toFloat()
 }

@@ -1,3 +1,8 @@
+/**
+ * IME 面板布局缩放与 inset 协调器。
+ *
+ * 归属模块：ime
+ */
 package com.brycewg.asrkb.ime
 
 import android.inputmethodservice.InputMethodService
@@ -44,9 +49,10 @@ internal class ImeLayoutController(
         }
     }
 
-    fun applyKeyboardHeightScale() {
-        val root = rootView ?: viewRefsProvider()?.rootView ?: return
+    fun applyKeyboardHeightScale(): Boolean {
+        val root = rootView ?: viewRefsProvider()?.rootView ?: return false
         val refs = viewRefsProvider()
+        var layoutChanged = false
 
         val tier = prefs.keyboardHeightTier
         val scale = when (tier) {
@@ -65,6 +71,41 @@ internal class ImeLayoutController(
             lastAppliedHeightScale = scale
             micBaseGroupHeight = -1
             refs?.btnMic?.translationY = 0f
+        }
+
+        fun updateLayoutSize(view: View?, width: Int? = null, height: Int? = null) {
+            if (view == null) return
+            val lp = view.layoutParams ?: return
+            var changed = false
+            if (width != null && lp.width != width) {
+                lp.width = width
+                changed = true
+            }
+            if (height != null && lp.height != height) {
+                lp.height = height
+                changed = true
+            }
+            if (changed) {
+                view.layoutParams = lp
+                layoutChanged = true
+            }
+        }
+
+        fun updateFrameLayoutParams(view: View?, topMargin: Int? = null, gravity: Int? = null) {
+            val lp = view?.layoutParams as? FrameLayout.LayoutParams ?: return
+            var changed = false
+            if (topMargin != null && lp.topMargin != topMargin) {
+                lp.topMargin = topMargin
+                changed = true
+            }
+            if (gravity != null && lp.gravity != gravity) {
+                lp.gravity = gravity
+                changed = true
+            }
+            if (changed) {
+                view.layoutParams = lp
+                layoutChanged = true
+            }
         }
 
         // 同步一次当前 RootWindowInsets，避免首次缩放时 bottom inset 尚未写入导致底部裁剪
@@ -91,28 +132,23 @@ internal class ImeLayoutController(
             val extraPadding = dp(prefs.keyboardBottomPaddingDp.toFloat())
             // 添加系统导航栏高度以适配 Android 15 边缘到边缘显示
             val pb = basePb + extraPadding + systemNavBarBottomInset
-            fl.setPaddingRelative(ps, pt, pe, pb)
+            if (fl.paddingTop != pt || fl.paddingBottom != pb) {
+                fl.setPaddingRelative(ps, pt, pe, pb)
+                layoutChanged = true
+            }
         }
 
         // 顶部主行高度（无论是否缩放都需要重设，避免从大/中切回小时残留）
         run {
             val topRow = refs?.rowTop ?: root.findViewById(R.id.rowTop) as? ConstraintLayout
-            if (topRow != null) {
-                val lp = topRow.layoutParams
-                lp.height = dp(80f * scale)
-                topRow.layoutParams = lp
-            }
+            updateLayoutSize(topRow, height = dp(80f * scale))
         }
 
         // 扩展按钮行高度（同样需要在 scale==1 时恢复）
         run {
             val extRow =
                 refs?.rowExtension ?: root.findViewById(R.id.rowExtension) as? ConstraintLayout
-            if (extRow != null) {
-                val lp = extRow.layoutParams
-                lp.height = dp(50f * scale)
-                extRow.layoutParams = lp
-            }
+            updateLayoutSize(extRow, height = dp(50f * scale))
         }
 
         // 使主键盘功能行（overlay）从顶部锚定，避免垂直居中导致的像素舍入抖动
@@ -121,12 +157,7 @@ internal class ImeLayoutController(
         run {
             val overlay =
                 refs?.rowOverlay ?: root.findViewById(R.id.rowOverlay) as? ConstraintLayout
-            val lp = overlay?.layoutParams as? FrameLayout.LayoutParams
-            if (overlay != null && lp != null) {
-                lp.topMargin = dp(90f * scale + 6f)
-                lp.gravity = Gravity.TOP
-                overlay.layoutParams = lp
-            }
+            updateFrameLayoutParams(overlay, topMargin = dp(90f * scale + 6f), gravity = Gravity.TOP)
         }
 
         // 手势按钮覆盖层：定位到第二排第三排按钮的位置
@@ -135,28 +166,17 @@ internal class ImeLayoutController(
             val overlay =
                 refs?.rowRecordingGestures
                     ?: root.findViewById(R.id.rowRecordingGestures) as? ConstraintLayout
-            val lp = overlay?.layoutParams as? FrameLayout.LayoutParams
-            if (overlay != null && lp != null) {
-                lp.topMargin = dp(50f * scale)
-                lp.gravity = Gravity.TOP
-                overlay.layoutParams = lp
-            }
+            updateFrameLayoutParams(overlay, topMargin = dp(50f * scale), gravity = Gravity.TOP)
         }
 
         fun scaleSquareButton(id: Int) {
             val v = root.findViewById<View>(id) ?: return
-            val lp = v.layoutParams
-            lp.width = dp(40f * scale)
-            lp.height = dp(40f * scale)
-            v.layoutParams = lp
+            updateLayoutSize(v, width = dp(40f * scale), height = dp(40f * scale))
         }
 
         fun scaleGestureButton(v: View?) {
-            val lp = v?.layoutParams as? ConstraintLayout.LayoutParams ?: return
             val baseSize = 86f * scale
-            lp.width = dp(baseSize)
-            lp.height = dp(baseSize)
-            v.layoutParams = lp
+            updateLayoutSize(v, width = dp(baseSize), height = dp(baseSize))
         }
 
         fun scaleChildrenByTag(root: View?, tag: String) {
@@ -168,10 +188,7 @@ internal class ImeLayoutController(
             }
             val t = root.tag as? String
             if (t == tag) {
-                val lp = root.layoutParams
-                lp.height = dp(40f * scale)
-                // 宽度可能由权重控制，不强制写入
-                root.layoutParams = lp
+                updateLayoutSize(root, height = dp(40f * scale))
             }
         }
 
@@ -218,22 +235,12 @@ internal class ImeLayoutController(
         // 缩放中央按钮（仅高度，宽度由约束控制）
         run {
             val v1: View? = refs?.btnExtCenter1 ?: root.findViewById(R.id.btnExtCenter1)
-            if (v1 != null) {
-                val lp = v1.layoutParams
-                lp.height = dp(40f * scale)
-                // 宽度由约束控制，不设置
-                v1.layoutParams = lp
-            }
+            updateLayoutSize(v1, height = dp(40f * scale))
         }
 
         run {
             val v2: View? = refs?.btnExtCenter2 ?: root.findViewById(R.id.btnExtCenter2)
-            if (v2 != null) {
-                val lp = v2.layoutParams
-                lp.height = dp(40f * scale)
-                // 宽度由约束控制，不设置
-                v2.layoutParams = lp
-            }
+            updateLayoutSize(v2, height = dp(40f * scale))
         }
 
         // 数字/标点小键盘的方形按键（通过 tag="key40" 统一缩放高度）
@@ -336,12 +343,24 @@ internal class ImeLayoutController(
             updateTopMargin(R.id.aiEditRow3Right, row3Top)
         }
 
-        refs?.btnMic?.customSize = dp(72f * scale)
+        refs?.btnMic?.let { mic ->
+            val size = dp(72f * scale)
+            if (mic.customSize != size) {
+                mic.customSize = size
+                layoutChanged = true
+            }
+        }
 
         // 调整麦克风容器的 translationY：使用常量位移，避免大比例时向下偏移过多导致底部裁剪
-        refs?.groupMicStatus?.translationY = dp(3f).toFloat()
+        refs?.groupMicStatus?.let { group ->
+            val translationY = dp(3f).toFloat()
+            if (group.translationY != translationY) {
+                group.translationY = translationY
+            }
+        }
         // 确保麦克风容器在最上层，避免被其它 overlay 遮挡
         refs?.groupMicStatus?.bringToFront()
+        return layoutChanged
     }
 
     fun hasResolvedBottomInset(): Boolean = systemNavBarBottomInset > 0

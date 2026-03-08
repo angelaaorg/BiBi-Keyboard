@@ -1,3 +1,8 @@
+/**
+ * IME 面板渲染器。
+ *
+ * 归属模块：ime
+ */
 package com.brycewg.asrkb.ime
 
 import android.content.Context
@@ -7,6 +12,7 @@ import android.widget.TextView
 import android.widget.Toast
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.store.Prefs
+import java.util.WeakHashMap
 
 internal class ImeUiRenderer(
     private val context: Context,
@@ -22,17 +28,36 @@ internal class ImeUiRenderer(
     private val markShownClipboardText: (String) -> Unit,
     private val copyTextToSystemClipboard: (label: String, text: String) -> Boolean
 ) {
+    private enum class RenderMode {
+        Idle,
+        Listening,
+        Processing,
+        AiProcessing,
+        AiEditListening,
+        AiEditProcessing
+    }
+
     private var clipboardPreviewTimeout: Runnable? = null
     private var aiEditHintResetRunnable: Runnable? = null
+    private var lastRenderMode: RenderMode? = null
+    private var forceNextStructuralRender: Boolean = true
+    private val imageResCache = WeakHashMap<android.widget.ImageView, Int>()
 
     fun render(state: KeyboardState) {
-        when (state) {
-            is KeyboardState.Idle -> updateUiIdle()
-            is KeyboardState.Listening -> updateUiListening(state)
-            is KeyboardState.Processing -> updateUiProcessing()
-            is KeyboardState.AiProcessing -> updateUiAiProcessing()
-            is KeyboardState.AiEditListening -> updateUiAiEditListening()
-            is KeyboardState.AiEditProcessing -> updateUiAiEditProcessing()
+        val renderMode = state.toRenderMode()
+        if (forceNextStructuralRender || lastRenderMode != renderMode) {
+            forceNextStructuralRender = false
+            lastRenderMode = renderMode
+            when (state) {
+                is KeyboardState.Idle -> updateUiIdle()
+                is KeyboardState.Listening -> updateUiListening(state)
+                is KeyboardState.Processing -> updateUiProcessing()
+                is KeyboardState.AiProcessing -> updateUiAiProcessing()
+                is KeyboardState.AiEditListening -> updateUiAiEditListening()
+                is KeyboardState.AiEditProcessing -> updateUiAiEditProcessing()
+            }
+        } else if (state is KeyboardState.Listening) {
+            showRecordingGesturesOverlay(state)
         }
 
         // 更新中间结果到 composing
@@ -47,7 +72,7 @@ internal class ImeUiRenderer(
 
     fun showStatusMessage(message: String) {
         clearStatusTextStyle()
-        views.txtStatusText?.text = message
+        setTextIfChanged(views.txtStatusText, message)
         enableStatusMarquee()
 
         val isError = message.contains("错误", ignoreCase = true) ||
@@ -86,7 +111,7 @@ internal class ImeUiRenderer(
                 }
                 if (allowOverride) {
                     applyInfoBarMarquee(tv, enabled = true)
-                    tv.text = message
+                    setTextIfChanged(tv, message)
                 }
             }
         }
@@ -106,7 +131,7 @@ internal class ImeUiRenderer(
         if (!isAiEditPanelVisible()) return
         val tv = views.txtAiEditInfo ?: return
         applyInfoBarMarquee(tv, enabled = true)
-        tv.text = message
+        setTextIfChanged(tv, message)
         aiEditHintResetRunnable?.let(tv::removeCallbacks)
         val restoreRunnable = Runnable { render(actionHandler.getCurrentState()) }
         aiEditHintResetRunnable = restoreRunnable
@@ -116,7 +141,7 @@ internal class ImeUiRenderer(
     fun showClipboardPreview(preview: ClipboardPreview) {
         val tv = views.txtStatusText ?: return
         disableStatusMarquee()
-        tv.text = preview.displaySnippet
+        setTextIfChanged(tv, preview.displaySnippet)
 
         // 限制粘贴板内容为单行显示，避免破坏 UI 布局（txtStatusText 默认已单行，这里冗余保证）
         tv.maxLines = 1
@@ -142,8 +167,8 @@ internal class ImeUiRenderer(
         }
 
         // 若当前处于录音波形显示，临时切换为文本以展示预览
-        views.txtStatusText?.visibility = View.VISIBLE
-        views.waveformView?.visibility = View.GONE
+        setVisibilityIfChanged(views.txtStatusText, View.VISIBLE)
+        setVisibilityIfChanged(views.waveformView, View.GONE)
         views.waveformView?.stop()
 
         // 标记最近一次展示的剪贴板内容，避免重复触发
@@ -169,19 +194,19 @@ internal class ImeUiRenderer(
         // 保持单行显示以匹配中心信息栏设计
         tv.maxLines = 1
         tv.isSingleLine = true
-
+        forceNextStructuralRender = true
         render(actionHandler.getCurrentState())
     }
 
     fun showRetryChip(label: String) {
         val tv = views.txtStatusText ?: return
-        tv.text = label
+        setTextIfChanged(tv, label)
         // 移除芯片样式，仅保持可点击
         tv.background = null
         tv.setPaddingRelative(0, 0, 0, 0)
         // 在中心信息栏展示，并临时隐藏波形
-        views.txtStatusText?.visibility = View.VISIBLE
-        views.waveformView?.visibility = View.GONE
+        setVisibilityIfChanged(views.txtStatusText, View.VISIBLE)
+        setVisibilityIfChanged(views.waveformView, View.GONE)
         views.waveformView?.stop()
         tv.isClickable = true
         tv.isFocusable = true
@@ -193,6 +218,7 @@ internal class ImeUiRenderer(
 
     fun hideRetryChip() {
         clearStatusTextStyle()
+        forceNextStructuralRender = true
     }
 
     fun clearStatusTextStyle() {
@@ -241,40 +267,41 @@ internal class ImeUiRenderer(
         if (!isAiEditPanelVisible()) return
         val tv = views.txtAiEditInfo ?: return
         applyInfoBarMarquee(tv, enabled = true)
-        tv.text = when (state) {
+        val text = when (state) {
             is KeyboardState.AiEditListening -> state.instruction?.takeIf { it.isNotBlank() }
                 ?: context.getString(R.string.status_ai_edit_listening)
 
             is KeyboardState.AiEditProcessing -> context.getString(R.string.status_ai_editing)
             else -> getAiEditGuideText()
         }
+        setTextIfChanged(tv, text)
     }
 
     private fun updateUiIdle() {
         hideRecordingGesturesOverlay()
         clearStatusTextStyle()
         // 显示文字，隐藏波形
-        views.txtStatusText?.visibility = View.VISIBLE
-        views.txtStatusText?.text = context.getString(R.string.status_idle)
-        views.waveformView?.visibility = View.GONE
+        setVisibilityIfChanged(views.txtStatusText, View.VISIBLE)
+        setTextIfChanged(views.txtStatusText, context.getString(R.string.status_idle))
+        setVisibilityIfChanged(views.waveformView, View.GONE)
         views.waveformView?.stop()
 
-        views.btnMic?.isSelected = false
-        views.btnMic?.setImageResource(R.drawable.microphone)
-        views.btnPromptPicker?.setImageResource(R.drawable.pencil_simple_line)
+        setSelectedIfChanged(views.btnMic, false)
+        setImageResourceIfChanged(views.btnMic, R.drawable.microphone)
+        setImageResourceIfChanged(views.btnPromptPicker, R.drawable.pencil_simple_line)
         inputConnectionProvider()?.let { inputHelper.finishComposingText(it) }
     }
 
     private fun updateUiListening(state: KeyboardState.Listening? = null) {
         clearStatusTextStyle()
         // 隐藏文字，显示波形动画
-        views.txtStatusText?.visibility = View.GONE
-        views.waveformView?.visibility = View.VISIBLE
+        setVisibilityIfChanged(views.txtStatusText, View.GONE)
+        setVisibilityIfChanged(views.waveformView, View.VISIBLE)
         views.waveformView?.start()
 
-        views.btnMic?.isSelected = true
-        views.btnMic?.setImageResource(R.drawable.microphone_fill)
-        views.btnPromptPicker?.setImageResource(R.drawable.pencil_simple_line)
+        setSelectedIfChanged(views.btnMic, true)
+        setImageResourceIfChanged(views.btnMic, R.drawable.microphone_fill)
+        setImageResourceIfChanged(views.btnPromptPicker, R.drawable.pencil_simple_line)
         showRecordingGesturesOverlay(state)
     }
 
@@ -282,74 +309,85 @@ internal class ImeUiRenderer(
         hideRecordingGesturesOverlay()
         clearStatusTextStyle()
         // 显示文字，隐藏波形
-        views.txtStatusText?.visibility = View.VISIBLE
-        views.txtStatusText?.text = context.getString(R.string.status_recognizing)
-        views.waveformView?.visibility = View.GONE
+        setVisibilityIfChanged(views.txtStatusText, View.VISIBLE)
+        setTextIfChanged(views.txtStatusText, context.getString(R.string.status_recognizing))
+        setVisibilityIfChanged(views.waveformView, View.GONE)
         views.waveformView?.stop()
 
-        views.btnMic?.isSelected = false
-        views.btnMic?.setImageResource(R.drawable.microphone)
-        views.btnPromptPicker?.setImageResource(R.drawable.pencil_simple_line)
+        setSelectedIfChanged(views.btnMic, false)
+        setImageResourceIfChanged(views.btnMic, R.drawable.microphone)
+        setImageResourceIfChanged(views.btnPromptPicker, R.drawable.pencil_simple_line)
     }
 
     private fun updateUiAiProcessing() {
         hideRecordingGesturesOverlay()
         clearStatusTextStyle()
         // 显示文字，隐藏波形
-        views.txtStatusText?.visibility = View.VISIBLE
-        views.txtStatusText?.text = context.getString(R.string.status_ai_processing)
-        views.waveformView?.visibility = View.GONE
+        setVisibilityIfChanged(views.txtStatusText, View.VISIBLE)
+        setTextIfChanged(views.txtStatusText, context.getString(R.string.status_ai_processing))
+        setVisibilityIfChanged(views.waveformView, View.GONE)
         views.waveformView?.stop()
 
-        views.btnMic?.isSelected = false
-        views.btnMic?.setImageResource(R.drawable.microphone)
-        views.btnPromptPicker?.setImageResource(R.drawable.pencil_simple_line)
+        setSelectedIfChanged(views.btnMic, false)
+        setImageResourceIfChanged(views.btnMic, R.drawable.microphone)
+        setImageResourceIfChanged(views.btnPromptPicker, R.drawable.pencil_simple_line)
     }
 
     private fun updateUiAiEditListening() {
         hideRecordingGesturesOverlay()
         clearStatusTextStyle()
         // AI Edit 录音状态也使用文字显示（避免与普通录音混淆）
-        views.txtStatusText?.visibility = View.VISIBLE
-        views.txtStatusText?.text = context.getString(R.string.status_ai_edit_listening)
-        views.waveformView?.visibility = View.GONE
+        setVisibilityIfChanged(views.txtStatusText, View.VISIBLE)
+        setTextIfChanged(views.txtStatusText, context.getString(R.string.status_ai_edit_listening))
+        setVisibilityIfChanged(views.waveformView, View.GONE)
         views.waveformView?.stop()
 
-        views.btnMic?.isSelected = false
-        views.btnMic?.setImageResource(R.drawable.microphone_fill)
-        views.btnPromptPicker?.setImageResource(R.drawable.pencil_simple_line_fill)
+        setSelectedIfChanged(views.btnMic, false)
+        setImageResourceIfChanged(views.btnMic, R.drawable.microphone_fill)
+        setImageResourceIfChanged(views.btnPromptPicker, R.drawable.pencil_simple_line_fill)
     }
 
     private fun updateUiAiEditProcessing() {
         hideRecordingGesturesOverlay()
         clearStatusTextStyle()
         // 显示文字，隐藏波形
-        views.txtStatusText?.visibility = View.VISIBLE
-        views.txtStatusText?.text = context.getString(R.string.status_ai_editing)
-        views.waveformView?.visibility = View.GONE
+        setVisibilityIfChanged(views.txtStatusText, View.VISIBLE)
+        setTextIfChanged(views.txtStatusText, context.getString(R.string.status_ai_editing))
+        setVisibilityIfChanged(views.waveformView, View.GONE)
         views.waveformView?.stop()
 
-        views.btnMic?.isSelected = false
-        views.btnMic?.setImageResource(R.drawable.microphone)
-        views.btnPromptPicker?.setImageResource(R.drawable.pencil_simple_line_fill)
+        setSelectedIfChanged(views.btnMic, false)
+        setImageResourceIfChanged(views.btnMic, R.drawable.microphone)
+        setImageResourceIfChanged(views.btnPromptPicker, R.drawable.pencil_simple_line_fill)
     }
 
     private fun showRecordingGesturesOverlay(state: KeyboardState.Listening?) {
-        views.rowRecordingGestures?.visibility = View.VISIBLE
+        setVisibilityIfChanged(views.rowRecordingGestures, View.VISIBLE)
         // 根据点按/长按模式设置按钮文案
         if (prefs.micTapToggleEnabled) {
-            views.btnGestureCancel?.text = context.getString(R.string.label_recording_tap_cancel)
-            views.btnGestureSend?.text = context.getString(R.string.label_recording_tap_send)
+            setTextIfChanged(
+                views.btnGestureCancel,
+                context.getString(R.string.label_recording_tap_cancel)
+            )
+            setTextIfChanged(
+                views.btnGestureSend,
+                context.getString(R.string.label_recording_tap_send)
+            )
         } else {
-            views.btnGestureCancel?.text =
+            setTextIfChanged(
+                views.btnGestureCancel,
                 context.getString(R.string.label_recording_gesture_cancel)
-            views.btnGestureSend?.text = context.getString(R.string.label_recording_gesture_send)
+            )
+            setTextIfChanged(
+                views.btnGestureSend,
+                context.getString(R.string.label_recording_gesture_send)
+            )
         }
         applyLockZoneUi(state)
     }
 
     private fun hideRecordingGesturesOverlay() {
-        views.rowRecordingGestures?.visibility = View.GONE
+        setVisibilityIfChanged(views.rowRecordingGestures, View.GONE)
         resetLockZoneUi()
         micGestureController()?.resetPressedState()
     }
@@ -360,15 +398,63 @@ internal class ImeUiRenderer(
             resetLockZoneUi()
             return
         }
-        spaceKey.isEnabled = false
-        spaceKey.text =
+        setEnabledIfChanged(spaceKey, false)
+        setTextIfChanged(
+            spaceKey,
             context.getString(
                 if (state.lockedBySwipe) R.string.hint_tap_to_stop_recording else R.string.hint_swipe_down_lock
             )
+        )
     }
 
     private fun resetLockZoneUi() {
-        views.btnExtCenter2?.isEnabled = true
-        views.btnExtCenter2?.text = context.getString(R.string.cd_space)
+        setEnabledIfChanged(views.btnExtCenter2, true)
+        setTextIfChanged(views.btnExtCenter2, context.getString(R.string.cd_space))
+    }
+
+    private fun setVisibilityIfChanged(view: View?, visibility: Int) {
+        if (view != null && view.visibility != visibility) {
+            view.visibility = visibility
+        }
+    }
+
+    private fun setTextIfChanged(view: TextView?, text: CharSequence) {
+        if (view != null && view.text?.contentEquals(text) != true) {
+            view.text = text
+        }
+    }
+
+    private fun setSelectedIfChanged(view: View?, selected: Boolean) {
+        if (view != null && view.isSelected != selected) {
+            view.isSelected = selected
+        }
+    }
+
+    private fun setEnabledIfChanged(view: View?, enabled: Boolean) {
+        if (view != null && view.isEnabled != enabled) {
+            view.isEnabled = enabled
+        }
+    }
+
+    private fun setImageResourceIfChanged(view: View?, resId: Int) {
+        when (view) {
+            is android.widget.ImageView -> {
+                val current = imageResCache[view]
+                if (current != resId) {
+                    view.setImageResource(resId)
+                    imageResCache[view] = resId
+                }
+            }
+            else -> Unit
+        }
+    }
+
+    private fun KeyboardState.toRenderMode(): RenderMode = when (this) {
+        is KeyboardState.Idle -> RenderMode.Idle
+        is KeyboardState.Listening -> RenderMode.Listening
+        is KeyboardState.Processing -> RenderMode.Processing
+        is KeyboardState.AiProcessing -> RenderMode.AiProcessing
+        is KeyboardState.AiEditListening -> RenderMode.AiEditListening
+        is KeyboardState.AiEditProcessing -> RenderMode.AiEditProcessing
     }
 }

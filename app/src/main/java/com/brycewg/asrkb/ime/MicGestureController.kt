@@ -1,3 +1,8 @@
+/**
+ * IME 麦克风手势控制器。
+ *
+ * 归属模块：ime
+ */
 package com.brycewg.asrkb.ime
 
 import android.view.MotionEvent
@@ -15,6 +20,8 @@ internal class MicGestureController(
     private val isAiEditPanelVisible: () -> Boolean,
     private val onLockedBySwipeChanged: () -> Unit
 ) {
+    private val hitTestLocation = IntArray(2)
+
     private enum class GestureState {
         None,
         PendingCancel,
@@ -255,10 +262,9 @@ internal class MicGestureController(
 
     private fun isPointInsideView(rawX: Float, rawY: Float, target: View?): Boolean {
         if (target == null || target.visibility != View.VISIBLE) return false
-        val loc = IntArray(2)
-        target.getLocationOnScreen(loc)
-        val left = loc[0]
-        val top = loc[1]
+        target.getLocationOnScreen(hitTestLocation)
+        val left = hitTestLocation[0]
+        val top = hitTestLocation[1]
         val right = left + target.width
         val bottom = top + target.height
         return rawX >= left && rawX <= right && rawY >= top && rawY <= bottom

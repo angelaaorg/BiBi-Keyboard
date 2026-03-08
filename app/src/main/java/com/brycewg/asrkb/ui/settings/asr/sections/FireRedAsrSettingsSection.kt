@@ -21,6 +21,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 internal class FireRedAsrSettingsSection : AsrSettingsSection {
+    private var downloadUiRequestSeq: Long = 0L
+
     override fun bind(binding: AsrSettingsBinding) {
         bindVariantSelection(binding)
         bindKeepAliveSelection(binding)
@@ -37,7 +39,7 @@ internal class FireRedAsrSettingsSection : AsrSettingsSection {
     }
 
     override fun onResume(binding: AsrSettingsBinding) {
-        updateDownloadUiVisibility(binding)
+        refreshDownloadUiVisibility(binding)
     }
 
     private fun bindVariantSelection(binding: AsrSettingsBinding) {
@@ -66,7 +68,7 @@ internal class FireRedAsrSettingsSection : AsrSettingsSection {
                     binding.viewModel.updateFrModelVariant(code)
                 }
                 updateVariantSummary()
-                updateDownloadUiVisibility(binding)
+                refreshDownloadUiVisibility(binding)
             }
         }
     }
@@ -235,7 +237,7 @@ internal class FireRedAsrSettingsSection : AsrSettingsSection {
                             tvStatus.text = binding.activity.getString(R.string.fr_clear_failed)
                         } finally {
                             v.isEnabled = true
-                            updateDownloadUiVisibility(binding)
+                            refreshDownloadUiVisibility(binding)
                         }
                     }
                 }
@@ -245,8 +247,18 @@ internal class FireRedAsrSettingsSection : AsrSettingsSection {
         }
     }
 
-    private fun updateDownloadUiVisibility(binding: AsrSettingsBinding) {
-        val ready = binding.viewModel.checkFrModelDownloaded(binding.activity)
+    private fun refreshDownloadUiVisibility(binding: AsrSettingsBinding) {
+        val requestSeq = ++downloadUiRequestSeq
+        binding.activity.lifecycleScope.launch {
+            val ready = withContext(Dispatchers.IO) {
+                binding.viewModel.checkFrModelDownloaded(binding.activity)
+            }
+            if (requestSeq != downloadUiRequestSeq || binding.activity.isDestroyed) return@launch
+            renderDownloadUiVisibility(binding, ready)
+        }
+    }
+
+    private fun renderDownloadUiVisibility(binding: AsrSettingsBinding, ready: Boolean) {
         val btn = binding.view<MaterialButton>(R.id.btnFrDownloadModel)
         val btnImport = binding.view<MaterialButton>(R.id.btnFrImportModel)
         val btnClear = binding.view<MaterialButton>(R.id.btnFrClearModel)

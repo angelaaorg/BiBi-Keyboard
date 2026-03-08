@@ -17,7 +17,9 @@ import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.net.toUri
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.brycewg.asrkb.BuildConfig
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.analytics.AnalyticsManager
@@ -545,17 +547,18 @@ class OtherSettingsActivity : BaseActivity() {
     }
 
     private fun observeViewModel() {
-        // Observe speech presets state
         lifecycleScope.launch {
-            viewModel.speechPresetsState.collect { state ->
-                updateSpeechPresetsUI(state)
-            }
-        }
-
-        // Observe sync clipboard state
-        lifecycleScope.launch {
-            viewModel.syncClipboardState.collect { state ->
-                updateSyncClipboardUI()
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                launch {
+                    viewModel.speechPresetsState.collect { state ->
+                        updateSpeechPresetsUI(state)
+                    }
+                }
+                launch {
+                    viewModel.syncClipboardState.collect {
+                        updateSyncClipboardUI()
+                    }
+                }
             }
         }
     }

@@ -18,8 +18,10 @@ import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.asr.LlmPostProcessor
 import com.brycewg.asrkb.asr.LlmVendor
@@ -591,23 +593,27 @@ class AiPostSettingsActivity : BaseActivity() {
 
     private fun observeViewModelState() {
         lifecycleScope.launch {
-            viewModel.selectedVendor.collectLatest { vendor ->
-                updateVendorUI(vendor)
-            }
-        }
-        lifecycleScope.launch {
-            viewModel.builtinVendorConfig.collectLatest { config ->
-                updateBuiltinConfigUI(config)
-            }
-        }
-        lifecycleScope.launch {
-            viewModel.activeLlmProvider.collectLatest { provider ->
-                updateLlmProfileUI(provider)
-            }
-        }
-        lifecycleScope.launch {
-            viewModel.activePromptPreset.collectLatest { preset ->
-                updatePromptPresetUI(preset)
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                launch {
+                    viewModel.selectedVendor.collectLatest { vendor ->
+                        updateVendorUI(vendor)
+                    }
+                }
+                launch {
+                    viewModel.builtinVendorConfig.collectLatest { config ->
+                        updateBuiltinConfigUI(config)
+                    }
+                }
+                launch {
+                    viewModel.activeLlmProvider.collectLatest { provider ->
+                        updateLlmProfileUI(provider)
+                    }
+                }
+                launch {
+                    viewModel.activePromptPreset.collectLatest { preset ->
+                        updatePromptPresetUI(preset)
+                    }
+                }
             }
         }
     }

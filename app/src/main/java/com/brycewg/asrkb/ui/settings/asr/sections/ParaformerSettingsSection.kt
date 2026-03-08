@@ -1,3 +1,8 @@
+/**
+ * Paraformer 设置区块。
+ *
+ * 归属模块：ui/settings/asr/sections
+ */
 package com.brycewg.asrkb.ui.settings.asr.sections
 
 import android.widget.TextView
@@ -16,6 +21,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 internal class ParaformerSettingsSection : AsrSettingsSection {
+    private var downloadUiRequestSeq: Long = 0L
+
     override fun bind(binding: AsrSettingsBinding) {
         bindVariantSelection(binding)
         bindKeepAliveSelection(binding)
@@ -33,7 +40,7 @@ internal class ParaformerSettingsSection : AsrSettingsSection {
     }
 
     override fun onResume(binding: AsrSettingsBinding) {
-        updateDownloadUiVisibility(binding)
+        refreshDownloadUiVisibility(binding)
     }
 
     private fun bindVariantSelection(binding: AsrSettingsBinding) {
@@ -70,7 +77,7 @@ internal class ParaformerSettingsSection : AsrSettingsSection {
                     binding.viewModel.updatePfModelVariant(code)
                 }
                 updateVariantSummary()
-                updateDownloadUiVisibility(binding)
+                refreshDownloadUiVisibility(binding)
             }
         }
     }
@@ -248,7 +255,7 @@ internal class ParaformerSettingsSection : AsrSettingsSection {
                             tvStatus.text = binding.activity.getString(R.string.pf_clear_failed)
                         } finally {
                             v.isEnabled = true
-                            updateDownloadUiVisibility(binding)
+                            refreshDownloadUiVisibility(binding)
                         }
                     }
                 }
@@ -258,8 +265,18 @@ internal class ParaformerSettingsSection : AsrSettingsSection {
         }
     }
 
-    private fun updateDownloadUiVisibility(binding: AsrSettingsBinding) {
-        val ready = binding.viewModel.checkPfModelDownloaded(binding.activity)
+    private fun refreshDownloadUiVisibility(binding: AsrSettingsBinding) {
+        val requestSeq = ++downloadUiRequestSeq
+        binding.activity.lifecycleScope.launch {
+            val ready = withContext(Dispatchers.IO) {
+                binding.viewModel.checkPfModelDownloaded(binding.activity)
+            }
+            if (requestSeq != downloadUiRequestSeq || binding.activity.isDestroyed) return@launch
+            renderDownloadUiVisibility(binding, ready)
+        }
+    }
+
+    private fun renderDownloadUiVisibility(binding: AsrSettingsBinding, ready: Boolean) {
         val btn = binding.view<MaterialButton>(R.id.btnPfDownloadModel)
         val btnImport = binding.view<MaterialButton>(R.id.btnPfImportModel)
         val btnClear = binding.view<MaterialButton>(R.id.btnPfClearModel)
