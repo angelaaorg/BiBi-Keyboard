@@ -15,3 +15,11 @@ internal fun EditText.bindString(onChange: (String) -> Unit) {
         }
     )
 }
+
+internal fun EditText.setTextIfDifferent(newText: String) {
+    val current = text?.toString().orEmpty()
+    if (current != newText) {
+        setText(newText)
+        setSelection(text?.length ?: 0)
+    }
+}

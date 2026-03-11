@@ -79,6 +79,9 @@ internal object PrefsBackup {
         // OpenAI ASR：流式/Prompt 开关（布尔）
         o.put(KEY_OA_ASR_STREAMING_ENABLED, oaAsrStreamingEnabled)
         o.put(KEY_OA_ASR_USE_PROMPT, oaAsrUsePrompt)
+        getOpenAiAsrProviders()
+        o.put(KEY_OA_ASR_PROVIDERS, openAiAsrProvidersJson)
+        o.put(KEY_OA_ASR_ACTIVE_ID, activeOpenAiAsrProviderId)
         // Volcano streaming toggle
         o.put(KEY_VOLC_STREAMING_ENABLED, volcStreamingEnabled)
         // DashScope streaming toggle
@@ -347,9 +350,11 @@ internal object PrefsBackup {
             optFloat(KEY_LLM_TEMPERATURE)?.let { llmTemperature = it.coerceIn(0f, 2f) }
             optBool(KEY_AI_EDIT_DEFAULT_TO_LAST_ASR)?.let { aiEditDefaultToLastAsr = it }
             optInt(KEY_POSTPROC_SKIP_UNDER_CHARS)?.let { postprocSkipUnderChars = it }
-            // OpenAI ASR：流式/Prompt 开关
-            optBool(KEY_OA_ASR_STREAMING_ENABLED)?.let { oaAsrStreamingEnabled = it }
-            optBool(KEY_OA_ASR_USE_PROMPT)?.let { oaAsrUsePrompt = it }
+            val importedOpenAiStreaming = optBool(KEY_OA_ASR_STREAMING_ENABLED)
+            val importedOpenAiUsePrompt = optBool(KEY_OA_ASR_USE_PROMPT)
+            val hasOpenAiProviders = o.has(KEY_OA_ASR_PROVIDERS)
+            val importedOpenAiProviders = optString(KEY_OA_ASR_PROVIDERS)
+            val importedOpenAiActiveId = optString(KEY_OA_ASR_ACTIVE_ID)
             optBool(KEY_VOLC_STREAMING_ENABLED)?.let { volcStreamingEnabled = it }
             // DashScope：优先读取新模型字段；否则回退旧开关并迁移
             val importedDashModel = optString(KEY_DASH_ASR_MODEL)
@@ -415,6 +420,16 @@ internal object PrefsBackup {
                     setPrefString(f.key, final)
                 }
             }
+            if (hasOpenAiProviders) {
+                openAiAsrProvidersJson = importedOpenAiProviders.orEmpty()
+                activeOpenAiAsrProviderId = importedOpenAiActiveId.orEmpty()
+            } else {
+                openAiAsrProvidersJson = ""
+                activeOpenAiAsrProviderId = ""
+            }
+            importedOpenAiStreaming?.let { oaAsrStreamingEnabled = it }
+            importedOpenAiUsePrompt?.let { oaAsrUsePrompt = it }
+            syncLegacyOpenAiAsrFields(getActiveOpenAiAsrProvider())
             optString(KEY_PUNCT_1)?.let { punct1 = it }
             optString(KEY_PUNCT_2)?.let { punct2 = it }
             optString(KEY_PUNCT_3)?.let { punct3 = it }

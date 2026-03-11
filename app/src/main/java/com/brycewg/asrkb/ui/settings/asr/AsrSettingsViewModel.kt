@@ -260,6 +260,13 @@ class AsrSettingsViewModel : ViewModel() {
         _uiState.value = _uiState.value.copy(oaAsrUsePrompt = enabled)
     }
 
+    fun refreshOpenAiProfileState() {
+        _uiState.value = _uiState.value.copy(
+            oaAsrStreamingEnabled = prefs.oaAsrStreamingEnabled,
+            oaAsrUsePrompt = prefs.oaAsrUsePrompt
+        )
+    }
+
     fun updateElevenStreaming(enabled: Boolean) {
         prefs.elevenStreamingEnabled = enabled
         _uiState.value = _uiState.value.copy(elevenStreamingEnabled = enabled)

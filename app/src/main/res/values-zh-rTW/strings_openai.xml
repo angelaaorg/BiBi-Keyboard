@@ -1,6 +1,14 @@
 <resources>
     <string name="vendor_openai">OpenAI</string>
     <string name="openai_section_title">OpenAI 語音轉文字</string>
+    <string name="label_openai_choose_profile">選擇渠道</string>
+    <string name="label_openai_profile_name">渠道名稱</string>
+    <string name="btn_openai_add_profile">新增渠道</string>
+    <string name="btn_openai_delete_profile">刪除渠道</string>
+    <string name="toast_openai_profile_added">已新增渠道</string>
+    <string name="toast_openai_profile_deleted">已刪除渠道</string>
+    <string name="toast_openai_profile_delete_blocked">請至少保留一個渠道</string>
+    <string name="openai_profile_default_name">OpenAI 渠道 %1$d</string>
     <string name="label_openai_asr_endpoint">ASR Endpoint（例如：https://api.openai.com/v1/audio/transcriptions）</string>
     <string name="label_openai_api_key">API Key（Bearer）</string>
     <string name="label_openai_model">模型名稱（如：gpt-4o-mini-transcribe 或 whisper-1）</string>

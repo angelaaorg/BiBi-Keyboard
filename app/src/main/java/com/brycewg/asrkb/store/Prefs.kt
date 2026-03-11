@@ -75,6 +75,8 @@ class Prefs(context: Context) {
 
     internal fun getLocalizedString(@StringRes resId: Int): String = createContextForAppLanguage().getString(resId)
 
+    internal fun getLocalizedString(@StringRes resId: Int, vararg formatArgs: Any): String = createContextForAppLanguage().getString(resId, *formatArgs)
+
     private fun buildKnownDefaultPromptPresetVariants(): List<List<PromptPreset>> {
         val tags = listOf("en", "zh-CN", "zh-TW", "ja")
         return tags
@@ -389,11 +391,63 @@ class Prefs(context: Context) {
         val reasoningParamsOffJson: String = ""
     )
 
+    @Serializable
+    data class OpenAiAsrProvider(
+        val id: String,
+        val name: String,
+        val endpoint: String,
+        val apiKey: String,
+        val model: String,
+        val streamingEnabled: Boolean = false,
+        val usePrompt: Boolean = false,
+        val prompt: String = "",
+        val language: String = ""
+    )
+
     fun getLlmProviders(): List<LlmProvider> = PrefsLlmProviderStore.getLlmProviders(this, json)
 
     fun setLlmProviders(list: List<LlmProvider>) = PrefsLlmProviderStore.setLlmProviders(this, json, list)
 
     fun getActiveLlmProvider(): LlmProvider? = PrefsLlmProviderStore.getActiveLlmProvider(this, json)
+
+    var openAiAsrProvidersJson: String
+        get() = sp.getString(KEY_OA_ASR_PROVIDERS, "") ?: ""
+        set(value) = sp.edit { putString(KEY_OA_ASR_PROVIDERS, value) }
+
+    var activeOpenAiAsrProviderId: String
+        get() = sp.getString(KEY_OA_ASR_ACTIVE_ID, "") ?: ""
+        set(value) = sp.edit { putString(KEY_OA_ASR_ACTIVE_ID, value) }
+
+    fun getOpenAiAsrProviders(): List<OpenAiAsrProvider> = PrefsOpenAiAsrProviderStore.getOpenAiAsrProviders(this, json)
+
+    fun setOpenAiAsrProviders(list: List<OpenAiAsrProvider>) = PrefsOpenAiAsrProviderStore.setOpenAiAsrProviders(this, json, list)
+
+    fun getActiveOpenAiAsrProvider(): OpenAiAsrProvider? = PrefsOpenAiAsrProviderStore.getActiveOpenAiAsrProvider(this, json)
+
+    fun selectOpenAiAsrProvider(id: String): Boolean {
+        val exists = getOpenAiAsrProviders().any { it.id == id }
+        if (!exists) return false
+        activeOpenAiAsrProviderId = id
+        syncLegacyOpenAiAsrFields(getActiveOpenAiAsrProvider())
+        return true
+    }
+
+    fun updateActiveOpenAiAsrProvider(mutator: (OpenAiAsrProvider) -> OpenAiAsrProvider) {
+        val list = getOpenAiAsrProviders().toMutableList()
+        val activeId = activeOpenAiAsrProviderId
+        val idx = list.indexOfFirst { it.id == activeId }
+        if (idx >= 0) {
+            list[idx] = normalizeOpenAiAsrProvider(mutator(list[idx]))
+        } else if (list.isNotEmpty()) {
+            list[0] = normalizeOpenAiAsrProvider(mutator(list[0]))
+            activeOpenAiAsrProviderId = list[0].id
+        } else {
+            val created = normalizeOpenAiAsrProvider(mutator(buildLegacyOpenAiAsrProvider()))
+            list.add(created)
+            activeOpenAiAsrProviderId = created.id
+        }
+        setOpenAiAsrProviders(list)
+    }
 
     // 已弃用：单一提示词。保留用于向后兼容/迁移。
     var llmPrompt: String
@@ -705,29 +759,71 @@ class Prefs(context: Context) {
         set(value) = sp.edit { putBoolean(KEY_ELEVEN_STREAMING_ENABLED, value) }
 
     // OpenAI 语音转文字（ASR）配置
-    var oaAsrEndpoint: String by stringPref(KEY_OA_ASR_ENDPOINT, DEFAULT_OA_ASR_ENDPOINT)
+    private var oaAsrEndpointLegacy: String by stringPref(KEY_OA_ASR_ENDPOINT, DEFAULT_OA_ASR_ENDPOINT)
 
-    var oaAsrApiKey: String by stringPref(KEY_OA_ASR_API_KEY, "")
+    private var oaAsrApiKeyLegacy: String by stringPref(KEY_OA_ASR_API_KEY, "")
 
-    var oaAsrModel: String by stringPref(KEY_OA_ASR_MODEL, DEFAULT_OA_ASR_MODEL)
+    private var oaAsrModelLegacy: String by stringPref(KEY_OA_ASR_MODEL, DEFAULT_OA_ASR_MODEL)
+
+    var oaAsrEndpoint: String
+        get() = getActiveOpenAiAsrProvider()?.endpoint ?: oaAsrEndpointLegacy
+        set(value) {
+            updateActiveOpenAiAsrProvider { it.copy(endpoint = value) }
+        }
+
+    var oaAsrApiKey: String
+        get() = getActiveOpenAiAsrProvider()?.apiKey ?: oaAsrApiKeyLegacy
+        set(value) {
+            updateActiveOpenAiAsrProvider { it.copy(apiKey = value) }
+        }
+
+    var oaAsrModel: String
+        get() = getActiveOpenAiAsrProvider()?.model ?: oaAsrModelLegacy
+        set(value) {
+            updateActiveOpenAiAsrProvider { it.copy(model = value) }
+        }
 
     // OpenAI：Realtime WebSocket 流式识别开关（默认关闭）
-    var oaAsrStreamingEnabled: Boolean
+    private var oaAsrStreamingEnabledLegacy: Boolean
         get() = sp.getBoolean(KEY_OA_ASR_STREAMING_ENABLED, false)
         set(value) = sp.edit { putBoolean(KEY_OA_ASR_STREAMING_ENABLED, value) }
 
+    var oaAsrStreamingEnabled: Boolean
+        get() = getActiveOpenAiAsrProvider()?.streamingEnabled ?: oaAsrStreamingEnabledLegacy
+        set(value) {
+            updateActiveOpenAiAsrProvider { it.copy(streamingEnabled = value) }
+        }
+
     // OpenAI：是否启用自定义 Prompt（部分模型不支持）
-    var oaAsrUsePrompt: Boolean
+    private var oaAsrUsePromptLegacy: Boolean
         get() = sp.getBoolean(KEY_OA_ASR_USE_PROMPT, false)
         set(value) = sp.edit { putBoolean(KEY_OA_ASR_USE_PROMPT, value) }
 
+    var oaAsrUsePrompt: Boolean
+        get() = getActiveOpenAiAsrProvider()?.usePrompt ?: oaAsrUsePromptLegacy
+        set(value) {
+            updateActiveOpenAiAsrProvider { it.copy(usePrompt = value) }
+        }
+
     // OpenAI：自定义识别 Prompt（可选）
-    var oaAsrPrompt: String by stringPref(KEY_OA_ASR_PROMPT, "")
+    private var oaAsrPromptLegacy: String by stringPref(KEY_OA_ASR_PROMPT, "")
+
+    var oaAsrPrompt: String
+        get() = getActiveOpenAiAsrProvider()?.prompt ?: oaAsrPromptLegacy
+        set(value) {
+            updateActiveOpenAiAsrProvider { it.copy(prompt = value) }
+        }
 
     // OpenAI：识别语言（空字符串表示不指定）
-    var oaAsrLanguage: String
+    private var oaAsrLanguageLegacy: String
         get() = sp.getString(KEY_OA_ASR_LANGUAGE, "") ?: ""
         set(value) = sp.edit { putString(KEY_OA_ASR_LANGUAGE, value.trim()) }
+
+    var oaAsrLanguage: String
+        get() = getActiveOpenAiAsrProvider()?.language ?: oaAsrLanguageLegacy
+        set(value) {
+            updateActiveOpenAiAsrProvider { it.copy(language = value) }
+        }
 
     // Google Gemini 语音理解（通过提示词转写）
     var gemEndpoint: String by stringPref(KEY_GEM_ENDPOINT, DEFAULT_GEM_ENDPOINT)
@@ -1342,6 +1438,44 @@ class Prefs(context: Context) {
         const val SONIOX_TRANSCRIPTIONS_ENDPOINT = "$SONIOX_API_BASE_URL/v1/transcriptions"
         const val SONIOX_WS_URL = "wss://stt-rt.soniox.com/transcribe-websocket"
     }
+
+    internal fun buildLegacyOpenAiAsrProvider(
+        id: String = "default",
+        name: String = ""
+    ): OpenAiAsrProvider = normalizeOpenAiAsrProvider(
+        OpenAiAsrProvider(
+            id = id,
+            name = name,
+            endpoint = oaAsrEndpointLegacy,
+            apiKey = oaAsrApiKeyLegacy,
+            model = oaAsrModelLegacy,
+            streamingEnabled = oaAsrStreamingEnabledLegacy,
+            usePrompt = oaAsrUsePromptLegacy,
+            prompt = oaAsrPromptLegacy,
+            language = oaAsrLanguageLegacy
+        )
+    )
+
+    internal fun syncLegacyOpenAiAsrFields(provider: OpenAiAsrProvider?) {
+        if (provider == null) return
+        val normalized = normalizeOpenAiAsrProvider(provider)
+        oaAsrEndpointLegacy = normalized.endpoint
+        oaAsrApiKeyLegacy = normalized.apiKey
+        oaAsrModelLegacy = normalized.model
+        oaAsrStreamingEnabledLegacy = normalized.streamingEnabled
+        oaAsrUsePromptLegacy = normalized.usePrompt
+        oaAsrPromptLegacy = normalized.prompt
+        oaAsrLanguageLegacy = normalized.language
+    }
+
+    private fun normalizeOpenAiAsrProvider(provider: OpenAiAsrProvider): OpenAiAsrProvider = provider.copy(
+        name = provider.name.trim(),
+        endpoint = provider.endpoint.trim(),
+        apiKey = provider.apiKey.trim(),
+        model = provider.model.trim(),
+        prompt = provider.prompt.trim(),
+        language = provider.language.trim()
+    )
 
     // 导出全部设置为 JSON 字符串（包含密钥，仅用于本地备份/迁移）
     fun exportJsonString(): String = PrefsBackup.exportJsonString(this)

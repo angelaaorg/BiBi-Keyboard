@@ -1,6 +1,14 @@
 <resources>
     <string name="vendor_openai">OpenAI</string>
     <string name="openai_section_title">OpenAI Speech-to-Text</string>
+    <string name="label_openai_choose_profile">Select channel</string>
+    <string name="label_openai_profile_name">Channel name</string>
+    <string name="btn_openai_add_profile">Add channel</string>
+    <string name="btn_openai_delete_profile">Delete channel</string>
+    <string name="toast_openai_profile_added">Channel added</string>
+    <string name="toast_openai_profile_deleted">Channel deleted</string>
+    <string name="toast_openai_profile_delete_blocked">Keep at least one channel</string>
+    <string name="openai_profile_default_name">OpenAI Channel %1$d</string>
     <string name="label_openai_asr_endpoint">ASR Endpoint (e.g., https://api.openai.com/v1/audio/transcriptions)</string>
     <string name="label_openai_api_key">API Key (Bearer)</string>
     <string name="label_openai_model">Model (e.g., gpt-4o-mini-transcribe or whisper-1)</string>
