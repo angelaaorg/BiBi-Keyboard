@@ -206,6 +206,12 @@
         style="@style/AboutBodyText"
         android:text="@string/about_debug_desc" />
 
+      <TextView
+        android:id="@+id/tvLastDiagnosticsSummary"
+        style="@style/AboutBodyText"
+        android:layout_marginTop="8dp"
+        android:visibility="gone" />
+
       <com.google.android.material.button.MaterialButton
         android:id="@+id/btnToggleDebugRecording"
         android:layout_width="match_parent"

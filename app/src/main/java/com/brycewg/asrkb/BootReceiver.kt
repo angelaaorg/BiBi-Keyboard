@@ -82,6 +82,7 @@ class BootReceiver : BroadcastReceiver() {
             }
         } catch (t: Throwable) {
             Log.w("BootReceiver", "Failed to start overlay services on boot", t)
+            DebugLogManager.logWarning(context, "keepalive", "boot_overlay_start_failed", t)
         }
     }
 
@@ -139,6 +140,7 @@ class BootReceiver : BroadcastReceiver() {
                 DebugLogManager.logPersistent(context, "keepalive", "boot_start_fallback")
             } catch (t2: Throwable) {
                 Log.e("BootReceiver", "Fallback keep-alive start also failed", t2)
+                DebugLogManager.logError(context, "keepalive", "boot_start_fallback_error", t2)
                 DebugLogManager.logPersistent(
                     context,
                     "keepalive",
@@ -180,6 +182,12 @@ class BootReceiver : BroadcastReceiver() {
             )
         } catch (t: Throwable) {
             Log.e("BootReceiver", "Failed to enable accessibility via secure settings", t)
+            DebugLogManager.logWarning(
+                context,
+                "a11y",
+                "boot_enable_accessibility_failed",
+                t
+            )
         }
     }
 }

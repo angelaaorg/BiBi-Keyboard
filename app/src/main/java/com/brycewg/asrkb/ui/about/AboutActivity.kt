@@ -27,9 +27,11 @@ import com.brycewg.asrkb.ui.ProPromoDialog
 import com.brycewg.asrkb.util.HapticFeedbackHelper
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.progressindicator.LinearProgressIndicator
+import java.text.DateFormat
 import java.text.NumberFormat
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.util.Date
 import java.util.Locale
 
 class AboutActivity : BaseActivity() {
@@ -134,7 +136,7 @@ class AboutActivity : BaseActivity() {
             showLicensesDialog()
         }
 
-        // 调试日志控制：开始/停止、导出分享
+        // 诊断日志控制：详细支持日志开关、导出分享
         val btnToggle = findViewById<Button>(R.id.btnToggleDebugRecording)
         val btnExport = findViewById<Button>(R.id.btnExportDebugLog)
         updateToggleText(btnToggle)
@@ -187,15 +189,22 @@ class AboutActivity : BaseActivity() {
                         } catch (_: Throwable) {
                             null
                         } ?: true
+                        val envData = mapOf(
+                            "overlay" to overlayOk,
+                            "a11y" to AsrAccessibilityService.isEnabled(),
+                            "batteryIgnore" to batteryIgnore,
+                            "notifGranted" to notifGranted
+                        )
+                        DebugLogManager.logBase(
+                            context = this,
+                            category = "env",
+                            event = "support_logging_enabled",
+                            data = envData
+                        )
                         DebugLogManager.log(
                             category = "env",
                             event = "permissions",
-                            data = mapOf(
-                                "overlay" to overlayOk,
-                                "a11y" to AsrAccessibilityService.isEnabled(),
-                                "batteryIgnore" to batteryIgnore,
-                                "notifGranted" to notifGranted
-                            )
+                            data = envData
                         )
                     } catch (e: Throwable) {
                         Log.w(TAG, "Failed to log env status", e)
@@ -254,6 +263,7 @@ class AboutActivity : BaseActivity() {
                 Toast.makeText(this, R.string.toast_debug_export_failed, Toast.LENGTH_SHORT).show()
             }
         }
+        renderLatestExitSummary()
 
         // 返回箭头点击关闭（若布局中设置了导航图标）
         findViewById<androidx.appcompat.widget.Toolbar?>(
@@ -461,6 +471,32 @@ class AboutActivity : BaseActivity() {
     private fun updateToggleText(btn: Button) {
         val textRes = if (DebugLogManager.isRecording()) R.string.btn_debug_stop_recording else R.string.btn_debug_start_recording
         btn.setText(textRes)
+    }
+
+    private fun renderLatestExitSummary() {
+        val summaryView = findViewById<TextView>(R.id.tvLastDiagnosticsSummary) ?: return
+        val info = DebugLogManager.getLatestExitInfo(this)
+        if (info == null) {
+            summaryView.visibility = View.GONE
+            summaryView.text = ""
+            return
+        }
+        val formattedTime = try {
+            DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(info.timestamp))
+        } catch (_: Throwable) {
+            info.timestamp.toString()
+        }
+        val firstLine = getString(
+            R.string.about_debug_last_exit_prefix,
+            "${info.reasonLabel} · $formattedTime"
+        )
+        val detail = info.description?.takeIf { it.isNotBlank() }
+        summaryView.text = if (detail != null) {
+            "$firstLine\n$detail"
+        } else {
+            firstLine
+        }
+        summaryView.visibility = View.VISIBLE
     }
 
     /**
