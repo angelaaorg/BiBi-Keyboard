@@ -17,6 +17,7 @@ import androidx.core.os.LocaleListCompat
 import com.brycewg.asrkb.analytics.AnalyticsManager
 import com.brycewg.asrkb.asr.VadDetector
 import com.brycewg.asrkb.store.Prefs
+import com.brycewg.asrkb.store.debug.DebugLogManager
 import com.brycewg.asrkb.ui.floating.FloatingAsrService
 import com.brycewg.asrkb.ui.floating.FloatingKeepAliveService
 import com.brycewg.asrkb.ui.floating.PrivilegedKeepAliveScheduler
@@ -31,6 +32,16 @@ import kotlinx.coroutines.launch
 class App : Application() {
     override fun onCreate() {
         super.onCreate()
+        DebugLogManager.initialize(this)
+        DebugLogManager.installUncaughtExceptionHandler(this)
+        DebugLogManager.inspectHistoricalProcessExit(this)
+        DebugLogManager.updateProcessStateSummary("phase=app_create")
+        DebugLogManager.logBase(
+            this,
+            "app",
+            "on_create",
+            data = mapOf("buildType" to BuildConfig.BUILD_TYPE)
+        )
         // 在可用时为所有Activity启用Material You动态颜色 (Android 12+)
         DynamicColors.applyToActivitiesIfAvailable(this)
         // 应用应用内语言设置（空表示跟随系统）
@@ -53,6 +64,7 @@ class App : Application() {
             AppCompatDelegate.setApplicationLocales(locales)
         } catch (t: Throwable) {
             Log.w("App", "Failed to apply app locales", t)
+            DebugLogManager.logWarning(this, "app", "locale_apply_failed", t)
         }
 
         // 初始化匿名统计（不影响正常识别流程）
@@ -60,6 +72,7 @@ class App : Application() {
             AnalyticsManager.init(this)
         } catch (t: Throwable) {
             Log.w("App", "Analytics init failed", t)
+            DebugLogManager.logWarning(this, "analytics", "init_failed", t)
         }
 
         PrivilegedKeepAliveStarter.initShizuku(this)
@@ -76,13 +89,16 @@ class App : Application() {
                     action = FloatingAsrService.ACTION_SHOW
                 }
                 startService(intent)
+                DebugLogManager.logBase(this, "float", "app_start_show_service")
             }
 
             if (prefs.floatingKeepAliveEnabled) {
                 FloatingKeepAliveService.start(this)
+                DebugLogManager.logBase(this, "keepalive", "app_start_service")
             }
         } catch (t: Throwable) {
             Log.w("App", "Failed to start overlay services", t)
+            DebugLogManager.logWarning(this, "app", "overlay_services_start_failed", t)
         }
 
         // 预加载 VAD：仅当已开启“静音自动停止”时，避免首次录音时的模型加载延迟
@@ -90,9 +106,11 @@ class App : Application() {
             val prefs = Prefs(this)
             if (prefs.autoStopOnSilenceEnabled) {
                 VadDetector.preload(this, 16000, prefs.autoStopSilenceSensitivity)
+                DebugLogManager.logBase(this, "asr", "vad_preload_started")
             }
         } catch (t: Throwable) {
             Log.w("App", "Failed to preload VAD", t)
+            DebugLogManager.logWarning(this, "asr", "vad_preload_failed", t)
         }
 
         // 清理已移除的 Zipformer 模型文件（仅执行一次）
@@ -110,14 +128,22 @@ class App : Application() {
                             val deleted = zipformerDir.deleteRecursively()
                             if (!deleted) {
                                 Log.w("App", "Failed to delete zipformer dir: ${zipformerDir.path}")
+                                DebugLogManager.logWarning(
+                                    this@App,
+                                    "storage",
+                                    "zipformer_cleanup_partial",
+                                    data = mapOf("path" to zipformerDir.path.takeLast(48))
+                                )
                             }
                         }
                     }
                     prefs.zipformerCleanupDone = true
+                    DebugLogManager.logBase(this@App, "storage", "zipformer_cleanup_done")
                 }
             }
         } catch (t: Throwable) {
             Log.w("App", "Zipformer cleanup init failed", t)
+            DebugLogManager.logWarning(this, "storage", "zipformer_cleanup_init_failed", t)
         }
 
         // 根据设置将任务从最近任务中排除/恢复
@@ -128,6 +154,9 @@ class App : Application() {
                 }
                 override fun onActivityResumed(activity: Activity) {
                     applyExcludeFromRecents(activity)
+                    DebugLogManager.updateProcessStateSummary(
+                        "phase=activity_resumed;activity=${activity.javaClass.simpleName.take(24)}"
+                    )
                 }
                 override fun onActivityStarted(activity: Activity) {}
                 override fun onActivityPaused(activity: Activity) {}
@@ -137,6 +166,7 @@ class App : Application() {
             })
         } catch (t: Throwable) {
             Log.w("App", "Failed to register lifecycle callbacks", t)
+            DebugLogManager.logWarning(this, "app", "lifecycle_callbacks_register_failed", t)
         }
     }
 
@@ -147,6 +177,7 @@ class App : Application() {
             am.appTasks?.forEach { it.setExcludeFromRecents(enabled) }
         } catch (t: Throwable) {
             Log.w("App", "Failed to apply exclude from recents", t)
+            DebugLogManager.logWarning(activity, "app", "exclude_from_recents_apply_failed", t)
         }
     }
 }

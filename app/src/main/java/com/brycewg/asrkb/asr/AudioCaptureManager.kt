@@ -142,6 +142,13 @@ class AudioCaptureManager(
         if (!hasPermission()) {
             val error = SecurityException("Missing RECORD_AUDIO permission")
             Log.e(TAG, "Permission check failed", error)
+            DebugLogManager.logError(
+                context,
+                "audio",
+                "record_permission_missing",
+                error,
+                data = mapOf("stage" to "perm")
+            )
             try {
                 DebugLogManager.log(
                     "audio",
@@ -299,6 +306,16 @@ class AudioCaptureManager(
                     "AudioRecord initialization failed for both VOICE_RECOGNITION and MIC sources"
                 )
             Log.e(TAG, "AudioRecord initialization failed", error)
+            DebugLogManager.logError(
+                context,
+                "audio",
+                "recorder_init_failed",
+                error,
+                data = mapOf(
+                    "sr" to sampleRate,
+                    "chunkMs" to chunkMillis
+                )
+            )
             throw error
         }
 
@@ -323,6 +340,12 @@ class AudioCaptureManager(
                 } catch (_: Throwable) { }
             } catch (se: SecurityException) {
                 Log.e(TAG, "SecurityException during startRecording", se)
+                DebugLogManager.logError(
+                    context,
+                    "audio",
+                    "recorder_start_security_error",
+                    se
+                )
                 try {
                     DebugLogManager.log(
                         "audio",
@@ -337,6 +360,12 @@ class AudioCaptureManager(
                 throw se
             } catch (t: Throwable) {
                 Log.e(TAG, "Failed to start recording", t)
+                DebugLogManager.logError(
+                    context,
+                    "audio",
+                    "recorder_start_failed",
+                    t
+                )
                 try {
                     DebugLogManager.log(
                         "audio",
@@ -370,6 +399,12 @@ class AudioCaptureManager(
                     activeRecorder.read(buf, 0, buf.size)
                 } catch (t: Throwable) {
                     Log.e(TAG, "Error reading audio data", t)
+                    DebugLogManager.logError(
+                        context,
+                        "audio",
+                        "recorder_read_failed",
+                        t
+                    )
                     try {
                         DebugLogManager.log(
                             "audio",
@@ -390,6 +425,13 @@ class AudioCaptureManager(
                 } else if (read < 0) {
                     val error = IllegalStateException("AudioRecord read error: $read")
                     Log.e(TAG, "AudioRecord read returned error code", error)
+                    DebugLogManager.logError(
+                        context,
+                        "audio",
+                        "recorder_read_error_code",
+                        error,
+                        data = mapOf("code" to read)
+                    )
                     throw error
                 }
             }
@@ -577,6 +619,12 @@ class AudioCaptureManager(
                         "Failed to rebuild AudioRecord with MIC source during warmup"
                     )
                 Log.e(TAG, "AudioRecord rebuild failed", error)
+                DebugLogManager.logError(
+                    context,
+                    "audio",
+                    "warmup_rebuild_failed",
+                    error
+                )
                 throw error
             }
 
@@ -586,6 +634,12 @@ class AudioCaptureManager(
                 Log.d(TAG, "Warmup: MIC recorder started")
             } catch (se: SecurityException) {
                 Log.e(TAG, "SecurityException during MIC recorder start", se)
+                DebugLogManager.logError(
+                    context,
+                    "audio",
+                    "warmup_mic_start_security_error",
+                    se
+                )
                 try {
                     recorder.release()
                 } catch (t: Throwable) {
@@ -594,6 +648,12 @@ class AudioCaptureManager(
                 throw se
             } catch (t: Throwable) {
                 Log.e(TAG, "Failed to start MIC recorder", t)
+                DebugLogManager.logError(
+                    context,
+                    "audio",
+                    "warmup_mic_start_failed",
+                    t
+                )
                 try {
                     recorder.release()
                 } catch (releaseError: Throwable) {

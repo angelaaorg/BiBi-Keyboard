@@ -1,158 +1,191 @@
 package com.brycewg.asrkb.store.debug
 
+import android.app.ActivityManager
+import android.app.Application
+import android.app.ApplicationExitInfo
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import android.os.Looper
 import android.util.Log
 import androidx.core.content.FileProvider
-import java.io.*
+import com.brycewg.asrkb.BuildConfig
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.io.RandomAccessFile
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.UUID
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 
 /**
- * 轻量调试日志管理：
- * - JSONL 行日志，写入 noBackupFilesDir/debug/recording.log
- * - start(): 清空并开始录制；stop(): 停止录制但保留文件以便导出
- * - buildShareIntent(): 复制到 cache 并构造分享 Intent（要求 FileProvider 配置）
+ * 统一诊断日志管理：
+ * - 基础诊断日志：默认常驻，始终写入本地。
+ * - 详细支持日志：手动开启后，额外记录更细粒度的链路信息。
+ * - 导出：始终导出当前日志快照，无需先停止详细日志。
  *
- * 敏感信息约束：禁止记录识别文本/输入内容/剪贴板内容/密钥等，仅记录状态摘要。
+ * 敏感信息约束：禁止记录识别文本/输入内容/剪贴板内容/密钥/完整请求响应正文。
  */
 object DebugLogManager {
     private const val TAG = "DebugLogManager"
     private const val DIR_NAME = "debug"
-    private const val FILE_NAME = "recording.log"
-    private const val MAX_BYTES: Long = 3L * 1024L * 1024L // 3 MB
+    private const val FILE_NAME = "diagnostics.jsonl"
+    private const val LEGACY_FILE_NAME = "recording.log"
+    private const val MAX_BYTES: Long = 3L * 1024L * 1024L
+    private const val KEEP_BYTES: Long = 2L * 1024L * 1024L
+    private const val META_PREFS = "diagnostic_log_meta"
+    private const val KEY_LAST_EXIT_TS = "last_exit_ts"
+    private const val KEY_LAST_EXIT_REASON = "last_exit_reason"
+    private const val KEY_LAST_EXIT_DESC = "last_exit_desc"
+    private const val KEY_LAST_EXIT_IMPORTANCE = "last_exit_importance"
+    private const val KEY_LAST_EXIT_STATUS = "last_exit_status"
+    private const val KEY_LAST_EXIT_LABEL = "last_exit_label"
+    private const val KEY_LAST_HANDLED_EXIT_TS = "last_handled_exit_ts"
+    private const val MAX_STRING_VALUE = 240
+    private const val MAX_ERROR_STACK = 512
+
+    private enum class Stream(val value: String) {
+        BASE("base"),
+        VERBOSE("verbose")
+    }
+
+    data class LastExitInfo(
+        val reason: Int,
+        val reasonLabel: String,
+        val timestamp: Long,
+        val status: Int,
+        val importance: Int,
+        val description: String?
+    )
+
+    private data class PendingLine(
+        val context: Context,
+        val line: String
+    )
 
     @Volatile
     private var recording: Boolean = false
 
-    private var scope: CoroutineScope? = null
-    private var writerJob: Job? = null
-    private var channel: Channel<String>? = null
-    private var output: BufferedOutputStream? = null
-    private var logFile: File? = null
-
-    private data class PersistentLogEntry(val context: Context, val line: String)
-    private val persistentScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private val persistentChannel = Channel<PersistentLogEntry>(capacity = 256)
+    @Volatile
+    private var appContext: Context? = null
 
     @Volatile
-    private var persistentWriterStarted: Boolean = false
+    private var sessionId: String = ""
 
-    fun isRecording(): Boolean = recording
+    @Volatile
+    private var processName: String = ""
 
-    @Synchronized
-    fun start(context: Context) {
-        try {
-            if (recording) return
-            val dir = File(context.noBackupFilesDir, DIR_NAME)
-            if (!dir.exists()) dir.mkdirs()
+    @Volatile
+    private var versionName: String = ""
 
-            val file = File(dir, FILE_NAME)
-            // 清空旧记录
-            if (file.exists()) {
-                try {
-                    FileOutputStream(file, false).use { /* truncate */ }
-                } catch (e: Throwable) {
-                    Log.e(TAG, "Failed to truncate old recording", e)
-                }
+    @Volatile
+    private var versionCode: Long = 0L
+
+    @Volatile
+    private var initialized: Boolean = false
+
+    @Volatile
+    private var uncaughtHandlerInstalled: Boolean = false
+
+    @Volatile
+    private var writerStarted: Boolean = false
+
+    @Volatile
+    private var latestExitInfo: LastExitInfo? = null
+
+    private val writeScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val writeChannel = Channel<PendingLine>(capacity = 512)
+
+    fun initialize(context: Context) {
+        val app = context.applicationContext
+        val firstInit = synchronized(this) {
+            if (!initialized) {
+                appContext = app
+                sessionId = UUID.randomUUID().toString().take(12)
+                processName = resolveProcessName(app)
+                populatePackageInfo(app)
+                ensureWriterStarted()
+                initialized = true
+                true
+            } else {
+                if (appContext == null) appContext = app
+                false
             }
-
-            val fos = FileOutputStream(file, true)
-            output = BufferedOutputStream(fos)
-            logFile = file
-            channel = Channel(capacity = 256)
-            scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-            writerJob = scope?.launch {
-                try {
-                    for (line in channel!!) {
-                        writeLine(line)
-                    }
-                } catch (t: Throwable) {
-                    Log.e(TAG, "Writer loop error", t)
-                } finally {
-                    try {
-                        output?.flush()
-                    } catch (e: Throwable) {
-                        Log.e(TAG, "Error flushing output", e)
-                    }
-                    try {
-                        output?.close()
-                    } catch (e: Throwable) {
-                        Log.e(TAG, "Error closing output", e)
-                    }
-                }
-            }
-            recording = true
-            // 记录环境摘要
-            log(
-                category = "debug",
-                event = "recording_started",
+        }
+        if (firstInit) {
+            logBase(
+                context = app,
+                category = "app",
+                event = "session_started",
                 data = mapOf(
-                    "sdk" to Build.VERSION.SDK_INT,
                     "brand" to Build.BRAND,
                     "model" to Build.MODEL,
                     "fingerprint" to safeFingerprint()
                 )
             )
-        } catch (e: Throwable) {
-            Log.e(TAG, "Failed to start recording", e)
-            stop() // 尝试清理
         }
+    }
+
+    fun isRecording(): Boolean = recording
+
+    @Synchronized
+    fun start(context: Context) {
+        initialize(context)
+        if (recording) return
+        recording = true
+        updateProcessStateSummary("mode=verbose;support=1")
+        logBase(
+            context = context.applicationContext,
+            category = "support",
+            event = "verbose_enabled"
+        )
+        log(
+            category = "support",
+            event = "verbose_session_started",
+            data = mapOf(
+                "sdk" to Build.VERSION.SDK_INT,
+                "brand" to Build.BRAND,
+                "model" to Build.MODEL
+            )
+        )
     }
 
     @Synchronized
     fun stop() {
-        try {
-            if (!recording) return
-            log(category = "debug", event = "recording_stopping")
-            recording = false
-            try {
-                channel?.close()
-            } catch (e: Throwable) {
-                Log.e(TAG, "Error closing channel", e)
-            }
-            try {
-                writerJob?.cancel()
-            } catch (e: Throwable) {
-                Log.e(TAG, "Error canceling writer job", e)
-            }
-        } catch (e: Throwable) {
-            Log.e(TAG, "Failed to stop recording", e)
-        } finally {
-            channel = null
-            writerJob = null
-            scope = null
-            try {
-                output?.close()
-            } catch (e: Throwable) {
-                Log.e(TAG, "Error closing output in finally", e)
-            }
-            output = null
-        }
-    }
-
-    fun log(category: String, event: String, data: Map<String, Any?> = emptyMap()) {
         if (!recording) return
-        val ch = channel ?: return
-        try {
-            val line = buildJsonLine(category, event, data)
-            ch.trySend(line).isSuccess
-        } catch (e: Throwable) {
-            Log.e(TAG, "Failed to enqueue log", e)
-        }
+        recording = false
+        updateProcessStateSummary("mode=base;support=0")
+        logBase(category = "support", event = "verbose_disabled")
     }
 
     /**
-     * 无需手动开始录制也可写入导出日志；若正在录制则复用录制通道。
+     * 兼容旧调用：详细支持日志，仅在手动开启后写入。
+     */
+    fun log(category: String, event: String, data: Map<String, Any?> = emptyMap()) {
+        if (!recording) return
+        val context = appContext ?: return
+        enqueueLine(
+            context = context,
+            line = buildJsonLine(
+                stream = Stream.VERBOSE,
+                level = "debug",
+                category = category,
+                event = event,
+                data = data
+            )
+        )
+    }
+
+    /**
+     * 兼容旧调用：基础诊断日志，默认始终写入本地。
      */
     fun logPersistent(
         context: Context,
@@ -160,77 +193,226 @@ object DebugLogManager {
         event: String,
         data: Map<String, Any?> = emptyMap()
     ) {
-        if (recording) {
-            log(category, event, data)
-            return
-        }
-        try {
-            val line = buildJsonLine(category, event, data)
-            ensurePersistentWriter()
-            val queued = persistentChannel.trySend(
-                PersistentLogEntry(context.applicationContext, line)
-            ).isSuccess
-            if (!queued) {
-                // 队列瞬时拥塞时，降级到 IO 协程直写，避免主线程阻塞
-                persistentScope.launch {
-                    appendPersistentLine(context.applicationContext, line)
+        logBase(context, category, event, data)
+    }
+
+    fun logBase(
+        context: Context,
+        category: String,
+        event: String,
+        data: Map<String, Any?> = emptyMap()
+    ) {
+        initialize(context)
+        enqueueLine(
+            context = context.applicationContext,
+            line = buildJsonLine(
+                stream = Stream.BASE,
+                level = "info",
+                category = category,
+                event = event,
+                data = data
+            )
+        )
+    }
+
+    fun logBase(
+        category: String,
+        event: String,
+        data: Map<String, Any?> = emptyMap()
+    ) {
+        val context = appContext ?: return
+        logBase(context, category, event, data)
+    }
+
+    fun logWarning(
+        context: Context,
+        category: String,
+        event: String,
+        throwable: Throwable? = null,
+        data: Map<String, Any?> = emptyMap()
+    ) {
+        initialize(context)
+        enqueueLine(
+            context = context.applicationContext,
+            line = buildJsonLine(
+                stream = Stream.BASE,
+                level = "warn",
+                category = category,
+                event = event,
+                data = data,
+                throwable = throwable
+            )
+        )
+    }
+
+    fun logWarning(
+        category: String,
+        event: String,
+        throwable: Throwable? = null,
+        data: Map<String, Any?> = emptyMap()
+    ) {
+        val context = appContext ?: return
+        logWarning(context, category, event, throwable, data)
+    }
+
+    fun logError(
+        context: Context,
+        category: String,
+        event: String,
+        throwable: Throwable? = null,
+        data: Map<String, Any?> = emptyMap()
+    ) {
+        initialize(context)
+        enqueueLine(
+            context = context.applicationContext,
+            line = buildJsonLine(
+                stream = Stream.BASE,
+                level = "error",
+                category = category,
+                event = event,
+                data = data,
+                throwable = throwable
+            )
+        )
+    }
+
+    fun logError(
+        category: String,
+        event: String,
+        throwable: Throwable? = null,
+        data: Map<String, Any?> = emptyMap()
+    ) {
+        val context = appContext ?: return
+        logError(context, category, event, throwable, data)
+    }
+
+    fun logFatal(
+        context: Context,
+        category: String,
+        event: String,
+        throwable: Throwable,
+        data: Map<String, Any?> = emptyMap()
+    ) {
+        initialize(context)
+        appendLineDirect(
+            context = context.applicationContext,
+            line = buildJsonLine(
+                stream = Stream.BASE,
+                level = "fatal",
+                category = category,
+                event = event,
+                data = data,
+                throwable = throwable
+            )
+        )
+    }
+
+    fun installUncaughtExceptionHandler(context: Context) {
+        initialize(context)
+        synchronized(this) {
+            if (uncaughtHandlerInstalled) return
+            val app = context.applicationContext
+            val previous = Thread.getDefaultUncaughtExceptionHandler()
+            Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+                try {
+                    logFatal(
+                        context = app,
+                        category = "crash",
+                        event = "uncaught_exception",
+                        throwable = throwable,
+                        data = mapOf(
+                            "thread" to thread.name,
+                            "mainThread" to (thread == Looper.getMainLooper().thread)
+                        )
+                    )
+                } catch (logErr: Throwable) {
+                    Log.e(TAG, "Failed to persist uncaught exception", logErr)
+                }
+                if (previous != null) {
+                    previous.uncaughtException(thread, throwable)
+                } else {
+                    thread.threadGroup?.uncaughtException(thread, throwable)
                 }
             }
-        } catch (e: Throwable) {
-            Log.e(TAG, "Failed to append persistent log", e)
+            uncaughtHandlerInstalled = true
         }
     }
 
-    @Synchronized
-    private fun ensurePersistentWriter() {
-        if (persistentWriterStarted) return
-        persistentWriterStarted = true
-        persistentScope.launch {
-            try {
-                for (entry in persistentChannel) {
-                    appendPersistentLine(entry.context, entry.line)
-                }
-            } catch (e: Throwable) {
-                Log.e(TAG, "Persistent writer loop error", e)
-                persistentWriterStarted = false
-            }
-        }
-    }
-
-    @Synchronized
-    private fun appendPersistentLine(context: Context, line: String) {
+    fun inspectHistoricalProcessExit(context: Context) {
+        initialize(context)
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return
         try {
-            val dir = File(context.noBackupFilesDir, DIR_NAME)
-            if (!dir.exists()) dir.mkdirs()
-            val file = File(dir, FILE_NAME)
-            if (!file.exists()) {
-                file.createNewFile()
-            }
-            if (file.length() > MAX_BYTES) {
-                truncateKeepTail(file, keepBytes = 2L * 1024L * 1024L)
-            }
-            FileOutputStream(file, true).use { out ->
-                out.write(line.toByteArray(Charsets.UTF_8))
-                out.write('\n'.code)
-                out.flush()
-            }
-            logFile = file
-        } catch (e: Throwable) {
-            Log.e(TAG, "Failed writing persistent log line", e)
+            val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
+                ?: return
+            val exits = activityManager.getHistoricalProcessExitReasons(null, 0, 8)
+            val latest = exits.firstOrNull { isInterestingExitReason(it.reason) } ?: return
+            val timestamp = latest.timestamp
+            if (timestamp <= 0L) return
+            val prefs = metaPrefs(context)
+            val handledTs = prefs.getLong(KEY_LAST_HANDLED_EXIT_TS, 0L)
+            val info = latest.toLastExitInfo()
+            latestExitInfo = info
+            persistLatestExitInfo(context, info)
+            if (timestamp == handledTs) return
+            prefs.edit().putLong(KEY_LAST_HANDLED_EXIT_TS, timestamp).apply()
+            logBase(
+                context = context.applicationContext,
+                category = "app",
+                event = "prev_process_exit",
+                data = mapOf(
+                    "reason" to info.reasonLabel,
+                    "reasonCode" to info.reason,
+                    "status" to info.status,
+                    "importance" to info.importance,
+                    "timestamp" to info.timestamp,
+                    "description" to info.description
+                )
+            )
+        } catch (t: Throwable) {
+            Log.w(TAG, "Failed to inspect historical process exit reasons", t)
         }
     }
 
-    /**
-     * 复制日志到 cache 并构造分享 Intent。若正在录制，返回 RecordingActive 错误。
-     */
+    fun getLatestExitInfo(context: Context): LastExitInfo? {
+        latestExitInfo?.let { return it }
+        val prefs = metaPrefs(context)
+        val timestamp = prefs.getLong(KEY_LAST_EXIT_TS, 0L)
+        if (timestamp <= 0L) return null
+        return LastExitInfo(
+            reason = prefs.getInt(KEY_LAST_EXIT_REASON, 0),
+            reasonLabel = prefs.getString(KEY_LAST_EXIT_LABEL, null) ?: return null,
+            timestamp = timestamp,
+            status = prefs.getInt(KEY_LAST_EXIT_STATUS, 0),
+            importance = prefs.getInt(KEY_LAST_EXIT_IMPORTANCE, 0),
+            description = prefs.getString(KEY_LAST_EXIT_DESC, null)
+        ).also { latestExitInfo = it }
+    }
+
+    fun updateProcessStateSummary(summary: String) {
+        val context = appContext ?: return
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return
+        try {
+            val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) ?: return
+            val method = activityManager.javaClass.methods.firstOrNull {
+                it.name == "setProcessStateSummary" &&
+                    it.parameterTypes.size == 1 &&
+                    it.parameterTypes[0] == ByteArray::class.java
+            } ?: return
+            val bytes = summary.take(96).toByteArray(Charsets.UTF_8)
+            method.invoke(activityManager, bytes)
+        } catch (t: Throwable) {
+            Log.w(TAG, "Failed to update process state summary", t)
+        }
+    }
+
     fun buildShareIntent(context: Context): ShareIntentResult {
+        initialize(context)
         try {
-            if (recording) return ShareIntentResult.Error(ShareError.RecordingActive)
-            val src = logFile ?: File(File(context.noBackupFilesDir, DIR_NAME), FILE_NAME)
+            val src = activeLogFile(context)
             if (!src.exists() || src.length() <= 0) return ShareIntentResult.Error(ShareError.NoLog)
 
             val stamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-            val name = "asrkb_debug_log_$stamp.txt"
+            val name = "asrkb_diagnostics_$stamp.jsonl"
             val dst = File(context.cacheDir, name)
             try {
                 FileInputStream(src).use { ins ->
@@ -239,7 +421,7 @@ object DebugLogManager {
                     }
                 }
             } catch (e: Throwable) {
-                Log.e(TAG, "Failed to copy log to cache", e)
+                Log.e(TAG, "Failed to copy log snapshot to cache", e)
                 return ShareIntentResult.Error(ShareError.Failed)
             }
 
@@ -253,7 +435,7 @@ object DebugLogManager {
             val intent = Intent(Intent.ACTION_SEND).apply {
                 type = "text/plain"
                 putExtra(Intent.EXTRA_STREAM, uri)
-                putExtra(Intent.EXTRA_SUBJECT, "ASRKB Debug Log")
+                putExtra(Intent.EXTRA_SUBJECT, "ASRKB Diagnostics Log")
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
             return ShareIntentResult.Success(intent, name)
@@ -263,20 +445,57 @@ object DebugLogManager {
         }
     }
 
-    private fun writeLine(line: String) {
-        try {
-            val out = output ?: return
-            // 尺寸控制：超过上限则截断为末尾 2MB
-            val f = logFile
-            if (f != null && f.length() > MAX_BYTES) {
-                truncateKeepTail(f, keepBytes = 2L * 1024L * 1024L)
+    @Synchronized
+    private fun ensureWriterStarted() {
+        if (writerStarted) return
+        writerStarted = true
+        writeScope.launch {
+            try {
+                for (pending in writeChannel) {
+                    appendLineDirect(pending.context, pending.line)
+                }
+            } catch (t: Throwable) {
+                writerStarted = false
+                Log.e(TAG, "Diagnostics writer loop failed", t)
             }
-            out.write(line.toByteArray(Charsets.UTF_8))
-            out.write('\n'.code)
-            out.flush()
-        } catch (e: Throwable) {
-            Log.e(TAG, "Error writing log line", e)
         }
+    }
+
+    private fun enqueueLine(context: Context, line: String) {
+        ensureWriterStarted()
+        val queued = writeChannel.trySend(PendingLine(context.applicationContext, line)).isSuccess
+        if (!queued) {
+            writeScope.launch {
+                appendLineDirect(context.applicationContext, line)
+            }
+        }
+    }
+
+    @Synchronized
+    private fun appendLineDirect(context: Context, line: String) {
+        try {
+            val file = activeLogFile(context)
+            if (!file.parentFile.exists()) file.parentFile.mkdirs()
+            if (!file.exists()) file.createNewFile()
+            if (file.length() > MAX_BYTES) {
+                truncateKeepTail(file, KEEP_BYTES)
+            }
+            FileOutputStream(file, true).use { out ->
+                out.write(line.toByteArray(Charsets.UTF_8))
+                out.write('\n'.code)
+                out.flush()
+            }
+        } catch (t: Throwable) {
+            Log.e(TAG, "Failed writing diagnostics line", t)
+        }
+    }
+
+    private fun activeLogFile(context: Context): File {
+        val dir = File(context.noBackupFilesDir, DIR_NAME)
+        val file = File(dir, FILE_NAME)
+        if (file.exists()) return file
+        val legacy = File(dir, LEGACY_FILE_NAME)
+        return if (legacy.exists()) legacy else file
     }
 
     private fun truncateKeepTail(file: File, keepBytes: Long) {
@@ -296,49 +515,94 @@ object DebugLogManager {
                 }
             }
             if (!file.delete()) {
-                Log.w(TAG, "Failed to delete original during truncate")
+                Log.w(TAG, "Failed to delete original diagnostics file during truncate")
             }
             if (!tmp.renameTo(file)) {
-                Log.w(TAG, "Failed to rename tmp during truncate")
+                Log.w(TAG, "Failed to rename diagnostics tmp file during truncate")
             }
-        } catch (e: Throwable) {
-            Log.e(TAG, "Error truncating log file", e)
+        } catch (t: Throwable) {
+            Log.e(TAG, "Failed to truncate diagnostics log file", t)
         }
     }
 
-    private fun buildJsonLine(category: String, event: String, data: Map<String, Any?>): String {
-        val sb = StringBuilder(128)
+    private fun buildJsonLine(
+        stream: Stream,
+        level: String,
+        category: String,
+        event: String,
+        data: Map<String, Any?>,
+        throwable: Throwable? = null
+    ): String {
+        val sb = StringBuilder(256)
         sb.append('{')
         appendField(sb, "ts", isoNow())
+        sb.append(',')
+        appendField(sb, "lvl", level)
+        sb.append(',')
+        appendField(sb, "stream", stream.value)
+        sb.append(',')
+        appendField(sb, "sid", sessionId.ifBlank { "unknown" })
+        sb.append(',')
+        appendField(sb, "proc", processName.ifBlank { "unknown" })
+        sb.append(',')
+        appendField(sb, "ver", versionName.ifBlank { BuildConfig.VERSION_NAME })
+        sb.append(',')
+        appendFieldName(sb, "vc")
+        sb.append(':')
+        appendValue(sb, versionCode.takeIf { it > 0 } ?: BuildConfig.VERSION_CODE)
+        sb.append(',')
+        appendFieldName(sb, "sdk")
+        sb.append(':')
+        appendValue(sb, Build.VERSION.SDK_INT)
         sb.append(',')
         appendField(sb, "cat", category)
         sb.append(',')
         appendField(sb, "evt", event)
-        for ((k, v) in data) {
+        for ((key, value) in data) {
             sb.append(',')
-            appendFieldName(sb, k)
+            appendFieldName(sb, key)
             sb.append(':')
-            appendValue(sb, v)
+            appendValue(sb, normalizeValue(value))
+        }
+        throwable?.let {
+            sb.append(',')
+            appendField(sb, "errType", it.javaClass.simpleName.ifBlank { it.javaClass.name })
+            sb.append(',')
+            appendField(sb, "errMsg", safeText(it.message))
+            sb.append(',')
+            appendField(sb, "errTop", safeText(it.stackTrace.firstOrNull()?.toString()))
+            sb.append(',')
+            appendField(sb, "errStack", summarizeStack(it))
         }
         sb.append('}')
         return sb.toString()
     }
 
-    private fun appendField(sb: StringBuilder, name: String, value: String) {
+    private fun normalizeValue(value: Any?): Any? = when (value) {
+        null -> null
+        is Number, is Boolean -> value
+        else -> safeText(value.toString())
+    }
+
+    private fun appendField(sb: StringBuilder, name: String, value: String?) {
         appendFieldName(sb, name)
         sb.append(':')
-        appendString(sb, value)
+        if (value == null) {
+            sb.append("null")
+        } else {
+            appendString(sb, value)
+        }
     }
 
     private fun appendFieldName(sb: StringBuilder, name: String) {
         appendString(sb, name)
     }
 
-    private fun appendValue(sb: StringBuilder, v: Any?) {
-        when (v) {
+    private fun appendValue(sb: StringBuilder, value: Any?) {
+        when (value) {
             null -> sb.append("null")
-            is Number, is Boolean -> sb.append(v.toString())
-            else -> appendString(sb, v.toString())
+            is Number, is Boolean -> sb.append(value.toString())
+            else -> appendString(sb, value.toString())
         }
     }
 
@@ -355,6 +619,102 @@ object DebugLogManager {
             }
         }
         sb.append('"')
+    }
+
+    private fun safeText(text: String?): String? = text
+        ?.replace('\u0000', ' ')
+        ?.replace(Regex("\\s+"), " ")
+        ?.trim()
+        ?.take(MAX_STRING_VALUE)
+        ?.ifBlank { null }
+
+    private fun summarizeStack(throwable: Throwable): String? {
+        val summary = buildString {
+            throwable.stackTrace.take(5).forEachIndexed { index, element ->
+                if (index > 0) append(" | ")
+                append(element.className.substringAfterLast('.'))
+                append(':')
+                append(element.methodName)
+                append(':')
+                append(element.lineNumber)
+            }
+        }.take(MAX_ERROR_STACK)
+        return summary.ifBlank { null }
+    }
+
+    private fun resolveProcessName(context: Context): String = try {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            Application.getProcessName()
+        } else {
+            context.packageName
+        }
+    } catch (_: Throwable) {
+        context.packageName
+    }
+
+    private fun populatePackageInfo(context: Context) {
+        try {
+            val pm = context.packageManager
+            val info = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                pm.getPackageInfo(context.packageName, PackageManager.PackageInfoFlags.of(0))
+            } else {
+                @Suppress("DEPRECATION")
+                pm.getPackageInfo(context.packageName, 0)
+            }
+            versionName = info.versionName ?: BuildConfig.VERSION_NAME
+            versionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                info.longVersionCode
+            } else {
+                @Suppress("DEPRECATION")
+                info.versionCode.toLong()
+            }
+        } catch (t: Throwable) {
+            versionName = BuildConfig.VERSION_NAME
+            versionCode = BuildConfig.VERSION_CODE.toLong()
+            Log.w(TAG, "Failed to read package info for diagnostics", t)
+        }
+    }
+
+    private fun persistLatestExitInfo(context: Context, info: LastExitInfo) {
+        metaPrefs(context).edit()
+            .putLong(KEY_LAST_EXIT_TS, info.timestamp)
+            .putInt(KEY_LAST_EXIT_REASON, info.reason)
+            .putInt(KEY_LAST_EXIT_STATUS, info.status)
+            .putInt(KEY_LAST_EXIT_IMPORTANCE, info.importance)
+            .putString(KEY_LAST_EXIT_LABEL, info.reasonLabel)
+            .putString(KEY_LAST_EXIT_DESC, info.description)
+            .apply()
+    }
+
+    private fun metaPrefs(context: Context) = context.applicationContext.getSharedPreferences(META_PREFS, Context.MODE_PRIVATE)
+
+    private fun isInterestingExitReason(reason: Int): Boolean = when (reason) {
+        ApplicationExitInfo.REASON_CRASH,
+        ApplicationExitInfo.REASON_CRASH_NATIVE,
+        ApplicationExitInfo.REASON_ANR,
+        ApplicationExitInfo.REASON_LOW_MEMORY,
+        ApplicationExitInfo.REASON_INITIALIZATION_FAILURE,
+        ApplicationExitInfo.REASON_SIGNALED -> true
+        else -> false
+    }
+
+    private fun ApplicationExitInfo.toLastExitInfo(): LastExitInfo = LastExitInfo(
+        reason = reason,
+        reasonLabel = reasonLabel(reason),
+        timestamp = timestamp,
+        status = status,
+        importance = importance,
+        description = safeText(description)
+    )
+
+    private fun reasonLabel(reason: Int): String = when (reason) {
+        ApplicationExitInfo.REASON_CRASH -> "crash"
+        ApplicationExitInfo.REASON_CRASH_NATIVE -> "native_crash"
+        ApplicationExitInfo.REASON_ANR -> "anr"
+        ApplicationExitInfo.REASON_LOW_MEMORY -> "low_memory"
+        ApplicationExitInfo.REASON_INITIALIZATION_FAILURE -> "init_failure"
+        ApplicationExitInfo.REASON_SIGNALED -> "signaled"
+        else -> "reason_$reason"
     }
 
     private fun isoNow(): String = try {

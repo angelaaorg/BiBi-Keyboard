@@ -2,15 +2,16 @@
     <!-- Debug logging related strings -->
 
     <!-- Debug logging -->
-    <string name="about_debug_title">Debug Log</string>
-    <string name="about_debug_desc">Records states and errors only, without ASR text, input content, or clipboard data. Starting will clear previous logs. Stop and share to export.</string>
-    <string name="btn_debug_start_recording">Start Debug Recording</string>
-    <string name="btn_debug_stop_recording">Stop Recording</string>
-    <string name="btn_debug_export">Share Debug Log</string>
-    <string name="toast_debug_recording_started">Recording started (previous logs cleared)</string>
-    <string name="toast_debug_recording_stopped">Recording stopped</string>
+    <string name="about_debug_title">Diagnostics Log</string>
+    <string name="about_debug_desc">Basic diagnostics are recorded locally by default. Detailed support logging can be enabled temporarily for deeper troubleshooting. Logs never include ASR text, input content, clipboard data, or keys.</string>
+    <string name="about_debug_last_exit_prefix">Latest abnormal exit: %1$s</string>
+    <string name="btn_debug_start_recording">Enable Detailed Support Logging</string>
+    <string name="btn_debug_stop_recording">Disable Detailed Support Logging</string>
+    <string name="btn_debug_export">Export Diagnostics Log</string>
+    <string name="toast_debug_recording_started">Detailed support logging enabled</string>
+    <string name="toast_debug_recording_stopped">Detailed support logging disabled</string>
     <string name="toast_debug_no_log">No log to export</string>
     <string name="toast_debug_stop_before_export">Stop recording before exporting</string>
     <string name="toast_debug_failed">Operation failed. Please retry</string>
-    <string name="toast_debug_export_failed">Share failed</string>
+    <string name="toast_debug_export_failed">Export failed</string>
 </resources>
