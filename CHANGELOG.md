@@ -1,5 +1,19 @@
 # 更新日志 / Changelog
 
+## v3.14.1 (2026-03-22)
+
+### 新增功能
+
+- **OpenAI ASR 多配置支持**: 为 OpenAI ASR 添加多配置切换支持
+- **FunASR Nano 语言选择**: 为 FunASR Nano 添加识别语言选择功能
+- **FunASR MLT Nano 模型支持**: 新增 FunASR MLT Nano 变体支持
+
+### 改进优化
+
+- **FunASR Nano 中文处理优化**: 启用原生 ITN，改善中文数字等文本格式化效果
+
+---
+
 ## v3.14.0 (2025-03-08)
 
 ### 新增功能

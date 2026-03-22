@@ -10,6 +10,7 @@ local.properties
 
 AGENTS.md 
 CLAUDE.md
+.agents/
 references/
 docs/
 app/build
@@ -37,3 +38,5 @@ package-lock.json
 # VitePress build output
 docs/.vitepress/dist
 docs/.vitepress/cache
+
+app/.cxx/Debug/

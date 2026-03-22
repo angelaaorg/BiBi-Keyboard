@@ -1,5 +1,19 @@
 # Changelog
 
+## v3.14.1 (2026-03-22)
+
+### New Features
+
+- **OpenAI ASR Multi-Profile Support**: Added multi-profile switching support for OpenAI ASR
+- **FunASR Nano Language Selection**: Added recognition language selection for FunASR Nano
+- **FunASR MLT Nano Variant Support**: Added support for the FunASR MLT Nano variant
+
+### Improvements
+
+- **FunASR Nano Native ITN**: Enabled native ITN in FunASR Nano to improve Chinese text normalization results
+
+---
+
 ## v3.14.0 (2025-03-08)
 
 ### New Features
