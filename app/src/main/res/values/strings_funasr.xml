@@ -6,6 +6,7 @@
     <!-- FunASR Nano local settings -->
     <string name="label_fn_model_variant">Model Version</string>
     <string name="fn_model_nano_int8">FunASR Nano (int8, ~690MB)</string>
+    <string name="fn_model_mlt_nano_int8">FunASR MLT Nano (multilingual, int8, ~690MB)</string>
     <string name="label_fn_language_preset">Recognition language</string>
     <string name="fn_lang_auto">Auto / Unspecified</string>
     <string name="fn_lang_zh">Chinese</string>
@@ -67,4 +68,5 @@
 
     <!-- Model download notifications -->
     <string name="notif_fn_title_nano_int8">FunASR Nano Model (int8)</string>
+    <string name="notif_fn_title_mlt_nano_int8">FunASR MLT Nano Model (int8)</string>
 </resources>

@@ -605,9 +605,12 @@ class AsrSessionManager(
             found != null
         } else if (prefs.asrVendor == AsrVendor.FunAsrNano) {
             val probeRoot = java.io.File(base, "funasr_nano")
-            val variantDir = java.io.File(probeRoot, "nano-int8")
+            val variantDir = java.io.File(
+                probeRoot,
+                com.brycewg.asrkb.asr.normalizeFunAsrNanoVariant(prefs.fnModelVariant)
+            )
             val found = com.brycewg.asrkb.asr.findFnModelDir(variantDir)
-                ?: com.brycewg.asrkb.asr.findFnModelDir(probeRoot)
+                ?: com.brycewg.asrkb.asr.findDirectFnModelDir(probeRoot)
             found != null
         } else {
             val rawVariant = try {

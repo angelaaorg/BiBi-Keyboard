@@ -690,9 +690,12 @@ class AsrKeyboardService :
             if (!prepared) {
                 val base = getExternalFilesDir(null) ?: filesDir
                 val probeRoot = java.io.File(base, "funasr_nano")
-                val variantDir = java.io.File(probeRoot, "nano-int8")
+                val variantDir = java.io.File(
+                    probeRoot,
+                    com.brycewg.asrkb.asr.normalizeFunAsrNanoVariant(prefs.fnModelVariant)
+                )
                 val found = com.brycewg.asrkb.asr.findFnModelDir(variantDir)
-                    ?: com.brycewg.asrkb.asr.findFnModelDir(probeRoot)
+                    ?: com.brycewg.asrkb.asr.findDirectFnModelDir(probeRoot)
                 if (found == null) {
                     uiRenderer?.clearStatusTextStyle()
                     viewRefs?.txtStatusText?.text = getString(R.string.error_funasr_model_missing)

@@ -467,6 +467,7 @@ class ModelDownloadService : Service() {
                 n.contains("fire_red_asr2") ||
                 n.contains("firered_asr") ||
                 n.contains("fireredasr") -> "firered_asr"
+            n.contains("funasr-mlt-nano") -> "funasr_nano"
             n.contains("funasr-nano") -> "funasr_nano"
             n.contains("sense-voice") || n.contains("sensevoice") -> "sensevoice"
             n.contains("punct-ct-transformer") || n.contains("punctuation") -> "punctuation"
@@ -491,6 +492,7 @@ class ModelDownloadService : Service() {
 
             // FunASR Nano
             "sherpa-onnx-funasr-nano-int8-2025-12-30" -> "funasr_nano" to "nano-int8"
+            "sherpa-onnx-funasr-mlt-nano-int8-2026-03-21" -> "funasr_nano" to "mlt-int8"
 
             // Paraformer（主包名不含量化，默认按 int8 归类）
             "sherpa-onnx-streaming-paraformer-bilingual-zh-en" -> "paraformer" to "bilingual-int8"
@@ -527,6 +529,7 @@ class ModelDownloadService : Service() {
         "funasr_nano" -> {
             val versionName = when (variant) {
                 "nano-int8" -> "Nano (int8)"
+                "mlt-int8" -> "MLT Nano (int8)"
                 else -> variant
             }
             "FunASR $versionName"
@@ -745,7 +748,7 @@ class ModelDownloadService : Service() {
             }
             "funasr_nano" -> {
                 val outRoot = File(base, "funasr_nano")
-                File(outRoot, "nano-int8")
+                File(outRoot, com.brycewg.asrkb.asr.normalizeFunAsrNanoVariant(variant))
             }
             else -> {
                 val outRoot = File(base, "sensevoice")
@@ -1333,7 +1336,13 @@ class NotificationHandler(
         }
         "firered_asr" -> context.getString(R.string.notif_fr_title_ctc_int8)
         "punctuation" -> context.getString(R.string.notif_punct_title)
-        "funasr_nano" -> context.getString(R.string.notif_fn_title_nano_int8)
+        "funasr_nano" -> {
+            if (com.brycewg.asrkb.asr.normalizeFunAsrNanoVariant(variant) == "mlt-int8") {
+                context.getString(R.string.notif_fn_title_mlt_nano_int8)
+            } else {
+                context.getString(R.string.notif_fn_title_nano_int8)
+            }
+        }
         else -> {
             when (variant) {
                 "small-full" -> context.getString(R.string.notif_model_title_small_full)

@@ -663,10 +663,10 @@ class AsrSettingsViewModel : ViewModel() {
     fun checkFnModelDownloaded(context: Context): Boolean {
         val base = context.getExternalFilesDir(null) ?: context.filesDir
         val root = File(base, "funasr_nano")
-        val dirName = "nano-int8"
+        val dirName = com.brycewg.asrkb.asr.normalizeFunAsrNanoVariant(prefs.fnModelVariant)
         val dir = File(root, dirName)
         val modelDir =
-            com.brycewg.asrkb.asr.findFnModelDir(dir) ?: com.brycewg.asrkb.asr.findFnModelDir(root)
+            com.brycewg.asrkb.asr.findFnModelDir(dir) ?: com.brycewg.asrkb.asr.findDirectFnModelDir(root)
         val tokenizerDir = modelDir?.let { com.brycewg.asrkb.asr.findFnTokenizerDir(it) }
         return modelDir != null &&
             File(modelDir, "encoder_adaptor.int8.onnx").exists() &&

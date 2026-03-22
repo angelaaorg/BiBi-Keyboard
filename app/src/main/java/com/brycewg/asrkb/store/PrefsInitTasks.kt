@@ -278,8 +278,9 @@ internal object PrefsInitTasks {
         try {
             if (!sp.contains(KEY_FN_MODEL_VARIANT)) return
             val variant = sp.getString(KEY_FN_MODEL_VARIANT, "nano-int8") ?: "nano-int8"
-            if (variant == "nano-int8") return
-            sp.edit { putString(KEY_FN_MODEL_VARIANT, "nano-int8") }
+            val normalized = com.brycewg.asrkb.asr.normalizeFunAsrNanoVariant(variant)
+            if (variant == normalized) return
+            sp.edit { putString(KEY_FN_MODEL_VARIANT, normalized) }
         } catch (t: Throwable) {
             Log.w(TAG, "Failed to normalize FunASR Nano variant", t)
         }

@@ -38,7 +38,7 @@ internal fun partitionAsrVendorsByConfigured(
 internal fun isAsrVendorConfigured(context: Context, prefs: Prefs, vendor: AsrVendor): Boolean = try {
     when (vendor) {
         AsrVendor.SenseVoice -> hasSenseVoiceModelInstalled(context, prefs)
-        AsrVendor.FunAsrNano -> hasFunAsrNanoModelInstalled(context)
+        AsrVendor.FunAsrNano -> hasFunAsrNanoModelInstalled(context, prefs)
         AsrVendor.FireRedAsr -> hasFireRedAsrModelInstalled(context, prefs)
         AsrVendor.Paraformer -> hasParaformerModelInstalled(context, prefs)
         AsrVendor.SiliconFlow -> prefs.hasSfKeys()
@@ -66,11 +66,11 @@ private fun hasSenseVoiceModelInstalled(context: Context, prefs: Prefs): Boolean
             )
 }
 
-private fun hasFunAsrNanoModelInstalled(context: Context): Boolean {
+private fun hasFunAsrNanoModelInstalled(context: Context, prefs: Prefs): Boolean {
     val base = context.getExternalFilesDir(null) ?: context.filesDir
     val root = File(base, "funasr_nano")
-    val variantDir = File(root, "nano-int8")
-    val modelDir = findFnModelDir(variantDir) ?: findFnModelDir(root)
+    val variantDir = File(root, normalizeFunAsrNanoVariant(prefs.fnModelVariant))
+    val modelDir = findFnModelDir(variantDir) ?: findDirectFnModelDir(root)
     val tokenizerDir = modelDir?.let { findFnTokenizerDir(it) }
     return modelDir != null &&
         File(modelDir, "encoder_adaptor.int8.onnx").exists() &&

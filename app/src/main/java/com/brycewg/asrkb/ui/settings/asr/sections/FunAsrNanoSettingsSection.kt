@@ -131,9 +131,10 @@ internal class FunAsrNanoSettingsSection : AsrSettingsSection {
 
     private fun bindModelVariantSelection(binding: AsrSettingsBinding) {
         val variantLabels = listOf(
-            binding.activity.getString(R.string.fn_model_nano_int8)
+            binding.activity.getString(R.string.fn_model_nano_int8),
+            binding.activity.getString(R.string.fn_model_mlt_nano_int8)
         )
-        val variantCodes = listOf("nano-int8")
+        val variantCodes = listOf("nano-int8", "mlt-int8")
         val tvFnModelVariant = binding.view<TextView>(R.id.tvFnModelVariantValue)
         val btnFnDownload = binding.view<MaterialButton>(R.id.btnFnDownloadModel)
 
@@ -284,8 +285,11 @@ internal class FunAsrNanoSettingsSection : AsrSettingsSection {
         val tvFnDownloadStatus = binding.view<TextView>(R.id.tvFnDownloadStatus)
 
         btnFnDownload.setOnClickListener { v ->
-            val variant = "nano-int8"
-            val urlOfficial = "https://github.com/BryceWG/BiBi-Keyboard/releases/download/models/sherpa-onnx-funasr-nano-int8-2025-12-30.zip"
+            val variant = com.brycewg.asrkb.asr.normalizeFunAsrNanoVariant(binding.prefs.fnModelVariant)
+            val urlOfficial = when (variant) {
+                "mlt-int8" -> "https://github.com/BryceWG/BiBi-Keyboard/releases/download/models/sherpa-onnx-funasr-mlt-nano-int8-2026-03-21.zip"
+                else -> "https://github.com/BryceWG/BiBi-Keyboard/releases/download/models/sherpa-onnx-funasr-nano-int8-2025-12-30.zip"
+            }
             binding.modelDownloadUiController.startDownloadFromSourceDialog(
                 downloadButton = v,
                 statusTextViews = listOf(tvFnDownloadStatus),

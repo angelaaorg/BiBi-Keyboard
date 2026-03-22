@@ -90,7 +90,7 @@ class FunAsrNanoFileAsrEngine(
                 return
             }
 
-            val resolvedModel = resolveFunAsrNanoModel(context)
+            val resolvedModel = resolveFunAsrNanoModel(context, prefs)
             if (resolvedModel == null) {
                 listener.onError(context.getString(R.string.error_funasr_model_missing))
                 return
@@ -225,6 +225,16 @@ fun findFnModelDir(root: File?): File? {
         if (f.isDirectory && isFnModelDir(f)) return f
     }
     return null
+}
+
+internal fun findDirectFnModelDir(root: File?): File? {
+    if (root == null || !root.exists()) return null
+    return if (isFnModelDir(root)) root else null
+}
+
+internal fun normalizeFunAsrNanoVariant(variant: String?): String {
+    val normalized = variant?.trim()?.lowercase().orEmpty()
+    return if (normalized.contains("mlt")) "mlt-int8" else "nano-int8"
 }
 
 fun findFnTokenizerDir(modelDir: File): File? {
@@ -521,7 +531,7 @@ fun preloadFunAsrNanoIfConfigured(
         val manager = FunAsrNanoOnnxManager.getInstance()
         if (!manager.isOnnxAvailable()) return
 
-        val resolvedModel = resolveFunAsrNanoModel(context) ?: return
+        val resolvedModel = resolveFunAsrNanoModel(context, prefs) ?: return
 
         val keepMinutes = prefs.fnKeepAliveMinutes
         val keepMs = if (keepMinutes <= 0) 0L else keepMinutes.toLong() * 60_000L
@@ -606,7 +616,7 @@ private object FunAsrNanoModelResolverCache {
 
     @Volatile private var cachedValue: FunAsrNanoResolvedModel? = null
 
-    fun resolve(context: Context): FunAsrNanoResolvedModel? {
+    fun resolve(context: Context, variant: String): FunAsrNanoResolvedModel? {
         val base = try {
             context.getExternalFilesDir(null)
         } catch (t: Throwable) {
@@ -614,12 +624,12 @@ private object FunAsrNanoModelResolverCache {
             null
         } ?: context.filesDir
         val probeRoot = File(base, "funasr_nano")
-        val cacheKey = probeRoot.absolutePath + "|nano-int8"
+        val cacheKey = probeRoot.absolutePath + "|" + variant
         val cached = if (cachedKey == cacheKey) cachedValue else null
         if (cached != null && isUsable(cached)) return cached
 
-        val variantDir = File(probeRoot, "nano-int8")
-        val modelDir = findFnModelDir(variantDir) ?: findFnModelDir(probeRoot) ?: return null
+        val variantDir = File(probeRoot, variant)
+        val modelDir = findFnModelDir(variantDir) ?: findDirectFnModelDir(probeRoot) ?: return null
         val encoderAdaptor = File(modelDir, "encoder_adaptor.int8.onnx")
         val llm = File(modelDir, "llm.int8.onnx")
         val embedding = File(modelDir, "embedding.int8.onnx")
@@ -654,4 +664,4 @@ private object FunAsrNanoModelResolverCache {
         File(model.tokenizerDirPath, "tokenizer.json").exists()
 }
 
-internal fun resolveFunAsrNanoModel(context: Context): FunAsrNanoResolvedModel? = FunAsrNanoModelResolverCache.resolve(context)
+internal fun resolveFunAsrNanoModel(context: Context, prefs: Prefs): FunAsrNanoResolvedModel? = FunAsrNanoModelResolverCache.resolve(context, normalizeFunAsrNanoVariant(prefs.fnModelVariant))
