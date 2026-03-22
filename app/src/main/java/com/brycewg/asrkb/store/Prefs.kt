@@ -1022,7 +1022,7 @@ class Prefs(context: Context) {
         set(value) = sp.edit { putInt(KEY_FN_NUM_THREADS, value.coerceIn(1, 8)) }
 
     var fnUseItn: Boolean
-        get() = sp.getBoolean(KEY_FN_USE_ITN, false)
+        get() = sp.getBoolean(KEY_FN_USE_ITN, true)
         set(value) = sp.edit { putBoolean(KEY_FN_USE_ITN, value) }
 
     // FunASR Nano：LLM user prompt（用于引导转写格式/语言等；较长可能拖慢推理）

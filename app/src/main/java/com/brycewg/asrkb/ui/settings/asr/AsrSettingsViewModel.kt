@@ -753,7 +753,7 @@ data class AsrSettingsUiState(
     // FunASR Nano settings
     val fnModelVariant: String = "nano-int8",
     val fnNumThreads: Int = 2,
-    val fnUseItn: Boolean = false,
+    val fnUseItn: Boolean = true,
     val fnUserPrompt: String = "语音转写：",
     val fnLanguage: String = "",
     val fnPreloadEnabled: Boolean = false,

@@ -123,6 +123,12 @@ class FunAsrNanoFileAsrEngine(
                 Log.w("FunAsrNanoFileAsrEngine", "Failed to get fnLanguage", t)
                 ""
             }
+            val useItn = try {
+                prefs.fnUseItn
+            } catch (t: Throwable) {
+                Log.w("FunAsrNanoFileAsrEngine", "Failed to get fnUseItn", t)
+                false
+            }
 
             val text = manager.decodeOffline(
                 assetManager = null,
@@ -132,6 +138,7 @@ class FunAsrNanoFileAsrEngine(
                 tokenizerDir = resolvedModel.tokenizerDirPath,
                 userPrompt = userPrompt,
                 language = language,
+                useItn = useItn,
                 provider = "cpu",
                 numThreads = try {
                     prefs.fnNumThreads
@@ -150,15 +157,7 @@ class FunAsrNanoFileAsrEngine(
             if (text.isNullOrBlank()) {
                 listener.onError(context.getString(R.string.error_asr_empty_result))
             } else {
-                val raw = text.trim()
-                val useItn = try {
-                    prefs.fnUseItn
-                } catch (t: Throwable) {
-                    Log.w("FunAsrNanoFileAsrEngine", "Failed to get fnUseItn", t)
-                    false
-                }
-                val finalText = if (useItn) ChineseItn.normalize(raw) else raw
-                listener.onFinal(finalText)
+                listener.onFinal(text.trim())
             }
         } catch (t: Throwable) {
             Log.e("FunAsrNanoFileAsrEngine", "Recognition failed", t)
@@ -294,6 +293,7 @@ internal class FunAsrNanoOnnxManager private constructor() : BaseSherpaOfflineRe
         val tokenizerDir: String,
         val userPrompt: String,
         val language: String,
+        val useItn: Boolean,
         val provider: String,
         val numThreads: Int,
         val sampleRate: Int,
@@ -328,7 +328,8 @@ internal class FunAsrNanoOnnxManager private constructor() : BaseSherpaOfflineRe
         embedding: String,
         tokenizerDir: String,
         userPrompt: String,
-        language: String
+        language: String,
+        useItn: Boolean
     ): Any {
         val inst = clsOfflineFunAsrNanoModelConfig!!.getDeclaredConstructor().newInstance()
         trySetField(inst, "encoderAdaptor", encoderAdaptor)
@@ -337,6 +338,7 @@ internal class FunAsrNanoOnnxManager private constructor() : BaseSherpaOfflineRe
         trySetField(inst, "tokenizer", tokenizerDir)
         trySetField(inst, "userPrompt", userPrompt)
         trySetField(inst, "language", language)
+        trySetField(inst, "itn", useItn)
         return inst
     }
 
@@ -347,6 +349,7 @@ internal class FunAsrNanoOnnxManager private constructor() : BaseSherpaOfflineRe
         tokenizerDir: String,
         userPrompt: String,
         language: String,
+        useItn: Boolean,
         numThreads: Int,
         provider: String
     ): Any {
@@ -362,7 +365,8 @@ internal class FunAsrNanoOnnxManager private constructor() : BaseSherpaOfflineRe
             embedding = embedding,
             tokenizerDir = tokenizerDir,
             userPrompt = userPrompt,
-            language = language
+            language = language,
+            useItn = useItn
         )
         if (!trySetField(modelConfig, "funasrNano", funasrNano)) {
             trySetField(modelConfig, "funasr_nano", funasrNano)
@@ -379,6 +383,7 @@ internal class FunAsrNanoOnnxManager private constructor() : BaseSherpaOfflineRe
             tokenizerDir = config.tokenizerDir,
             userPrompt = config.userPrompt,
             language = config.language,
+            useItn = config.useItn,
             numThreads = config.numThreads,
             provider = config.provider
         )
@@ -416,6 +421,7 @@ internal class FunAsrNanoOnnxManager private constructor() : BaseSherpaOfflineRe
         tokenizerDir: String,
         userPrompt: String,
         language: String,
+        useItn: Boolean,
         provider: String,
         numThreads: Int,
         samples: FloatArray,
@@ -433,6 +439,7 @@ internal class FunAsrNanoOnnxManager private constructor() : BaseSherpaOfflineRe
                 tokenizerDir = tokenizerDir,
                 userPrompt = userPrompt,
                 language = language,
+                useItn = useItn,
                 provider = provider,
                 numThreads = numThreads,
                 sampleRate = sampleRate,
@@ -465,6 +472,7 @@ internal class FunAsrNanoOnnxManager private constructor() : BaseSherpaOfflineRe
         tokenizerDir: String,
         userPrompt: String,
         language: String,
+        useItn: Boolean,
         provider: String,
         numThreads: Int,
         keepAliveMs: Long,
@@ -480,6 +488,7 @@ internal class FunAsrNanoOnnxManager private constructor() : BaseSherpaOfflineRe
                 tokenizerDir = tokenizerDir,
                 userPrompt = userPrompt,
                 language = language,
+                useItn = useItn,
                 provider = provider,
                 numThreads = numThreads,
                 sampleRate = 16000,
@@ -520,6 +529,7 @@ fun preloadFunAsrNanoIfConfigured(
 
         val userPrompt = prefs.fnUserPrompt.trim().ifBlank { "语音转写：" }
         val language = prefs.fnLanguage.trim()
+        val useItn = prefs.fnUseItn
 
         val numThreads = prefs.fnNumThreads
         val key = "funasr_nano|" +
@@ -529,6 +539,7 @@ fun preloadFunAsrNanoIfConfigured(
             "tokenizer=${resolvedModel.tokenizerDirPath}|" +
             "prompt=$userPrompt|" +
             "language=$language|" +
+            "itn=$useItn|" +
             "provider=cpu|" +
             "threads=$numThreads"
 
@@ -543,6 +554,7 @@ fun preloadFunAsrNanoIfConfigured(
                 tokenizerDir = resolvedModel.tokenizerDirPath,
                 userPrompt = userPrompt,
                 language = language,
+                useItn = useItn,
                 provider = "cpu",
                 numThreads = numThreads,
                 keepAliveMs = keepMs,

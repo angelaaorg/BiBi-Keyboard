@@ -53,6 +53,7 @@ internal object PrefsInitTasks {
         cleanupLegacyTelespeechModelsIfNeeded(appContext, sp)
         normalizeBackupAsrTimeoutSensitivityIfNeeded(sp)
         migrateFunAsrFromSenseVoiceIfNeeded(sp)
+        ensureFunAsrItnDefaultIfMissing(sp)
         normalizeFunAsrVariantIfNeeded(sp)
         cleanupLegacyFunAsrModelsIfNeeded(appContext, sp)
     }
@@ -246,8 +247,8 @@ internal object PrefsInitTasks {
             sp.edit {
                 putString(KEY_FN_MODEL_VARIANT, svVariant)
                 putInt(KEY_FN_NUM_THREADS, sp.getInt(KEY_SV_NUM_THREADS, 4).coerceIn(1, 8))
-                // FunASR Nano：ITN 由 LLM 输出承担即可，默认关闭；仅在用户曾显式开启 SenseVoice ITN 时继承为 true
-                putBoolean(KEY_FN_USE_ITN, sp.getBoolean(KEY_SV_USE_ITN, false))
+                // FunASR Nano：支持内建 ITN，默认开启
+                putBoolean(KEY_FN_USE_ITN, sp.getBoolean(KEY_SV_USE_ITN, true))
                 putBoolean(KEY_FN_PRELOAD_ENABLED, sp.getBoolean(KEY_SV_PRELOAD_ENABLED, true))
                 putInt(KEY_FN_KEEP_ALIVE_MINUTES, sp.getInt(KEY_SV_KEEP_ALIVE_MINUTES, -1))
                 // 若当前选择为 SenseVoice 且使用 nano 变体，自动迁移到 FunASR Nano
@@ -261,6 +262,15 @@ internal object PrefsInitTasks {
             }
         } catch (t: Throwable) {
             Log.w(TAG, "Failed to migrate FunASR Nano prefs from SenseVoice", t)
+        }
+    }
+
+    private fun ensureFunAsrItnDefaultIfMissing(sp: SharedPreferences) {
+        try {
+            if (sp.contains(KEY_FN_USE_ITN)) return
+            sp.edit { putBoolean(KEY_FN_USE_ITN, true) }
+        } catch (t: Throwable) {
+            Log.w(TAG, "Failed to initialize FunASR Nano ITN default", t)
         }
     }
 
