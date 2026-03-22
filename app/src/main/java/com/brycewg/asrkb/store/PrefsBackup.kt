@@ -179,6 +179,7 @@ internal object PrefsBackup {
         o.put(KEY_FN_NUM_THREADS, fnNumThreads)
         o.put(KEY_FN_USE_ITN, fnUseItn)
         o.put(KEY_FN_USER_PROMPT, fnUserPrompt)
+        o.put(KEY_FN_LANGUAGE, fnLanguage)
         o.put(KEY_FN_PRELOAD_ENABLED, fnPreloadEnabled)
         o.put(KEY_FN_KEEP_ALIVE_MINUTES, fnKeepAliveMinutes)
         // FireRedASR（本地 ASR）
@@ -481,6 +482,7 @@ internal object PrefsBackup {
             optInt(KEY_FN_NUM_THREADS)?.let { fnNumThreads = it.coerceIn(1, 8) }
             optBool(KEY_FN_USE_ITN)?.let { fnUseItn = it }
             optString(KEY_FN_USER_PROMPT)?.let { fnUserPrompt = it }
+            optString(KEY_FN_LANGUAGE)?.let { fnLanguage = it }
             optBool(KEY_FN_PRELOAD_ENABLED)?.let { fnPreloadEnabled = it }
             optInt(KEY_FN_KEEP_ALIVE_MINUTES)?.let { fnKeepAliveMinutes = it }
             // FireRedASR（本地 ASR）

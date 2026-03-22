@@ -772,6 +772,15 @@
           <Spinner
             style="@style/SettingsHiddenSpinner" />
 
+          <TextView
+            style="@style/SettingsLabel"
+            android:text="@string/label_fn_language_preset" />
+
+          <TextView
+            android:id="@+id/tvFnLanguagePresetValue"
+            style="@style/SettingsClickableValue.Dropdown"
+            android:text="@string/fn_lang_auto" />
+
           <com.google.android.material.materialswitch.MaterialSwitch
             android:id="@+id/switchFnUseItn"
             style="@style/SettingsSwitch"

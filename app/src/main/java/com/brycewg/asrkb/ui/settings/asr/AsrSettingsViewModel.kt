@@ -74,6 +74,7 @@ class AsrSettingsViewModel : ViewModel() {
             fnNumThreads = prefs.fnNumThreads,
             fnUseItn = prefs.fnUseItn,
             fnUserPrompt = prefs.fnUserPrompt,
+            fnLanguage = prefs.fnLanguage,
             fnPreloadEnabled = prefs.fnPreloadEnabled,
             fnKeepAliveMinutes = prefs.fnKeepAliveMinutes,
             // FireRedASR settings
@@ -427,6 +428,19 @@ class AsrSettingsViewModel : ViewModel() {
         triggerFnPreloadIfEnabledAndActive("userPrompt change")
     }
 
+    fun updateFnLanguage(language: String) {
+        val newLanguage = language.trim()
+        if (prefs.fnLanguage == newLanguage) return
+        prefs.fnLanguage = newLanguage
+        _uiState.value = _uiState.value.copy(fnLanguage = newLanguage)
+        try {
+            com.brycewg.asrkb.asr.unloadFunAsrNanoRecognizer()
+        } catch (e: Throwable) {
+            Log.e(TAG, "Failed to unload FunASR Nano recognizer after language change", e)
+        }
+        triggerFnPreloadIfEnabledAndActive("language change")
+    }
+
     fun updateFnPreload(enabled: Boolean) {
         prefs.fnPreloadEnabled = enabled
         _uiState.value = _uiState.value.copy(fnPreloadEnabled = enabled)
@@ -741,6 +755,7 @@ data class AsrSettingsUiState(
     val fnNumThreads: Int = 2,
     val fnUseItn: Boolean = false,
     val fnUserPrompt: String = "语音转写：",
+    val fnLanguage: String = "",
     val fnPreloadEnabled: Boolean = false,
     val fnKeepAliveMinutes: Int = -1,
     // FireRedASR settings

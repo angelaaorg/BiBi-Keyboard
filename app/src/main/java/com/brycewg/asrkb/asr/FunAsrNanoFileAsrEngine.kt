@@ -117,6 +117,12 @@ class FunAsrNanoFileAsrEngine(
                 Log.w("FunAsrNanoFileAsrEngine", "Failed to get fnUserPrompt", t)
                 "语音转写："
             }
+            val language = try {
+                prefs.fnLanguage.trim()
+            } catch (t: Throwable) {
+                Log.w("FunAsrNanoFileAsrEngine", "Failed to get fnLanguage", t)
+                ""
+            }
 
             val text = manager.decodeOffline(
                 assetManager = null,
@@ -125,6 +131,7 @@ class FunAsrNanoFileAsrEngine(
                 embedding = resolvedModel.embeddingPath,
                 tokenizerDir = resolvedModel.tokenizerDirPath,
                 userPrompt = userPrompt,
+                language = language,
                 provider = "cpu",
                 numThreads = try {
                     prefs.fnNumThreads
@@ -286,6 +293,7 @@ internal class FunAsrNanoOnnxManager private constructor() : BaseSherpaOfflineRe
         val embedding: String,
         val tokenizerDir: String,
         val userPrompt: String,
+        val language: String,
         val provider: String,
         val numThreads: Int,
         val sampleRate: Int,
@@ -319,7 +327,8 @@ internal class FunAsrNanoOnnxManager private constructor() : BaseSherpaOfflineRe
         llm: String,
         embedding: String,
         tokenizerDir: String,
-        userPrompt: String
+        userPrompt: String,
+        language: String
     ): Any {
         val inst = clsOfflineFunAsrNanoModelConfig!!.getDeclaredConstructor().newInstance()
         trySetField(inst, "encoderAdaptor", encoderAdaptor)
@@ -327,6 +336,7 @@ internal class FunAsrNanoOnnxManager private constructor() : BaseSherpaOfflineRe
         trySetField(inst, "embedding", embedding)
         trySetField(inst, "tokenizer", tokenizerDir)
         trySetField(inst, "userPrompt", userPrompt)
+        trySetField(inst, "language", language)
         return inst
     }
 
@@ -336,6 +346,7 @@ internal class FunAsrNanoOnnxManager private constructor() : BaseSherpaOfflineRe
         embedding: String,
         tokenizerDir: String,
         userPrompt: String,
+        language: String,
         numThreads: Int,
         provider: String
     ): Any {
@@ -345,8 +356,14 @@ internal class FunAsrNanoOnnxManager private constructor() : BaseSherpaOfflineRe
         trySetField(modelConfig, "provider", provider)
         trySetField(modelConfig, "debug", false)
 
-        val funasrNano =
-            buildFunAsrNanoModelConfig(encoderAdaptor, llm, embedding, tokenizerDir, userPrompt)
+        val funasrNano = buildFunAsrNanoModelConfig(
+            encoderAdaptor = encoderAdaptor,
+            llm = llm,
+            embedding = embedding,
+            tokenizerDir = tokenizerDir,
+            userPrompt = userPrompt,
+            language = language
+        )
         if (!trySetField(modelConfig, "funasrNano", funasrNano)) {
             trySetField(modelConfig, "funasr_nano", funasrNano)
         }
@@ -361,6 +378,7 @@ internal class FunAsrNanoOnnxManager private constructor() : BaseSherpaOfflineRe
             embedding = config.embedding,
             tokenizerDir = config.tokenizerDir,
             userPrompt = config.userPrompt,
+            language = config.language,
             numThreads = config.numThreads,
             provider = config.provider
         )
@@ -397,6 +415,7 @@ internal class FunAsrNanoOnnxManager private constructor() : BaseSherpaOfflineRe
         embedding: String,
         tokenizerDir: String,
         userPrompt: String,
+        language: String,
         provider: String,
         numThreads: Int,
         samples: FloatArray,
@@ -413,6 +432,7 @@ internal class FunAsrNanoOnnxManager private constructor() : BaseSherpaOfflineRe
                 embedding = embedding,
                 tokenizerDir = tokenizerDir,
                 userPrompt = userPrompt,
+                language = language,
                 provider = provider,
                 numThreads = numThreads,
                 sampleRate = sampleRate,
@@ -444,6 +464,7 @@ internal class FunAsrNanoOnnxManager private constructor() : BaseSherpaOfflineRe
         embedding: String,
         tokenizerDir: String,
         userPrompt: String,
+        language: String,
         provider: String,
         numThreads: Int,
         keepAliveMs: Long,
@@ -458,6 +479,7 @@ internal class FunAsrNanoOnnxManager private constructor() : BaseSherpaOfflineRe
                 embedding = embedding,
                 tokenizerDir = tokenizerDir,
                 userPrompt = userPrompt,
+                language = language,
                 provider = provider,
                 numThreads = numThreads,
                 sampleRate = 16000,
@@ -497,6 +519,7 @@ fun preloadFunAsrNanoIfConfigured(
         val alwaysKeep = keepMinutes < 0
 
         val userPrompt = prefs.fnUserPrompt.trim().ifBlank { "语音转写：" }
+        val language = prefs.fnLanguage.trim()
 
         val numThreads = prefs.fnNumThreads
         val key = "funasr_nano|" +
@@ -505,6 +528,7 @@ fun preloadFunAsrNanoIfConfigured(
             "embedding=${resolvedModel.embeddingPath}|" +
             "tokenizer=${resolvedModel.tokenizerDirPath}|" +
             "prompt=$userPrompt|" +
+            "language=$language|" +
             "provider=cpu|" +
             "threads=$numThreads"
 
@@ -518,6 +542,7 @@ fun preloadFunAsrNanoIfConfigured(
                 embedding = resolvedModel.embeddingPath,
                 tokenizerDir = resolvedModel.tokenizerDirPath,
                 userPrompt = userPrompt,
+                language = language,
                 provider = "cpu",
                 numThreads = numThreads,
                 keepAliveMs = keepMs,

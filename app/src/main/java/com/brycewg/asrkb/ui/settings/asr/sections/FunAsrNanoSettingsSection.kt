@@ -24,19 +24,22 @@ import kotlinx.coroutines.withContext
 internal class FunAsrNanoSettingsSection : AsrSettingsSection {
     private var downloadUiRequestSeq: Long = 0L
 
+    private data class LanguagePreset(
+        val label: String,
+        val value: String
+    )
+
+    private data class LanguagePresetRes(
+        val labelRes: Int,
+        val value: String
+    )
+
     private var etFnUserPrompt: EditText? = null
 
     override fun bind(binding: AsrSettingsBinding) {
         bindModelVariantSelection(binding)
-
-        etFnUserPrompt = binding.view<EditText>(R.id.etFnUserPrompt).apply {
-            setText(binding.prefs.fnUserPrompt)
-            setOnFocusChangeListener { _, hasFocus ->
-                if (!hasFocus) {
-                    commitFnUserPromptIfNeeded(binding)
-                }
-            }
-        }
+        bindLanguagePresetSelection(binding)
+        bindUserPrompt(binding)
 
         bindThreadsSlider(binding)
         bindSwitches(binding)
@@ -53,18 +56,77 @@ internal class FunAsrNanoSettingsSection : AsrSettingsSection {
 
     override fun onResume(binding: AsrSettingsBinding) {
         refreshDownloadUiVisibility(binding)
+        updateLanguagePresetSummary(binding)
     }
 
     override fun onPause(binding: AsrSettingsBinding) {
         commitFnUserPromptIfNeeded(binding)
     }
 
+    private fun bindUserPrompt(binding: AsrSettingsBinding) {
+        etFnUserPrompt = binding.view<EditText>(R.id.etFnUserPrompt).apply {
+            setText(binding.prefs.fnUserPrompt)
+            setOnFocusChangeListener { _, hasFocus ->
+                if (!hasFocus) {
+                    commitFnUserPromptIfNeeded(binding)
+                }
+            }
+        }
+    }
+
     private fun commitFnUserPromptIfNeeded(binding: AsrSettingsBinding) {
         val input = etFnUserPrompt ?: return
-        val value = input.text?.toString() ?: ""
+        val value = input.text?.toString()?.trim() ?: ""
         if (value != binding.prefs.fnUserPrompt) {
             binding.viewModel.updateFnUserPrompt(value)
         }
+    }
+
+    private fun bindLanguagePresetSelection(binding: AsrSettingsBinding) {
+        val tvPreset = binding.view<TextView>(R.id.tvFnLanguagePresetValue)
+
+        tvPreset.setOnClickListener { v ->
+            binding.hapticTapIfEnabled(v)
+            val presets = buildLanguagePresets(binding)
+            val values = presets.map { it.value }
+            val currentValue = binding.prefs.fnLanguage
+            val currentIndex = values.indexOf(currentValue).let { idx ->
+                if (idx >= 0) idx else 0
+            }
+            binding.showSingleChoiceDialog(
+                R.string.label_fn_language_preset,
+                presets.map { it.label }.toTypedArray(),
+                currentIndex
+            ) { which ->
+                val preset = presets.getOrNull(which) ?: return@showSingleChoiceDialog
+                binding.viewModel.updateFnLanguage(preset.value)
+                updateLanguagePresetSummary(binding)
+            }
+        }
+
+        updateLanguagePresetSummary(binding)
+    }
+
+    private fun updateLanguagePresetSummary(binding: AsrSettingsBinding) {
+        val tvPreset = binding.view<TextView>(R.id.tvFnLanguagePresetValue)
+        val currentValue = binding.prefs.fnLanguage.trim()
+        val preset = buildLanguagePresets(binding).firstOrNull { it.value == currentValue }
+        tvPreset.text = preset?.label ?: currentValue.ifBlank {
+            binding.activity.getString(R.string.fn_lang_auto)
+        }
+    }
+
+    private fun buildLanguagePresets(binding: AsrSettingsBinding): List<LanguagePreset> = languagePresetResourcesFor(binding.prefs.fnModelVariant).map {
+        LanguagePreset(
+            label = binding.activity.getString(it.labelRes),
+            value = it.value
+        )
+    }
+
+    private fun languagePresetResourcesFor(variant: String): List<LanguagePresetRes> = if (variant.trim().lowercase().contains("mlt")) {
+        FUN_ASR_MLT_LANGUAGE_PRESETS
+    } else {
+        FUN_ASR_NANO_LANGUAGE_PRESETS
     }
 
     private fun bindModelVariantSelection(binding: AsrSettingsBinding) {
@@ -99,10 +161,21 @@ internal class FunAsrNanoSettingsSection : AsrSettingsSection {
                 if (code != binding.prefs.fnModelVariant) {
                     binding.viewModel.updateFnModelVariant(code)
                 }
+                resetUnsupportedLanguageIfNeeded(binding, code)
                 updateVariantSummary()
                 updateDownloadButtonText()
+                updateLanguagePresetSummary(binding)
                 refreshDownloadUiVisibility(binding)
             }
+        }
+    }
+
+    private fun resetUnsupportedLanguageIfNeeded(binding: AsrSettingsBinding, variant: String) {
+        val current = binding.prefs.fnLanguage.trim()
+        if (current.isBlank()) return
+        val allowed = languagePresetResourcesFor(variant).map { it.value }
+        if (current !in allowed) {
+            binding.viewModel.updateFnLanguage("")
         }
     }
 
@@ -305,5 +378,46 @@ internal class FunAsrNanoSettingsSection : AsrSettingsSection {
 
     private companion object {
         private const val TAG = "FunAsrNanoSettingsSection"
+
+        private val FUN_ASR_NANO_LANGUAGE_PRESETS = listOf(
+            LanguagePresetRes(R.string.fn_lang_auto, ""),
+            LanguagePresetRes(R.string.fn_lang_zh, "中文"),
+            LanguagePresetRes(R.string.fn_lang_en, "英文"),
+            LanguagePresetRes(R.string.fn_lang_ja, "日文")
+        )
+
+        private val FUN_ASR_MLT_LANGUAGE_PRESETS = listOf(
+            LanguagePresetRes(R.string.fn_lang_auto, ""),
+            LanguagePresetRes(R.string.fn_lang_zh, "中文"),
+            LanguagePresetRes(R.string.fn_lang_en, "英文"),
+            LanguagePresetRes(R.string.fn_lang_ja, "日文"),
+            LanguagePresetRes(R.string.fn_lang_ko, "韩文"),
+            LanguagePresetRes(R.string.fn_lang_vi, "越南语"),
+            LanguagePresetRes(R.string.fn_lang_id, "印尼语"),
+            LanguagePresetRes(R.string.fn_lang_th, "泰语"),
+            LanguagePresetRes(R.string.fn_lang_ms, "马来语"),
+            LanguagePresetRes(R.string.fn_lang_fil, "菲律宾语"),
+            LanguagePresetRes(R.string.fn_lang_ar, "阿拉伯语"),
+            LanguagePresetRes(R.string.fn_lang_hi, "印地语"),
+            LanguagePresetRes(R.string.fn_lang_bg, "保加利亚语"),
+            LanguagePresetRes(R.string.fn_lang_hr, "克罗地亚语"),
+            LanguagePresetRes(R.string.fn_lang_cs, "捷克语"),
+            LanguagePresetRes(R.string.fn_lang_da, "丹麦语"),
+            LanguagePresetRes(R.string.fn_lang_nl, "荷兰语"),
+            LanguagePresetRes(R.string.fn_lang_et, "爱沙尼亚语"),
+            LanguagePresetRes(R.string.fn_lang_fi, "芬兰语"),
+            LanguagePresetRes(R.string.fn_lang_el, "希腊语"),
+            LanguagePresetRes(R.string.fn_lang_hu, "匈牙利语"),
+            LanguagePresetRes(R.string.fn_lang_ga, "爱尔兰语"),
+            LanguagePresetRes(R.string.fn_lang_lv, "拉脱维亚语"),
+            LanguagePresetRes(R.string.fn_lang_lt, "立陶宛语"),
+            LanguagePresetRes(R.string.fn_lang_mt, "马耳他语"),
+            LanguagePresetRes(R.string.fn_lang_pl, "波兰语"),
+            LanguagePresetRes(R.string.fn_lang_pt, "葡萄牙语"),
+            LanguagePresetRes(R.string.fn_lang_ro, "罗马尼亚语"),
+            LanguagePresetRes(R.string.fn_lang_sk, "斯洛伐克语"),
+            LanguagePresetRes(R.string.fn_lang_sl, "斯洛文尼亚语"),
+            LanguagePresetRes(R.string.fn_lang_sv, "瑞典语")
+        )
     }
 }

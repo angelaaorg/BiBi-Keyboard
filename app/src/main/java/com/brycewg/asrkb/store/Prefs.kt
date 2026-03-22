@@ -1030,6 +1030,11 @@ class Prefs(context: Context) {
         get() = sp.getString(KEY_FN_USER_PROMPT, "语音转写：") ?: "语音转写："
         set(value) = sp.edit { putString(KEY_FN_USER_PROMPT, value.trim()) }
 
+    // FunASR Nano：识别语种。空字符串表示不指定，由 sherpa/FunASR 自行处理。
+    var fnLanguage: String
+        get() = sp.getString(KEY_FN_LANGUAGE, "") ?: ""
+        set(value) = sp.edit { putString(KEY_FN_LANGUAGE, value.trim()) }
+
     var fnPreloadEnabled: Boolean
         get() = sp.getBoolean(KEY_FN_PRELOAD_ENABLED, true)
         set(value) = sp.edit { putBoolean(KEY_FN_PRELOAD_ENABLED, value) }
