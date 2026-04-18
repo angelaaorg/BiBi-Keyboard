@@ -1064,7 +1064,7 @@ class AsrSessionManager(
         }
         val audioMs = audioMsOverride ?: lastAudioMsForStats
         val usingBackupEngine = asrEngine is ParallelAsrEngine
-        val baseTimeoutMs = AsrTimeoutCalculator.calculateTimeoutMs(audioMs)
+        val baseTimeoutMs = AsrTimeoutCalculator.calculateTimeoutMs(audioMs, sessionPrimaryVendor)
         val timeoutMs = if (usingBackupEngine) baseTimeoutMs + 2_000L else baseTimeoutMs
         processingTimeoutJob = serviceScope.launch {
             if (!isSessionActive(sessionToken)) return@launch

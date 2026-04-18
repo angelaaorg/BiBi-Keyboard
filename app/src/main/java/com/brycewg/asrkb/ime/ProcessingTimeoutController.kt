@@ -39,7 +39,7 @@ internal class ProcessingTimeoutController(
 
         val audioMs = audioMsOverride ?: safeAudioMs()
         val usingBackupEngine = safeUsingBackupEngine()
-        val baseTimeoutMs = AsrTimeoutCalculator.calculateTimeoutMs(audioMs)
+        val baseTimeoutMs = AsrTimeoutCalculator.calculateTimeoutMs(audioMs, safePrimaryVendor())
         val timeoutMs = if (usingBackupEngine) baseTimeoutMs + 2_000L else baseTimeoutMs
 
         val shouldDeferForLocalModel = shouldDeferForLocalModel(usingBackupEngine)
@@ -87,6 +87,12 @@ internal class ProcessingTimeoutController(
         usingBackupEngineProvider()
     } catch (_: Throwable) {
         false
+    }
+
+    private fun safePrimaryVendor(): com.brycewg.asrkb.asr.AsrVendor? = try {
+        prefs.asrVendor
+    } catch (_: Throwable) {
+        null
     }
 
     private fun shouldDeferForLocalModel(usingBackupEngine: Boolean): Boolean = try {

@@ -377,7 +377,7 @@ class ExternalSpeechService : Service() {
 
         private fun scheduleProcessingTimeoutIfNeeded() {
             val audioMs = lastAudioMsForStats
-            val baseTimeoutMs = AsrTimeoutCalculator.calculateTimeoutMs(audioMs)
+            val baseTimeoutMs = AsrTimeoutCalculator.calculateTimeoutMs(audioMs, vendor)
             val timeoutMs = if (engine is ParallelAsrEngine) baseTimeoutMs + 2_000L else baseTimeoutMs
             synchronized(processingTimeoutLock) {
                 if (processingTimeoutJob != null) return

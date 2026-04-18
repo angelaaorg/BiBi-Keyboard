@@ -662,7 +662,8 @@ class AsrRecognitionService : RecognitionService() {
             cancelProcessingTimeout()
             val audioMs = lastAudioMsForTimeout
             val baseTimeoutMs = com.brycewg.asrkb.asr.AsrTimeoutCalculator.calculateTimeoutMs(
-                audioMs
+                audioMs,
+                prefs.asrVendor
             )
             val timeoutMs = if (engine is ParallelAsrEngine) baseTimeoutMs + 2_000L else baseTimeoutMs
             processingTimeoutJob = serviceScope.launch {

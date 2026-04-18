@@ -45,8 +45,12 @@ class ParallelAsrEngine(
         private const val PRIMARY_SWITCH_RATIO_SENSITIVE = 0.5
         private const val PRIMARY_SWITCH_MIN_MS = 6_000L
         private const val PRIMARY_SWITCH_MAX_MS = 15_000L
+        private const val PRIMARY_SWITCH_LOCAL_STREAM_MIN_MS = 8_000L
+        private const val PRIMARY_SWITCH_LOCAL_STREAM_MAX_MS = 30_000L
         private const val PRIMARY_SWITCH_NONSTREAM_SOFT_MAX_BALANCED_MS = 25_000L
         private const val PRIMARY_SWITCH_NONSTREAM_SOFT_MAX_SENSITIVE_MS = 18_000L
+        private const val PRIMARY_SWITCH_LOCAL_NONSTREAM_SOFT_MAX_BALANCED_MS = 75_000L
+        private const val PRIMARY_SWITCH_LOCAL_NONSTREAM_SOFT_MAX_SENSITIVE_MS = 55_000L
     }
 
     private enum class Source { PRIMARY, BACKUP }
@@ -346,7 +350,7 @@ class ParallelAsrEngine(
             if (t0 > 0L && t1 >= t0) (t1 - t0) else 0L
         }
 
-        val baseTimeoutMs = AsrTimeoutCalculator.calculateTimeoutMs(audioMs)
+        val baseTimeoutMs = AsrTimeoutCalculator.calculateTimeoutMs(audioMs, primaryVendor)
         val sensitivityTier = try {
             prefs.backupAsrTimeoutSensitivity
         } catch (_: Throwable) {
@@ -355,6 +359,7 @@ class ParallelAsrEngine(
         val switchTimeoutMs =
             calculatePrimarySwitchTimeoutMs(
                 baseTimeoutMs,
+                primaryVendor,
                 isPrimaryStreamingForSwitch(),
                 sensitivityTier
             )
@@ -365,14 +370,45 @@ class ParallelAsrEngine(
             Log.w(TAG, "cancel primaryTimeoutJob failed", t)
         }
         primaryTimeoutJob = scope.launch {
-            delay(switchTimeoutMs)
+            val countdownStartMs = try {
+                SystemClock.uptimeMillis()
+            } catch (_: Throwable) {
+                0L
+            }
+            val readyWaitBudgetMs = switchTimeoutMs.coerceAtMost(LOCAL_MODEL_READY_WAIT_MAX_MS)
+            if (isLocalAsrVendor(primaryVendor)) {
+                val ok = awaitLocalAsrReady(prefs, maxWaitMs = readyWaitBudgetMs)
+                if (!ok) {
+                    Log.w(
+                        TAG,
+                        "Local model readiness wait timed out; continue countdown within switch budget"
+                    )
+                }
+                if (terminalDelivered.get()) return@launch
+            }
+            val elapsedMs = if (countdownStartMs > 0L) {
+                val now = try {
+                    SystemClock.uptimeMillis()
+                } catch (_: Throwable) {
+                    countdownStartMs
+                }
+                if (now >= countdownStartMs) {
+                    (now - countdownStartMs).coerceAtLeast(0L)
+                } else {
+                    0L
+                }
+            } else {
+                0L
+            }
+            val remainingDelayMs = (switchTimeoutMs - elapsedMs).coerceAtLeast(0L)
+            delay(remainingDelayMs)
             synchronized(stateLock) {
                 if (terminalDelivered.get()) return@synchronized
                 if (primaryTerminal == null) {
                     primaryTimedOut = true
                     Log.w(
                         TAG,
-                        "Primary timeout fired (audioMs=$audioMs, switchTimeoutMs=$switchTimeoutMs)"
+                        "Primary timeout fired (audioMs=$audioMs, switchTimeoutMs=$switchTimeoutMs, elapsedMs=$elapsedMs)"
                     )
                 }
                 tryResolveLocked()
@@ -386,6 +422,7 @@ class ParallelAsrEngine(
 
     private fun calculatePrimarySwitchTimeoutMs(
         baseTimeoutMs: Long,
+        primaryVendor: AsrVendor,
         primaryStreaming: Boolean,
         sensitivityTier: Int
     ): Long {
@@ -396,9 +433,20 @@ class ParallelAsrEngine(
         }
 
         var timeoutMs = (baseTimeoutMs.toDouble() * ratio).toLong().coerceAtLeast(0L)
+        val localPrimary = isLocalAsrVendor(primaryVendor)
 
         if (primaryStreaming) {
-            timeoutMs = timeoutMs.coerceIn(PRIMARY_SWITCH_MIN_MS, PRIMARY_SWITCH_MAX_MS)
+            val minMs = if (localPrimary) {
+                PRIMARY_SWITCH_LOCAL_STREAM_MIN_MS
+            } else {
+                PRIMARY_SWITCH_MIN_MS
+            }
+            val maxMs = if (localPrimary) {
+                PRIMARY_SWITCH_LOCAL_STREAM_MAX_MS
+            } else {
+                PRIMARY_SWITCH_MAX_MS
+            }
+            timeoutMs = timeoutMs.coerceIn(minMs, maxMs)
         } else {
             val minMs = when (sensitivityTier.coerceIn(0, 2)) {
                 2 -> 5_000L
@@ -406,8 +454,16 @@ class ParallelAsrEngine(
                 else -> 0L
             }
             val softMaxMs = when (sensitivityTier.coerceIn(0, 2)) {
-                2 -> PRIMARY_SWITCH_NONSTREAM_SOFT_MAX_SENSITIVE_MS
-                1 -> PRIMARY_SWITCH_NONSTREAM_SOFT_MAX_BALANCED_MS
+                2 -> if (localPrimary) {
+                    PRIMARY_SWITCH_LOCAL_NONSTREAM_SOFT_MAX_SENSITIVE_MS
+                } else {
+                    PRIMARY_SWITCH_NONSTREAM_SOFT_MAX_SENSITIVE_MS
+                }
+                1 -> if (localPrimary) {
+                    PRIMARY_SWITCH_LOCAL_NONSTREAM_SOFT_MAX_BALANCED_MS
+                } else {
+                    PRIMARY_SWITCH_NONSTREAM_SOFT_MAX_BALANCED_MS
+                }
                 else -> Long.MAX_VALUE
             }
             timeoutMs = timeoutMs.coerceAtLeast(minMs).coerceAtMost(softMaxMs)
