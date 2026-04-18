@@ -7,12 +7,14 @@
     <string name="label_dash_api_key">DashScope API Key（Bearer）</string>
     <string name="label_dash_model">ASR 模型</string>
     <string name="dash_model_qwen_file">Qwen3-ASR-Flash（非串流）</string>
+    <string name="dash_model_qwen35_omni_flash">Qwen3.5-Omni-Flash（非串流）</string>
+    <string name="dash_model_qwen35_omni_plus">Qwen3.5-Omni-Plus（非串流）</string>
     <string name="dash_model_qwen_realtime">Qwen3-ASR-Flash-Realtime（串流）</string>
     <string name="dash_model_fun_realtime">Fun-ASR-Realtime（串流）</string>
     <string name="label_dash_prompt">自定義提示詞/識別上下文（可選）</string>
     <string name="label_dash_language">識別語言（可選，已知語種可提升準確率）</string>
     <string name="label_dash_streaming">使用 DashScope 串流識別（WebSocket）</string>
-    <string name="dash_streaming_note">模型選擇決定是否串流。Qwen3 模型支援自訂提示詞/上下文；Fun-ASR-Realtime 不支援。</string>
+    <string name="dash_streaming_note">模型選擇決定是否串流。Qwen3 與 Qwen3.5-Omni 模型支援自訂提示詞/上下文；Qwen3.5-Omni 不支援識別語言設定，Fun-ASR-Realtime 不支援自訂提示詞。</string>
     <string name="label_dash_fun_asr">使用 Fun-ASR 模型進行識別（fun-asr-realtime）</string>
     <string name="label_dash_funasr_semantic_punct">使用語義斷句（Fun-ASR）</string>
     <string name="dash_lang_auto">自動（啟用語種識別）</string>
@@ -38,7 +40,7 @@
     <!-- ============================================== -->
 
     <!-- 通義千問 - 串流識別 -->
-    <string name="feature_dash_streaming_off_desc">使用非串流識別。錄音結束後開始處理，可能有延遲。使用Qwen3-ASR-Flash模型。</string>
+    <string name="feature_dash_streaming_off_desc">使用非串流識別。錄音結束後開始處理，可能有延遲。可用於 Qwen3-ASR-Flash 與 Qwen3.5-Omni 系列模型。</string>
     <string name="feature_dash_streaming_on_desc">使用串流識別。邊說話邊即時顯示轉寫結果。預設使用Qwen3-ASR-Flash-Realtime；也可在下方切換Fun-ASR-Realtime。</string>
 
     <!-- Fun-ASR 模型（僅串流） -->

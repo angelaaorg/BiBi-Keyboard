@@ -1,6 +1,12 @@
+/**
+ * DashScope 非流式文件识别引擎。
+ *
+ * 归属模块：asr
+ */
 package com.brycewg.asrkb.asr
 
 import android.content.Context
+import android.util.Base64
 import android.util.Log
 import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversation
 import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversationParam
@@ -15,18 +21,25 @@ import java.io.File
 import java.io.FileOutputStream
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONArray
 import org.json.JSONObject
 
 /**
- * 使用阿里云百炼（DashScope）Java SDK 直传本地文件的非流式 ASR 引擎。
- * - 通过 MultiModalConversation 直接传入 file:// 路径，SDK 负责上传与调用，减少往返延迟。
+ * 使用阿里云百炼（DashScope）的非流式 ASR 引擎。
+ * - 旧版 Qwen3-ASR-Flash 继续走 DashScope Java SDK 文件上传。
+ * - Qwen3.5-Omni 非实时模型走 OpenAI 兼容 chat/completions + Base64 音频输入。
  */
 class DashscopeFileAsrEngine(
     context: Context,
     scope: CoroutineScope,
     prefs: Prefs,
     listener: StreamingAsrEngine.Listener,
-    onRequestDuration: ((Long) -> Unit)? = null
+    onRequestDuration: ((Long) -> Unit)? = null,
+    httpClient: OkHttpClient? = null
 ) : BaseFileAsrEngine(context, scope, prefs, listener, onRequestDuration),
     PcmBatchRecognizer {
 
@@ -36,6 +49,13 @@ class DashscopeFileAsrEngine(
 
     // DashScope：官方限制 3 分钟
     override val maxRecordDurationMillis: Int = 3 * 60 * 1000
+
+    private val http: OkHttpClient = httpClient ?: OkHttpClient.Builder()
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(120, TimeUnit.SECONDS)
+        .writeTimeout(120, TimeUnit.SECONDS)
+        .callTimeout(180, TimeUnit.SECONDS)
+        .build()
 
     override fun ensureReady(): Boolean {
         if (!super.ensureReady()) return false
@@ -47,79 +67,21 @@ class DashscopeFileAsrEngine(
     }
 
     override suspend fun recognize(pcm: ByteArray) {
-        // 1) 将 PCM 写成临时 WAV 文件
-        val tmp = try {
-            val wav = pcmToWav(pcm)
-            File.createTempFile("asr_dash_", ".wav", context.cacheDir).also { f ->
-                FileOutputStream(f).use { it.write(wav) }
-            }
+        val wav = try {
+            pcmToWav(pcm)
         } catch (e: Throwable) {
-            Log.e(TAG, "Failed to materialize WAV file", e)
+            Log.e(TAG, "Failed to materialize WAV bytes", e)
             listener.onError(
                 context.getString(R.string.error_recognize_failed_with_reason, e.message ?: "")
             )
             return
         }
 
-        try {
-            // 2) 选择地域
-            Constants.baseHttpApiUrl = prefs.getDashHttpBaseUrl()
-
-            // 3) 组装消息：用户音频 +（可选）系统提示词
-            val audioPath = "file://" + tmp.absolutePath
-            val userMessage = MultiModalMessage.builder()
-                .role(Role.USER.getValue())
-                .content(listOf(mapOf("audio" to audioPath)))
-                .build()
-
-            val basePrompt = prefs.dashPrompt.trim()
-            val sysPrompt = basePrompt
-            val systemMessage = MultiModalMessage.builder()
-                .role(Role.SYSTEM.getValue())
-                .content(listOf(mapOf("text" to sysPrompt)))
-                .build()
-
-            // 4) ASR 参数
-            val asrOptions = HashMap<String, Any>(4).apply {
-                put("enable_itn", true)
-                val lang = prefs.dashLanguage.trim()
-                if (lang.isNotEmpty()) put("language", lang)
-            }
-
-            // 5) 构建调用参数并请求
-            val param = MultiModalConversationParam.builder()
-                .apiKey(prefs.dashApiKey)
-                .model(Prefs.DEFAULT_DASH_MODEL)
-                // 顺序不敏感，此处与官方示例一致
-                .message(userMessage)
-                .message(systemMessage)
-                .parameter("asr_options", asrOptions)
-                .build()
-
-            val conv = MultiModalConversation()
-            val t0 = System.nanoTime()
-            val result: MultiModalConversationResult = conv.call(param)
-
-            // 6) 解析结果（沿用原有 JSON 解析逻辑）
-            val json = try {
-                JsonUtils.toJson(result)
-            } catch (e: Throwable) {
-                ""
-            }
-            val text = parseDashscopeText(json)
-            if (text.isNotBlank()) {
-                val dt = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - t0)
-                try {
-                    onRequestDuration?.invoke(dt)
-                } catch (e: Throwable) {
-                    Log.w(TAG, "Failed to dispatch duration", e)
-                }
-                listener.onFinal(text)
-            } else {
-                listener.onError(context.getString(R.string.error_asr_empty_result))
-            }
-        } finally {
-            tmp.delete()
+        val model = prefs.dashAsrModel.trim().ifBlank { Prefs.DEFAULT_DASH_MODEL }
+        if (prefs.isDashOmniModelId(model)) {
+            recognizeWithOmni(wav, model)
+        } else {
+            recognizeWithLegacySdk(wav, model)
         }
     }
 
@@ -128,9 +90,189 @@ class DashscopeFileAsrEngine(
     }
 
     /**
-     * 从 DashScope 响应体中解析转写文本
+     * 旧版 DashScope SDK 文件识别路径。
      */
-    private fun parseDashscopeText(body: String): String {
+    private fun recognizeWithLegacySdk(wav: ByteArray, model: String) {
+        val tmp = try {
+            File.createTempFile("asr_dash_", ".wav", context.cacheDir).also { f ->
+                FileOutputStream(f).use { it.write(wav) }
+            }
+        } catch (e: Throwable) {
+            Log.e(TAG, "Failed to create DashScope temp wav", e)
+            listener.onError(
+                context.getString(R.string.error_recognize_failed_with_reason, e.message ?: "")
+            )
+            return
+        }
+
+        try {
+            Constants.baseHttpApiUrl = prefs.getDashHttpBaseUrl()
+
+            val audioPath = "file://" + tmp.absolutePath
+            val userMessage = MultiModalMessage.builder()
+                .role(Role.USER.getValue())
+                .content(listOf(mapOf("audio" to audioPath)))
+                .build()
+
+            val sysPrompt = prefs.dashPrompt.trim()
+            val systemMessage = MultiModalMessage.builder()
+                .role(Role.SYSTEM.getValue())
+                .content(listOf(mapOf("text" to sysPrompt)))
+                .build()
+
+            val asrOptions = HashMap<String, Any>(4).apply {
+                put("enable_itn", true)
+                val lang = prefs.dashLanguage.trim()
+                if (lang.isNotEmpty()) put("language", lang)
+            }
+
+            val param = MultiModalConversationParam.builder()
+                .apiKey(prefs.dashApiKey)
+                .model(model)
+                .message(userMessage)
+                .message(systemMessage)
+                .parameter("asr_options", asrOptions)
+                .build()
+
+            val conv = MultiModalConversation()
+            val t0 = System.nanoTime()
+            val result: MultiModalConversationResult = conv.call(param)
+            val json = try {
+                JsonUtils.toJson(result)
+            } catch (e: Throwable) {
+                ""
+            }
+            dispatchFinalText(parseDashscopeSdkText(json), t0)
+        } catch (t: Throwable) {
+            Log.e(TAG, "DashScope SDK recognition failed", t)
+            listener.onError(
+                context.getString(R.string.error_recognize_failed_with_reason, t.message ?: "")
+            )
+        } finally {
+            try {
+                if (!tmp.delete()) {
+                    tmp.deleteOnExit()
+                }
+            } catch (t: Throwable) {
+                Log.w(TAG, "Failed to delete DashScope temp wav", t)
+            }
+        }
+    }
+
+    /**
+     * Qwen3.5-Omni 非实时识别路径。
+     */
+    private fun recognizeWithOmni(wav: ByteArray, model: String) {
+        try {
+            val base64Wav = Base64.encodeToString(wav, Base64.NO_WRAP)
+            val prompt = prefs.dashPrompt.trim().ifBlank {
+                context.getString(R.string.prompt_default_sf_omni)
+            }
+            val body = buildDashOmniRequestBody(model, base64Wav, prompt)
+            val request = Request.Builder()
+                .url(prefs.getDashCompatibleModeChatEndpoint())
+                .addHeader("Authorization", "Bearer ${prefs.dashApiKey}")
+                .addHeader("Content-Type", "application/json; charset=utf-8")
+                .post(body.toRequestBody("application/json; charset=utf-8".toMediaType()))
+                .build()
+
+            val t0 = System.nanoTime()
+            val response = http.newCall(request).execute()
+            response.use { r ->
+                val bodyStr = r.body?.string().orEmpty()
+                if (!r.isSuccessful) {
+                    val detail = formatHttpDetail(r.message, extractErrorHint(bodyStr))
+                    listener.onError(
+                        context.getString(R.string.error_request_failed_http, r.code, detail)
+                    )
+                    return
+                }
+
+                val contentType = r.header("Content-Type").orEmpty()
+                val looksLikeSse = contentType.contains("text/event-stream", ignoreCase = true) ||
+                    bodyStr.lineSequence().any { it.startsWith("data:") }
+                val text = if (looksLikeSse) {
+                    parseDashscopeOmniSseText(bodyStr)
+                } else {
+                    parseDashscopeOmniChatText(bodyStr)
+                }
+                dispatchFinalText(text, t0)
+            }
+        } catch (t: Throwable) {
+            Log.e(TAG, "DashScope Omni recognition failed", t)
+            listener.onError(
+                context.getString(R.string.error_recognize_failed_with_reason, t.message ?: "")
+            )
+        }
+    }
+
+    private fun buildDashOmniRequestBody(model: String, base64Wav: String, prompt: String): String {
+        val systemMessage = JSONObject().apply {
+            put("role", "system")
+            put(
+                "content",
+                JSONArray().apply {
+                    put(
+                        JSONObject().apply {
+                            put("type", "text")
+                            put("text", prompt)
+                        }
+                    )
+                }
+            )
+        }
+        val userMessage = JSONObject().apply {
+            put("role", "user")
+            put(
+                "content",
+                JSONArray().apply {
+                    put(
+                        JSONObject().apply {
+                            put("type", "input_audio")
+                            put(
+                                "input_audio",
+                                JSONObject().apply {
+                                    put("data", "data:audio/wav;base64,$base64Wav")
+                                    put("format", "wav")
+                                }
+                            )
+                        }
+                    )
+                }
+            )
+        }
+        return JSONObject().apply {
+            put("model", model)
+            put("stream", true)
+            put("modalities", JSONArray().put("text"))
+            put(
+                "messages",
+                JSONArray().apply {
+                    put(systemMessage)
+                    put(userMessage)
+                }
+            )
+        }.toString()
+    }
+
+    private fun dispatchFinalText(text: String, startedAtNanos: Long) {
+        if (text.isBlank()) {
+            listener.onError(context.getString(R.string.error_asr_empty_result))
+            return
+        }
+        val dt = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAtNanos)
+        try {
+            onRequestDuration?.invoke(dt)
+        } catch (t: Throwable) {
+            Log.w(TAG, "Failed to dispatch duration", t)
+        }
+        listener.onFinal(text)
+    }
+
+    /**
+     * 从 DashScope SDK 响应体中解析转写文本。
+     */
+    private fun parseDashscopeSdkText(body: String): String {
         if (body.isBlank()) return ""
         return try {
             val obj = JSONObject(body)
@@ -141,26 +283,123 @@ class DashscopeFileAsrEngine(
             val content = msg.optJSONArray("content") ?: return ""
             var txt = ""
             for (i in 0 until content.length()) {
-                val it = content.optJSONObject(i) ?: continue
-                if (it.has("text")) {
-                    txt = it.optString("text").trim()
+                val item = content.optJSONObject(i) ?: continue
+                if (item.has("text")) {
+                    txt = item.optString("text").trim()
                     if (txt.isNotEmpty()) break
                 }
             }
             txt
         } catch (t: Throwable) {
-            Log.e(TAG, "Failed to parse DashScope response", t)
+            Log.e(TAG, "Failed to parse DashScope SDK response", t)
             ""
         }
     }
 
     /**
-     * 获取文件名的安全方法
+     * 从 DashScope Omni SSE 响应中累积文本。
      */
-    private fun File.nameIfExists(): String = try {
-        name
-    } catch (t: Throwable) {
-        Log.e(TAG, "Failed to get file name", t)
-        "upload.wav"
+    private fun parseDashscopeOmniSseText(body: String): String {
+        if (body.isBlank()) return ""
+        val contentBuilder = StringBuilder()
+        val eventBuilder = StringBuilder()
+
+        fun flushEvent() {
+            val rawData = eventBuilder.toString().trim()
+            eventBuilder.clear()
+            if (rawData.isEmpty() || rawData == "[DONE]") return
+
+            try {
+                val json = JSONObject(rawData)
+                val choices = json.optJSONArray("choices") ?: return
+                if (choices.length() == 0) return
+                val choice = choices.optJSONObject(0) ?: return
+                appendChatDeltaContent(choice.optJSONObject("delta"), contentBuilder)
+                if (choice.optString("finish_reason") == "stop") return
+            } catch (t: Throwable) {
+                Log.w(TAG, "Failed to parse DashScope Omni SSE event", t)
+            }
+        }
+
+        body.lineSequence().forEach { line ->
+            if (line.isEmpty()) {
+                flushEvent()
+            } else if (line.startsWith("data:")) {
+                eventBuilder.append(line.removePrefix("data:").trim()).append('\n')
+            }
+        }
+        flushEvent()
+        return contentBuilder.toString().trim()
+    }
+
+    /**
+     * 从 DashScope Omni 非 SSE JSON 响应中解析文本。
+     */
+    private fun parseDashscopeOmniChatText(body: String): String {
+        if (body.isBlank()) return ""
+        return try {
+            val obj = JSONObject(body)
+            val choices = obj.optJSONArray("choices") ?: return ""
+            if (choices.length() == 0) return ""
+            val message = choices.optJSONObject(0)?.optJSONObject("message") ?: return ""
+            when (val content = message.opt("content")) {
+                is String -> content.trim()
+                is JSONArray -> {
+                    val text = StringBuilder()
+                    for (i in 0 until content.length()) {
+                        when (val item = content.opt(i)) {
+                            is String -> if (item.isNotBlank()) text.append(item)
+                            is JSONObject -> {
+                                val piece = item.optString("text").ifBlank {
+                                    item.optString("content")
+                                }
+                                if (piece.isNotBlank()) text.append(piece)
+                            }
+                        }
+                    }
+                    text.toString().trim()
+                }
+                else -> ""
+            }
+        } catch (t: Throwable) {
+            Log.e(TAG, "Failed to parse DashScope Omni chat response", t)
+            ""
+        }
+    }
+
+    private fun appendChatDeltaContent(delta: JSONObject?, builder: StringBuilder) {
+        if (delta == null) return
+        when (val content = delta.opt("content")) {
+            is String -> if (content.isNotEmpty()) builder.append(content)
+            is JSONArray -> {
+                for (i in 0 until content.length()) {
+                    when (val item = content.opt(i)) {
+                        is String -> if (item.isNotEmpty()) builder.append(item)
+                        is JSONObject -> {
+                            val text = item.optString("text").ifBlank {
+                                item.optString("content")
+                            }
+                            if (text.isNotBlank()) builder.append(text)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun extractErrorHint(body: String): String {
+        if (body.isBlank()) return ""
+        return try {
+            val obj = JSONObject(body)
+            when {
+                obj.has("error") -> obj.optJSONObject("error")?.optString("message")?.trim().orEmpty()
+                    .ifBlank { obj.optString("message").trim() }
+                obj.has("message") -> obj.optString("message").trim()
+                else -> body.take(200).trim()
+            }
+        } catch (t: Throwable) {
+            Log.e(TAG, "Failed to parse DashScope error response", t)
+            body.take(200).trim()
+        }
     }
 }

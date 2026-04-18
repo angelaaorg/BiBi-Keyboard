@@ -12,6 +12,14 @@ internal object DashScopePrefsCompat {
         "https://dashscope.aliyuncs.com/api/v1"
     }
 
+    fun getDashCompatibleModeChatEndpoint(dashRegion: String): String = if (
+        dashRegion.equals("intl", ignoreCase = true)
+    ) {
+        "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions"
+    } else {
+        "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
+    }
+
     fun deriveDashAsrModelFromLegacyFlags(sp: SharedPreferences): String {
         val streaming = sp.getBoolean(KEY_DASH_STREAMING_ENABLED, false)
         if (!streaming) return Prefs.DEFAULT_DASH_MODEL

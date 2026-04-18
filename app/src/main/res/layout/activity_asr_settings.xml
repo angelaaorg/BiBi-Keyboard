@@ -465,6 +465,7 @@
           </com.google.android.material.textfield.TextInputLayout>
 
           <TextView
+            android:id="@+id/labelDashLanguage"
             style="@style/SettingsLabel"
             android:text="@string/label_dash_language" />
 
@@ -473,6 +474,7 @@
             style="@style/SettingsClickableValue.Dropdown"
             android:text="@string/dash_lang_auto" />
           <Spinner
+            android:id="@+id/spinnerDashLanguage"
             style="@style/SettingsHiddenSpinner" />
 
           <!-- DashScope 地域选择 -->

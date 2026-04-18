@@ -52,11 +52,15 @@ internal class DashScopeAsrSettingsSection : AsrSettingsSection {
     private fun bindModelSelection(binding: AsrSettingsBinding) {
         val modelLabels = listOf(
             binding.activity.getString(R.string.dash_model_qwen_file),
+            binding.activity.getString(R.string.dash_model_qwen35_omni_flash),
+            binding.activity.getString(R.string.dash_model_qwen35_omni_plus),
             binding.activity.getString(R.string.dash_model_qwen_realtime),
             binding.activity.getString(R.string.dash_model_fun_realtime)
         )
         val modelValues = listOf(
             Prefs.DEFAULT_DASH_MODEL,
+            Prefs.DASH_MODEL_QWEN35_OMNI_FLASH,
+            Prefs.DASH_MODEL_QWEN35_OMNI_PLUS,
             Prefs.DASH_MODEL_QWEN3_REALTIME,
             Prefs.DASH_MODEL_FUN_ASR_REALTIME
         )
@@ -70,7 +74,7 @@ internal class DashScopeAsrSettingsSection : AsrSettingsSection {
             val cur = normalizeModel(binding.prefs.dashAsrModel)
             val idx = modelValues.indexOf(cur).coerceAtLeast(0)
             tvDashModel.text = modelLabels[idx]
-            updateDashPromptVisibility(binding, cur)
+            updateModelDependentUi(binding, cur)
         }
 
         updateModelSummary()
@@ -90,15 +94,24 @@ internal class DashScopeAsrSettingsSection : AsrSettingsSection {
         }
     }
 
-    private fun updateDashPromptVisibility(
+    private fun updateModelDependentUi(
         binding: AsrSettingsBinding,
         model: String = binding.prefs.dashAsrModel
     ) {
         val isFunAsr = model.startsWith("fun-asr", ignoreCase = true)
+        val isOmni = binding.prefs.isDashOmniModelId(model)
 
         val til = binding.view<View>(R.id.tilDashPrompt)
         val promptVis = if (!isFunAsr) View.VISIBLE else View.GONE
         if (til.visibility != promptVis) til.visibility = promptVis
+
+        val languageLabel = binding.view<View>(R.id.labelDashLanguage)
+        val languageValue = binding.view<View>(R.id.tvDashLanguageValue)
+        val languageSpinner = binding.view<View>(R.id.spinnerDashLanguage)
+        val languageVis = if (isOmni) View.GONE else View.VISIBLE
+        if (languageLabel.visibility != languageVis) languageLabel.visibility = languageVis
+        if (languageValue.visibility != languageVis) languageValue.visibility = languageVis
+        if (languageSpinner.visibility != languageVis) languageSpinner.visibility = languageVis
 
         val switchSemanticPunct = binding.view<View>(R.id.switchDashFunAsrSemanticPunct)
         val semanticVis = if (isFunAsr) View.VISIBLE else View.GONE
@@ -134,6 +147,7 @@ internal class DashScopeAsrSettingsSection : AsrSettingsSection {
 
         updateDashLangSummary()
         tvDashLanguage.setOnClickListener { v ->
+            if (!binding.prefs.isDashLanguageSupportedByModel()) return@setOnClickListener
             binding.hapticTapIfEnabled(v)
             val cur = langCodes.indexOf(binding.prefs.dashLanguage).coerceAtLeast(0)
             binding.showSingleChoiceDialog(

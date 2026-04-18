@@ -7,12 +7,14 @@
     <string name="label_dash_api_key">DashScope API Key (Bearer)</string>
     <string name="label_dash_model">ASR Model</string>
     <string name="dash_model_qwen_file">Qwen3-ASR-Flash (non-streaming)</string>
+    <string name="dash_model_qwen35_omni_flash">Qwen3.5-Omni-Flash (non-streaming)</string>
+    <string name="dash_model_qwen35_omni_plus">Qwen3.5-Omni-Plus (non-streaming)</string>
     <string name="dash_model_qwen_realtime">Qwen3-ASR-Flash-Realtime (streaming)</string>
     <string name="dash_model_fun_realtime">Fun-ASR-Realtime (streaming)</string>
     <string name="label_dash_prompt">Custom prompt / context (optional)</string>
     <string name="label_dash_language">Recognition language (optional; improves accuracy if known)</string>
     <string name="label_dash_streaming">Use DashScope streaming (WebSocket)</string>
-    <string name="dash_streaming_note">Model selection determines streaming behavior. Qwen3 models support custom prompt / context; Fun-ASR-Realtime does not.</string>
+    <string name="dash_streaming_note">Model selection determines streaming behavior. Qwen3 and Qwen3.5-Omni models support custom prompt / context. Qwen3.5-Omni does not support language selection, and Fun-ASR-Realtime does not support custom prompt.</string>
     <string name="label_dash_fun_asr">Use Fun-ASR model (fun-asr-realtime)</string>
     <string name="label_dash_funasr_semantic_punct">Use semantic segmentation (Fun-ASR)</string>
     <string name="dash_lang_auto">Auto (enable language ID)</string>
@@ -38,7 +40,7 @@
     <!-- ============================================== -->
 
     <!-- DashScope - Streaming -->
-    <string name="feature_dash_streaming_off_desc">Uses non-streaming recognition. Processing starts after recording ends, which may cause delays. Uses Qwen3-ASR-Flash model.</string>
+    <string name="feature_dash_streaming_off_desc">Uses non-streaming recognition. Processing starts after recording ends, which may cause delays. Available for Qwen3-ASR-Flash and Qwen3.5-Omni models.</string>
     <string name="feature_dash_streaming_on_desc">Uses streaming recognition. Transcription results are displayed in real-time as you speak. Defaults to Qwen3-ASR-Flash-Realtime; you can optionally switch to Fun-ASR-Realtime below.</string>
 
     <!-- DashScope - Fun-ASR model (streaming) -->
