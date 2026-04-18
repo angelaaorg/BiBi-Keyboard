@@ -1,11 +1,11 @@
 {
-  "version": "3.14.1",
-  "version_code": 149,
-  "download_url": "https://github.com/BryceWG/BiBi-Keyboard/releases/tag/v3.14.1",
-  "release_notes": "### 新增功能\n\n- **OpenAI ASR 多配置支持**: 为 OpenAI ASR 添加多配置切换支持\n- **FunASR Nano 语言选择**: 为 FunASR Nano 添加识别语言选择功能\n- **FunASR MLT Nano 模型支持**: 新增 FunASR MLT Nano 变体支持\n\n### 改进优化\n\n- **FunASR Nano 中文处理优化**: 启用原生 ITN，改善中文数字等文本格式化效果",
-  "release_notes_en": "### New Features\n\n- **OpenAI ASR Multi-Profile Support**: Added multi-profile switching support for OpenAI ASR\n- **FunASR Nano Language Selection**: Added recognition language selection for FunASR Nano\n- **FunASR MLT Nano Variant Support**: Added support for the FunASR MLT Nano variant\n\n### Improvements\n\n- **FunASR Nano Native ITN**: Enabled native ITN in FunASR Nano to improve Chinese text normalization results",
+  "version": "3.14.2",
+  "version_code": 150,
+  "download_url": "https://github.com/BryceWG/BiBi-Keyboard/releases/tag/v3.14.2",
+  "release_notes": "### 新增功能\n\n- **阿里云百炼 Qwen3.5-Omni**: 为阿里云百炼 ASR 新增 Qwen3.5-Omni Flash/Plus 模型选项\n\n### 改进优化\n\n- **录音启动网络预热**: 在录音启动阶段增加网络预热,尝试降低首次使用的网络延迟\n- **本地模型超时策略优化**: 为不同本地识别引擎根据资源消耗设置不同的超时阈值\n- **保活常驻通知内容优化**: 常驻通知中支持显示实时刷新的基本信息",
+  "release_notes_en": "### New Features\n\n- **Alibaba DashScope Qwen3.5-Omni**: Added Qwen3.5-Omni Flash and Plus model options for Alibaba DashScope ASR\n\n### Improvements\n\n- **Recording Startup Network Warmup**: Added network warmup during recording startup to help reduce first-use network latency\n- **Local Model Timeout Tuning**: Set different timeout thresholds for different local ASR engines based on resource usage\n- **Keep-Alive Notification Content**: Added support for showing live-updating basic information in the persistent notification",
   "important_notice": "0. 3.13.0版本迎来大量重构，已经过初步测试，如果您有疑虑可以暂不更新\n1. 已支持通过同文输入法与说点啥进行联动，具体操作步骤见https://github.com/BryceWG/trime-bibi-keyboard/releases\n2. BiBi Keyboard Pro版本已上架，欢迎在3.8.6后版本-关于页面中了解详情。\n3. 官方网站和使用文档均已上线,网址分别为: bibi.brycewg.com bibidocs.brycewg.com",
   "notice_level": "info",
   "min_supported_version": "2.6.5",
-  "update_time": "2026-03-22T14:28:59Z"
+  "update_time": "2026-04-18T09:35:27Z"
 }
