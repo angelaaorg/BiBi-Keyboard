@@ -1,3 +1,8 @@
+/**
+ * 悬浮球录音会话管理与结果提交协调器。
+ *
+ * 归属模块：ui/floatingball
+ */
 package com.brycewg.asrkb.ui.floatingball
 
 import android.content.ClipData
@@ -285,7 +290,10 @@ class AsrSessionManager(
 
         // 启动引擎
         listener.onSessionStateChanged(FloatingBallState.Recording)
-        asrEngine?.start()
+        asrEngine?.let { engine ->
+            NetworkWarmupCoordinator.warmupForRecordingStart(prefs)
+            engine.start()
+        }
         try {
             BluetoothRouteManager.onRecordingStarted(context)
         } catch (

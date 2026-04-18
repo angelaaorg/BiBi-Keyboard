@@ -1,3 +1,8 @@
+/**
+ * Android 标准 `RecognitionService` 适配入口。
+ *
+ * 归属模块：api
+ */
 package com.brycewg.asrkb.api
 
 import android.content.Context
@@ -381,7 +386,10 @@ class AsrRecognitionService : RecognitionService() {
             lastPostprocPreview = null
             cancelProcessingTimeout()
             ensureAutoStopSuppressed()
-            engine?.start()
+            engine?.let { startedEngine ->
+                NetworkWarmupCoordinator.warmupForRecordingStart(prefs)
+                startedEngine.start()
+            }
         }
 
         fun stop() {

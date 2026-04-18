@@ -1,3 +1,8 @@
+/**
+ * 对外导出的语音识别服务与会话编排入口。
+ *
+ * 归属模块：api
+ */
 package com.brycewg.asrkb.api
 
 import android.app.Service
@@ -501,7 +506,10 @@ class ExternalSpeechService : Service() {
                 Log.w(TAG, "Failed to mark session start", t)
             }
             ensureAutoStopSuppressed()
-            engine?.start()
+            engine?.let { startedEngine ->
+                NetworkWarmupCoordinator.warmupForRecordingStart(prefs)
+                startedEngine.start()
+            }
         }
 
         fun stop() {

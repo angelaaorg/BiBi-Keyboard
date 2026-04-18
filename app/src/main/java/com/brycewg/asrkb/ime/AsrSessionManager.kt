@@ -1,3 +1,8 @@
+/**
+ * IME 录音会话管理与 ASR 引擎生命周期协调器。
+ *
+ * 归属模块：ime
+ */
 package com.brycewg.asrkb.ime
 
 import android.content.Context
@@ -683,7 +688,10 @@ class AsrSessionManager(
         } catch (t: Throwable) {
             Log.e(TAG, "Local model preload guard failed", t)
         }
-        asrEngine?.start()
+        asrEngine?.let { engine ->
+            NetworkWarmupCoordinator.warmupForRecordingStart(prefs)
+            engine.start()
+        }
         try {
             DebugLogManager.log(
                 category = "asr",

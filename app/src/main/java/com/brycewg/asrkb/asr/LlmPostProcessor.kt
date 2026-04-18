@@ -102,6 +102,24 @@ class LlmPostProcessor(private val client: OkHttpClient? = null) {
 
         /** 首 token 超时（秒）- streaming 模式下等待首个数据块的最大时间 */
         private const val FIRST_TOKEN_TIMEOUT_SECONDS = 60L
+
+        private val sharedHttpClient: OkHttpClient by lazy {
+            OkHttpClient.Builder()
+                .connectTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                .readTimeout(0, TimeUnit.SECONDS)
+                .writeTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                .build()
+        }
+
+        private val sharedModelsHttpClient: OkHttpClient by lazy {
+            OkHttpClient.Builder()
+                .connectTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                .readTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                .writeTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                .build()
+        }
+
+        internal fun defaultSharedHttpClient(): OkHttpClient = sharedHttpClient
     }
 
     private fun buildRequestConfig(
@@ -418,21 +436,12 @@ class LlmPostProcessor(private val client: OkHttpClient? = null) {
      * - writeTimeout: 写入请求体的超时时间
      * - 不设置 callTimeout: streaming 模式下总时长不受限制
      */
-    private fun getHttpClient(): OkHttpClient = client ?: OkHttpClient.Builder()
-        .connectTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-        .readTimeout(0, TimeUnit.SECONDS)
-        .writeTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-        // 不设置 callTimeout，让 streaming 可以持续接收数据
-        .build()
+    private fun getHttpClient(): OkHttpClient = client ?: sharedHttpClient
 
     /**
      * 获取模型列表时使用的客户端（避免无限读超时）
      */
-    private fun getModelsHttpClient(): OkHttpClient = client ?: OkHttpClient.Builder()
-        .connectTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-        .readTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-        .writeTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-        .build()
+    private fun getModelsHttpClient(): OkHttpClient = client ?: sharedModelsHttpClient
 
     /**
      * 过滤掉 AI 输出中的 <think>...</think> 标签及其内容
