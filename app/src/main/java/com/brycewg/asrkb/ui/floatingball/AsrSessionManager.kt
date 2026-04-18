@@ -31,7 +31,7 @@ class AsrSessionManager(
     private val prefs: Prefs,
     private val serviceScope: CoroutineScope,
     private val listener: AsrSessionListener
-) : StreamingAsrEngine.Listener {
+) {
 
     companion object {
         private const val TAG = "AsrSessionManager"
@@ -52,6 +52,10 @@ class AsrSessionManager(
     private var lastPartialForPreview: String? = null
     private var markerInserted: Boolean = false
     private var markerChar: String? = null
+    private var aiPostProcessingToken: Long = 0L
+    private var aiPostProcessingBaseText: String? = null
+    private var aiPostProcessingPreviewText: String? = null
+    private var aiPostProcessingResolvedText: String? = null
 
     // 超时控制
     private var processingTimeoutJob: Job? = null
@@ -89,6 +93,80 @@ class AsrSessionManager(
 
     // 音频焦点请求句柄
     private var audioFocusRequest: AudioFocusRequest? = null
+    private val sessionTokenCounter = AtomicLong(0L)
+
+    @Volatile
+    private var activeSessionToken: Long = 0L
+
+    private fun createSessionToken(): Long {
+        val token = sessionTokenCounter.incrementAndGet()
+        activeSessionToken = token
+        return token
+    }
+
+    private fun clearActiveSessionToken(expectedToken: Long? = null) {
+        if (expectedToken == null || activeSessionToken == expectedToken) {
+            activeSessionToken = 0L
+        }
+    }
+
+    private fun isSessionActive(sessionToken: Long): Boolean = sessionToken != 0L && activeSessionToken == sessionToken
+
+    private fun createEngineListener(sessionToken: Long): StreamingAsrEngine.Listener = object : StreamingAsrEngine.Listener {
+        override fun onFinal(text: String) {
+            this@AsrSessionManager.onFinal(sessionToken, text)
+        }
+
+        override fun onError(message: String) {
+            this@AsrSessionManager.onError(sessionToken, message)
+        }
+
+        override fun onPartial(text: String) {
+            this@AsrSessionManager.onPartial(sessionToken, text)
+        }
+
+        override fun onStopped() {
+            this@AsrSessionManager.onStopped(sessionToken)
+        }
+    }
+
+    private fun clearPreviewSessionContext() {
+        focusContext = null
+        lastPartialForPreview = null
+        markerInserted = false
+        markerChar = null
+        aiPostProcessingToken = 0L
+        aiPostProcessingBaseText = null
+        aiPostProcessingPreviewText = null
+        aiPostProcessingResolvedText = null
+    }
+
+    private fun beginAiPostProcessing(sessionToken: Long, rawFinalText: String) {
+        aiPostProcessingToken = sessionToken
+        aiPostProcessingBaseText = rawFinalText
+        aiPostProcessingPreviewText = null
+        aiPostProcessingResolvedText = null
+    }
+
+    private fun rememberAiPostProcessingPreview(sessionToken: Long, text: String) {
+        if (aiPostProcessingToken != sessionToken || text.isBlank()) return
+        aiPostProcessingPreviewText = text
+    }
+
+    private fun rememberAiPostProcessingResolvedText(sessionToken: Long, text: String) {
+        if (aiPostProcessingToken != sessionToken || text.isBlank()) return
+        aiPostProcessingResolvedText = text
+    }
+
+    private fun peekInterruptedPostProcessingCommitText(sessionToken: Long): String? {
+        if (sessionToken == 0L) return null
+        if (aiPostProcessingToken != sessionToken) return null
+        val resolvedText = aiPostProcessingResolvedText?.trim().orEmpty()
+        if (resolvedText.isNotEmpty()) return resolvedText
+        val previewText = aiPostProcessingPreviewText?.trim().orEmpty()
+        if (previewText.isNotEmpty()) return previewText
+        return aiPostProcessingBaseText?.trim()?.takeIf { it.isNotEmpty() }
+    }
 
     private fun snapshotAudioDurationIfPossible() {
         if (sessionStartUptimeMs == 0L || lastAudioMsForStats != 0L) return
@@ -135,6 +213,7 @@ class AsrSessionManager(
     /** 开始录音 */
     fun startRecording() {
         Log.d(TAG, "startRecording called")
+        val sessionToken = createSessionToken()
         stopActiveEngineIfRunning("start_recording")
         releaseRecordingResources("start_recording")
         try {
@@ -171,6 +250,7 @@ class AsrSessionManager(
                 AsrVendor.FireRedAsr -> com.brycewg.asrkb.R.string.error_firered_asr_model_missing
                 else -> com.brycewg.asrkb.R.string.error_sensevoice_model_missing
             }
+            clearActiveSessionToken(sessionToken)
             releaseRecordingResources("model_missing")
             listener.onError(context.getString(errRes))
             return
@@ -189,7 +269,7 @@ class AsrSessionManager(
         tryFixCompatPlaceholderIfNeeded()
 
         // 构建引擎
-        asrEngine = buildEngineForCurrentMode()
+        asrEngine = buildEngineForCurrentMode(sessionToken)
         Log.d(TAG, "ASR engine created: ${asrEngine?.javaClass?.simpleName}")
 
         // 记录焦点上下文（占位后再取，保持与参考版本一致）
@@ -226,7 +306,74 @@ class AsrSessionManager(
         listener.onSessionStateChanged(FloatingBallState.Processing)
 
         // 启动超时兜底
-        startProcessingTimeout(lastAudioMsForStats)
+        startProcessingTimeout(activeSessionToken, lastAudioMsForStats)
+    }
+
+    /**
+     * 取消当前会话并丢弃本轮迟到回调，供悬浮球在 Processing/Recording 态主动中止。
+     */
+    fun cancelSession() {
+        Log.d(TAG, "cancelSession called")
+        val sessionToken = activeSessionToken
+        val commitText = peekInterruptedPostProcessingCommitText(sessionToken)
+        clearActiveSessionToken(sessionToken)
+        try {
+            processingTimeoutJob?.cancel()
+        } catch (e: Throwable) {
+            Log.w(TAG, "Failed to cancel timeout job in cancelSession", e)
+        }
+        processingTimeoutJob = null
+        hasCommittedResult = false
+        stopActiveEngineIfRunning("cancel_session")
+        releaseRecordingResources("cancel_session")
+        asrEngine = null
+        sessionStartUptimeMs = 0L
+        localModelReadyWaitMs.set(0L)
+        listener.onSessionStateChanged(FloatingBallState.Idle)
+        if (!commitText.isNullOrEmpty()) {
+            Log.d(TAG, "Cancel during AI post-processing; commit current result instead")
+            lastAiUsed = false
+            lastAiPostMs = 0L
+            lastAiPostStatus = AsrHistoryStore.AiPostStatus.NONE
+            val success = insertTextToFocus(commitText)
+            hasCommittedResult = true
+            listener.onResultCommitted(commitText, success)
+        } else {
+            rollbackPreviewToSnapshotIfNeeded()
+            sessionStartTotalUptimeMs = 0L
+            lastAudioMsForStats = 0L
+            lastRequestDurationMs = null
+        }
+        clearPreviewSessionContext()
+    }
+
+    private fun rollbackPreviewToSnapshotIfNeeded() {
+        if (lastPartialForPreview.isNullOrEmpty() && !markerInserted) return
+        val ctx = focusContext ?: return
+        val currentText = com.brycewg.asrkb.ui.AsrAccessibilityService.getCurrentFocusedText()
+            ?: return
+        val rollbackText = stripMarkersIfAny(ctx.prefix + ctx.suffix)
+        val previewText = lastPartialForPreview?.let { ctx.prefix + it + ctx.suffix }
+        val acceptableCurrentTexts = linkedSetOf(
+            ctx.prefix + ctx.suffix,
+            rollbackText
+        )
+        previewText?.let {
+            acceptableCurrentTexts += it
+            acceptableCurrentTexts += stripMarkersIfAny(it)
+        }
+        if (currentText !in acceptableCurrentTexts) {
+            Log.d(TAG, "Skip preview rollback because focused text diverged")
+            return
+        }
+        val reverted = com.brycewg.asrkb.ui.AsrAccessibilityService.insertTextSilent(rollbackText)
+        if (!reverted) {
+            Log.w(TAG, "Failed to roll back preview text on cancelSession")
+            return
+        }
+        val prefixLenForCursor = stripMarkersIfAny(ctx.prefix).length
+        com.brycewg.asrkb.ui.AsrAccessibilityService.setSelectionSilent(prefixLenForCursor)
+        Log.d(TAG, "Preview text rolled back on cancelSession")
     }
 
     /**
@@ -270,6 +417,7 @@ class AsrSessionManager(
 
     /** 清理会话 */
     fun cleanup() {
+        clearActiveSessionToken()
         try {
             asrEngine?.stop()
         } catch (e: Throwable) {
@@ -282,23 +430,36 @@ class AsrSessionManager(
         } catch (e: Throwable) {
             Log.w(TAG, "Failed to cancel timeout job", e)
         }
+        rollbackPreviewToSnapshotIfNeeded()
+        asrEngine = null
+        clearPreviewSessionContext()
     }
 
     // ==================== StreamingAsrEngine.Listener ====================
 
-    override fun onFinal(text: String) {
+    private fun onFinal(sessionToken: Long, text: String) {
         Log.d(TAG, "onFinal called with text: $text")
+        if (!isSessionActive(sessionToken)) {
+            Log.d(TAG, "Ignoring onFinal from stale session: $sessionToken")
+            return
+        }
+        val shouldUseAiPostProcessing = prefs.postProcessEnabled && prefs.hasLlmKeys()
+        if (shouldUseAiPostProcessing) {
+            beginAiPostProcessing(sessionToken, text)
+        }
         lastFinalVendorForStats = when (val e = asrEngine) {
             is ParallelAsrEngine -> if (e.wasLastResultFromBackup()) e.backupVendor else e.primaryVendor
             else -> sessionPrimaryVendor
         }
         serviceScope.launch {
+            if (!isSessionActive(sessionToken)) return@launch
             try {
                 processingTimeoutJob?.cancel()
             } catch (e: Throwable) {
                 Log.w(TAG, "Failed to cancel timeout job in onFinal", e)
             }
             processingTimeoutJob = null
+            if (!isSessionActive(sessionToken)) return@launch
 
             // 若已由兜底提交，忽略后续 onFinal
             if (hasCommittedResult && asrEngine?.isRunning != true) {
@@ -322,14 +483,16 @@ class AsrSessionManager(
                     sessionStartUptimeMs = 0L
                 }
             }
+            if (!isSessionActive(sessionToken)) return@launch
 
             // 统一使用 AsrFinalFilters：含预修剪/LLM/后修剪/繁体转换
-            if (prefs.postProcessEnabled && prefs.hasLlmKeys()) {
+            if (shouldUseAiPostProcessing) {
                 Log.d(TAG, "Starting AI post-processing (stillRecording=$stillRecording)")
                 if (!stillRecording) {
                     listener.onSessionStateChanged(FloatingBallState.Processing)
                 }
                 if (lastPartialForPreview.isNullOrEmpty()) {
+                    rememberAiPostProcessingPreview(sessionToken, text)
                     updatePreviewText(text)
                 }
                 val typewriterEnabled = try {
@@ -344,7 +507,8 @@ class AsrSessionManager(
                     TypewriterTextAnimator(
                         scope = serviceScope,
                         onEmit = emit@{ typed ->
-                            if (postprocCommitted) return@emit
+                            if (postprocCommitted || !isSessionActive(sessionToken)) return@emit
+                            rememberAiPostProcessingPreview(sessionToken, typed)
                             updatePreviewText(typed)
                         },
                         frameDelayMs = 60L,
@@ -357,7 +521,7 @@ class AsrSessionManager(
                 }
                 var lastStreamingText: String? = null
                 val onStreamingUpdate: (String) -> Unit = onStreamingUpdate@{ streamed ->
-                    if (postprocCommitted) return@onStreamingUpdate
+                    if (postprocCommitted || !isSessionActive(sessionToken)) return@onStreamingUpdate
                     if (streamed.isEmpty() ||
                         streamed == lastStreamingText
                     ) {
@@ -367,6 +531,7 @@ class AsrSessionManager(
                     if (typewriter != null) {
                         typewriter.submit(streamed)
                     } else {
+                        rememberAiPostProcessingPreview(sessionToken, streamed)
                         updatePreviewText(streamed)
                     }
                 }
@@ -390,6 +555,10 @@ class AsrSessionManager(
                         llmMs = 0
                     )
                 }
+                if (!isSessionActive(sessionToken)) {
+                    typewriter?.cancel()
+                    return@launch
+                }
                 if (!res.ok) Log.w(TAG, "Post-processing failed; using processed text anyway")
                 val aiUsed = (res.usedAi && res.ok)
                 lastAiPostMs = if (res.attempted) res.llmMs else 0L
@@ -399,6 +568,7 @@ class AsrSessionManager(
                     else -> AsrHistoryStore.AiPostStatus.NONE
                 }
                 finalText = res.text.ifBlank { text }
+                rememberAiPostProcessingResolvedText(sessionToken, finalText)
                 if (typewriter != null &&
                     aiUsed &&
                     finalText.isNotEmpty() &&
@@ -413,11 +583,16 @@ class AsrSessionManager(
                         0L
                     }
                     while (!postprocCommitted &&
+                        isSessionActive(sessionToken) &&
                         (t0 <= 0L || (SystemClock.uptimeMillis() - t0) < 2_000L) &&
                         typewriter.currentText().length != finalLen
                     ) {
                         delay(20)
                     }
+                }
+                if (!isSessionActive(sessionToken)) {
+                    typewriter?.cancel()
+                    return@launch
                 }
                 postprocCommitted = true
                 typewriter?.cancel()
@@ -430,19 +605,27 @@ class AsrSessionManager(
                 lastAiPostMs = 0L
                 lastAiPostStatus = AsrHistoryStore.AiPostStatus.NONE
             }
+            if (!isSessionActive(sessionToken)) return@launch
 
             // 更新状态
-            if (asrEngine?.isRunning == true) {
+            val engineStillRunning = asrEngine?.isRunning == true
+            if (engineStillRunning) {
                 listener.onSessionStateChanged(FloatingBallState.Recording)
             } else {
                 listener.onSessionStateChanged(FloatingBallState.Idle)
             }
+            if (!isSessionActive(sessionToken)) return@launch
 
             // 插入文本
             if (finalText.isNotEmpty()) {
+                val usedBackupEngine =
+                    (asrEngine as? ParallelAsrEngine)?.wasLastResultFromBackup() == true
                 val success = insertTextToFocus(finalText)
+                if (!engineStillRunning) {
+                    clearActiveSessionToken(sessionToken)
+                }
                 listener.onResultCommitted(finalText, success)
-                if ((asrEngine as? ParallelAsrEngine)?.wasLastResultFromBackup() == true) {
+                if (usedBackupEngine) {
                     android.widget.Toast.makeText(
                         context,
                         context.getString(com.brycewg.asrkb.R.string.toast_backup_asr_used),
@@ -451,21 +634,26 @@ class AsrSessionManager(
                 }
             } else {
                 Log.w(TAG, "Final text is empty")
+                if (!engineStillRunning) {
+                    clearActiveSessionToken(sessionToken)
+                }
                 listener.onError(
                     context.getString(com.brycewg.asrkb.R.string.asr_error_empty_result)
                 )
             }
 
             // 清理会话上下文
-            focusContext = null
-            lastPartialForPreview = null
-            markerInserted = false
-            markerChar = null
+            clearPreviewSessionContext()
         }
     }
 
-    override fun onStopped() {
+    private fun onStopped(sessionToken: Long) {
+        if (!isSessionActive(sessionToken)) {
+            Log.d(TAG, "Ignoring onStopped from stale session: $sessionToken")
+            return
+        }
         serviceScope.launch {
+            if (!isSessionActive(sessionToken)) return@launch
             listener.onSessionStateChanged(FloatingBallState.Processing)
             // 计算本次会话录音时长
             if (sessionStartUptimeMs > 0L) {
@@ -482,13 +670,15 @@ class AsrSessionManager(
                     sessionStartUptimeMs = 0L
                 }
             }
+            if (!isSessionActive(sessionToken)) return@launch
             // 确保归还音频焦点
             try {
                 abandonAudioFocusIfNeeded()
             } catch (t: Throwable) {
                 Log.w(TAG, "abandonAudioFocusIfNeeded failed in onStopped", t)
             }
-            startProcessingTimeout(lastAudioMsForStats)
+            if (!isSessionActive(sessionToken)) return@launch
+            startProcessingTimeout(sessionToken, lastAudioMsForStats)
         }
     }
 
@@ -539,21 +729,32 @@ class AsrSessionManager(
         }
     }
 
-    override fun onPartial(text: String) {
+    private fun onPartial(sessionToken: Long, text: String) {
+        if (!isSessionActive(sessionToken)) {
+            Log.d(TAG, "Ignoring onPartial from stale session: $sessionToken")
+            return
+        }
         updatePreviewText(text)
     }
 
-    override fun onError(message: String) {
+    private fun onError(sessionToken: Long, message: String) {
         Log.e(TAG, "onError called: $message")
+        if (!isSessionActive(sessionToken)) {
+            Log.d(TAG, "Ignoring onError from stale session: $sessionToken")
+            return
+        }
         serviceScope.launch {
+            if (!isSessionActive(sessionToken)) return@launch
             try {
                 processingTimeoutJob?.cancel()
             } catch (e: Throwable) {
                 Log.w(TAG, "Failed to cancel timeout job in onError", e)
             }
             processingTimeoutJob = null
+            if (!isSessionActive(sessionToken)) return@launch
             stopActiveEngineIfRunning("listener_onError")
             releaseRecordingResources("listener_onError")
+            clearActiveSessionToken(sessionToken)
 
             listener.onSessionStateChanged(FloatingBallState.Error(message))
             listener.onError(message)
@@ -632,7 +833,9 @@ class AsrSessionManager(
         }
     }
 
-    private fun buildEngineForCurrentMode(): StreamingAsrEngine? {
+    private fun buildEngineForCurrentMode(sessionToken: Long): StreamingAsrEngine? {
+        val engineListener = createEngineListener(sessionToken)
+        val requestDurationCallback: (Long) -> Unit = { ms -> onRequestDuration(sessionToken, ms) }
         val primaryVendor = prefs.asrVendor
         val backupVendor = prefs.backupAsrVendor
         val backupEnabled = shouldUseBackupAsr(primaryVendor, backupVendor)
@@ -641,33 +844,33 @@ class AsrSessionManager(
                 context = context,
                 scope = serviceScope,
                 prefs = prefs,
-                listener = this,
+                listener = engineListener,
                 primaryVendor = primaryVendor,
                 backupVendor = backupVendor,
-                onPrimaryRequestDuration = ::onRequestDuration
+                onPrimaryRequestDuration = requestDurationCallback
             )
         }
 
         return when (primaryVendor) {
             AsrVendor.Volc -> if (prefs.hasVolcKeys()) {
                 if (prefs.volcStreamingEnabled) {
-                    VolcStreamAsrEngine(context, serviceScope, prefs, this)
+                    VolcStreamAsrEngine(context, serviceScope, prefs, engineListener)
                 } else {
                     if (prefs.volcFileStandardEnabled) {
                         VolcStandardFileAsrEngine(
                             context,
                             serviceScope,
                             prefs,
-                            this,
-                            onRequestDuration = ::onRequestDuration
+                            engineListener,
+                            onRequestDuration = requestDurationCallback
                         )
                     } else {
                         VolcFileAsrEngine(
                             context,
                             serviceScope,
                             prefs,
-                            this,
-                            onRequestDuration = ::onRequestDuration
+                            engineListener,
+                            onRequestDuration = requestDurationCallback
                         )
                     }
                 }
@@ -679,22 +882,22 @@ class AsrSessionManager(
                     context,
                     serviceScope,
                     prefs,
-                    this,
-                    onRequestDuration = ::onRequestDuration
+                    engineListener,
+                    onRequestDuration = requestDurationCallback
                 )
             } else {
                 null
             }
             AsrVendor.ElevenLabs -> if (prefs.hasElevenKeys()) {
                 if (prefs.elevenStreamingEnabled) {
-                    ElevenLabsStreamAsrEngine(context, serviceScope, prefs, this)
+                    ElevenLabsStreamAsrEngine(context, serviceScope, prefs, engineListener)
                 } else {
                     ElevenLabsFileAsrEngine(
                         context,
                         serviceScope,
                         prefs,
-                        this,
-                        onRequestDuration = ::onRequestDuration
+                        engineListener,
+                        onRequestDuration = requestDurationCallback
                     )
                 }
             } else {
@@ -702,14 +905,14 @@ class AsrSessionManager(
             }
             AsrVendor.OpenAI -> if (prefs.hasOpenAiKeys()) {
                 if (prefs.oaAsrStreamingEnabled) {
-                    OpenAiRealtimeAsrEngine(context, serviceScope, prefs, this)
+                    OpenAiRealtimeAsrEngine(context, serviceScope, prefs, engineListener)
                 } else {
                     OpenAiFileAsrEngine(
                         context,
                         serviceScope,
                         prefs,
-                        this,
-                        onRequestDuration = ::onRequestDuration
+                        engineListener,
+                        onRequestDuration = requestDurationCallback
                     )
                 }
             } else {
@@ -717,14 +920,14 @@ class AsrSessionManager(
             }
             AsrVendor.DashScope -> if (prefs.hasDashKeys()) {
                 if (prefs.isDashStreamingModelSelected()) {
-                    DashscopeStreamAsrEngine(context, serviceScope, prefs, this)
+                    DashscopeStreamAsrEngine(context, serviceScope, prefs, engineListener)
                 } else {
                     DashscopeFileAsrEngine(
                         context,
                         serviceScope,
                         prefs,
-                        this,
-                        onRequestDuration = ::onRequestDuration
+                        engineListener,
+                        onRequestDuration = requestDurationCallback
                     )
                 }
             } else {
@@ -735,22 +938,22 @@ class AsrSessionManager(
                     context,
                     serviceScope,
                     prefs,
-                    this,
-                    onRequestDuration = ::onRequestDuration
+                    engineListener,
+                    onRequestDuration = requestDurationCallback
                 )
             } else {
                 null
             }
             AsrVendor.Soniox -> if (prefs.hasSonioxKeys()) {
                 if (prefs.sonioxStreamingEnabled) {
-                    SonioxStreamAsrEngine(context, serviceScope, prefs, this)
+                    SonioxStreamAsrEngine(context, serviceScope, prefs, engineListener)
                 } else {
                     SonioxFileAsrEngine(
                         context,
                         serviceScope,
                         prefs,
-                        this,
-                        onRequestDuration = ::onRequestDuration
+                        engineListener,
+                        onRequestDuration = requestDurationCallback
                     )
                 }
             } else {
@@ -761,8 +964,8 @@ class AsrSessionManager(
                     context,
                     serviceScope,
                     prefs,
-                    this,
-                    onRequestDuration = ::onRequestDuration
+                    engineListener,
+                    onRequestDuration = requestDurationCallback
                 )
             } else {
                 null
@@ -773,16 +976,16 @@ class AsrSessionManager(
                         context,
                         serviceScope,
                         prefs,
-                        this,
-                        onRequestDuration = ::onRequestDuration
+                        engineListener,
+                        onRequestDuration = requestDurationCallback
                     )
                 } else {
                     SenseVoiceFileAsrEngine(
                         context,
                         serviceScope,
                         prefs,
-                        this,
-                        onRequestDuration = ::onRequestDuration
+                        engineListener,
+                        onRequestDuration = requestDurationCallback
                     )
                 }
             }
@@ -792,8 +995,8 @@ class AsrSessionManager(
                     context,
                     serviceScope,
                     prefs,
-                    this,
-                    onRequestDuration = ::onRequestDuration
+                    engineListener,
+                    onRequestDuration = requestDurationCallback
                 )
             }
             AsrVendor.FireRedAsr -> {
@@ -802,21 +1005,21 @@ class AsrSessionManager(
                         context,
                         serviceScope,
                         prefs,
-                        this,
-                        onRequestDuration = ::onRequestDuration
+                        engineListener,
+                        onRequestDuration = requestDurationCallback
                     )
                 } else {
                     FireRedAsrFileAsrEngine(
                         context,
                         serviceScope,
                         prefs,
-                        this,
-                        onRequestDuration = ::onRequestDuration
+                        engineListener,
+                        onRequestDuration = requestDurationCallback
                     )
                 }
             }
             AsrVendor.Paraformer -> {
-                ParaformerStreamAsrEngine(context, serviceScope, prefs, this)
+                ParaformerStreamAsrEngine(context, serviceScope, prefs, engineListener)
             }
         }
     }
@@ -840,7 +1043,11 @@ class AsrSessionManager(
         }
     }
 
-    private fun onRequestDuration(ms: Long) {
+    private fun onRequestDuration(sessionToken: Long, ms: Long) {
+        if (!isSessionActive(sessionToken)) {
+            Log.d(TAG, "Ignoring request duration from stale session: $sessionToken")
+            return
+        }
         val waitMs = localModelReadyWaitMs.getAndSet(LOCAL_MODEL_READY_WAIT_CONSUMED)
         val adjusted = if (waitMs > 0L && ms > waitMs) ms - waitMs else ms
         lastRequestDurationMs = adjusted
@@ -848,7 +1055,8 @@ class AsrSessionManager(
         Log.d(TAG, "Request duration: ${adjusted}ms")
     }
 
-    private fun startProcessingTimeout(audioMsOverride: Long? = null) {
+    private fun startProcessingTimeout(sessionToken: Long, audioMsOverride: Long? = null) {
+        if (!isSessionActive(sessionToken)) return
         try {
             processingTimeoutJob?.cancel()
         } catch (e: Throwable) {
@@ -859,6 +1067,7 @@ class AsrSessionManager(
         val baseTimeoutMs = AsrTimeoutCalculator.calculateTimeoutMs(audioMs)
         val timeoutMs = if (usingBackupEngine) baseTimeoutMs + 2_000L else baseTimeoutMs
         processingTimeoutJob = serviceScope.launch {
+            if (!isSessionActive(sessionToken)) return@launch
             val shouldDeferForLocalModel = try {
                 !usingBackupEngine && isLocalAsrVendor(prefs.asrVendor)
             } catch (t: Throwable) {
@@ -894,23 +1103,28 @@ class AsrSessionManager(
                     }
                 }
             }
+            if (!isSessionActive(sessionToken)) return@launch
             delay(timeoutMs)
+            if (!isSessionActive(sessionToken)) return@launch
             if (!hasCommittedResult) {
                 Log.d(TAG, "Processing timeout fired: audioMs=$audioMs, timeoutMs=$timeoutMs")
-                handleProcessingTimeout()
+                handleProcessingTimeout(sessionToken)
             }
         }
         Log.d(TAG, "Processing timeout scheduled: audioMs=$audioMs, timeoutMs=$timeoutMs")
     }
 
-    private suspend fun handleProcessingTimeout() {
+    private suspend fun handleProcessingTimeout(sessionToken: Long) {
+        if (!isSessionActive(sessionToken)) return
         stopActiveEngineIfRunning("processing_timeout")
         releaseRecordingResources("processing_timeout")
         val candidate = lastPartialForPreview?.trim().orEmpty()
         Log.w(TAG, "Finalize timeout; fallback with preview='$candidate'")
         if (candidate.isEmpty()) {
             Log.w(TAG, "Fallback has no candidate text; only clear state")
+            clearActiveSessionToken(sessionToken)
             listener.onSessionStateChanged(FloatingBallState.Idle)
+            clearPreviewSessionContext()
             return
         }
 
@@ -946,17 +1160,16 @@ class AsrSessionManager(
             lastAiPostStatus = AsrHistoryStore.AiPostStatus.NONE
             com.brycewg.asrkb.util.AsrFinalFilters.applySimple(context, prefs, candidate)
         }
+        if (!isSessionActive(sessionToken)) return
 
         val success = insertTextToFocus(textOut)
         Log.d(TAG, "Fallback inserted=$success text='$textOut'")
+        clearActiveSessionToken(sessionToken)
         listener.onResultCommitted(textOut, success)
         hasCommittedResult = true
 
         listener.onSessionStateChanged(FloatingBallState.Idle)
-        focusContext = null
-        lastPartialForPreview = null
-        markerInserted = false
-        markerChar = null
+        clearPreviewSessionContext()
     }
 
     private fun insertTextToFocus(text: String): Boolean {

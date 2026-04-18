@@ -113,6 +113,13 @@ internal class FloatingAsrInteractionController(
         updateVisibilityByPref("stop_recording")
     }
 
+    private fun cancelCurrentSession() {
+        Log.d(tag, "cancelCurrentSession called")
+        cancelEdgeHandleAutoHide()
+        asrSessionManager.cancelSession()
+        updateVisibilityByPref("cancel_session")
+    }
+
     // ==================== 延迟任务 ====================
 
     private fun cancelDelayedRunnable(runnable: Runnable?, label: String): Runnable? {
@@ -407,7 +414,15 @@ internal class FloatingAsrInteractionController(
             return
         }
 
-        if (stateMachine.isProcessing) return
+        if (stateMachine.isRecording) {
+            stopRecording()
+            return
+        }
+
+        if (stateMachine.isProcessing) {
+            cancelCurrentSession()
+            return
+        }
 
         if (viewManager.isEdgeHandleVisible()) {
             try {
@@ -439,7 +454,7 @@ internal class FloatingAsrInteractionController(
             Log.w(tag, "Failed to reveal on tap", e)
         }
 
-        if (stateMachine.isRecording) stopRecording() else startRecording()
+        startRecording()
     }
 
     override fun onLongPress() {

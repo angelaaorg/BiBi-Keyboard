@@ -71,6 +71,17 @@ class AsrAccessibilityService : AccessibilityService() {
         }
 
         /**
+         * 读取当前焦点输入框中的完整文本；若节点正在显示 hint，则按空文本处理。
+         */
+        fun getCurrentFocusedText(): String? {
+            val svc = instance ?: return null
+            return svc.withFocusedEditableNode { focused ->
+                val text = focused.text?.toString()
+                if (isNodeShowingHint(focused, text)) "" else (text ?: "")
+            }
+        }
+
+        /**
          * 判断节点当前是否显示提示文本（而非用户输入内容）。
          * 三重检查：
          * 1. 标准 isShowingHintText API

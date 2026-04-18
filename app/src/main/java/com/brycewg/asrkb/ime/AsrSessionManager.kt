@@ -32,8 +32,7 @@ class AsrSessionManager(
     private val context: Context,
     private val scope: CoroutineScope,
     private val prefs: Prefs
-) : StreamingAsrEngine.Listener,
-    SenseVoiceFileAsrEngine.LocalModelLoadUi {
+) : SenseVoiceFileAsrEngine.LocalModelLoadUi {
 
     companion object {
         private const val TAG = "AsrSessionManager"
@@ -107,6 +106,8 @@ class AsrSessionManager(
 
     // 本地模型：Processing 阶段等待“模型就绪”的耗时（用于将处理耗时统计从模型就绪开始）
     private var sessionSeq: Long = 0L
+    private var engineSessionSeq: Long = 0L
+    private var engineListenerBridge: SessionBoundEngineListener? = null
     private var localModelWaitStartUptimeMs: Long = 0L
     private val localModelReadyWaitMs = AtomicLong(0L)
     private var localModelReadyWaitJob: Job? = null
@@ -117,6 +118,59 @@ class AsrSessionManager(
 
     // 统计/历史：端到端耗时起点（从开始录音到最终提交完成）
     private var sessionStartTotalUptimeMs: Long = 0L
+
+    private fun nextSessionSeq(): Long {
+        sessionSeq += 1L
+        return sessionSeq
+    }
+
+    private fun clearActiveSession(expectedSeq: Long? = null) {
+        if (expectedSeq == null || sessionSeq == expectedSeq) {
+            sessionSeq = 0L
+        }
+    }
+
+    private fun isSessionActive(seq: Long): Boolean = seq != 0L && sessionSeq == seq
+
+    private inner class SessionBoundEngineListener(
+        initialSessionSeq: Long
+    ) : StreamingAsrEngine.Listener {
+        private val boundSessionSeq = AtomicLong(initialSessionSeq)
+
+        fun currentSessionSeq(): Long = boundSessionSeq.get()
+
+        fun bindPrewarmedSession(targetSessionSeq: Long): Boolean {
+            if (targetSessionSeq == 0L) return false
+            return boundSessionSeq.compareAndSet(0L, targetSessionSeq)
+        }
+
+        override fun onFinal(text: String) {
+            this@AsrSessionManager.onFinal(currentSessionSeq(), text)
+        }
+
+        override fun onError(message: String) {
+            this@AsrSessionManager.onError(currentSessionSeq(), message)
+        }
+
+        override fun onPartial(text: String) {
+            this@AsrSessionManager.onPartial(currentSessionSeq(), text)
+        }
+
+        override fun onStopped() {
+            this@AsrSessionManager.onStopped(currentSessionSeq())
+        }
+
+        override fun onAmplitude(amplitude: Float) {
+            this@AsrSessionManager.onAmplitude(currentSessionSeq(), amplitude)
+        }
+    }
+
+    private data class BuiltEngine(
+        val engine: StreamingAsrEngine,
+        val listenerBridge: SessionBoundEngineListener
+    )
+
+    private fun createEngineListener(seq: Long): SessionBoundEngineListener = SessionBoundEngineListener(seq)
 
     private fun snapshotAudioDurationIfPossible() {
         if (sessionStartUptimeMs == 0L || lastAudioMsForStats != 0L) return
@@ -154,30 +208,51 @@ class AsrSessionManager(
     /**
      * 构建符合当前配置的 ASR 引擎
      */
-    fun buildEngine(): StreamingAsrEngine? {
+    fun buildEngine(): StreamingAsrEngine? = createBuiltEngine(0L)?.engine
+
+    private fun createBuiltEngine(targetSessionSeq: Long): BuiltEngine? {
+        val engineListener = createEngineListener(targetSessionSeq)
+        val requestDurationCallback: (Long) -> Unit = { ms ->
+            onRequestDuration(engineListener.currentSessionSeq(), ms)
+        }
         val primaryVendor = prefs.asrVendor
         val backupVendor = prefs.backupAsrVendor
         val backupEnabled = shouldUseBackupAsr(primaryVendor, backupVendor)
         if (backupEnabled) {
-            return ParallelAsrEngine(
-                context = context,
-                scope = scope,
-                prefs = prefs,
-                listener = this,
-                primaryVendor = primaryVendor,
-                backupVendor = backupVendor,
-                onPrimaryRequestDuration = ::onRequestDuration
+            return BuiltEngine(
+                engine = ParallelAsrEngine(
+                    context = context,
+                    scope = scope,
+                    prefs = prefs,
+                    listener = engineListener,
+                    primaryVendor = primaryVendor,
+                    backupVendor = backupVendor,
+                    onPrimaryRequestDuration = requestDurationCallback
+                ),
+                listenerBridge = engineListener
             )
         }
-        return when (prefs.asrVendor) {
+        val engine = when (prefs.asrVendor) {
             AsrVendor.Volc -> if (prefs.hasVolcKeys()) {
                 if (prefs.volcStreamingEnabled) {
-                    VolcStreamAsrEngine(context, scope, prefs, this)
+                    VolcStreamAsrEngine(context, scope, prefs, engineListener)
                 } else {
                     if (prefs.volcFileStandardEnabled) {
-                        VolcStandardFileAsrEngine(context, scope, prefs, this, ::onRequestDuration)
+                        VolcStandardFileAsrEngine(
+                            context,
+                            scope,
+                            prefs,
+                            engineListener,
+                            requestDurationCallback
+                        )
                     } else {
-                        VolcFileAsrEngine(context, scope, prefs, this, ::onRequestDuration)
+                        VolcFileAsrEngine(
+                            context,
+                            scope,
+                            prefs,
+                            engineListener,
+                            requestDurationCallback
+                        )
                     }
                 }
             } else {
@@ -185,16 +260,28 @@ class AsrSessionManager(
             }
 
             AsrVendor.SiliconFlow -> if (prefs.hasSfKeys()) {
-                SiliconFlowFileAsrEngine(context, scope, prefs, this, ::onRequestDuration)
+                SiliconFlowFileAsrEngine(
+                    context,
+                    scope,
+                    prefs,
+                    engineListener,
+                    requestDurationCallback
+                )
             } else {
                 null
             }
 
             AsrVendor.ElevenLabs -> if (prefs.hasElevenKeys()) {
                 if (prefs.elevenStreamingEnabled) {
-                    ElevenLabsStreamAsrEngine(context, scope, prefs, this)
+                    ElevenLabsStreamAsrEngine(context, scope, prefs, engineListener)
                 } else {
-                    ElevenLabsFileAsrEngine(context, scope, prefs, this, ::onRequestDuration)
+                    ElevenLabsFileAsrEngine(
+                        context,
+                        scope,
+                        prefs,
+                        engineListener,
+                        requestDurationCallback
+                    )
                 }
             } else {
                 null
@@ -202,9 +289,15 @@ class AsrSessionManager(
 
             AsrVendor.OpenAI -> if (prefs.hasOpenAiKeys()) {
                 if (prefs.oaAsrStreamingEnabled) {
-                    OpenAiRealtimeAsrEngine(context, scope, prefs, this)
+                    OpenAiRealtimeAsrEngine(context, scope, prefs, engineListener)
                 } else {
-                    OpenAiFileAsrEngine(context, scope, prefs, this, ::onRequestDuration)
+                    OpenAiFileAsrEngine(
+                        context,
+                        scope,
+                        prefs,
+                        engineListener,
+                        requestDurationCallback
+                    )
                 }
             } else {
                 null
@@ -212,32 +305,44 @@ class AsrSessionManager(
 
             AsrVendor.DashScope -> if (prefs.hasDashKeys()) {
                 if (prefs.isDashStreamingModelSelected()) {
-                    DashscopeStreamAsrEngine(context, scope, prefs, this)
+                    DashscopeStreamAsrEngine(context, scope, prefs, engineListener)
                 } else {
-                    DashscopeFileAsrEngine(context, scope, prefs, this, ::onRequestDuration)
+                    DashscopeFileAsrEngine(
+                        context,
+                        scope,
+                        prefs,
+                        engineListener,
+                        requestDurationCallback
+                    )
                 }
             } else {
                 null
             }
 
             AsrVendor.Gemini -> if (prefs.hasGeminiKeys()) {
-                GeminiFileAsrEngine(context, scope, prefs, this, ::onRequestDuration)
+                GeminiFileAsrEngine(context, scope, prefs, engineListener, requestDurationCallback)
             } else {
                 null
             }
 
             AsrVendor.Soniox -> if (prefs.hasSonioxKeys()) {
                 if (prefs.sonioxStreamingEnabled) {
-                    SonioxStreamAsrEngine(context, scope, prefs, this)
+                    SonioxStreamAsrEngine(context, scope, prefs, engineListener)
                 } else {
-                    SonioxFileAsrEngine(context, scope, prefs, this, ::onRequestDuration)
+                    SonioxFileAsrEngine(
+                        context,
+                        scope,
+                        prefs,
+                        engineListener,
+                        requestDurationCallback
+                    )
                 }
             } else {
                 null
             }
 
             AsrVendor.Zhipu -> if (prefs.hasZhipuKeys()) {
-                ZhipuFileAsrEngine(context, scope, prefs, this, ::onRequestDuration)
+                ZhipuFileAsrEngine(context, scope, prefs, engineListener, requestDurationCallback)
             } else {
                 null
             }
@@ -249,17 +354,29 @@ class AsrSessionManager(
                         context,
                         scope,
                         prefs,
-                        this,
-                        ::onRequestDuration
+                        engineListener,
+                        requestDurationCallback
                     )
                 } else {
                     // 本地 SenseVoice：传统文件识别模式
-                    SenseVoiceFileAsrEngine(context, scope, prefs, this, ::onRequestDuration)
+                    SenseVoiceFileAsrEngine(
+                        context,
+                        scope,
+                        prefs,
+                        engineListener,
+                        requestDurationCallback
+                    )
                 }
             }
             AsrVendor.FunAsrNano -> {
                 // 本地 FunASR Nano：算力开销高，不支持伪流式预览，仅保留整段离线识别
-                FunAsrNanoFileAsrEngine(context, scope, prefs, this, ::onRequestDuration)
+                FunAsrNanoFileAsrEngine(
+                    context,
+                    scope,
+                    prefs,
+                    engineListener,
+                    requestDurationCallback
+                )
             }
             AsrVendor.FireRedAsr -> {
                 if (prefs.frPseudoStreamEnabled) {
@@ -268,17 +385,26 @@ class AsrSessionManager(
                         context,
                         scope,
                         prefs,
-                        this,
-                        ::onRequestDuration
+                        engineListener,
+                        requestDurationCallback
                     )
                 } else {
                     // 本地 FireRedASR：传统文件识别模式
-                    FireRedAsrFileAsrEngine(context, scope, prefs, this, ::onRequestDuration)
+                    FireRedAsrFileAsrEngine(
+                        context,
+                        scope,
+                        prefs,
+                        engineListener,
+                        requestDurationCallback
+                    )
                 }
             }
             AsrVendor.Paraformer -> {
-                ParaformerStreamAsrEngine(context, scope, prefs, this)
+                ParaformerStreamAsrEngine(context, scope, prefs, engineListener)
             }
+        }
+        return engine?.let {
+            BuiltEngine(engine = it, listenerBridge = engineListener)
         }
     }
 
@@ -304,8 +430,28 @@ class AsrSessionManager(
     /**
      * 确保引擎与当前模式匹配（用于模式切换时避免重建引擎）
      */
-    fun ensureEngineMatchesMode(): StreamingAsrEngine? {
-        if (!prefs.hasAsrKeys()) return null
+    fun ensureEngineMatchesMode(): StreamingAsrEngine? = ensureEngineMatchesMode(0L)
+
+    private fun tryReuseMatchedEngine(
+        matched: StreamingAsrEngine?,
+        targetSessionSeq: Long
+    ): StreamingAsrEngine? {
+        val engine = matched ?: return null
+        if (engineSessionSeq == targetSessionSeq) return engine
+        if (engineSessionSeq != 0L || targetSessionSeq == 0L) return null
+        val bound = engineListenerBridge?.bindPrewarmedSession(targetSessionSeq) == true
+        if (!bound) return null
+        engineSessionSeq = targetSessionSeq
+        return engine
+    }
+
+    private fun ensureEngineMatchesMode(targetSessionSeq: Long): StreamingAsrEngine? {
+        if (!prefs.hasAsrKeys()) {
+            asrEngine = null
+            engineSessionSeq = 0L
+            engineListenerBridge = null
+            return null
+        }
 
         val primaryVendor = prefs.asrVendor
         val backupVendor = prefs.backupAsrVendor
@@ -322,10 +468,14 @@ class AsrSessionManager(
                 }
                 else -> null
             }
-            val engine = matched ?: buildEngine()
-            if (engine != null && engine !== asrEngine) {
+            val reusable = tryReuseMatchedEngine(matched, targetSessionSeq)
+            val built = if (reusable == null) createBuiltEngine(targetSessionSeq) else null
+            val engine = reusable ?: built?.engine ?: return null
+            if (engine !== asrEngine) {
                 asrEngine?.stop()
                 asrEngine = engine
+                engineListenerBridge = built?.listenerBridge
+                engineSessionSeq = targetSessionSeq
             }
             return asrEngine
         }
@@ -398,10 +548,14 @@ class AsrSessionManager(
             }
         }
 
-        val engine = matched ?: buildEngine()
-        if (engine != null && engine !== asrEngine) {
+        val reusable = tryReuseMatchedEngine(matched, targetSessionSeq)
+        val built = if (reusable == null) createBuiltEngine(targetSessionSeq) else null
+        val engine = reusable ?: built?.engine ?: return null
+        if (engine !== asrEngine) {
             asrEngine?.stop()
             asrEngine = engine
+            engineListenerBridge = built?.listenerBridge
+            engineSessionSeq = targetSessionSeq
         }
         return asrEngine
     }
@@ -410,7 +564,10 @@ class AsrSessionManager(
      * 重新构建引擎（设置改变时使用）
      */
     fun rebuildEngine() {
-        asrEngine = buildEngine()
+        val built = createBuiltEngine(0L)
+        asrEngine = built?.engine
+        engineListenerBridge = built?.listenerBridge
+        engineSessionSeq = 0L
     }
 
     /**
@@ -419,6 +576,7 @@ class AsrSessionManager(
      */
     fun startRecording(state: KeyboardState) {
         currentState = state
+        val activeSeq = nextSessionSeq()
         try {
             sessionPrimaryVendor = prefs.asrVendor
         } catch (t: Throwable) {
@@ -426,7 +584,6 @@ class AsrSessionManager(
         } finally {
             lastFinalVendorForStats = null
         }
-        sessionSeq++
         localModelWaitStartUptimeMs = 0L
         localModelReadyWaitMs.set(0L)
         try {
@@ -447,11 +604,18 @@ class AsrSessionManager(
         // 新会话开始时重置上次请求耗时，避免串台（流式模式不会更新此值）
         lastRequestDurationMs = null
         try {
-            val eng = ensureEngineMatchesMode()
+            val eng = ensureEngineMatchesMode(activeSeq)
+            if (eng == null) {
+                asrEngine = null
+                engineSessionSeq = 0L
+                engineListenerBridge = null
+                clearActiveSession(activeSeq)
+            }
             DebugLogManager.log(
                 category = "asr",
                 event = "start",
                 data = mapOf(
+                    "sessionSeq" to activeSeq,
                     "vendor" to prefs.asrVendor.name,
                     "engine" to (eng?.javaClass?.simpleName ?: "null"),
                     "state" to state::class.java.simpleName,
@@ -544,14 +708,16 @@ class AsrSessionManager(
      * 停止 ASR 录音
      */
     fun stopRecording() {
+        val activeSeq = sessionSeq
         snapshotAudioDurationIfPossible()
-        markLocalModelProcessingStartIfNeeded()
+        markLocalModelProcessingStartIfNeeded(activeSeq)
         asrEngine?.stop()
         try {
             DebugLogManager.log(
                 category = "asr",
                 event = "stop",
                 data = mapOf(
+                    "sessionSeq" to activeSeq,
                     "state" to currentState::class.java.simpleName,
                     "engineRunning" to (asrEngine?.isRunning == true)
                 )
@@ -634,6 +800,7 @@ class AsrSessionManager(
      * 清理资源
      */
     fun cleanup() {
+        clearActiveSession()
         asrEngine?.stop()
         try {
             localModelReadyWaitJob?.cancel()
@@ -641,6 +808,8 @@ class AsrSessionManager(
             Log.w(TAG, "Cancel local model wait job failed on cleanup", t)
         }
         localModelReadyWaitJob = null
+        engineSessionSeq = 0L
+        engineListenerBridge = null
         sessionStartTotalUptimeMs = 0L
         listener = null
     }
@@ -666,6 +835,12 @@ class AsrSessionManager(
         val e = asrEngine
         return if (e is BaseFileAsrEngine && e.hasRetryableSegment()) {
             try {
+                if (engineSessionSeq == 0L) {
+                    Log.w(TAG, "retryLastFileRecognition: missing engine session sequence")
+                    return false
+                }
+                sessionSeq = engineSessionSeq
+                lastRequestDurationMs = null
                 e.retryLastSegment()
                 true
             } catch (t: Throwable) {
@@ -680,7 +855,11 @@ class AsrSessionManager(
 
     // ========== StreamingAsrEngine.Listener 实现 ==========
 
-    override fun onFinal(text: String) {
+    private fun onFinal(seq: Long, text: String) {
+        if (!isSessionActive(seq)) {
+            Log.d(TAG, "onFinal ignored for stale sessionSeq=$seq")
+            return
+        }
         Log.d(TAG, "onFinal: text='$text', state=$currentState")
         lastFinalVendorForStats = when (val e = asrEngine) {
             is ParallelAsrEngine -> if (e.wasLastResultFromBackup()) e.backupVendor else e.primaryVendor
@@ -701,15 +880,23 @@ class AsrSessionManager(
                 category = "asr",
                 event = "final",
                 data = mapOf(
+                    "sessionSeq" to seq,
                     "len" to text.length,
                     "state" to currentState::class.java.simpleName
                 )
             )
         } catch (_: Throwable) { }
+        if (asrEngine?.isRunning != true) {
+            clearActiveSession(seq)
+        }
         listener?.onAsrFinal(text, currentState)
     }
 
-    override fun onPartial(text: String) {
+    private fun onPartial(seq: Long, text: String) {
+        if (!isSessionActive(seq)) {
+            Log.d(TAG, "onPartial ignored for stale sessionSeq=$seq")
+            return
+        }
         // 若引擎已停止（用户已松手），忽略后续中间结果，避免重复追加
         if (!isRunning()) {
             Log.d(TAG, "onPartial ignored: engine stopped")
@@ -719,7 +906,11 @@ class AsrSessionManager(
         listener?.onAsrPartial(text)
     }
 
-    override fun onError(message: String) {
+    private fun onError(seq: Long, message: String) {
+        if (!isSessionActive(seq)) {
+            Log.d(TAG, "onError ignored for stale sessionSeq=$seq")
+            return
+        }
         Log.e(TAG, "onError: message='$message', state=$currentState")
         try {
             localModelReadyWaitJob?.cancel()
@@ -733,17 +924,23 @@ class AsrSessionManager(
                 category = "asr",
                 event = "error",
                 data = mapOf(
+                    "sessionSeq" to seq,
                     "state" to currentState::class.java.simpleName,
                     "msgType" to if (friendlyMessage != null) "friendly" else "raw"
                 )
             )
         } catch (_: Throwable) { }
+        clearActiveSession(seq)
         listener?.onAsrError(friendlyMessage ?: message)
     }
 
-    override fun onStopped() {
+    private fun onStopped(seq: Long) {
+        if (!isSessionActive(seq)) {
+            Log.d(TAG, "onStopped ignored for stale sessionSeq=$seq")
+            return
+        }
         Log.d(TAG, "onStopped: state=$currentState")
-        markLocalModelProcessingStartIfNeeded()
+        markLocalModelProcessingStartIfNeeded(seq)
         // 计算本次会话录音时长
         if (sessionStartUptimeMs > 0L) {
             try {
@@ -769,6 +966,7 @@ class AsrSessionManager(
                 category = "asr",
                 event = "stopped",
                 data = mapOf(
+                    "sessionSeq" to seq,
                     "audioMs" to ms,
                     "state" to currentState::class.java.simpleName
                 )
@@ -777,7 +975,8 @@ class AsrSessionManager(
         listener?.onAsrStopped()
     }
 
-    override fun onAmplitude(amplitude: Float) {
+    private fun onAmplitude(seq: Long, amplitude: Float) {
+        if (!isSessionActive(seq)) return
         listener?.onAmplitude(amplitude)
     }
 
@@ -815,7 +1014,8 @@ class AsrSessionManager(
 
     // ========== 私有方法 ==========
 
-    private fun markLocalModelProcessingStartIfNeeded() {
+    private fun markLocalModelProcessingStartIfNeeded(seq: Long) {
+        if (!isSessionActive(seq)) return
         val vendor = try {
             prefs.asrVendor
         } catch (t: Throwable) {
@@ -837,7 +1037,7 @@ class AsrSessionManager(
         // 已就绪：无需等待
         if (isLocalAsrReady(prefs)) return
 
-        val seq = sessionSeq
+        val waitSeq = seq
         try {
             localModelReadyWaitJob?.cancel()
         } catch (t: Throwable) {
@@ -846,7 +1046,7 @@ class AsrSessionManager(
         localModelReadyWaitJob = scope.launch(Dispatchers.Default) {
             val ok = awaitLocalAsrReady(prefs, maxWaitMs = LOCAL_MODEL_READY_WAIT_MAX_MS)
             if (!ok) return@launch
-            if (sessionSeq != seq) return@launch
+            if (!isSessionActive(waitSeq)) return@launch
             val readyAt = try {
                 SystemClock.uptimeMillis()
             } catch (_: Throwable) {
@@ -858,7 +1058,11 @@ class AsrSessionManager(
         }
     }
 
-    private fun onRequestDuration(ms: Long) {
+    private fun onRequestDuration(seq: Long, ms: Long) {
+        if (!isSessionActive(seq)) {
+            Log.d(TAG, "onRequestDuration ignored for stale sessionSeq=$seq")
+            return
+        }
         val waitMs = localModelReadyWaitMs.getAndSet(LOCAL_MODEL_READY_WAIT_CONSUMED)
         val adjusted = if (waitMs > 0L && ms > waitMs) ms - waitMs else ms
         lastRequestDurationMs = adjusted
