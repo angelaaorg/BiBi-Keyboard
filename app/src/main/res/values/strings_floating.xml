@@ -57,8 +57,10 @@
 
     <string name="notif_channel_floating_keep_alive">Background keep-alive</string>
     <string name="notif_channel_floating_keep_alive_desc">Keeps the app running with a persistent notification.</string>
-    <string name="notif_floating_keep_alive_title">Background keep-alive enabled</string>
-    <string name="notif_floating_keep_alive_desc">Running a foreground service to strengthen background keep-alive.</string>
+    <string name="notif_floating_keep_alive_title">%1$s running</string>
+    <string name="notif_floating_keep_alive_desc">Today %1$d chars · %2$s · Post-processing %3$s</string>
+    <string name="notif_floating_keep_alive_postproc_enabled">enabled</string>
+    <string name="notif_floating_keep_alive_postproc_disabled">disabled</string>
 
     <!-- ============================================== -->
     <!-- Floating Settings - Feature Explanations -->

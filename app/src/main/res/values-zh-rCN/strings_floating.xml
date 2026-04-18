@@ -57,8 +57,10 @@
 
     <string name="notif_channel_floating_keep_alive">后台保活</string>
     <string name="notif_channel_floating_keep_alive_desc">通过常驻通知保持后台运行。</string>
-    <string name="notif_floating_keep_alive_title">后台保活已启用</string>
-    <string name="notif_floating_keep_alive_desc">前台服务常驻以强化后台保活能力。</string>
+    <string name="notif_floating_keep_alive_title">%1$s运行中</string>
+    <string name="notif_floating_keep_alive_desc">今日识别%1$d字·%2$s·后处理%3$s</string>
+    <string name="notif_floating_keep_alive_postproc_enabled">启用</string>
+    <string name="notif_floating_keep_alive_postproc_disabled">未启用</string>
 
     <!-- ============================================== -->
     <!-- 悬浮球设置 - 功能说明 -->

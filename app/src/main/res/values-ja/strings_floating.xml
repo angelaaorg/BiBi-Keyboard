@@ -58,8 +58,10 @@
 
     <string name="notif_channel_floating_keep_alive">バックグラウンド保活</string>
     <string name="notif_channel_floating_keep_alive_desc">常駐通知でバックグラウンド動作を維持します。</string>
-    <string name="notif_floating_keep_alive_title">バックグラウンド保活が有効</string>
-    <string name="notif_floating_keep_alive_desc">フォアグラウンドサービスを常駐してバックグラウンド保活を強化します。</string>
+    <string name="notif_floating_keep_alive_title">%1$s 実行中</string>
+    <string name="notif_floating_keep_alive_desc">今日%1$d文字・%2$s・後処理%3$s</string>
+    <string name="notif_floating_keep_alive_postproc_enabled">有効</string>
+    <string name="notif_floating_keep_alive_postproc_disabled">無効</string>
 
     <!-- ============================================== -->
     <!-- フローティング設定 - 機能説明 -->

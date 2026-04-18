@@ -19,17 +19,33 @@ import com.brycewg.asrkb.LocaleHelper
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.store.Prefs
 import com.brycewg.asrkb.store.debug.DebugLogManager
+import com.brycewg.asrkb.ui.AsrVendorUi
 import com.brycewg.asrkb.ui.settings.floating.FloatingSettingsActivity
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.util.UUID
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
 class FloatingKeepAliveService : Service() {
 
+    @Volatile
     private var keepAliveStarted = false
+    private val notificationStateLock = Any()
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private var notificationRefreshJob: Job? = null
 
     companion object {
         private const val TAG = "FloatingKeepAliveSvc"
         private const val CHANNEL_ID = "floating_keep_alive"
         private const val NOTIFICATION_ID = 4101
+        private const val NOTIFICATION_REFRESH_INTERVAL_MS = 60_000L
         private const val TOKEN_PREFS = "floating_keep_alive_auth"
         private const val TOKEN_KEY = "caller_token"
         const val EXTRA_CALLER_TOKEN = "com.brycewg.asrkb.extra.FLOATING_KEEP_ALIVE_TOKEN"
@@ -100,7 +116,9 @@ class FloatingKeepAliveService : Service() {
         when (intent?.action) {
             ACTION_STOP -> {
                 DebugLogManager.logPersistent(this, "keepalive", "service_stop")
-                stopForegroundSafely()
+                keepAliveStarted = false
+                stopNotificationRefreshLoop()
+                clearNotificationSafely()
                 stopSelf()
                 return START_NOT_STICKY
             }
@@ -125,6 +143,8 @@ class FloatingKeepAliveService : Service() {
                     return START_NOT_STICKY
                 }
                 if (keepAliveStarted && intent?.action == ACTION_START) {
+                    updateNotification()
+                    startNotificationRefreshLoop()
                     DebugLogManager.logPersistent(
                         this,
                         "keepalive",
@@ -135,8 +155,8 @@ class FloatingKeepAliveService : Service() {
                     )
                     return START_STICKY
                 }
-                startForegroundWithNotification()
                 keepAliveStarted = true
+                startForegroundWithNotification()
                 DebugLogManager.logPersistent(
                     this,
                     "keepalive",
@@ -154,7 +174,9 @@ class FloatingKeepAliveService : Service() {
 
     override fun onDestroy() {
         keepAliveStarted = false
-        stopForegroundSafely()
+        stopNotificationRefreshLoop()
+        serviceScope.cancel()
+        clearNotificationSafely()
         super.onDestroy()
     }
 
@@ -165,6 +187,15 @@ class FloatingKeepAliveService : Service() {
     }
 
     private fun startForegroundWithNotification() {
+        val notification = buildKeepAliveNotification()
+        synchronized(notificationStateLock) {
+            if (!keepAliveStarted) return
+            startForeground(NOTIFICATION_ID, notification)
+        }
+        startNotificationRefreshLoop()
+    }
+
+    private fun buildKeepAliveNotification(): android.app.Notification {
         val openIntent = Intent(this, FloatingSettingsActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
@@ -175,17 +206,19 @@ class FloatingKeepAliveService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle(getString(R.string.notif_floating_keep_alive_title))
-            .setContentText(getString(R.string.notif_floating_keep_alive_desc))
+        val statusText = buildKeepAliveStatusText()
+        return NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle(
+                getString(R.string.notif_floating_keep_alive_title, getString(R.string.app_name))
+            )
+            .setContentText(statusText)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(statusText))
             .setSmallIcon(R.drawable.microphone)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .setContentIntent(pendingIntent)
             .build()
-
-        startForeground(NOTIFICATION_ID, notification)
     }
 
     private fun ensureChannel() {
@@ -208,5 +241,84 @@ class FloatingKeepAliveService : Service() {
         } catch (e: Throwable) {
             Log.w(TAG, "Failed to stop foreground", e)
         }
+    }
+
+    private fun startNotificationRefreshLoop() {
+        if (notificationRefreshJob?.isActive == true) return
+        notificationRefreshJob = serviceScope.launch {
+            while (isActive) {
+                delay(NOTIFICATION_REFRESH_INTERVAL_MS)
+                if (!keepAliveStarted) continue
+                updateNotification()
+            }
+        }
+    }
+
+    private fun stopNotificationRefreshLoop() {
+        notificationRefreshJob?.cancel()
+        notificationRefreshJob = null
+    }
+
+    private fun updateNotification() {
+        val notification = buildKeepAliveNotification()
+        try {
+            synchronized(notificationStateLock) {
+                if (!keepAliveStarted) return
+                notificationManager.notify(NOTIFICATION_ID, notification)
+            }
+        } catch (t: Throwable) {
+            Log.w(TAG, "Failed to refresh keep-alive notification", t)
+        }
+    }
+
+    private fun clearNotificationSafely() {
+        synchronized(notificationStateLock) {
+            stopForegroundSafely()
+            try {
+                notificationManager.cancel(NOTIFICATION_ID)
+            } catch (t: Throwable) {
+                Log.w(TAG, "Failed to cancel keep-alive notification", t)
+            }
+        }
+    }
+
+    private fun buildKeepAliveStatusText(): String {
+        val prefs = try {
+            Prefs(this)
+        } catch (t: Throwable) {
+            Log.w(TAG, "Failed to read prefs for keep-alive notification", t)
+            return getString(
+                R.string.notif_floating_keep_alive_desc,
+                0L,
+                getString(R.string.vendor_volc),
+                getString(R.string.notif_floating_keep_alive_postproc_disabled)
+            )
+        }
+        val todayChars = getTodayRecognizedChars(prefs)
+        val vendorName = try {
+            AsrVendorUi.name(this, prefs.asrVendor)
+        } catch (t: Throwable) {
+            Log.w(TAG, "Failed to resolve keep-alive vendor name", t)
+            prefs.asrVendor.id
+        }
+        val postProcessStatus = if (prefs.postProcessEnabled && prefs.hasLlmKeys()) {
+            getString(R.string.notif_floating_keep_alive_postproc_enabled)
+        } else {
+            getString(R.string.notif_floating_keep_alive_postproc_disabled)
+        }
+        return getString(
+            R.string.notif_floating_keep_alive_desc,
+            todayChars,
+            vendorName,
+            postProcessStatus
+        )
+    }
+
+    private fun getTodayRecognizedChars(prefs: Prefs): Long = try {
+        val todayKey = LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE)
+        prefs.getUsageStats().daily[todayKey]?.chars?.coerceAtLeast(0L) ?: 0L
+    } catch (t: Throwable) {
+        Log.w(TAG, "Failed to load today's usage stats", t)
+        0L
     }
 }
