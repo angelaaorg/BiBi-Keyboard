@@ -1,5 +1,19 @@
 # Changelog
 
+## v3.14.2 (2026-04-18)
+
+### New Features
+
+- **Alibaba DashScope Qwen3.5-Omni**: Added Qwen3.5-Omni Flash and Plus model options for Alibaba DashScope ASR
+
+### Improvements
+
+- **Recording Startup Network Warmup**: Added network warmup during recording startup to help reduce first-use network latency
+- **Local Model Timeout Tuning**: Set different timeout thresholds for different local ASR engines based on resource usage
+- **Keep-Alive Notification Content**: Added support for showing live-updating basic information in the persistent notification
+
+---
+
 ## v3.14.1 (2026-03-22)
 
 ### New Features
