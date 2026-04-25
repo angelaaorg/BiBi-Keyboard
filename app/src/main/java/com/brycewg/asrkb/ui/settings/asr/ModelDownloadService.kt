@@ -57,7 +57,7 @@ class ModelDownloadService : Service() {
         private const val EXTRA_URI = "uri"
         private const val EXTRA_VARIANT = "variant"
         private const val EXTRA_KEY = "key"
-        private const val EXTRA_MODEL_TYPE = "modelType" // sensevoice | funasr_nano | paraformer | firered_asr | punctuation
+        private const val EXTRA_MODEL_TYPE = "modelType" // sensevoice | funasr_nano | qwen3_asr | paraformer | firered_asr | punctuation
 
         private fun buildDownloadKey(variant: String, modelType: String): DownloadKey {
             val sourceId = when (modelType) {
@@ -65,6 +65,7 @@ class ModelDownloadService : Service() {
                 "firered_asr" -> "download_firered_asr"
                 "punctuation" -> "download_punctuation"
                 "funasr_nano" -> "download_funasr_nano"
+                "qwen3_asr" -> "download_qwen3_asr"
                 else -> "download_sensevoice"
             }
             return DownloadKey(variant, sourceId)
@@ -259,6 +260,7 @@ class ModelDownloadService : Service() {
                 "firered_asr" -> getString(R.string.fr_download_status_done)
                 "punctuation" -> getString(R.string.punct_download_status_done)
                 "funasr_nano" -> getString(R.string.fn_download_status_done)
+                "qwen3_asr" -> getString(R.string.qw_download_status_done)
                 else -> getString(R.string.sv_download_status_done)
             }
             notificationHandler.notifySuccess(doneText)
@@ -271,6 +273,7 @@ class ModelDownloadService : Service() {
                 modelType == "firered_asr" -> getString(R.string.fr_download_status_failed)
                 modelType == "punctuation" -> getString(R.string.punct_download_status_failed)
                 modelType == "funasr_nano" -> getString(R.string.fn_download_status_failed)
+                modelType == "qwen3_asr" -> getString(R.string.qw_download_status_failed)
                 else -> getString(R.string.sv_download_status_failed)
             }
             notificationHandler.notifyFailed(failText)
@@ -340,6 +343,7 @@ class ModelDownloadService : Service() {
                 val shouldUpdateVariant = when (modelType) {
                     "sensevoice" -> true
                     "funasr_nano" -> true
+                    "qwen3_asr" -> true
                     else -> false // paraformer 保持用户选择
                 }
                 if (shouldUpdateVariant) notificationHandler.updateVariant(detectedVariant)
@@ -352,6 +356,8 @@ class ModelDownloadService : Service() {
                         "sensevoice" -> prefs.svModelVariant = detectedVariant
                         // FunASR Nano：二选一，直接同步用户选择
                         "funasr_nano" -> prefs.fnModelVariant = detectedVariant
+                        // Qwen3-ASR：当前仅一套 0.6B int8 模型
+                        "qwen3_asr" -> prefs.qwModelVariant = detectedVariant
                         // FireRedASR：离线 CTC，int8/full 二选一，直接同步用户选择
                         "firered_asr" -> prefs.frModelVariant = detectedVariant
                         // Paraformer：单包含 int8+fp32，两者均可用，不覆盖用户当前偏好
@@ -379,6 +385,7 @@ class ModelDownloadService : Service() {
             val successMessage = when (modelType) {
                 "punctuation" -> getString(R.string.punct_import_success, modelInfo)
                 "funasr_nano" -> getString(R.string.fn_import_success, modelInfo)
+                "qwen3_asr" -> getString(R.string.qw_import_success, modelInfo)
                 else -> getString(R.string.sv_import_success, modelInfo)
             }
             notificationHandler.notifySuccess(successMessage)
@@ -388,6 +395,7 @@ class ModelDownloadService : Service() {
             val failMessage = when (specifiedModelType) {
                 "punctuation" -> getString(R.string.punct_import_failed, errorMessage)
                 "funasr_nano" -> getString(R.string.fn_import_failed, errorMessage)
+                "qwen3_asr" -> getString(R.string.qw_import_failed, errorMessage)
                 else -> getString(R.string.sv_import_failed, errorMessage)
             }
             notificationHandler.notifyFailed(failMessage)
@@ -469,6 +477,7 @@ class ModelDownloadService : Service() {
                 n.contains("fireredasr") -> "firered_asr"
             n.contains("funasr-mlt-nano") -> "funasr_nano"
             n.contains("funasr-nano") -> "funasr_nano"
+            n.contains("qwen3-asr") -> "qwen3_asr"
             n.contains("sense-voice") || n.contains("sensevoice") -> "sensevoice"
             n.contains("punct-ct-transformer") || n.contains("punctuation") -> "punctuation"
             else -> null
@@ -493,6 +502,9 @@ class ModelDownloadService : Service() {
             // FunASR Nano
             "sherpa-onnx-funasr-nano-int8-2025-12-30" -> "funasr_nano" to "nano-int8"
             "sherpa-onnx-funasr-mlt-nano-int8-2026-03-21" -> "funasr_nano" to "mlt-int8"
+
+            // Qwen3-ASR
+            "sherpa-onnx-qwen3-asr-0.6b-int8-2026-03-25" -> "qwen3_asr" to "qwen3-0.6b-int8"
 
             // Paraformer（主包名不含量化，默认按 int8 归类）
             "sherpa-onnx-streaming-paraformer-bilingual-zh-en" -> "paraformer" to "bilingual-int8"
@@ -534,6 +546,7 @@ class ModelDownloadService : Service() {
             }
             "FunASR $versionName"
         }
+        "qwen3_asr" -> "Qwen3-ASR 0.6B (int8)"
         "firered_asr" -> "FireRedASR CTC (int8)"
         "paraformer" -> {
             val versionName = when (variant) {
@@ -631,6 +644,7 @@ class ModelDownloadService : Service() {
             "firered_asr" -> File(base, "firered_asr")
             "punctuation" -> File(base, "punctuation_tmp")
             "funasr_nano" -> File(base, "funasr_nano")
+            "qwen3_asr" -> File(base, "qwen3_asr")
             else -> File(base, "sensevoice")
         }
         val tmpDir =
@@ -671,11 +685,13 @@ class ModelDownloadService : Service() {
         val modelDir = when (modelType) {
             // FunASR Nano 不含 tokens.txt；以多个 onnx + tokenizer 目录判定
             "funasr_nano" -> findFunAsrNanoModelDir(tmpDir)
+            // Qwen3-ASR 不含 tokens.txt；以 conv/encoder/decoder + tokenizer 目录判定
+            "qwen3_asr" -> findQwen3AsrModelDir(tmpDir)
             else -> findModelDir(tmpDir)
         } ?: throw IllegalStateException("model dir not found")
 
-        // 除 FunASR Nano 外，其它离线模型均依赖 tokens.txt
-        if (modelType != "funasr_nano") {
+        // SenseVoice / Paraformer / FireRedASR 依赖 tokens.txt；FunASR Nano 与 Qwen3-ASR 不依赖。
+        if (modelType != "funasr_nano" && modelType != "qwen3_asr") {
             val tokens = File(modelDir, "tokens.txt")
             if (!tokens.exists()) throw IllegalStateException("tokens.txt missing")
         }
@@ -722,6 +738,31 @@ class ModelDownloadService : Service() {
             if (!tokenizerJson.exists() || tokenizerJson.length() < 1024L) {
                 throw IllegalStateException("funasr_nano tokenizer missing after extract")
             }
+        } else if (modelType == "qwen3_asr") {
+            val convFrontend = File(modelDir, "conv_frontend.onnx")
+            val encoder = File(modelDir, "encoder.int8.onnx")
+            val decoder = File(modelDir, "decoder.int8.onnx")
+            val tokenizerDir = findQwen3AsrTokenizerDir(modelDir)
+
+            if (!convFrontend.exists() ||
+                !encoder.exists() ||
+                !decoder.exists() ||
+                tokenizerDir == null
+            ) {
+                throw IllegalStateException("qwen3_asr files missing after extract")
+            }
+
+            val minOnnxBytes = 1024L * 1024L
+            if (convFrontend.length() < minOnnxBytes ||
+                encoder.length() < minOnnxBytes ||
+                decoder.length() < minOnnxBytes
+            ) {
+                throw IllegalStateException("qwen3_asr files look truncated after extract")
+            }
+
+            if (!isQwen3AsrTokenizerDir(tokenizerDir)) {
+                throw IllegalStateException("qwen3_asr tokenizer missing after extract")
+            }
         } else {
             if (!(
                     File(modelDir, "model.int8.onnx").exists() ||
@@ -749,6 +790,10 @@ class ModelDownloadService : Service() {
             "funasr_nano" -> {
                 val outRoot = File(base, "funasr_nano")
                 File(outRoot, com.brycewg.asrkb.asr.normalizeFunAsrNanoVariant(variant))
+            }
+            "qwen3_asr" -> {
+                val outRoot = File(base, "qwen3_asr")
+                File(outRoot, com.brycewg.asrkb.asr.normalizeQwen3AsrVariant(variant))
             }
             else -> {
                 val outRoot = File(base, "sensevoice")
@@ -1040,6 +1085,58 @@ class ModelDownloadService : Service() {
         return null
     }
 
+    private fun findQwen3AsrTokenizerDir(modelDir: File): File? {
+        val tokenizer = File(modelDir, "tokenizer")
+        if (isQwen3AsrTokenizerDir(tokenizer)) return tokenizer
+        if (isQwen3AsrTokenizerDir(modelDir)) return modelDir
+        return findQwen3AsrTokenizerDirRecursive(modelDir, maxDepth = 3)
+    }
+
+    private fun findQwen3AsrModelDir(root: File): File? {
+        if (!root.exists()) return null
+        return findQwen3AsrModelDirRecursive(root, maxDepth = 6)
+    }
+
+    private fun findQwen3AsrTokenizerDirRecursive(root: File, maxDepth: Int): File? {
+        if (maxDepth < 0 || !root.isDirectory) return null
+        if (isQwen3AsrTokenizerDir(root)) return root
+        val subs = root.listFiles() ?: return null
+        subs.forEach { f ->
+            if (f.isDirectory) {
+                findQwen3AsrTokenizerDirRecursive(f, maxDepth - 1)?.let { return it }
+            }
+        }
+        return null
+    }
+
+    private fun isQwen3AsrModelDir(dir: File): Boolean {
+        val convFrontend = File(dir, "conv_frontend.onnx")
+        val encoder = File(dir, "encoder.int8.onnx")
+        val decoder = File(dir, "decoder.int8.onnx")
+        if (!convFrontend.exists() || !encoder.exists() || !decoder.exists()) return false
+        return findQwen3AsrTokenizerDir(dir) != null
+    }
+
+    private fun isQwen3AsrTokenizerDir(dir: File): Boolean {
+        if (!dir.isDirectory) return false
+        if (File(dir, "tokenizer.json").exists()) return true
+        return File(dir, "vocab.json").exists() &&
+            File(dir, "merges.txt").exists() &&
+            File(dir, "tokenizer_config.json").exists()
+    }
+
+    private fun findQwen3AsrModelDirRecursive(root: File, maxDepth: Int): File? {
+        if (maxDepth < 0 || !root.isDirectory) return null
+        if (isQwen3AsrModelDir(root)) return root
+        val subs = root.listFiles() ?: return null
+        subs.forEach { f ->
+            if (f.isDirectory && f.name != "__MACOSX") {
+                findQwen3AsrModelDirRecursive(f, maxDepth - 1)?.let { return it }
+            }
+        }
+        return null
+    }
+
     private fun getDisplayNameFromUri(uri: android.net.Uri): String? = try {
         val projection = arrayOf(android.provider.OpenableColumns.DISPLAY_NAME)
         contentResolver.query(uri, projection, null, null, null)?.use { c ->
@@ -1137,6 +1234,7 @@ class NotificationHandler(
             "firered_asr" -> context.getString(R.string.fr_download_status_downloading, progress)
             "punctuation" -> context.getString(R.string.punct_download_status_downloading, progress)
             "funasr_nano" -> context.getString(R.string.fn_download_status_downloading, progress)
+            "qwen3_asr" -> context.getString(R.string.qw_download_status_downloading, progress)
             else -> context.getString(R.string.sv_download_status_downloading, progress)
         }
         notifyProgress(
@@ -1171,6 +1269,10 @@ class NotificationHandler(
                 R.string.fn_download_status_extracting_progress,
                 progress
             )
+            "qwen3_asr" -> context.getString(
+                R.string.qw_download_status_extracting_progress,
+                progress
+            )
             else -> context.getString(R.string.sv_download_status_extracting_progress, progress)
         }
         notifyProgress(
@@ -1203,6 +1305,10 @@ class NotificationHandler(
             )
             "funasr_nano" -> context.getString(
                 R.string.fn_download_status_extracting_progress,
+                progress
+            )
+            "qwen3_asr" -> context.getString(
+                R.string.qw_download_status_extracting_progress,
                 progress
             )
             else -> context.getString(R.string.sv_download_status_extracting_progress, progress)
@@ -1254,6 +1360,7 @@ class NotificationHandler(
         "firered_asr" -> context.getString(R.string.fr_download_status_failed)
         "punctuation" -> context.getString(R.string.punct_download_status_failed)
         "funasr_nano" -> context.getString(R.string.fn_download_status_failed)
+        "qwen3_asr" -> context.getString(R.string.qw_download_status_failed)
         else -> context.getString(R.string.sv_download_status_failed)
     }
 
@@ -1343,6 +1450,7 @@ class NotificationHandler(
                 context.getString(R.string.notif_fn_title_nano_int8)
             }
         }
+        "qwen3_asr" -> context.getString(R.string.notif_qw_title_qwen3_06b_int8)
         else -> {
             when (variant) {
                 "small-full" -> context.getString(R.string.notif_model_title_small_full)

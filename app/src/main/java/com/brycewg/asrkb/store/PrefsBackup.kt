@@ -182,6 +182,11 @@ internal object PrefsBackup {
         o.put(KEY_FN_LANGUAGE, fnLanguage)
         o.put(KEY_FN_PRELOAD_ENABLED, fnPreloadEnabled)
         o.put(KEY_FN_KEEP_ALIVE_MINUTES, fnKeepAliveMinutes)
+        // Qwen3-ASR（本地 ASR）
+        o.put(KEY_QW_MODEL_VARIANT, qwModelVariant)
+        o.put(KEY_QW_NUM_THREADS, qwNumThreads)
+        o.put(KEY_QW_PRELOAD_ENABLED, qwPreloadEnabled)
+        o.put(KEY_QW_KEEP_ALIVE_MINUTES, qwKeepAliveMinutes)
         // FireRedASR（本地 ASR）
         o.put(KEY_FR_MODEL_VARIANT, frModelVariant)
         o.put(KEY_FR_NUM_THREADS, frNumThreads)
@@ -485,6 +490,11 @@ internal object PrefsBackup {
             optString(KEY_FN_LANGUAGE)?.let { fnLanguage = it }
             optBool(KEY_FN_PRELOAD_ENABLED)?.let { fnPreloadEnabled = it }
             optInt(KEY_FN_KEEP_ALIVE_MINUTES)?.let { fnKeepAliveMinutes = it }
+            // Qwen3-ASR（本地 ASR）
+            optString(KEY_QW_MODEL_VARIANT)?.let { qwModelVariant = it }
+            optInt(KEY_QW_NUM_THREADS)?.let { qwNumThreads = it.coerceIn(1, 8) }
+            optBool(KEY_QW_PRELOAD_ENABLED)?.let { qwPreloadEnabled = it }
+            optInt(KEY_QW_KEEP_ALIVE_MINUTES)?.let { qwKeepAliveMinutes = it }
             // FireRedASR（本地 ASR）
             (optString(KEY_FR_MODEL_VARIANT) ?: optString(KEY_TS_MODEL_VARIANT))?.let {
                 frModelVariant = it

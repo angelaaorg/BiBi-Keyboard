@@ -253,6 +253,7 @@ class AsrSessionManager(
         if (!checkSenseVoiceModel()) {
             val errRes = when (prefs.asrVendor) {
                 AsrVendor.FireRedAsr -> com.brycewg.asrkb.R.string.error_firered_asr_model_missing
+                AsrVendor.Qwen3Asr -> com.brycewg.asrkb.R.string.error_qwen3_asr_model_missing
                 else -> com.brycewg.asrkb.R.string.error_sensevoice_model_missing
             }
             clearActiveSessionToken(sessionToken)
@@ -775,7 +776,8 @@ class AsrSessionManager(
         if (
             prefs.asrVendor != AsrVendor.SenseVoice &&
             prefs.asrVendor != AsrVendor.FunAsrNano &&
-            prefs.asrVendor != AsrVendor.FireRedAsr
+            prefs.asrVendor != AsrVendor.FireRedAsr &&
+            prefs.asrVendor != AsrVendor.Qwen3Asr
         ) {
             return true
         }
@@ -785,6 +787,7 @@ class AsrSessionManager(
                 AsrVendor.SenseVoice -> com.brycewg.asrkb.asr.isSenseVoicePrepared()
                 AsrVendor.FunAsrNano -> com.brycewg.asrkb.asr.isFunAsrNanoPrepared()
                 AsrVendor.FireRedAsr -> com.brycewg.asrkb.asr.isFireRedAsrPrepared()
+                AsrVendor.Qwen3Asr -> com.brycewg.asrkb.asr.isQwen3AsrPrepared()
                 else -> true
             }
         } catch (e: Throwable) {
@@ -820,6 +823,15 @@ class AsrSessionManager(
             )
             val found = com.brycewg.asrkb.asr.findFnModelDir(variantDir)
                 ?: com.brycewg.asrkb.asr.findDirectFnModelDir(probeRoot)
+            found != null
+        } else if (prefs.asrVendor == AsrVendor.Qwen3Asr) {
+            val probeRoot = java.io.File(base, "qwen3_asr")
+            val variantDir = java.io.File(
+                probeRoot,
+                com.brycewg.asrkb.asr.normalizeQwen3AsrVariant(prefs.qwModelVariant)
+            )
+            val found = com.brycewg.asrkb.asr.findQwen3AsrModelDir(variantDir)
+                ?: com.brycewg.asrkb.asr.findQwen3AsrModelDir(probeRoot)
             found != null
         } else {
             val rawVariant = try {
@@ -1000,6 +1012,15 @@ class AsrSessionManager(
             AsrVendor.FunAsrNano -> {
                 // FunASR Nano 算力开销高：不支持伪流式预览，仅保留整段离线识别
                 FunAsrNanoFileAsrEngine(
+                    context,
+                    serviceScope,
+                    prefs,
+                    engineListener,
+                    onRequestDuration = requestDurationCallback
+                )
+            }
+            AsrVendor.Qwen3Asr -> {
+                Qwen3AsrFileAsrEngine(
                     context,
                     serviceScope,
                     prefs,

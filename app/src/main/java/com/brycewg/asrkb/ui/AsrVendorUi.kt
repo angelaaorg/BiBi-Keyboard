@@ -20,6 +20,7 @@ object AsrVendorUi {
         AsrVendor.Zhipu,
         AsrVendor.SenseVoice,
         AsrVendor.FunAsrNano,
+        AsrVendor.Qwen3Asr,
         AsrVendor.FireRedAsr,
         AsrVendor.Paraformer
     )
@@ -36,6 +37,7 @@ object AsrVendorUi {
         AsrVendor.Zhipu -> context.getString(R.string.vendor_zhipu)
         AsrVendor.SenseVoice -> context.getString(R.string.vendor_sensevoice)
         AsrVendor.FunAsrNano -> context.getString(R.string.vendor_funasr_nano)
+        AsrVendor.Qwen3Asr -> context.getString(R.string.vendor_qwen3_asr)
         AsrVendor.FireRedAsr -> context.getString(R.string.vendor_firered_asr)
         AsrVendor.Paraformer -> context.getString(R.string.vendor_paraformer)
     }
@@ -98,6 +100,11 @@ object AsrVendorUi {
             AsrVendorTag.Local,
             AsrVendorTag.NonStreaming,
             AsrVendorTag.ChineseDialect,
+            AsrVendorTag.Accurate
+        )
+        AsrVendor.Qwen3Asr -> listOf(
+            AsrVendorTag.Local,
+            AsrVendorTag.NonStreaming,
             AsrVendorTag.Accurate
         )
         AsrVendor.FireRedAsr -> listOf(

@@ -77,6 +77,11 @@ class AsrSettingsViewModel : ViewModel() {
             fnLanguage = prefs.fnLanguage,
             fnPreloadEnabled = prefs.fnPreloadEnabled,
             fnKeepAliveMinutes = prefs.fnKeepAliveMinutes,
+            // Qwen3-ASR settings
+            qwModelVariant = prefs.qwModelVariant,
+            qwNumThreads = prefs.qwNumThreads,
+            qwPreloadEnabled = prefs.qwPreloadEnabled,
+            qwKeepAliveMinutes = prefs.qwKeepAliveMinutes,
             // FireRedASR settings
             frModelVariant = prefs.frModelVariant,
             frNumThreads = prefs.frNumThreads,
@@ -115,6 +120,13 @@ class AsrSettingsViewModel : ViewModel() {
                 e: Throwable
             ) {
                 Log.e(TAG, "Failed to unload FunASR Nano recognizer", e)
+            }
+        }
+        if (oldVendor == AsrVendor.Qwen3Asr && vendor != AsrVendor.Qwen3Asr) {
+            try {
+                com.brycewg.asrkb.asr.unloadQwen3AsrRecognizer()
+            } catch (e: Throwable) {
+                Log.e(TAG, "Failed to unload Qwen3-ASR recognizer", e)
             }
         }
         if (oldVendor == AsrVendor.FireRedAsr && vendor != AsrVendor.FireRedAsr) {
@@ -166,6 +178,18 @@ class AsrSettingsViewModel : ViewModel() {
                     )
                 } catch (e: Throwable) {
                     Log.e(TAG, "Failed to preload FunASR Nano model", e)
+                }
+            }
+        }
+        if (vendor == AsrVendor.Qwen3Asr && prefs.qwPreloadEnabled) {
+            viewModelScope.launch(Dispatchers.Default) {
+                try {
+                    com.brycewg.asrkb.asr.preloadQwen3AsrIfConfigured(
+                        appContext,
+                        prefs
+                    )
+                } catch (e: Throwable) {
+                    Log.e(TAG, "Failed to preload Qwen3-ASR model", e)
                 }
             }
         }
@@ -524,6 +548,42 @@ class AsrSettingsViewModel : ViewModel() {
         _uiState.value = _uiState.value.copy(fnKeepAliveMinutes = minutes)
     }
 
+    // ----- Qwen3-ASR -----
+    fun updateQwKeepAlive(minutes: Int) {
+        prefs.qwKeepAliveMinutes = minutes
+        _uiState.value = _uiState.value.copy(qwKeepAliveMinutes = minutes)
+    }
+
+    fun updateQwNumThreads(v: Int) {
+        val vv = v.coerceIn(1, 8)
+        prefs.qwNumThreads = vv
+        _uiState.value = _uiState.value.copy(qwNumThreads = vv)
+        try {
+            com.brycewg.asrkb.asr.unloadQwen3AsrRecognizer()
+        } catch (e: Throwable) {
+            Log.e(TAG, "Failed to unload Qwen3-ASR recognizer after threads change", e)
+        }
+        triggerQwPreloadIfEnabledAndActive("threads change")
+    }
+
+    fun updateQwPreload(enabled: Boolean) {
+        prefs.qwPreloadEnabled = enabled
+        _uiState.value = _uiState.value.copy(qwPreloadEnabled = enabled)
+
+        if (enabled && prefs.asrVendor == AsrVendor.Qwen3Asr) {
+            viewModelScope.launch(Dispatchers.Default) {
+                try {
+                    com.brycewg.asrkb.asr.preloadQwen3AsrIfConfigured(
+                        appContext,
+                        prefs
+                    )
+                } catch (e: Throwable) {
+                    Log.e(TAG, "Failed to preload Qwen3-ASR model", e)
+                }
+            }
+        }
+    }
+
     // ----- Paraformer -----
     fun updatePfModelVariant(variant: String) {
         prefs.pfModelVariant = variant
@@ -570,6 +630,18 @@ class AsrSettingsViewModel : ViewModel() {
                     com.brycewg.asrkb.asr.preloadFunAsrNanoIfConfigured(appContext, prefs)
                 } catch (t: Throwable) {
                     Log.e(TAG, "Failed to preload FunASR Nano after $reason", t)
+                }
+            }
+        }
+    }
+
+    private fun triggerQwPreloadIfEnabledAndActive(reason: String) {
+        if (prefs.qwPreloadEnabled && prefs.asrVendor == AsrVendor.Qwen3Asr) {
+            viewModelScope.launch(Dispatchers.Default) {
+                try {
+                    com.brycewg.asrkb.asr.preloadQwen3AsrIfConfigured(appContext, prefs)
+                } catch (t: Throwable) {
+                    Log.e(TAG, "Failed to preload Qwen3-ASR after $reason", t)
                 }
             }
         }
@@ -676,6 +748,23 @@ class AsrSettingsViewModel : ViewModel() {
             File(tokenizerDir, "tokenizer.json").exists()
     }
 
+    fun checkQwModelDownloaded(context: Context): Boolean {
+        val base = context.getExternalFilesDir(null) ?: context.filesDir
+        val root = File(base, "qwen3_asr")
+        val dirName = com.brycewg.asrkb.asr.normalizeQwen3AsrVariant(prefs.qwModelVariant)
+        val dir = File(root, dirName)
+        val modelDir =
+            com.brycewg.asrkb.asr.findQwen3AsrModelDir(dir)
+                ?: com.brycewg.asrkb.asr.findQwen3AsrModelDir(root)
+        val tokenizerDir = modelDir?.let { com.brycewg.asrkb.asr.findQwen3AsrTokenizerDir(it) }
+        return modelDir != null &&
+            File(modelDir, "conv_frontend.onnx").exists() &&
+            File(modelDir, "encoder.int8.onnx").exists() &&
+            File(modelDir, "decoder.int8.onnx").exists() &&
+            tokenizerDir != null &&
+            com.brycewg.asrkb.asr.isQwen3AsrTokenizerDir(tokenizerDir)
+    }
+
     fun checkFrModelDownloaded(context: Context): Boolean {
         val resolved = try {
             com.brycewg.asrkb.asr.resolveFireRedAsrModelFiles(context, prefs)
@@ -758,6 +847,11 @@ data class AsrSettingsUiState(
     val fnLanguage: String = "",
     val fnPreloadEnabled: Boolean = false,
     val fnKeepAliveMinutes: Int = -1,
+    // Qwen3-ASR settings
+    val qwModelVariant: String = "qwen3-0.6b-int8",
+    val qwNumThreads: Int = 3,
+    val qwPreloadEnabled: Boolean = false,
+    val qwKeepAliveMinutes: Int = -1,
     // FireRedASR settings
     val frModelVariant: String = "ctc-int8",
     val frNumThreads: Int = 2,
@@ -782,6 +876,7 @@ data class AsrSettingsUiState(
     val isSonioxVisible: Boolean get() = selectedVendor == AsrVendor.Soniox
     val isSenseVoiceVisible: Boolean get() = selectedVendor == AsrVendor.SenseVoice
     val isFunAsrNanoVisible: Boolean get() = selectedVendor == AsrVendor.FunAsrNano
+    val isQwen3AsrVisible: Boolean get() = selectedVendor == AsrVendor.Qwen3Asr
     val isFireRedAsrVisible: Boolean get() = selectedVendor == AsrVendor.FireRedAsr
     val isParaformerVisible: Boolean get() = selectedVendor == AsrVendor.Paraformer
 }

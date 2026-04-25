@@ -31,6 +31,7 @@ import com.brycewg.asrkb.ui.settings.asr.sections.GeminiAsrSettingsSection
 import com.brycewg.asrkb.ui.settings.asr.sections.OpenAiAsrSettingsSection
 import com.brycewg.asrkb.ui.settings.asr.sections.ParaformerSettingsSection
 import com.brycewg.asrkb.ui.settings.asr.sections.PunctuationModelSettingsSection
+import com.brycewg.asrkb.ui.settings.asr.sections.Qwen3AsrSettingsSection
 import com.brycewg.asrkb.ui.settings.asr.sections.SenseVoiceSettingsSection
 import com.brycewg.asrkb.ui.settings.asr.sections.SiliconFlowSettingsSection
 import com.brycewg.asrkb.ui.settings.asr.sections.SonioxAsrSettingsSection
@@ -60,6 +61,10 @@ class AsrSettingsActivity : BaseActivity() {
     private val funAsrNanoModelPicker =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
             uri?.let { handleFunAsrNanoModelImport(it) }
+        }
+    private val qwen3AsrModelPicker =
+        registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+            uri?.let { handleQwen3AsrModelImport(it) }
         }
     private val fireRedAsrModelPicker =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
@@ -95,6 +100,7 @@ class AsrSettingsActivity : BaseActivity() {
             modelDownloadUiController = modelDownloadUiController,
             senseVoiceModelPicker = senseVoiceModelPicker,
             funAsrNanoModelPicker = funAsrNanoModelPicker,
+            qwen3AsrModelPicker = qwen3AsrModelPicker,
             fireRedAsrModelPicker = fireRedAsrModelPicker,
             paraformerModelPicker = paraformerModelPicker,
             punctuationModelPicker = punctuationModelPicker
@@ -114,6 +120,7 @@ class AsrSettingsActivity : BaseActivity() {
             ZhipuAsrSettingsSection(),
             SenseVoiceSettingsSection(),
             FunAsrNanoSettingsSection(),
+            Qwen3AsrSettingsSection(),
             FireRedAsrSettingsSection(),
             ParaformerSettingsSection(),
             PunctuationModelSettingsSection(),
@@ -194,6 +201,20 @@ class AsrSettingsActivity : BaseActivity() {
         )
     }
 
+    private fun handleQwen3AsrModelImport(uri: Uri) {
+        val tv = findViewById<TextView>(R.id.tvQwDownloadStatus)
+        modelImportUiController.startZipImport(
+            uri = uri,
+            statusTextViews = listOf(tv),
+            startedTextResId = R.string.qw_import_started_in_bg,
+            failedTextTemplateResId = R.string.qw_import_failed,
+            variant = prefs.qwModelVariant,
+            modelType = "qwen3_asr",
+            logTag = TAG,
+            logMessage = "Failed to start Qwen3-ASR model import"
+        )
+    }
+
     private fun handlePunctuationModelImport(uri: Uri) {
         val statusTextViews = listOf(
             findViewById<TextView?>(R.id.tvFrPunctStatus),
@@ -251,6 +272,7 @@ class AsrSettingsActivity : BaseActivity() {
             com.brycewg.asrkb.asr.AsrVendor.Zhipu -> R.string.vendor_zhipu
             com.brycewg.asrkb.asr.AsrVendor.SenseVoice -> R.string.vendor_sensevoice
             com.brycewg.asrkb.asr.AsrVendor.FunAsrNano -> R.string.vendor_funasr_nano
+            com.brycewg.asrkb.asr.AsrVendor.Qwen3Asr -> R.string.vendor_qwen3_asr
             com.brycewg.asrkb.asr.AsrVendor.FireRedAsr -> R.string.vendor_firered_asr
             com.brycewg.asrkb.asr.AsrVendor.Paraformer -> R.string.vendor_paraformer
         }

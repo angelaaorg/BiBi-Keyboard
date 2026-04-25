@@ -186,6 +186,7 @@ internal object NetworkWarmupCoordinator {
         AsrVendor.Zhipu -> prefs.hasZhipuKeys()
         AsrVendor.SenseVoice,
         AsrVendor.FunAsrNano,
+        AsrVendor.Qwen3Asr,
         AsrVendor.FireRedAsr,
         AsrVendor.Paraformer -> false
     }
@@ -281,6 +282,7 @@ internal object NetworkWarmupCoordinator {
 
         AsrVendor.SenseVoice,
         AsrVendor.FunAsrNano,
+        AsrVendor.Qwen3Asr,
         AsrVendor.FireRedAsr,
         AsrVendor.Paraformer -> null
     }

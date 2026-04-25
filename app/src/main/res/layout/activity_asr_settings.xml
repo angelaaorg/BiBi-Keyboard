@@ -863,6 +863,83 @@
             android:text="" />
         </LinearLayout>
 
+        <!-- Qwen3-ASR (Local) -->
+        <LinearLayout
+          android:id="@+id/groupQwen3Asr"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:orientation="vertical"
+          android:visibility="gone">
+
+          <TextView
+            style="@style/SettingsClickableValue"
+            android:text="@string/qw_model_qwen3_06b_int8" />
+
+          <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchQwPreload"
+            style="@style/SettingsSwitch"
+            android:text="@string/label_qw_preload" />
+
+          <TextView
+            style="@style/SettingsLabel"
+            android:text="@string/label_qw_keep_alive" />
+
+          <TextView
+            android:id="@+id/tvQwKeepAliveValue"
+            style="@style/SettingsClickableValue.Dropdown"
+            android:text="@string/sv_keep_alive_always" />
+
+          <TextView
+            style="@style/SettingsLabel"
+            android:text="@string/label_qw_threads" />
+
+          <com.google.android.material.slider.Slider
+            android:id="@+id/sliderQwThreads"
+            style="@style/SettingsSlider"
+            android:valueFrom="1"
+            android:valueTo="8"
+            android:stepSize="1" />
+
+          <LinearLayout
+            style="@style/SettingsButtonRow.MarginTop12"
+            android:baselineAligned="false">
+
+            <com.google.android.material.button.MaterialButton
+              android:id="@+id/btnQwDownloadModel"
+              style="@style/SettingsRowButtonLeft"
+              android:text="@string/btn_qw_download_model" />
+
+            <com.google.android.material.button.MaterialButton
+              android:id="@+id/btnQwImportModel"
+              style="@style/SettingsRowButtonRight"
+              android:text="@string/btn_qw_import_model" />
+          </LinearLayout>
+
+          <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnQwClearModel"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            app:shapeAppearanceOverlay="@style/AsrkbShapeOverlayCapsule"
+            android:text="@string/btn_qw_clear_model" />
+
+          <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnQwGuide"
+            style="@style/SettingsTonalButton"
+            android:text="@string/btn_local_model_guide" />
+
+          <TextView
+            android:id="@+id/tvQwDownloadStatus"
+            style="@style/SettingsStatusText"
+            android:text="" />
+
+          <TextView
+            style="@style/SettingsHint"
+            android:layout_marginTop="12dp"
+            android:text="@string/qw_model_info" />
+        </LinearLayout>
+
         <!-- FireRedASR V2 (Local) -->
         <LinearLayout
           android:id="@+id/groupFireRedAsr"

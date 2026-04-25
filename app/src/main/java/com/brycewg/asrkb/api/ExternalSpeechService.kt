@@ -599,9 +599,12 @@ class ExternalSpeechService : Service() {
             AsrVendor.Volc -> prefs.volcStreamingEnabled
             AsrVendor.DashScope -> prefs.isDashStreamingModelSelected()
             AsrVendor.Soniox -> prefs.sonioxStreamingEnabled
-            // 本地 sherpa-onnx：Paraformer 仅流式；SenseVoice/FunASR Nano/FireRedASR 仅非流式
+            // 本地 sherpa-onnx：Paraformer 仅流式；其它本地模型仅非流式
             AsrVendor.Paraformer -> true
-            AsrVendor.SenseVoice, AsrVendor.FunAsrNano, AsrVendor.FireRedAsr -> false
+            AsrVendor.SenseVoice,
+            AsrVendor.FunAsrNano,
+            AsrVendor.Qwen3Asr,
+            AsrVendor.FireRedAsr -> false
             AsrVendor.ElevenLabs -> prefs.elevenStreamingEnabled
             AsrVendor.OpenAI -> prefs.oaAsrStreamingEnabled
             // 其他云厂商（Gemini/SiliconFlow/Zhipu）仅非流式
@@ -698,6 +701,13 @@ class ExternalSpeechService : Service() {
                     onRequestDuration = ::onRequestDuration
                 )
                 AsrVendor.FunAsrNano -> FunAsrNanoFileAsrEngine(
+                    context,
+                    scope,
+                    prefs,
+                    this,
+                    onRequestDuration = ::onRequestDuration
+                )
+                AsrVendor.Qwen3Asr -> Qwen3AsrFileAsrEngine(
                     context,
                     scope,
                     prefs,
@@ -931,6 +941,21 @@ class ExternalSpeechService : Service() {
                         prefs,
                         this,
                         com.brycewg.asrkb.asr.FunAsrNanoFileAsrEngine(
+                            context,
+                            scope,
+                            prefs,
+                            this,
+                            onRequestDuration = ::onRequestDuration
+                        )
+                    )
+                }
+                AsrVendor.Qwen3Asr -> {
+                    com.brycewg.asrkb.asr.GenericPushFileAsrAdapter(
+                        context,
+                        scope,
+                        prefs,
+                        this,
+                        com.brycewg.asrkb.asr.Qwen3AsrFileAsrEngine(
                             context,
                             scope,
                             prefs,

@@ -58,6 +58,8 @@ internal object PrefsAsrVendorFields {
         AsrVendor.SenseVoice to emptyList(),
         // 本地 FunASR Nano（sherpa-onnx）无需鉴权
         AsrVendor.FunAsrNano to emptyList(),
+        // 本地 Qwen3-ASR（sherpa-onnx）无需鉴权
+        AsrVendor.Qwen3Asr to emptyList(),
         // 本地 FireRedASR（sherpa-onnx）无需鉴权
         AsrVendor.FireRedAsr to emptyList(),
         // 本地 Paraformer（sherpa-onnx）无需鉴权

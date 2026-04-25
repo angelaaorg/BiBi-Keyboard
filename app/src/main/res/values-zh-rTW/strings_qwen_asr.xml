@@ -1,0 +1,29 @@
+<resources>
+    <!-- Qwen3-ASR 本地 ASR 配置字串 -->
+    <string name="qwen3_asr_section_title">Qwen3-ASR 本地 ASR</string>
+    <string name="vendor_qwen3_asr">Qwen3-ASR</string>
+
+    <string name="qw_model_qwen3_06b_int8">Qwen3-ASR 0.6B（int8，約 1.2GB）</string>
+    <string name="label_qw_threads">執行緒數（1-8）</string>
+    <string name="label_qw_preload">首次顯示時預載入模型</string>
+    <string name="label_qw_keep_alive">模型保留時長</string>
+    <string name="btn_qw_download_model">一鍵下載 Qwen3-ASR 模型</string>
+    <string name="btn_qw_import_model">從本機匯入模型</string>
+    <string name="btn_qw_clear_model">清除已下載 Qwen3-ASR 模型</string>
+    <string name="qw_download_status_downloading">下載中… %1$d%%</string>
+    <string name="qw_download_status_extracting_progress">解壓中… %1$d%%</string>
+    <string name="qw_download_status_done">Qwen3-ASR 模型已安裝</string>
+    <string name="qw_download_status_failed">下載或解壓失敗</string>
+    <string name="qw_download_started_in_bg">已開始背景下載，可在通知欄查看進度</string>
+    <string name="qw_import_started_in_bg">已開始背景匯入，可在通知欄查看進度</string>
+    <string name="qw_import_success">模型匯入成功：%1$s</string>
+    <string name="qw_import_failed">模型匯入失敗：%1$s</string>
+    <string name="qw_clear_confirm_title">清除 Qwen3-ASR 模型？</string>
+    <string name="qw_clear_confirm_message">將刪除已下載的 Qwen3-ASR 模型檔案，可稍後重新下載。是否繼續？</string>
+    <string name="qw_clear_done">Qwen3-ASR 模型已清除</string>
+    <string name="qw_clear_failed">清除失敗</string>
+    <string name="qw_model_info">說明：此渠道使用 sherpa-onnx OfflineQwen3AsrModelConfig，目前僅支援整段離線識別。</string>
+
+    <string name="error_qwen3_asr_model_missing">缺少 Qwen3-ASR 模型檔案，請在設定中配置或下載</string>
+    <string name="notif_qw_title_qwen3_06b_int8">Qwen3-ASR 0.6B 模型（int8）</string>
+</resources>

@@ -637,6 +637,13 @@ internal class FloatingAsrInteractionController(
                                 Log.e(tag, "Failed to unload FunASR Nano", e)
                             }
                         }
+                        if (old == AsrVendor.Qwen3Asr && v != AsrVendor.Qwen3Asr) {
+                            try {
+                                com.brycewg.asrkb.asr.unloadQwen3AsrRecognizer()
+                            } catch (e: Throwable) {
+                                Log.e(tag, "Failed to unload Qwen3-ASR", e)
+                            }
+                        }
                         if (old == AsrVendor.FireRedAsr && v != AsrVendor.FireRedAsr) {
                             try {
                                 com.brycewg.asrkb.asr.unloadFireRedAsrRecognizer()
@@ -665,6 +672,13 @@ internal class FloatingAsrInteractionController(
                                 com.brycewg.asrkb.asr.preloadFunAsrNanoIfConfigured(context, prefs)
                             } catch (e: Throwable) {
                                 Log.e(tag, "Failed to preload FunASR Nano", e)
+                            }
+                        }
+                        if (v == AsrVendor.Qwen3Asr && prefs.qwPreloadEnabled) {
+                            try {
+                                com.brycewg.asrkb.asr.preloadQwen3AsrIfConfigured(context, prefs)
+                            } catch (e: Throwable) {
+                                Log.e(tag, "Failed to preload Qwen3-ASR", e)
                             }
                         }
                         if (v == AsrVendor.FireRedAsr && prefs.frPreloadEnabled) {

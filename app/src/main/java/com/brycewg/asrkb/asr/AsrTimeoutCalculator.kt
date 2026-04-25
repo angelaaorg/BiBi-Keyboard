@@ -31,6 +31,7 @@ object AsrTimeoutCalculator {
         AsrVendor.SenseVoice -> TimeoutProfile(minTimeoutMs = 10_000L, maxTimeoutMs = 40_000L)
         AsrVendor.FireRedAsr -> TimeoutProfile(minTimeoutMs = 15_000L, maxTimeoutMs = 70_000L)
         AsrVendor.FunAsrNano -> TimeoutProfile(minTimeoutMs = 15_000L, maxTimeoutMs = 90_000L)
+        AsrVendor.Qwen3Asr -> TimeoutProfile(minTimeoutMs = 15_000L, maxTimeoutMs = 90_000L)
 
         else -> TimeoutProfile(
             minTimeoutMs = DEFAULT_MIN_TIMEOUT_MS,

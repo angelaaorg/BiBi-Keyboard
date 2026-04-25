@@ -244,6 +244,9 @@ class AsrRecognitionService : RecognitionService() {
                 // FunASR Nano 模型算力开销高：不支持伪流式预览，仅保留整段离线识别
                 FunAsrNanoFileAsrEngine(engineContext, scope, prefs, listener)
             }
+            AsrVendor.Qwen3Asr -> {
+                Qwen3AsrFileAsrEngine(engineContext, scope, prefs, listener)
+            }
             AsrVendor.FireRedAsr -> {
                 if (prefs.frPseudoStreamEnabled) {
                     FireRedAsrPseudoStreamAsrEngine(engineContext, scope, prefs, listener)
@@ -284,7 +287,10 @@ class AsrRecognitionService : RecognitionService() {
         AsrVendor.ElevenLabs -> prefs.elevenStreamingEnabled
         AsrVendor.OpenAI -> prefs.oaAsrStreamingEnabled
         AsrVendor.Paraformer -> true
-        AsrVendor.SenseVoice, AsrVendor.FunAsrNano, AsrVendor.FireRedAsr -> false
+        AsrVendor.SenseVoice,
+        AsrVendor.FunAsrNano,
+        AsrVendor.Qwen3Asr,
+        AsrVendor.FireRedAsr -> false
         AsrVendor.Gemini, AsrVendor.SiliconFlow, AsrVendor.Zhipu -> false
     }
 

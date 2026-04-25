@@ -383,6 +383,15 @@ class AsrSessionManager(
                     requestDurationCallback
                 )
             }
+            AsrVendor.Qwen3Asr -> {
+                Qwen3AsrFileAsrEngine(
+                    context,
+                    scope,
+                    prefs,
+                    engineListener,
+                    requestDurationCallback
+                )
+            }
             AsrVendor.FireRedAsr -> {
                 if (prefs.frPseudoStreamEnabled) {
                     // 本地 FireRedASR：当前伪流式开关仍走整段离线转录链路
@@ -542,6 +551,10 @@ class AsrSessionManager(
                 is FunAsrNanoFileAsrEngine -> current
                 else -> null
             }
+            AsrVendor.Qwen3Asr -> when (current) {
+                is Qwen3AsrFileAsrEngine -> current
+                else -> null
+            }
             AsrVendor.FireRedAsr -> when (current) {
                 is FireRedAsrPseudoStreamAsrEngine -> if (prefs.frPseudoStreamEnabled) current else null
                 is FireRedAsrFileAsrEngine -> if (!prefs.frPseudoStreamEnabled) current else null
@@ -639,12 +652,14 @@ class AsrSessionManager(
             if (
                 prefs.asrVendor == AsrVendor.SenseVoice ||
                 prefs.asrVendor == AsrVendor.FunAsrNano ||
+                prefs.asrVendor == AsrVendor.Qwen3Asr ||
                 prefs.asrVendor == AsrVendor.FireRedAsr
             ) {
                 val prepared = try {
                     when (prefs.asrVendor) {
                         AsrVendor.SenseVoice -> com.brycewg.asrkb.asr.isSenseVoicePrepared()
                         AsrVendor.FunAsrNano -> com.brycewg.asrkb.asr.isFunAsrNanoPrepared()
+                        AsrVendor.Qwen3Asr -> com.brycewg.asrkb.asr.isQwen3AsrPrepared()
                         AsrVendor.FireRedAsr -> com.brycewg.asrkb.asr.isFireRedAsrPrepared()
                         else -> false
                     }
@@ -656,6 +671,14 @@ class AsrSessionManager(
                     try {
                         when (prefs.asrVendor) {
                             AsrVendor.FunAsrNano -> com.brycewg.asrkb.asr.preloadFunAsrNanoIfConfigured(
+                                context,
+                                prefs,
+                                onLoadStart = { onLocalModelLoadStart() },
+                                onLoadDone = { onLocalModelLoadDone() },
+                                suppressToastOnStart = true,
+                                forImmediateUse = true
+                            )
+                            AsrVendor.Qwen3Asr -> com.brycewg.asrkb.asr.preloadQwen3AsrIfConfigured(
                                 context,
                                 prefs,
                                 onLoadStart = { onLocalModelLoadStart() },

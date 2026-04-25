@@ -1061,6 +1061,25 @@ class Prefs(context: Context) {
         get() = sp.getInt(KEY_FN_KEEP_ALIVE_MINUTES, -1)
         set(value) = sp.edit { putInt(KEY_FN_KEEP_ALIVE_MINUTES, value) }
 
+    // Qwen3-ASR（本地 ASR）
+    var qwModelVariant: String
+        get() = sp.getString(KEY_QW_MODEL_VARIANT, "qwen3-0.6b-int8") ?: "qwen3-0.6b-int8"
+        set(value) = sp.edit {
+            putString(KEY_QW_MODEL_VARIANT, value.trim().ifBlank { "qwen3-0.6b-int8" })
+        }
+
+    var qwNumThreads: Int
+        get() = sp.getInt(KEY_QW_NUM_THREADS, 3).coerceIn(1, 8)
+        set(value) = sp.edit { putInt(KEY_QW_NUM_THREADS, value.coerceIn(1, 8)) }
+
+    var qwPreloadEnabled: Boolean
+        get() = sp.getBoolean(KEY_QW_PRELOAD_ENABLED, true)
+        set(value) = sp.edit { putBoolean(KEY_QW_PRELOAD_ENABLED, value) }
+
+    var qwKeepAliveMinutes: Int
+        get() = sp.getInt(KEY_QW_KEEP_ALIVE_MINUTES, -1)
+        set(value) = sp.edit { putInt(KEY_QW_KEEP_ALIVE_MINUTES, value) }
+
     // FireRedASR（本地 ASR）
     var frModelVariant: String
         get() = sp.getString(KEY_FR_MODEL_VARIANT, "ctc-int8") ?: "ctc-int8"

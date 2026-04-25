@@ -268,7 +268,7 @@ class AsrKeyboardService :
             )
         )
 
-        // 键盘面板首次出现时，按需异步预加载本地模型（SenseVoice/FunASR Nano/Paraformer）
+        // 键盘面板首次出现时，按需异步预加载本地模型
         tryPreloadLocalModel()
 
         // 刷新 UI
@@ -702,6 +702,24 @@ class AsrKeyboardService :
                     return false
                 }
             }
+        } else if (prefs.asrVendor == AsrVendor.Qwen3Asr) {
+            val prepared = com.brycewg.asrkb.asr.isQwen3AsrPrepared()
+            if (!prepared) {
+                val base = getExternalFilesDir(null) ?: filesDir
+                val probeRoot = java.io.File(base, "qwen3_asr")
+                val variantDir = java.io.File(
+                    probeRoot,
+                    com.brycewg.asrkb.asr.normalizeQwen3AsrVariant(prefs.qwModelVariant)
+                )
+                val found = com.brycewg.asrkb.asr.findQwen3AsrModelDir(variantDir)
+                    ?: com.brycewg.asrkb.asr.findQwen3AsrModelDir(probeRoot)
+                if (found == null) {
+                    uiRenderer?.clearStatusTextStyle()
+                    viewRefs?.txtStatusText?.text =
+                        getString(R.string.error_qwen3_asr_model_missing)
+                    return false
+                }
+            }
         }
         // 确保引擎匹配当前模式
         asrManager.ensureEngineMatchesMode()
@@ -851,6 +869,11 @@ class AsrKeyboardService :
                     ) {
                         com.brycewg.asrkb.asr.unloadFunAsrNanoRecognizer()
                     }
+                    if (old == com.brycewg.asrkb.asr.AsrVendor.Qwen3Asr &&
+                        vendor != com.brycewg.asrkb.asr.AsrVendor.Qwen3Asr
+                    ) {
+                        com.brycewg.asrkb.asr.unloadQwen3AsrRecognizer()
+                    }
                     if (old == com.brycewg.asrkb.asr.AsrVendor.FireRedAsr &&
                         vendor != com.brycewg.asrkb.asr.AsrVendor.FireRedAsr
                     ) {
@@ -881,6 +904,12 @@ class AsrKeyboardService :
                         }
                         com.brycewg.asrkb.asr.AsrVendor.FunAsrNano -> if (prefs.fnPreloadEnabled) {
                             com.brycewg.asrkb.asr.preloadFunAsrNanoIfConfigured(
+                                this,
+                                prefs
+                            )
+                        }
+                        com.brycewg.asrkb.asr.AsrVendor.Qwen3Asr -> if (prefs.qwPreloadEnabled) {
+                            com.brycewg.asrkb.asr.preloadQwen3AsrIfConfigured(
                                 this,
                                 prefs
                             )
@@ -932,6 +961,7 @@ class AsrKeyboardService :
         val enabled = when (p.asrVendor) {
             AsrVendor.SenseVoice -> p.svPreloadEnabled
             AsrVendor.FunAsrNano -> p.fnPreloadEnabled
+            AsrVendor.Qwen3Asr -> p.qwPreloadEnabled
             AsrVendor.FireRedAsr -> p.frPreloadEnabled
             AsrVendor.Paraformer -> p.pfPreloadEnabled
             else -> false

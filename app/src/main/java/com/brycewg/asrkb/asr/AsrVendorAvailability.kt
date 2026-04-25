@@ -39,6 +39,7 @@ internal fun isAsrVendorConfigured(context: Context, prefs: Prefs, vendor: AsrVe
     when (vendor) {
         AsrVendor.SenseVoice -> hasSenseVoiceModelInstalled(context, prefs)
         AsrVendor.FunAsrNano -> hasFunAsrNanoModelInstalled(context, prefs)
+        AsrVendor.Qwen3Asr -> hasQwen3AsrModelInstalled(context, prefs)
         AsrVendor.FireRedAsr -> hasFireRedAsrModelInstalled(context, prefs)
         AsrVendor.Paraformer -> hasParaformerModelInstalled(context, prefs)
         AsrVendor.SiliconFlow -> prefs.hasSfKeys()
@@ -78,6 +79,20 @@ private fun hasFunAsrNanoModelInstalled(context: Context, prefs: Prefs): Boolean
         File(modelDir, "embedding.int8.onnx").exists() &&
         tokenizerDir != null &&
         File(tokenizerDir, "tokenizer.json").exists()
+}
+
+private fun hasQwen3AsrModelInstalled(context: Context, prefs: Prefs): Boolean {
+    val base = context.getExternalFilesDir(null) ?: context.filesDir
+    val root = File(base, "qwen3_asr")
+    val variantDir = File(root, normalizeQwen3AsrVariant(prefs.qwModelVariant))
+    val modelDir = findQwen3AsrModelDir(variantDir) ?: findQwen3AsrModelDir(root)
+    val tokenizerDir = modelDir?.let { findQwen3AsrTokenizerDir(it) }
+    return modelDir != null &&
+        File(modelDir, "conv_frontend.onnx").exists() &&
+        File(modelDir, "encoder.int8.onnx").exists() &&
+        File(modelDir, "decoder.int8.onnx").exists() &&
+        tokenizerDir != null &&
+        isQwen3AsrTokenizerDir(tokenizerDir)
 }
 
 private fun hasFireRedAsrModelInstalled(context: Context, prefs: Prefs): Boolean {
