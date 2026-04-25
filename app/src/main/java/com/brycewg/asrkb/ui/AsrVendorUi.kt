@@ -105,18 +105,17 @@ object AsrVendorUi {
         AsrVendor.Qwen3Asr -> listOf(
             AsrVendorTag.Local,
             AsrVendorTag.NonStreaming,
+            AsrVendorTag.ChineseDialect,
             AsrVendorTag.Accurate
         )
         AsrVendor.FireRedAsr -> listOf(
             AsrVendorTag.Local,
             AsrVendorTag.NonStreaming,
-            AsrVendorTag.PseudoStreaming,
-            AsrVendorTag.ChineseDialect
+            AsrVendorTag.PseudoStreaming
         )
         AsrVendor.Paraformer -> listOf(
             AsrVendorTag.Local,
-            AsrVendorTag.Streaming,
-            AsrVendorTag.Accurate
+            AsrVendorTag.Streaming
         )
     }
 
