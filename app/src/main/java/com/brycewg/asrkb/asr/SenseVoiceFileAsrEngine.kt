@@ -600,6 +600,7 @@ internal class SenseVoiceOnnxManager private constructor() : BaseSherpaOfflineRe
             val config = RecognizerConfig(tokens, model, language, useItn, provider, numThreads)
             val ok = ensurePreparedLocked(assetManager, config, onLoadStart, onLoadDone) != null
             if (!ok) return@withLock false
+            scheduleAutoUnload(keepAliveMs, alwaysKeep)
             return@withLock true
         } catch (t: CancellationException) {
             throw t

@@ -506,6 +506,7 @@ internal class FunAsrNanoOnnxManager private constructor() : BaseSherpaOfflineRe
             )
             val ok = ensurePreparedLocked(assetManager, cfg, onLoadStart, onLoadDone) != null
             if (!ok) return@withLock false
+            scheduleAutoUnload(keepAliveMs, alwaysKeep)
             true
         } catch (t: CancellationException) {
             throw t

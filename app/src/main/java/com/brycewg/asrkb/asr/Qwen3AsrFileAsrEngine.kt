@@ -441,7 +441,10 @@ internal class Qwen3AsrOnnxManager private constructor() : BaseSherpaOfflineReco
                 sampleRate = 16000,
                 featureDim = 80
             )
-            ensurePreparedLocked(assetManager, cfg, onLoadStart, onLoadDone) != null
+            val ok = ensurePreparedLocked(assetManager, cfg, onLoadStart, onLoadDone) != null
+            if (!ok) return@withLock false
+            scheduleAutoUnload(keepAliveMs, alwaysKeep)
+            true
         } catch (t: CancellationException) {
             throw t
         } catch (t: Throwable) {

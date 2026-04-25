@@ -908,6 +908,7 @@ class ParaformerOnnxManager private constructor() {
             if (sameConfig && cached != null) {
                 lastKeepAliveMs = keepAliveMs
                 lastAlwaysKeep = alwaysKeep
+                scheduleAutoUnload(keepAliveMs, alwaysKeep)
                 return@withLock true
             }
 
@@ -915,6 +916,7 @@ class ParaformerOnnxManager private constructor() {
                 Log.w(TAG, "prepare skipped: ${activeStreams.get()} active streams")
                 lastKeepAliveMs = keepAliveMs
                 lastAlwaysKeep = alwaysKeep
+                scheduleAutoUnload(keepAliveMs, alwaysKeep)
                 return@withLock true
             }
 
@@ -942,6 +944,7 @@ class ParaformerOnnxManager private constructor() {
 
                 lastKeepAliveMs = keepAliveMs
                 lastAlwaysKeep = alwaysKeep
+                scheduleAutoUnload(keepAliveMs, alwaysKeep)
                 true
             } catch (t: CancellationException) {
                 if (newRecognizer != null) {
