@@ -82,6 +82,17 @@ internal class FireRedAsrFileAsrEngine(
 
     override suspend fun recognize(pcm: ByteArray) {
         val t0 = System.currentTimeMillis()
+        var durationReported = false
+        fun reportDuration() {
+            if (durationReported) return
+            durationReported = true
+            val dt = System.currentTimeMillis() - t0
+            try {
+                onRequestDuration?.invoke(dt)
+            } catch (t: Throwable) {
+                Log.e(TAG, "Failed to invoke duration callback", t)
+            }
+        }
         try {
             try {
                 SherpaPunctuationManager.maybeWarnModelMissing(context)
@@ -91,18 +102,21 @@ internal class FireRedAsrFileAsrEngine(
 
             val manager = FireRedAsrOnnxManager.getInstance()
             if (!manager.isOnnxAvailable()) {
+                reportDuration()
                 listener.onError(context.getString(R.string.error_local_asr_not_ready))
                 return
             }
 
             val modelFiles = resolveFireRedAsrModelFiles(context, prefs)
             if (modelFiles == null) {
+                reportDuration()
                 listener.onError(context.getString(R.string.error_firered_asr_model_missing))
                 return
             }
 
             val samples = fireRedAsrPcmToFloatArray(pcm)
             if (samples.isEmpty()) {
+                reportDuration()
                 listener.onError(context.getString(R.string.error_audio_empty))
                 return
             }
@@ -140,6 +154,7 @@ internal class FireRedAsrFileAsrEngine(
 
             val sanitizedText = sanitizeFireRedAsrResult(text)
             if (sanitizedText.isNullOrEmpty()) {
+                reportDuration()
                 listener.onError(context.getString(R.string.error_asr_empty_result))
             } else {
                 val useItn = try {
@@ -159,10 +174,12 @@ internal class FireRedAsrFileAsrEngine(
                     Log.e(TAG, "Failed to apply offline punctuation", t)
                     normalized
                 }
+                reportDuration()
                 listener.onFinal(finalText)
             }
         } catch (t: Throwable) {
             Log.e(TAG, "Recognition failed", t)
+            reportDuration()
             listener.onError(
                 context.getString(
                     R.string.error_recognize_failed_with_reason,
@@ -170,12 +187,7 @@ internal class FireRedAsrFileAsrEngine(
                 )
             )
         } finally {
-            val dt = System.currentTimeMillis() - t0
-            try {
-                onRequestDuration?.invoke(dt)
-            } catch (t: Throwable) {
-                Log.e(TAG, "Failed to invoke duration callback", t)
-            }
+            reportDuration()
         }
     }
 

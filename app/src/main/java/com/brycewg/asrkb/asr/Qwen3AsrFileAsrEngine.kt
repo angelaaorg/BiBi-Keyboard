@@ -82,21 +82,35 @@ internal class Qwen3AsrFileAsrEngine(
 
     override suspend fun recognize(pcm: ByteArray) {
         val t0 = System.currentTimeMillis()
+        var durationReported = false
+        fun reportDuration() {
+            if (durationReported) return
+            durationReported = true
+            val dt = System.currentTimeMillis() - t0
+            try {
+                onRequestDuration?.invoke(dt)
+            } catch (t: Throwable) {
+                Log.e(TAG, "Failed to invoke duration callback", t)
+            }
+        }
         try {
             val manager = Qwen3AsrOnnxManager.getInstance()
             if (!manager.isOnnxAvailable()) {
+                reportDuration()
                 listener.onError(context.getString(R.string.error_local_asr_not_ready))
                 return
             }
 
             val resolvedModel = resolveQwen3AsrModel(context, prefs)
             if (resolvedModel == null) {
+                reportDuration()
                 listener.onError(context.getString(R.string.error_qwen3_asr_model_missing))
                 return
             }
 
             val samples = qwen3AsrPcmToFloatArray(pcm)
             if (samples.isEmpty()) {
+                reportDuration()
                 listener.onError(context.getString(R.string.error_audio_empty))
                 return
             }
@@ -133,12 +147,15 @@ internal class Qwen3AsrFileAsrEngine(
             )
 
             if (text.isNullOrBlank()) {
+                reportDuration()
                 listener.onError(context.getString(R.string.error_asr_empty_result))
             } else {
+                reportDuration()
                 listener.onFinal(text.trim())
             }
         } catch (t: Throwable) {
             Log.e(TAG, "Recognition failed", t)
+            reportDuration()
             listener.onError(
                 context.getString(
                     R.string.error_recognize_failed_with_reason,
@@ -146,12 +163,7 @@ internal class Qwen3AsrFileAsrEngine(
                 )
             )
         } finally {
-            val dt = System.currentTimeMillis() - t0
-            try {
-                onRequestDuration?.invoke(dt)
-            } catch (t: Throwable) {
-                Log.e(TAG, "Failed to invoke duration callback", t)
-            }
+            reportDuration()
         }
     }
 
