@@ -122,18 +122,18 @@ tasks.withType(JavaCompile::class.java).configureEach {
 }
 
 dependencies {
-    implementation("androidx.core:core-ktx:1.17.0")
+    implementation("androidx.core:core-ktx:1.18.0")
     implementation("androidx.appcompat:appcompat:1.7.1")
     implementation("com.google.android.material:material:1.13.0")
     implementation("androidx.constraintlayout:constraintlayout:2.2.1")
     implementation("androidx.viewpager2:viewpager2:1.1.0")
-    implementation("androidx.activity:activity-ktx:1.11.0")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.9.4")
+    implementation("androidx.activity:activity-ktx:1.13.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.10.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
-    implementation("com.squareup.okhttp3:okhttp:5.2.1")
+    implementation("com.squareup.okhttp3:okhttp:5.3.2")
     implementation("org.apache.commons:commons-compress:1.28.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0")
-    implementation("com.alibaba:dashscope-sdk-java:2.22.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
+    implementation("com.alibaba:dashscope-sdk-java:2.22.16")
 
     // Shizuku：用于在已授权时执行部分 shell 级操作（增强后台保活）
     implementation("dev.rikka.shizuku:api:13.1.5")
