@@ -644,6 +644,13 @@ internal class FloatingAsrInteractionController(
                                 Log.e(tag, "Failed to unload Qwen3-ASR", e)
                             }
                         }
+                        if (old == AsrVendor.Parakeet && v != AsrVendor.Parakeet) {
+                            try {
+                                com.brycewg.asrkb.asr.unloadParakeetRecognizer()
+                            } catch (e: Throwable) {
+                                Log.e(tag, "Failed to unload Parakeet", e)
+                            }
+                        }
                         if (old == AsrVendor.FireRedAsr && v != AsrVendor.FireRedAsr) {
                             try {
                                 com.brycewg.asrkb.asr.unloadFireRedAsrRecognizer()
@@ -679,6 +686,13 @@ internal class FloatingAsrInteractionController(
                                 com.brycewg.asrkb.asr.preloadQwen3AsrIfConfigured(context, prefs)
                             } catch (e: Throwable) {
                                 Log.e(tag, "Failed to preload Qwen3-ASR", e)
+                            }
+                        }
+                        if (v == AsrVendor.Parakeet && prefs.pkPreloadEnabled) {
+                            try {
+                                com.brycewg.asrkb.asr.preloadParakeetIfConfigured(context, prefs)
+                            } catch (e: Throwable) {
+                                Log.e(tag, "Failed to preload Parakeet", e)
                             }
                         }
                         if (v == AsrVendor.FireRedAsr && prefs.frPreloadEnabled) {

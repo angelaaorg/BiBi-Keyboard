@@ -826,6 +826,14 @@ class ParallelAsrEngine(
                 onRequestDuration = onRequestDuration
             )
                 .let { GenericPushFileAsrAdapter(context, scope, prefs, engineListener, it) }
+            AsrVendor.Parakeet -> ParakeetFileAsrEngine(
+                context,
+                scope,
+                prefs,
+                engineListener,
+                onRequestDuration = onRequestDuration
+            )
+                .let { GenericPushFileAsrAdapter(context, scope, prefs, engineListener, it) }
             AsrVendor.FireRedAsr -> if (prefs.frPseudoStreamEnabled) {
                 FireRedAsrPushPcmPseudoStreamAsrEngine(
                     context,

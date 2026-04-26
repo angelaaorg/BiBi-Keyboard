@@ -30,6 +30,7 @@ internal class AsrSettingsUiRendererSection : AsrSettingsSection {
         val groupSenseVoice: View,
         val groupFunAsrNano: View,
         val groupQwen3Asr: View,
+        val groupParakeet: View,
         val groupFireRedAsr: View,
         val groupParaformer: View,
         val silenceWindowLabel: View,
@@ -71,6 +72,7 @@ internal class AsrSettingsUiRendererSection : AsrSettingsSection {
             groupSenseVoice = binding.view(R.id.groupSenseVoice),
             groupFunAsrNano = binding.view(R.id.groupFunAsrNano),
             groupQwen3Asr = binding.view(R.id.groupQwen3Asr),
+            groupParakeet = binding.view(R.id.groupParakeet),
             groupFireRedAsr = binding.view(R.id.groupFireRedAsr),
             groupParaformer = binding.view(R.id.groupParaformer),
             silenceWindowLabel = binding.view(R.id.tvSilenceWindowLabel),
@@ -98,6 +100,7 @@ internal class AsrSettingsUiRendererSection : AsrSettingsSection {
                 AsrVendor.SenseVoice to binding.view(R.id.groupSenseVoice),
                 AsrVendor.FunAsrNano to binding.view(R.id.groupFunAsrNano),
                 AsrVendor.Qwen3Asr to binding.view(R.id.groupQwen3Asr),
+                AsrVendor.Parakeet to binding.view(R.id.groupParakeet),
                 AsrVendor.FireRedAsr to binding.view(R.id.groupFireRedAsr),
                 AsrVendor.Paraformer to binding.view(R.id.groupParaformer)
             )

@@ -82,6 +82,11 @@ class AsrSettingsViewModel : ViewModel() {
             qwNumThreads = prefs.qwNumThreads,
             qwPreloadEnabled = prefs.qwPreloadEnabled,
             qwKeepAliveMinutes = prefs.qwKeepAliveMinutes,
+            // Parakeet settings
+            pkModelVariant = prefs.pkModelVariant,
+            pkNumThreads = prefs.pkNumThreads,
+            pkPreloadEnabled = prefs.pkPreloadEnabled,
+            pkKeepAliveMinutes = prefs.pkKeepAliveMinutes,
             // FireRedASR settings
             frModelVariant = prefs.frModelVariant,
             frNumThreads = prefs.frNumThreads,
@@ -127,6 +132,13 @@ class AsrSettingsViewModel : ViewModel() {
                 com.brycewg.asrkb.asr.unloadQwen3AsrRecognizer()
             } catch (e: Throwable) {
                 Log.e(TAG, "Failed to unload Qwen3-ASR recognizer", e)
+            }
+        }
+        if (oldVendor == AsrVendor.Parakeet && vendor != AsrVendor.Parakeet) {
+            try {
+                com.brycewg.asrkb.asr.unloadParakeetRecognizer()
+            } catch (e: Throwable) {
+                Log.e(TAG, "Failed to unload Parakeet recognizer", e)
             }
         }
         if (oldVendor == AsrVendor.FireRedAsr && vendor != AsrVendor.FireRedAsr) {
@@ -190,6 +202,18 @@ class AsrSettingsViewModel : ViewModel() {
                     )
                 } catch (e: Throwable) {
                     Log.e(TAG, "Failed to preload Qwen3-ASR model", e)
+                }
+            }
+        }
+        if (vendor == AsrVendor.Parakeet && prefs.pkPreloadEnabled) {
+            viewModelScope.launch(Dispatchers.Default) {
+                try {
+                    com.brycewg.asrkb.asr.preloadParakeetIfConfigured(
+                        appContext,
+                        prefs
+                    )
+                } catch (e: Throwable) {
+                    Log.e(TAG, "Failed to preload Parakeet model", e)
                 }
             }
         }
@@ -584,6 +608,54 @@ class AsrSettingsViewModel : ViewModel() {
         }
     }
 
+    // ----- Parakeet -----
+    fun updatePkModelVariant(variant: String) {
+        val normalized = com.brycewg.asrkb.asr.normalizeParakeetVariant(variant)
+        prefs.pkModelVariant = normalized
+        _uiState.value = _uiState.value.copy(pkModelVariant = normalized)
+        try {
+            com.brycewg.asrkb.asr.unloadParakeetRecognizer()
+        } catch (e: Throwable) {
+            Log.e(TAG, "Failed to unload Parakeet recognizer after variant change", e)
+        }
+        triggerPkPreloadIfEnabledAndActive("variant change")
+    }
+
+    fun updatePkKeepAlive(minutes: Int) {
+        prefs.pkKeepAliveMinutes = minutes
+        _uiState.value = _uiState.value.copy(pkKeepAliveMinutes = minutes)
+    }
+
+    fun updatePkNumThreads(v: Int) {
+        val vv = v.coerceIn(1, 8)
+        prefs.pkNumThreads = vv
+        _uiState.value = _uiState.value.copy(pkNumThreads = vv)
+        try {
+            com.brycewg.asrkb.asr.unloadParakeetRecognizer()
+        } catch (e: Throwable) {
+            Log.e(TAG, "Failed to unload Parakeet recognizer after threads change", e)
+        }
+        triggerPkPreloadIfEnabledAndActive("threads change")
+    }
+
+    fun updatePkPreload(enabled: Boolean) {
+        prefs.pkPreloadEnabled = enabled
+        _uiState.value = _uiState.value.copy(pkPreloadEnabled = enabled)
+
+        if (enabled && prefs.asrVendor == AsrVendor.Parakeet) {
+            viewModelScope.launch(Dispatchers.Default) {
+                try {
+                    com.brycewg.asrkb.asr.preloadParakeetIfConfigured(
+                        appContext,
+                        prefs
+                    )
+                } catch (e: Throwable) {
+                    Log.e(TAG, "Failed to preload Parakeet model", e)
+                }
+            }
+        }
+    }
+
     // ----- Paraformer -----
     fun updatePfModelVariant(variant: String) {
         prefs.pfModelVariant = variant
@@ -642,6 +714,18 @@ class AsrSettingsViewModel : ViewModel() {
                     com.brycewg.asrkb.asr.preloadQwen3AsrIfConfigured(appContext, prefs)
                 } catch (t: Throwable) {
                     Log.e(TAG, "Failed to preload Qwen3-ASR after $reason", t)
+                }
+            }
+        }
+    }
+
+    private fun triggerPkPreloadIfEnabledAndActive(reason: String) {
+        if (prefs.pkPreloadEnabled && prefs.asrVendor == AsrVendor.Parakeet) {
+            viewModelScope.launch(Dispatchers.Default) {
+                try {
+                    com.brycewg.asrkb.asr.preloadParakeetIfConfigured(appContext, prefs)
+                } catch (t: Throwable) {
+                    Log.e(TAG, "Failed to preload Parakeet after $reason", t)
                 }
             }
         }
@@ -765,6 +849,21 @@ class AsrSettingsViewModel : ViewModel() {
             com.brycewg.asrkb.asr.isQwen3AsrTokenizerDir(tokenizerDir)
     }
 
+    fun checkPkModelDownloaded(context: Context): Boolean {
+        val base = context.getExternalFilesDir(null) ?: context.filesDir
+        val root = File(base, "parakeet")
+        val dirName = com.brycewg.asrkb.asr.normalizeParakeetVariant(prefs.pkModelVariant)
+        val dir = File(root, dirName)
+        val modelDir =
+            com.brycewg.asrkb.asr.findParakeetModelDir(dir)
+                ?: com.brycewg.asrkb.asr.findParakeetModelDir(root)
+        return modelDir != null &&
+            File(modelDir, "tokens.txt").exists() &&
+            File(modelDir, "encoder.int8.onnx").exists() &&
+            File(modelDir, "decoder.int8.onnx").exists() &&
+            File(modelDir, "joiner.int8.onnx").exists()
+    }
+
     fun checkFrModelDownloaded(context: Context): Boolean {
         val resolved = try {
             com.brycewg.asrkb.asr.resolveFireRedAsrModelFiles(context, prefs)
@@ -852,6 +951,11 @@ data class AsrSettingsUiState(
     val qwNumThreads: Int = 3,
     val qwPreloadEnabled: Boolean = false,
     val qwKeepAliveMinutes: Int = -1,
+    // Parakeet settings
+    val pkModelVariant: String = "0.6b-v3-int8",
+    val pkNumThreads: Int = 3,
+    val pkPreloadEnabled: Boolean = false,
+    val pkKeepAliveMinutes: Int = -1,
     // FireRedASR settings
     val frModelVariant: String = "ctc-int8",
     val frNumThreads: Int = 2,
@@ -877,6 +981,7 @@ data class AsrSettingsUiState(
     val isSenseVoiceVisible: Boolean get() = selectedVendor == AsrVendor.SenseVoice
     val isFunAsrNanoVisible: Boolean get() = selectedVendor == AsrVendor.FunAsrNano
     val isQwen3AsrVisible: Boolean get() = selectedVendor == AsrVendor.Qwen3Asr
+    val isParakeetVisible: Boolean get() = selectedVendor == AsrVendor.Parakeet
     val isFireRedAsrVisible: Boolean get() = selectedVendor == AsrVendor.FireRedAsr
     val isParaformerVisible: Boolean get() = selectedVendor == AsrVendor.Paraformer
 }

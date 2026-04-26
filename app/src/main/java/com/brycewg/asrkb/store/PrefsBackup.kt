@@ -187,6 +187,11 @@ internal object PrefsBackup {
         o.put(KEY_QW_NUM_THREADS, qwNumThreads)
         o.put(KEY_QW_PRELOAD_ENABLED, qwPreloadEnabled)
         o.put(KEY_QW_KEEP_ALIVE_MINUTES, qwKeepAliveMinutes)
+        // Parakeet（本地 ASR）
+        o.put(KEY_PK_MODEL_VARIANT, pkModelVariant)
+        o.put(KEY_PK_NUM_THREADS, pkNumThreads)
+        o.put(KEY_PK_PRELOAD_ENABLED, pkPreloadEnabled)
+        o.put(KEY_PK_KEEP_ALIVE_MINUTES, pkKeepAliveMinutes)
         // FireRedASR（本地 ASR）
         o.put(KEY_FR_MODEL_VARIANT, frModelVariant)
         o.put(KEY_FR_NUM_THREADS, frNumThreads)
@@ -495,6 +500,11 @@ internal object PrefsBackup {
             optInt(KEY_QW_NUM_THREADS)?.let { qwNumThreads = it.coerceIn(1, 8) }
             optBool(KEY_QW_PRELOAD_ENABLED)?.let { qwPreloadEnabled = it }
             optInt(KEY_QW_KEEP_ALIVE_MINUTES)?.let { qwKeepAliveMinutes = it }
+            // Parakeet（本地 ASR）
+            optString(KEY_PK_MODEL_VARIANT)?.let { pkModelVariant = it }
+            optInt(KEY_PK_NUM_THREADS)?.let { pkNumThreads = it.coerceIn(1, 8) }
+            optBool(KEY_PK_PRELOAD_ENABLED)?.let { pkPreloadEnabled = it }
+            optInt(KEY_PK_KEEP_ALIVE_MINUTES)?.let { pkKeepAliveMinutes = it }
             // FireRedASR（本地 ASR）
             (optString(KEY_FR_MODEL_VARIANT) ?: optString(KEY_TS_MODEL_VARIANT))?.let {
                 frModelVariant = it

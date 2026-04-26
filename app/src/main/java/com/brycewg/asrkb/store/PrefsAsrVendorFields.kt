@@ -60,6 +60,8 @@ internal object PrefsAsrVendorFields {
         AsrVendor.FunAsrNano to emptyList(),
         // 本地 Qwen3-ASR（sherpa-onnx）无需鉴权
         AsrVendor.Qwen3Asr to emptyList(),
+        // 本地 Parakeet（sherpa-onnx）无需鉴权
+        AsrVendor.Parakeet to emptyList(),
         // 本地 FireRedASR（sherpa-onnx）无需鉴权
         AsrVendor.FireRedAsr to emptyList(),
         // 本地 Paraformer（sherpa-onnx）无需鉴权

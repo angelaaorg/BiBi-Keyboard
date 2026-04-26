@@ -254,6 +254,7 @@ class AsrSessionManager(
             val errRes = when (prefs.asrVendor) {
                 AsrVendor.FireRedAsr -> com.brycewg.asrkb.R.string.error_firered_asr_model_missing
                 AsrVendor.Qwen3Asr -> com.brycewg.asrkb.R.string.error_qwen3_asr_model_missing
+                AsrVendor.Parakeet -> com.brycewg.asrkb.R.string.error_parakeet_model_missing
                 else -> com.brycewg.asrkb.R.string.error_sensevoice_model_missing
             }
             clearActiveSessionToken(sessionToken)
@@ -777,7 +778,8 @@ class AsrSessionManager(
             prefs.asrVendor != AsrVendor.SenseVoice &&
             prefs.asrVendor != AsrVendor.FunAsrNano &&
             prefs.asrVendor != AsrVendor.FireRedAsr &&
-            prefs.asrVendor != AsrVendor.Qwen3Asr
+            prefs.asrVendor != AsrVendor.Qwen3Asr &&
+            prefs.asrVendor != AsrVendor.Parakeet
         ) {
             return true
         }
@@ -788,6 +790,7 @@ class AsrSessionManager(
                 AsrVendor.FunAsrNano -> com.brycewg.asrkb.asr.isFunAsrNanoPrepared()
                 AsrVendor.FireRedAsr -> com.brycewg.asrkb.asr.isFireRedAsrPrepared()
                 AsrVendor.Qwen3Asr -> com.brycewg.asrkb.asr.isQwen3AsrPrepared()
+                AsrVendor.Parakeet -> com.brycewg.asrkb.asr.isParakeetPrepared()
                 else -> true
             }
         } catch (e: Throwable) {
@@ -832,6 +835,15 @@ class AsrSessionManager(
             )
             val found = com.brycewg.asrkb.asr.findQwen3AsrModelDir(variantDir)
                 ?: com.brycewg.asrkb.asr.findQwen3AsrModelDir(probeRoot)
+            found != null
+        } else if (prefs.asrVendor == AsrVendor.Parakeet) {
+            val probeRoot = java.io.File(base, "parakeet")
+            val variantDir = java.io.File(
+                probeRoot,
+                com.brycewg.asrkb.asr.normalizeParakeetVariant(prefs.pkModelVariant)
+            )
+            val found = com.brycewg.asrkb.asr.findParakeetModelDir(variantDir)
+                ?: com.brycewg.asrkb.asr.findParakeetModelDir(probeRoot)
             found != null
         } else {
             val rawVariant = try {
@@ -1021,6 +1033,15 @@ class AsrSessionManager(
             }
             AsrVendor.Qwen3Asr -> {
                 Qwen3AsrFileAsrEngine(
+                    context,
+                    serviceScope,
+                    prefs,
+                    engineListener,
+                    onRequestDuration = requestDurationCallback
+                )
+            }
+            AsrVendor.Parakeet -> {
+                ParakeetFileAsrEngine(
                     context,
                     serviceScope,
                     prefs,

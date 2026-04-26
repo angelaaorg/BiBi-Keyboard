@@ -392,6 +392,15 @@ class AsrSessionManager(
                     requestDurationCallback
                 )
             }
+            AsrVendor.Parakeet -> {
+                ParakeetFileAsrEngine(
+                    context,
+                    scope,
+                    prefs,
+                    engineListener,
+                    requestDurationCallback
+                )
+            }
             AsrVendor.FireRedAsr -> {
                 if (prefs.frPseudoStreamEnabled) {
                     // 本地 FireRedASR：当前伪流式开关仍走整段离线转录链路
@@ -555,6 +564,10 @@ class AsrSessionManager(
                 is Qwen3AsrFileAsrEngine -> current
                 else -> null
             }
+            AsrVendor.Parakeet -> when (current) {
+                is ParakeetFileAsrEngine -> current
+                else -> null
+            }
             AsrVendor.FireRedAsr -> when (current) {
                 is FireRedAsrPseudoStreamAsrEngine -> if (prefs.frPseudoStreamEnabled) current else null
                 is FireRedAsrFileAsrEngine -> if (!prefs.frPseudoStreamEnabled) current else null
@@ -653,6 +666,7 @@ class AsrSessionManager(
                 prefs.asrVendor == AsrVendor.SenseVoice ||
                 prefs.asrVendor == AsrVendor.FunAsrNano ||
                 prefs.asrVendor == AsrVendor.Qwen3Asr ||
+                prefs.asrVendor == AsrVendor.Parakeet ||
                 prefs.asrVendor == AsrVendor.FireRedAsr
             ) {
                 val prepared = try {
@@ -660,6 +674,7 @@ class AsrSessionManager(
                         AsrVendor.SenseVoice -> com.brycewg.asrkb.asr.isSenseVoicePrepared()
                         AsrVendor.FunAsrNano -> com.brycewg.asrkb.asr.isFunAsrNanoPrepared()
                         AsrVendor.Qwen3Asr -> com.brycewg.asrkb.asr.isQwen3AsrPrepared()
+                        AsrVendor.Parakeet -> com.brycewg.asrkb.asr.isParakeetPrepared()
                         AsrVendor.FireRedAsr -> com.brycewg.asrkb.asr.isFireRedAsrPrepared()
                         else -> false
                     }
@@ -679,6 +694,14 @@ class AsrSessionManager(
                                 forImmediateUse = true
                             )
                             AsrVendor.Qwen3Asr -> com.brycewg.asrkb.asr.preloadQwen3AsrIfConfigured(
+                                context,
+                                prefs,
+                                onLoadStart = { onLocalModelLoadStart() },
+                                onLoadDone = { onLocalModelLoadDone() },
+                                suppressToastOnStart = true,
+                                forImmediateUse = true
+                            )
+                            AsrVendor.Parakeet -> com.brycewg.asrkb.asr.preloadParakeetIfConfigured(
                                 context,
                                 prefs,
                                 onLoadStart = { onLocalModelLoadStart() },

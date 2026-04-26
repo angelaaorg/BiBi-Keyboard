@@ -247,6 +247,9 @@ class AsrRecognitionService : RecognitionService() {
             AsrVendor.Qwen3Asr -> {
                 Qwen3AsrFileAsrEngine(engineContext, scope, prefs, listener)
             }
+            AsrVendor.Parakeet -> {
+                ParakeetFileAsrEngine(engineContext, scope, prefs, listener)
+            }
             AsrVendor.FireRedAsr -> {
                 if (prefs.frPseudoStreamEnabled) {
                     FireRedAsrPseudoStreamAsrEngine(engineContext, scope, prefs, listener)
@@ -290,6 +293,7 @@ class AsrRecognitionService : RecognitionService() {
         AsrVendor.SenseVoice,
         AsrVendor.FunAsrNano,
         AsrVendor.Qwen3Asr,
+        AsrVendor.Parakeet,
         AsrVendor.FireRedAsr -> false
         AsrVendor.Gemini, AsrVendor.SiliconFlow, AsrVendor.Zhipu -> false
     }

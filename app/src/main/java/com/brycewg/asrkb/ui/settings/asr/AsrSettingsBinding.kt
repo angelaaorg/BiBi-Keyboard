@@ -21,6 +21,7 @@ internal class AsrSettingsBinding(
     val senseVoiceModelPicker: ActivityResultLauncher<String>,
     val funAsrNanoModelPicker: ActivityResultLauncher<String>,
     val qwen3AsrModelPicker: ActivityResultLauncher<String>,
+    val parakeetModelPicker: ActivityResultLauncher<String>,
     val fireRedAsrModelPicker: ActivityResultLauncher<String>,
     val paraformerModelPicker: ActivityResultLauncher<String>,
     val punctuationModelPicker: ActivityResultLauncher<String>

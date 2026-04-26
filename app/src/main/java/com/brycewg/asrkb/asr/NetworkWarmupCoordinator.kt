@@ -187,6 +187,7 @@ internal object NetworkWarmupCoordinator {
         AsrVendor.SenseVoice,
         AsrVendor.FunAsrNano,
         AsrVendor.Qwen3Asr,
+        AsrVendor.Parakeet,
         AsrVendor.FireRedAsr,
         AsrVendor.Paraformer -> false
     }
@@ -283,6 +284,7 @@ internal object NetworkWarmupCoordinator {
         AsrVendor.SenseVoice,
         AsrVendor.FunAsrNano,
         AsrVendor.Qwen3Asr,
+        AsrVendor.Parakeet,
         AsrVendor.FireRedAsr,
         AsrVendor.Paraformer -> null
     }

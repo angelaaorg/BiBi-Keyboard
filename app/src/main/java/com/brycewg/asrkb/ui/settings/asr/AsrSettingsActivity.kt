@@ -30,6 +30,7 @@ import com.brycewg.asrkb.ui.settings.asr.sections.FunAsrNanoSettingsSection
 import com.brycewg.asrkb.ui.settings.asr.sections.GeminiAsrSettingsSection
 import com.brycewg.asrkb.ui.settings.asr.sections.OpenAiAsrSettingsSection
 import com.brycewg.asrkb.ui.settings.asr.sections.ParaformerSettingsSection
+import com.brycewg.asrkb.ui.settings.asr.sections.ParakeetSettingsSection
 import com.brycewg.asrkb.ui.settings.asr.sections.PunctuationModelSettingsSection
 import com.brycewg.asrkb.ui.settings.asr.sections.Qwen3AsrSettingsSection
 import com.brycewg.asrkb.ui.settings.asr.sections.SenseVoiceSettingsSection
@@ -66,6 +67,10 @@ class AsrSettingsActivity : BaseActivity() {
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
             uri?.let { handleQwen3AsrModelImport(it) }
         }
+    private val parakeetModelPicker =
+        registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+            uri?.let { handleParakeetModelImport(it) }
+        }
     private val fireRedAsrModelPicker =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
             uri?.let { handleFireRedAsrModelImport(it) }
@@ -101,6 +106,7 @@ class AsrSettingsActivity : BaseActivity() {
             senseVoiceModelPicker = senseVoiceModelPicker,
             funAsrNanoModelPicker = funAsrNanoModelPicker,
             qwen3AsrModelPicker = qwen3AsrModelPicker,
+            parakeetModelPicker = parakeetModelPicker,
             fireRedAsrModelPicker = fireRedAsrModelPicker,
             paraformerModelPicker = paraformerModelPicker,
             punctuationModelPicker = punctuationModelPicker
@@ -121,6 +127,7 @@ class AsrSettingsActivity : BaseActivity() {
             SenseVoiceSettingsSection(),
             FunAsrNanoSettingsSection(),
             Qwen3AsrSettingsSection(),
+            ParakeetSettingsSection(),
             FireRedAsrSettingsSection(),
             ParaformerSettingsSection(),
             PunctuationModelSettingsSection(),
@@ -215,6 +222,20 @@ class AsrSettingsActivity : BaseActivity() {
         )
     }
 
+    private fun handleParakeetModelImport(uri: Uri) {
+        val tv = findViewById<TextView>(R.id.tvPkDownloadStatus)
+        modelImportUiController.startZipImport(
+            uri = uri,
+            statusTextViews = listOf(tv),
+            startedTextResId = R.string.pk_import_started_in_bg,
+            failedTextTemplateResId = R.string.pk_import_failed,
+            variant = prefs.pkModelVariant,
+            modelType = "parakeet",
+            logTag = TAG,
+            logMessage = "Failed to start Parakeet model import"
+        )
+    }
+
     private fun handlePunctuationModelImport(uri: Uri) {
         val statusTextViews = listOf(
             findViewById<TextView?>(R.id.tvFrPunctStatus),
@@ -273,6 +294,7 @@ class AsrSettingsActivity : BaseActivity() {
             com.brycewg.asrkb.asr.AsrVendor.SenseVoice -> R.string.vendor_sensevoice
             com.brycewg.asrkb.asr.AsrVendor.FunAsrNano -> R.string.vendor_funasr_nano
             com.brycewg.asrkb.asr.AsrVendor.Qwen3Asr -> R.string.vendor_qwen3_asr
+            com.brycewg.asrkb.asr.AsrVendor.Parakeet -> R.string.vendor_parakeet
             com.brycewg.asrkb.asr.AsrVendor.FireRedAsr -> R.string.vendor_firered_asr
             com.brycewg.asrkb.asr.AsrVendor.Paraformer -> R.string.vendor_paraformer
         }

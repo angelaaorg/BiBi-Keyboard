@@ -1080,6 +1080,25 @@ class Prefs(context: Context) {
         get() = sp.getInt(KEY_QW_KEEP_ALIVE_MINUTES, -1)
         set(value) = sp.edit { putInt(KEY_QW_KEEP_ALIVE_MINUTES, value) }
 
+    // Parakeet（本地 ASR）
+    var pkModelVariant: String
+        get() = sp.getString(KEY_PK_MODEL_VARIANT, "0.6b-v3-int8") ?: "0.6b-v3-int8"
+        set(value) = sp.edit {
+            putString(KEY_PK_MODEL_VARIANT, value.trim().ifBlank { "0.6b-v3-int8" })
+        }
+
+    var pkNumThreads: Int
+        get() = sp.getInt(KEY_PK_NUM_THREADS, 3).coerceIn(1, 8)
+        set(value) = sp.edit { putInt(KEY_PK_NUM_THREADS, value.coerceIn(1, 8)) }
+
+    var pkPreloadEnabled: Boolean
+        get() = sp.getBoolean(KEY_PK_PRELOAD_ENABLED, true)
+        set(value) = sp.edit { putBoolean(KEY_PK_PRELOAD_ENABLED, value) }
+
+    var pkKeepAliveMinutes: Int
+        get() = sp.getInt(KEY_PK_KEEP_ALIVE_MINUTES, -1)
+        set(value) = sp.edit { putInt(KEY_PK_KEEP_ALIVE_MINUTES, value) }
+
     // FireRedASR（本地 ASR）
     var frModelVariant: String
         get() = sp.getString(KEY_FR_MODEL_VARIANT, "ctc-int8") ?: "ctc-int8"

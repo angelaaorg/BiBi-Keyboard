@@ -940,6 +940,83 @@
             android:text="@string/qw_model_info" />
         </LinearLayout>
 
+        <!-- Parakeet (Local) -->
+        <LinearLayout
+          android:id="@+id/groupParakeet"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:orientation="vertical"
+          android:visibility="gone">
+
+          <TextView
+            style="@style/SettingsLabel"
+            android:text="@string/label_pk_model_variant" />
+
+          <TextView
+            android:id="@+id/tvPkModelVariantValue"
+            style="@style/SettingsClickableValue.Dropdown"
+            android:text="@string/pk_model_06b_v3_int8" />
+
+          <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchPkPreload"
+            style="@style/SettingsSwitch"
+            android:text="@string/label_pk_preload" />
+
+          <TextView
+            style="@style/SettingsLabel"
+            android:text="@string/label_pk_keep_alive" />
+
+          <TextView
+            android:id="@+id/tvPkKeepAliveValue"
+            style="@style/SettingsClickableValue.Dropdown"
+            android:text="@string/sv_keep_alive_always" />
+
+          <TextView
+            style="@style/SettingsLabel"
+            android:text="@string/label_pk_threads" />
+
+          <com.google.android.material.slider.Slider
+            android:id="@+id/sliderPkThreads"
+            style="@style/SettingsSlider"
+            android:valueFrom="1"
+            android:valueTo="8"
+            android:stepSize="1" />
+
+          <LinearLayout
+            style="@style/SettingsButtonRow.MarginTop12"
+            android:baselineAligned="false">
+
+            <com.google.android.material.button.MaterialButton
+              android:id="@+id/btnPkDownloadModel"
+              style="@style/SettingsRowButtonLeft"
+              android:text="@string/btn_pk_download_model" />
+
+            <com.google.android.material.button.MaterialButton
+              android:id="@+id/btnPkImportModel"
+              style="@style/SettingsRowButtonRight"
+              android:text="@string/btn_pk_import_model" />
+          </LinearLayout>
+
+          <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnPkClearModel"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            app:shapeAppearanceOverlay="@style/AsrkbShapeOverlayCapsule"
+            android:text="@string/btn_pk_clear_model" />
+
+          <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnPkGuide"
+            style="@style/SettingsTonalButton"
+            android:text="@string/btn_local_model_guide" />
+
+          <TextView
+            android:id="@+id/tvPkDownloadStatus"
+            style="@style/SettingsStatusText"
+            android:text="" />
+        </LinearLayout>
+
         <!-- FireRedASR V2 (Local) -->
         <LinearLayout
           android:id="@+id/groupFireRedAsr"

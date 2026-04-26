@@ -1,0 +1,30 @@
+<resources>
+    <!-- Parakeet ローカル ASR 設定文字列 -->
+    <string name="parakeet_section_title">ParakeetローカルASR</string>
+    <string name="vendor_parakeet">Parakeet</string>
+
+    <string name="label_pk_model_variant">モデルバージョン</string>
+    <string name="pk_model_06b_v3_int8">0.6B V3 Int8 European</string>
+    <string name="pk_model_06b_v2_int8">0.6B V2 Int8 English</string>
+    <string name="label_pk_threads">スレッド数（1-8）</string>
+    <string name="label_pk_preload">初回表示時にモデルを事前読み込み</string>
+    <string name="label_pk_keep_alive">モデル保持時間</string>
+    <string name="btn_pk_download_model">Parakeetモデルをワンクリックでダウンロード</string>
+    <string name="btn_pk_import_model">ローカルファイルからモデルをインポート</string>
+    <string name="btn_pk_clear_model">ダウンロードしたParakeetモデルをクリア</string>
+    <string name="pk_download_status_downloading">ダウンロード中…%1$d%%</string>
+    <string name="pk_download_status_extracting_progress">展開中… %1$d%%</string>
+    <string name="pk_download_status_done">Parakeetモデルがインストールされました</string>
+    <string name="pk_download_status_failed">ダウンロードまたは展開失敗</string>
+    <string name="pk_download_started_in_bg">バックグラウンドダウンロードを開始しました。進行状況は通知で確認してください。</string>
+    <string name="pk_import_started_in_bg">バックグラウンドインポートを開始しました。進行状況は通知で確認してください。</string>
+    <string name="pk_import_success">モデルのインポートに成功しました：%1$s</string>
+    <string name="pk_import_failed">モデルのインポートに失敗しました：%1$s</string>
+    <string name="pk_clear_confirm_title">Parakeetモデルをクリアしますか？</string>
+    <string name="pk_clear_confirm_message">ダウンロードしたParakeetモデルファイルが削除されます。後で再ダウンロードできます。続行しますか？</string>
+    <string name="pk_clear_done">Parakeetモデルがクリアされました</string>
+    <string name="pk_clear_failed">クリア失敗</string>
+    <string name="error_parakeet_model_missing">Parakeetモデルファイルがありません。設定で構成またはダウンロードしてください。</string>
+    <string name="notif_pk_title_06b_v3_int8">Parakeet 0.6B V3 Int8 Europeanモデル</string>
+    <string name="notif_pk_title_06b_v2_int8">Parakeet 0.6B V2 Int8 Englishモデル</string>
+</resources>

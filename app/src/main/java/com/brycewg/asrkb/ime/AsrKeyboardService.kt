@@ -720,6 +720,24 @@ class AsrKeyboardService :
                     return false
                 }
             }
+        } else if (prefs.asrVendor == AsrVendor.Parakeet) {
+            val prepared = com.brycewg.asrkb.asr.isParakeetPrepared()
+            if (!prepared) {
+                val base = getExternalFilesDir(null) ?: filesDir
+                val probeRoot = java.io.File(base, "parakeet")
+                val variantDir = java.io.File(
+                    probeRoot,
+                    com.brycewg.asrkb.asr.normalizeParakeetVariant(prefs.pkModelVariant)
+                )
+                val found = com.brycewg.asrkb.asr.findParakeetModelDir(variantDir)
+                    ?: com.brycewg.asrkb.asr.findParakeetModelDir(probeRoot)
+                if (found == null) {
+                    uiRenderer?.clearStatusTextStyle()
+                    viewRefs?.txtStatusText?.text =
+                        getString(R.string.error_parakeet_model_missing)
+                    return false
+                }
+            }
         }
         // 确保引擎匹配当前模式
         asrManager.ensureEngineMatchesMode()
@@ -874,6 +892,11 @@ class AsrKeyboardService :
                     ) {
                         com.brycewg.asrkb.asr.unloadQwen3AsrRecognizer()
                     }
+                    if (old == com.brycewg.asrkb.asr.AsrVendor.Parakeet &&
+                        vendor != com.brycewg.asrkb.asr.AsrVendor.Parakeet
+                    ) {
+                        com.brycewg.asrkb.asr.unloadParakeetRecognizer()
+                    }
                     if (old == com.brycewg.asrkb.asr.AsrVendor.FireRedAsr &&
                         vendor != com.brycewg.asrkb.asr.AsrVendor.FireRedAsr
                     ) {
@@ -910,6 +933,12 @@ class AsrKeyboardService :
                         }
                         com.brycewg.asrkb.asr.AsrVendor.Qwen3Asr -> if (prefs.qwPreloadEnabled) {
                             com.brycewg.asrkb.asr.preloadQwen3AsrIfConfigured(
+                                this,
+                                prefs
+                            )
+                        }
+                        com.brycewg.asrkb.asr.AsrVendor.Parakeet -> if (prefs.pkPreloadEnabled) {
+                            com.brycewg.asrkb.asr.preloadParakeetIfConfigured(
                                 this,
                                 prefs
                             )
@@ -962,6 +991,7 @@ class AsrKeyboardService :
             AsrVendor.SenseVoice -> p.svPreloadEnabled
             AsrVendor.FunAsrNano -> p.fnPreloadEnabled
             AsrVendor.Qwen3Asr -> p.qwPreloadEnabled
+            AsrVendor.Parakeet -> p.pkPreloadEnabled
             AsrVendor.FireRedAsr -> p.frPreloadEnabled
             AsrVendor.Paraformer -> p.pfPreloadEnabled
             else -> false

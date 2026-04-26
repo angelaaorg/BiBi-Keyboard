@@ -604,6 +604,7 @@ class ExternalSpeechService : Service() {
             AsrVendor.SenseVoice,
             AsrVendor.FunAsrNano,
             AsrVendor.Qwen3Asr,
+            AsrVendor.Parakeet,
             AsrVendor.FireRedAsr -> false
             AsrVendor.ElevenLabs -> prefs.elevenStreamingEnabled
             AsrVendor.OpenAI -> prefs.oaAsrStreamingEnabled
@@ -708,6 +709,13 @@ class ExternalSpeechService : Service() {
                     onRequestDuration = ::onRequestDuration
                 )
                 AsrVendor.Qwen3Asr -> Qwen3AsrFileAsrEngine(
+                    context,
+                    scope,
+                    prefs,
+                    this,
+                    onRequestDuration = ::onRequestDuration
+                )
+                AsrVendor.Parakeet -> ParakeetFileAsrEngine(
                     context,
                     scope,
                     prefs,
@@ -956,6 +964,21 @@ class ExternalSpeechService : Service() {
                         prefs,
                         this,
                         com.brycewg.asrkb.asr.Qwen3AsrFileAsrEngine(
+                            context,
+                            scope,
+                            prefs,
+                            this,
+                            onRequestDuration = ::onRequestDuration
+                        )
+                    )
+                }
+                AsrVendor.Parakeet -> {
+                    com.brycewg.asrkb.asr.GenericPushFileAsrAdapter(
+                        context,
+                        scope,
+                        prefs,
+                        this,
+                        com.brycewg.asrkb.asr.ParakeetFileAsrEngine(
                             context,
                             scope,
                             prefs,

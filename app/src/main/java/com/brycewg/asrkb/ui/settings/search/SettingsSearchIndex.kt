@@ -571,6 +571,11 @@ object SettingsSearchIndex {
             asrVendorId = "qwen3_asr",
             keywords = listOf("qwen", "qwen3", "qwen3_asr")
         )
+        R.id.groupParakeet -> VendorHint(
+            title = context.getString(R.string.vendor_parakeet),
+            asrVendorId = "parakeet",
+            keywords = listOf("parakeet", "nemo", "nemo_transducer")
+        )
         R.id.groupFireRedAsr -> VendorHint(
             title = context.getString(R.string.vendor_firered_asr),
             asrVendorId = "firered_asr",
