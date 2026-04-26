@@ -172,6 +172,23 @@ class FloatingKeepAliveService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
+    override fun onTimeout(startId: Int, fgsType: Int) {
+        Log.w(TAG, "Foreground keep-alive timeout: startId=$startId, fgsType=$fgsType")
+        DebugLogManager.logPersistent(
+            this,
+            "keepalive",
+            "service_timeout",
+            mapOf(
+                "startId" to startId,
+                "fgsType" to fgsType
+            )
+        )
+        keepAliveStarted = false
+        stopNotificationRefreshLoop()
+        clearNotificationSafely()
+        stopSelf(startId)
+    }
+
     override fun onDestroy() {
         keepAliveStarted = false
         stopNotificationRefreshLoop()
@@ -188,9 +205,27 @@ class FloatingKeepAliveService : Service() {
 
     private fun startForegroundWithNotification() {
         val notification = buildKeepAliveNotification()
-        synchronized(notificationStateLock) {
-            if (!keepAliveStarted) return
-            startForeground(NOTIFICATION_ID, notification)
+        try {
+            synchronized(notificationStateLock) {
+                if (!keepAliveStarted) return
+                startForeground(NOTIFICATION_ID, notification)
+            }
+        } catch (t: RuntimeException) {
+            if (!isForegroundServiceStartRejected(t)) throw t
+            Log.w(TAG, "Foreground keep-alive start rejected by system", t)
+            DebugLogManager.logPersistent(
+                this,
+                "keepalive",
+                "service_start_rejected",
+                mapOf(
+                    "reason" to "foreground_service_restricted",
+                    "msg" to t.message.safeLogSnippet()
+                )
+            )
+            keepAliveStarted = false
+            stopNotificationRefreshLoop()
+            stopSelf()
+            return
         }
         startNotificationRefreshLoop()
     }
@@ -320,5 +355,27 @@ class FloatingKeepAliveService : Service() {
     } catch (t: Throwable) {
         Log.w(TAG, "Failed to load today's usage stats", t)
         0L
+    }
+
+    private fun isForegroundServiceStartRejected(t: RuntimeException): Boolean {
+        var current: Throwable? = t
+        while (current != null) {
+            val className = current.javaClass.name
+            val message = current.message.orEmpty()
+            if (className == "android.app.ForegroundServiceStartNotAllowedException" ||
+                className == "android.app.ForegroundServiceTypeException" ||
+                message.contains("foreground service type", ignoreCase = true) ||
+                message.contains("foreground service", ignoreCase = true)
+            ) {
+                return true
+            }
+            current = current.cause
+        }
+        return false
+    }
+
+    private fun String?.safeLogSnippet(): String? {
+        if (this.isNullOrBlank()) return null
+        return take(160)
     }
 }

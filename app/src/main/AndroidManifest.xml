@@ -18,6 +18,8 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <!-- Android 14+ 针对数据同步/下载类型前台服务权限（兼容不存在时忽略） -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" tools:ignore="NewApi" />
+    <!-- Android 14+ 针对用户主动开启的悬浮球后台常驻服务用途（兼容不存在时忽略） -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" tools:ignore="NewApi" />
     <!-- 申请电池优化白名单 -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <!-- 悬浮球需要的系统悬浮窗权限（运行时在设置中授予） -->
@@ -152,7 +154,11 @@
         <service
             android:name=".ui.floating.FloatingKeepAliveService"
             android:exported="true"
-            android:foregroundServiceType="dataSync" />
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="user_enabled_floating_keyboard_keep_alive" />
+        </service>
 
         <!-- Shizuku / root 增强保活：周期性拉起前台保活服务 -->
         <service
