@@ -4,8 +4,8 @@
     <string name="vendor_parakeet">Parakeet</string>
 
     <string name="label_pk_model_variant">モデルバージョン</string>
-    <string name="pk_model_06b_v3_int8">0.6B V3 Int8 European</string>
-    <string name="pk_model_06b_v2_int8">0.6B V2 Int8 English</string>
+    <string name="pk_model_06b_v3_int8">0.6B V3 Int8 European（456MB）</string>
+    <string name="pk_model_06b_v2_int8">0.6B V2 Int8 English（451MB）</string>
     <string name="label_pk_threads">スレッド数（1-8）</string>
     <string name="label_pk_preload">初回表示時にモデルを事前読み込み</string>
     <string name="label_pk_keep_alive">モデル保持時間</string>
@@ -25,6 +25,6 @@
     <string name="pk_clear_done">Parakeetモデルがクリアされました</string>
     <string name="pk_clear_failed">クリア失敗</string>
     <string name="error_parakeet_model_missing">Parakeetモデルファイルがありません。設定で構成またはダウンロードしてください。</string>
-    <string name="notif_pk_title_06b_v3_int8">Parakeet 0.6B V3 Int8 Europeanモデル</string>
-    <string name="notif_pk_title_06b_v2_int8">Parakeet 0.6B V2 Int8 Englishモデル</string>
+    <string name="notif_pk_title_06b_v3_int8">Parakeet 0.6B V3 Int8 Europeanモデル（456MB）</string>
+    <string name="notif_pk_title_06b_v2_int8">Parakeet 0.6B V2 Int8 Englishモデル（451MB）</string>
 </resources>

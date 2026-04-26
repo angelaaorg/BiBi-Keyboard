@@ -573,6 +573,18 @@ class AsrSettingsViewModel : ViewModel() {
     }
 
     // ----- Qwen3-ASR -----
+    fun updateQwModelVariant(variant: String) {
+        val normalized = com.brycewg.asrkb.asr.normalizeQwen3AsrVariant(variant)
+        prefs.qwModelVariant = normalized
+        _uiState.value = _uiState.value.copy(qwModelVariant = normalized)
+        try {
+            com.brycewg.asrkb.asr.unloadQwen3AsrRecognizer()
+        } catch (e: Throwable) {
+            Log.e(TAG, "Failed to unload Qwen3-ASR recognizer after variant change", e)
+        }
+        triggerQwPreloadIfEnabledAndActive("variant change")
+    }
+
     fun updateQwKeepAlive(minutes: Int) {
         prefs.qwKeepAliveMinutes = minutes
         _uiState.value = _uiState.value.copy(qwKeepAliveMinutes = minutes)

@@ -3,7 +3,8 @@
     <string name="qwen3_asr_section_title">Qwen3-ASR Local ASR</string>
     <string name="vendor_qwen3_asr">Qwen3-ASR</string>
 
-    <string name="qw_model_qwen3_06b_int8">Qwen3-ASR 0.6B (int8, ~1.2GB)</string>
+    <string name="label_qw_model_variant">Model version</string>
+    <string name="qw_model_qwen3_06b_int8">Qwen3-ASR 0.6B Int8 (806MB)</string>
     <string name="label_qw_threads">Threads (1-8)</string>
     <string name="label_qw_preload">Load model on first show</string>
     <string name="label_qw_keep_alive">Model keep-alive duration</string>
@@ -22,8 +23,6 @@
     <string name="qw_clear_confirm_message">This will delete downloaded Qwen3-ASR model files. You can re-download later. Continue?</string>
     <string name="qw_clear_done">Qwen3-ASR model cleared</string>
     <string name="qw_clear_failed">Clear failed</string>
-    <string name="qw_model_info">Note: this channel uses sherpa-onnx OfflineQwen3AsrModelConfig and currently supports only full-utterance offline recognition.</string>
-
     <string name="error_qwen3_asr_model_missing">Qwen3-ASR model files are missing. Please configure or download in Settings.</string>
-    <string name="notif_qw_title_qwen3_06b_int8">Qwen3-ASR 0.6B model (int8)</string>
+    <string name="notif_qw_title_qwen3_06b_int8">Qwen3-ASR 0.6B Int8 model (806MB)</string>
 </resources>

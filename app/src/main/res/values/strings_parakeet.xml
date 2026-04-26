@@ -4,8 +4,8 @@
     <string name="vendor_parakeet">Parakeet</string>
 
     <string name="label_pk_model_variant">Model version</string>
-    <string name="pk_model_06b_v3_int8">0.6B V3 Int8 European</string>
-    <string name="pk_model_06b_v2_int8">0.6B V2 Int8 English</string>
+    <string name="pk_model_06b_v3_int8">0.6B V3 Int8 European (456MB)</string>
+    <string name="pk_model_06b_v2_int8">0.6B V2 Int8 English (451MB)</string>
     <string name="label_pk_threads">Threads (1-8)</string>
     <string name="label_pk_preload">Load model on first show</string>
     <string name="label_pk_keep_alive">Model keep-alive duration</string>
@@ -25,6 +25,6 @@
     <string name="pk_clear_done">Parakeet model cleared</string>
     <string name="pk_clear_failed">Clear failed</string>
     <string name="error_parakeet_model_missing">Parakeet model files are missing. Please configure or download in Settings.</string>
-    <string name="notif_pk_title_06b_v3_int8">Parakeet 0.6B V3 Int8 European model</string>
-    <string name="notif_pk_title_06b_v2_int8">Parakeet 0.6B V2 Int8 English model</string>
+    <string name="notif_pk_title_06b_v3_int8">Parakeet 0.6B V3 Int8 European model (456MB)</string>
+    <string name="notif_pk_title_06b_v2_int8">Parakeet 0.6B V2 Int8 English model (451MB)</string>
 </resources>

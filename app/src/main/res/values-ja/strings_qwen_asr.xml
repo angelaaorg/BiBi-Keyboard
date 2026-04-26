@@ -3,7 +3,8 @@
     <string name="qwen3_asr_section_title">Qwen3-ASRローカルASR</string>
     <string name="vendor_qwen3_asr">Qwen3-ASR</string>
 
-    <string name="qw_model_qwen3_06b_int8">Qwen3-ASR 0.6B（int8、約1.2GB）</string>
+    <string name="label_qw_model_variant">モデルバージョン</string>
+    <string name="qw_model_qwen3_06b_int8">Qwen3-ASR 0.6B Int8（806MB）</string>
     <string name="label_qw_threads">スレッド数（1-8）</string>
     <string name="label_qw_preload">初回表示時にモデルを事前読み込み</string>
     <string name="label_qw_keep_alive">モデル保持時間</string>
@@ -22,8 +23,6 @@
     <string name="qw_clear_confirm_message">ダウンロードしたQwen3-ASRモデルファイルが削除されます。後で再ダウンロードできます。続行しますか？</string>
     <string name="qw_clear_done">Qwen3-ASRモデルがクリアされました</string>
     <string name="qw_clear_failed">クリア失敗</string>
-    <string name="qw_model_info">注：このチャンネルはsherpa-onnx OfflineQwen3AsrModelConfigを使用し、現在は一括オフライン認識のみ対応しています。</string>
-
     <string name="error_qwen3_asr_model_missing">Qwen3-ASRモデルファイルがありません。設定で構成またはダウンロードしてください。</string>
-    <string name="notif_qw_title_qwen3_06b_int8">Qwen3-ASR 0.6Bモデル（int8）</string>
+    <string name="notif_qw_title_qwen3_06b_int8">Qwen3-ASR 0.6B Int8モデル（806MB）</string>
 </resources>

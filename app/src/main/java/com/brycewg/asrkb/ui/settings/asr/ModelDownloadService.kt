@@ -559,7 +559,7 @@ class ModelDownloadService : Service() {
             }
             "FunASR $versionName"
         }
-        "qwen3_asr" -> "Qwen3-ASR 0.6B (int8)"
+        "qwen3_asr" -> "Qwen3-ASR 0.6B Int8 (806MB)"
         "parakeet" -> {
             val versionName = when (variant) {
                 "0.6b-v2-int8" -> "0.6B V2 Int8"

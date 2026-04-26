@@ -872,7 +872,12 @@
           android:visibility="gone">
 
           <TextView
-            style="@style/SettingsClickableValue"
+            style="@style/SettingsLabel"
+            android:text="@string/label_qw_model_variant" />
+
+          <TextView
+            android:id="@+id/tvQwModelVariantValue"
+            style="@style/SettingsClickableValue.Dropdown"
             android:text="@string/qw_model_qwen3_06b_int8" />
 
           <com.google.android.material.materialswitch.MaterialSwitch
@@ -933,11 +938,6 @@
             android:id="@+id/tvQwDownloadStatus"
             style="@style/SettingsStatusText"
             android:text="" />
-
-          <TextView
-            style="@style/SettingsHint"
-            android:layout_marginTop="12dp"
-            android:text="@string/qw_model_info" />
         </LinearLayout>
 
         <!-- Parakeet (Local) -->

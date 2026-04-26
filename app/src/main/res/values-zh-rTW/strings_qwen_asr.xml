@@ -3,7 +3,8 @@
     <string name="qwen3_asr_section_title">Qwen3-ASR 本地 ASR</string>
     <string name="vendor_qwen3_asr">Qwen3-ASR</string>
 
-    <string name="qw_model_qwen3_06b_int8">Qwen3-ASR 0.6B（int8，約 1.2GB）</string>
+    <string name="label_qw_model_variant">模型版本</string>
+    <string name="qw_model_qwen3_06b_int8">Qwen3-ASR 0.6B Int8（806MB）</string>
     <string name="label_qw_threads">執行緒數（1-8）</string>
     <string name="label_qw_preload">首次顯示時預載入模型</string>
     <string name="label_qw_keep_alive">模型保留時長</string>
@@ -22,8 +23,6 @@
     <string name="qw_clear_confirm_message">將刪除已下載的 Qwen3-ASR 模型檔案，可稍後重新下載。是否繼續？</string>
     <string name="qw_clear_done">Qwen3-ASR 模型已清除</string>
     <string name="qw_clear_failed">清除失敗</string>
-    <string name="qw_model_info">說明：此渠道使用 sherpa-onnx OfflineQwen3AsrModelConfig，目前僅支援整段離線識別。</string>
-
     <string name="error_qwen3_asr_model_missing">缺少 Qwen3-ASR 模型檔案，請在設定中配置或下載</string>
-    <string name="notif_qw_title_qwen3_06b_int8">Qwen3-ASR 0.6B 模型（int8）</string>
+    <string name="notif_qw_title_qwen3_06b_int8">Qwen3-ASR 0.6B Int8 模型（806MB）</string>
 </resources>

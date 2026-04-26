@@ -24,6 +24,7 @@ internal class Qwen3AsrSettingsSection : AsrSettingsSection {
     private var downloadUiRequestSeq: Long = 0L
 
     override fun bind(binding: AsrSettingsBinding) {
+        bindVariantSelection(binding)
         bindThreadsSlider(binding)
         bindSwitches(binding)
         bindKeepAliveSelection(binding)
@@ -39,6 +40,40 @@ internal class Qwen3AsrSettingsSection : AsrSettingsSection {
 
     override fun onResume(binding: AsrSettingsBinding) {
         refreshDownloadUiVisibility(binding)
+    }
+
+    private fun bindVariantSelection(binding: AsrSettingsBinding) {
+        val tvVariant = binding.view<TextView>(R.id.tvQwModelVariantValue)
+        val variantLabels = arrayOf(
+            binding.activity.getString(R.string.qw_model_qwen3_06b_int8)
+        )
+        val variantCodes = arrayOf("qwen3-0.6b-int8")
+
+        fun updateVariantSummary() {
+            val normalized = com.brycewg.asrkb.asr.normalizeQwen3AsrVariant(binding.prefs.qwModelVariant)
+            val idx = variantCodes.indexOf(normalized).coerceAtLeast(0)
+            tvVariant.text = variantLabels[idx]
+        }
+
+        updateVariantSummary()
+        tvVariant.setOnClickListener { v ->
+            binding.hapticTapIfEnabled(v)
+            val cur = variantCodes.indexOf(
+                com.brycewg.asrkb.asr.normalizeQwen3AsrVariant(binding.prefs.qwModelVariant)
+            ).coerceAtLeast(0)
+            binding.showSingleChoiceDialog(
+                R.string.label_qw_model_variant,
+                variantLabels,
+                cur
+            ) { which ->
+                val code = variantCodes.getOrNull(which) ?: "qwen3-0.6b-int8"
+                if (code != binding.prefs.qwModelVariant) {
+                    binding.viewModel.updateQwModelVariant(code)
+                }
+                updateVariantSummary()
+                refreshDownloadUiVisibility(binding)
+            }
+        }
     }
 
     private fun bindThreadsSlider(binding: AsrSettingsBinding) {
@@ -120,11 +155,12 @@ internal class Qwen3AsrSettingsSection : AsrSettingsSection {
         val tvQwDownloadStatus = binding.view<TextView>(R.id.tvQwDownloadStatus)
 
         btnQwDownload.setOnClickListener { v ->
+            val variant = com.brycewg.asrkb.asr.normalizeQwen3AsrVariant(binding.prefs.qwModelVariant)
             binding.modelDownloadUiController.startDownloadFromSourceDialog(
                 downloadButton = v,
                 statusTextViews = listOf(tvQwDownloadStatus),
-                urlOfficial = QWEN3_ASR_MODEL_URL,
-                variant = com.brycewg.asrkb.asr.normalizeQwen3AsrVariant(binding.prefs.qwModelVariant),
+                urlOfficial = qwen3ModelUrl(variant),
+                variant = variant,
                 modelType = "qwen3_asr",
                 startedTextResId = R.string.qw_download_started_in_bg,
                 failedTextResId = R.string.qw_download_status_failed,
@@ -145,7 +181,10 @@ internal class Qwen3AsrSettingsSection : AsrSettingsSection {
                             val base =
                                 binding.activity.getExternalFilesDir(null)
                                     ?: binding.activity.filesDir
-                            val target = File(base, "qwen3_asr")
+                            val target = File(
+                                File(base, "qwen3_asr"),
+                                com.brycewg.asrkb.asr.normalizeQwen3AsrVariant(binding.prefs.qwModelVariant)
+                            )
                             if (target.exists()) {
                                 withContext(Dispatchers.IO) { target.deleteRecursively() }
                             }
@@ -207,5 +246,11 @@ internal class Qwen3AsrSettingsSection : AsrSettingsSection {
         private const val TAG = "Qwen3AsrSettingsSection"
         private const val QWEN3_ASR_MODEL_URL =
             "https://github.com/BryceWG/BiBi-Keyboard/releases/download/models/sherpa-onnx-qwen3-asr-0.6B-int8-2026-03-25.zip"
+
+        private fun qwen3ModelUrl(variant: String): String = when (
+            com.brycewg.asrkb.asr.normalizeQwen3AsrVariant(variant)
+        ) {
+            else -> QWEN3_ASR_MODEL_URL
+        }
     }
 }

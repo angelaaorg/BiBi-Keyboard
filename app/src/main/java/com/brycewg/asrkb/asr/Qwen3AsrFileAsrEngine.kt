@@ -186,7 +186,10 @@ internal fun isQwen3AsrPrepared(): Boolean {
     return manager.isPrepared() || manager.isPreparing()
 }
 
-internal fun normalizeQwen3AsrVariant(@Suppress("UNUSED_PARAMETER") variant: String?): String = "qwen3-0.6b-int8"
+internal fun normalizeQwen3AsrVariant(variant: String?): String = when (variant?.trim()?.lowercase()) {
+    "qwen3-0.6b-int8", "qwen3-0.6b", "0.6b-int8", "0.6b" -> "qwen3-0.6b-int8"
+    else -> "qwen3-0.6b-int8"
+}
 
 internal fun findQwen3AsrTokenizerDir(modelDir: File): File? {
     val tokenizer = File(modelDir, "tokenizer")
