@@ -82,6 +82,7 @@ class AsrSettingsViewModel : ViewModel() {
             qwNumThreads = prefs.qwNumThreads,
             qwPreloadEnabled = prefs.qwPreloadEnabled,
             qwKeepAliveMinutes = prefs.qwKeepAliveMinutes,
+            qwUseItn = prefs.qwUseItn,
             // Parakeet settings
             pkModelVariant = prefs.pkModelVariant,
             pkNumThreads = prefs.pkNumThreads,
@@ -620,6 +621,13 @@ class AsrSettingsViewModel : ViewModel() {
         }
     }
 
+    fun updateQwUseItn(enabled: Boolean) {
+        if (prefs.qwUseItn != enabled) {
+            prefs.qwUseItn = enabled
+            _uiState.value = _uiState.value.copy(qwUseItn = enabled)
+        }
+    }
+
     // ----- Parakeet -----
     fun updatePkModelVariant(variant: String) {
         val normalized = com.brycewg.asrkb.asr.normalizeParakeetVariant(variant)
@@ -963,6 +971,7 @@ data class AsrSettingsUiState(
     val qwNumThreads: Int = 3,
     val qwPreloadEnabled: Boolean = false,
     val qwKeepAliveMinutes: Int = -1,
+    val qwUseItn: Boolean = true,
     // Parakeet settings
     val pkModelVariant: String = "0.6b-v3-int8",
     val pkNumThreads: Int = 3,

@@ -187,6 +187,7 @@ internal object PrefsBackup {
         o.put(KEY_QW_NUM_THREADS, qwNumThreads)
         o.put(KEY_QW_PRELOAD_ENABLED, qwPreloadEnabled)
         o.put(KEY_QW_KEEP_ALIVE_MINUTES, qwKeepAliveMinutes)
+        o.put(KEY_QW_USE_ITN, qwUseItn)
         // Parakeet（本地 ASR）
         o.put(KEY_PK_MODEL_VARIANT, pkModelVariant)
         o.put(KEY_PK_NUM_THREADS, pkNumThreads)
@@ -500,6 +501,7 @@ internal object PrefsBackup {
             optInt(KEY_QW_NUM_THREADS)?.let { qwNumThreads = it.coerceIn(1, 8) }
             optBool(KEY_QW_PRELOAD_ENABLED)?.let { qwPreloadEnabled = it }
             optInt(KEY_QW_KEEP_ALIVE_MINUTES)?.let { qwKeepAliveMinutes = it }
+            optBool(KEY_QW_USE_ITN)?.let { qwUseItn = it }
             // Parakeet（本地 ASR）
             optString(KEY_PK_MODEL_VARIANT)?.let { pkModelVariant = it }
             optInt(KEY_PK_NUM_THREADS)?.let { pkNumThreads = it.coerceIn(1, 8) }

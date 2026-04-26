@@ -7,6 +7,9 @@
     <string name="qw_model_qwen3_06b_int8">Qwen3-ASR 0.6B Int8（806MB）</string>
     <string name="label_qw_threads">スレッド数（1-8）</string>
     <string name="label_qw_preload">初回表示時にモデルを事前読み込み</string>
+    <string name="label_qw_use_itn">ルールベースITNを有効化</string>
+    <string name="feature_qw_use_itn_off_desc">「千二百三十四」のような話し言葉のまま出力します。</string>
+    <string name="feature_qw_use_itn_on_desc">ローカルのルールベース逆テキスト正規化を適用し、対応する中国語の口語数字、日付、時刻を書面形式に変換します。</string>
     <string name="label_qw_keep_alive">モデル保持時間</string>
     <string name="btn_qw_download_model">Qwen3-ASRモデルをワンクリックでダウンロード</string>
     <string name="btn_qw_import_model">ローカルファイルからモデルをインポート</string>

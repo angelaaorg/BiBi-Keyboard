@@ -150,8 +150,15 @@ internal class Qwen3AsrFileAsrEngine(
                 reportDuration()
                 listener.onError(context.getString(R.string.error_asr_empty_result))
             } else {
+                val useItn = try {
+                    prefs.qwUseItn
+                } catch (t: Throwable) {
+                    Log.w(TAG, "Failed to get qwUseItn", t)
+                    false
+                }
+                val finalText = if (useItn) ChineseItn.normalize(text.trim()) else text.trim()
                 reportDuration()
-                listener.onFinal(text.trim())
+                listener.onFinal(finalText)
             }
         } catch (t: Throwable) {
             Log.e(TAG, "Recognition failed", t)

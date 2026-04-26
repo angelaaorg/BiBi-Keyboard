@@ -108,6 +108,19 @@ internal class Qwen3AsrSettingsSection : AsrSettingsSection {
                 hapticFeedback = { binding.hapticTapIfEnabled(it) }
             )
         }
+        binding.view<MaterialSwitch>(R.id.switchQwUseItn).apply {
+            isChecked = binding.prefs.qwUseItn
+            installExplainedSwitch(
+                context = binding.activity,
+                titleRes = R.string.label_qw_use_itn,
+                offDescRes = R.string.feature_qw_use_itn_off_desc,
+                onDescRes = R.string.feature_qw_use_itn_on_desc,
+                preferenceKey = "qw_use_itn_explained",
+                readPref = { binding.prefs.qwUseItn },
+                writePref = { v -> binding.viewModel.updateQwUseItn(v) },
+                hapticFeedback = { binding.hapticTapIfEnabled(it) }
+            )
+        }
     }
 
     private fun bindKeepAliveSelection(binding: AsrSettingsBinding) {

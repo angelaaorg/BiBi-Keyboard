@@ -1080,6 +1080,11 @@ class Prefs(context: Context) {
         get() = sp.getInt(KEY_QW_KEEP_ALIVE_MINUTES, -1)
         set(value) = sp.edit { putInt(KEY_QW_KEEP_ALIVE_MINUTES, value) }
 
+    // Qwen3-ASR：规则 ITN 开关（使用 ChineseItn 做识别后文本规范化）
+    var qwUseItn: Boolean
+        get() = sp.getBoolean(KEY_QW_USE_ITN, true)
+        set(value) = sp.edit { putBoolean(KEY_QW_USE_ITN, value) }
+
     // Parakeet（本地 ASR）
     var pkModelVariant: String
         get() = sp.getString(KEY_PK_MODEL_VARIANT, "0.6b-v3-int8") ?: "0.6b-v3-int8"

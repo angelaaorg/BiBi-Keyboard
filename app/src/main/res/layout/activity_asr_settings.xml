@@ -885,6 +885,11 @@
             style="@style/SettingsSwitch"
             android:text="@string/label_qw_preload" />
 
+          <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchQwUseItn"
+            style="@style/SettingsSwitch"
+            android:text="@string/label_qw_use_itn" />
+
           <TextView
             style="@style/SettingsLabel"
             android:text="@string/label_qw_keep_alive" />
