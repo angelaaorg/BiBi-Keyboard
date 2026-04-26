@@ -1,5 +1,11 @@
 # Changelog
 
+## v3.15.1 (2026-04-26)
+
+### 问题修复
+
+- **Foreground Service Stability Optimization**: Enhanced foreground service types and exception handling, improving user experience on Android 15 and above.
+
 ## v3.15.0 (2026-04-26)
 
 ### New Features
