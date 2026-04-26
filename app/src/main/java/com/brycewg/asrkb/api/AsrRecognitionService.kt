@@ -232,6 +232,7 @@ class AsrRecognitionService : RecognitionService() {
             } else {
                 SonioxFileAsrEngine(engineContext, scope, prefs, listener)
             }
+            AsrVendor.StepAudio -> StepAudioFileAsrEngine(engineContext, scope, prefs, listener)
             AsrVendor.Zhipu -> ZhipuFileAsrEngine(engineContext, scope, prefs, listener)
             AsrVendor.SenseVoice -> {
                 if (prefs.svPseudoStreamEnabled) {
@@ -272,6 +273,7 @@ class AsrRecognitionService : RecognitionService() {
         return try {
             when (backupVendor) {
                 AsrVendor.SiliconFlow -> prefs.hasSfKeys()
+                AsrVendor.StepAudio -> prefs.hasStepAudioKeys()
                 else -> prefs.hasVendorKeys(backupVendor)
             }
         } catch (t: Throwable) {
@@ -295,7 +297,7 @@ class AsrRecognitionService : RecognitionService() {
         AsrVendor.Qwen3Asr,
         AsrVendor.Parakeet,
         AsrVendor.FireRedAsr -> false
-        AsrVendor.Gemini, AsrVendor.SiliconFlow, AsrVendor.Zhipu -> false
+        AsrVendor.Gemini, AsrVendor.SiliconFlow, AsrVendor.StepAudio, AsrVendor.Zhipu -> false
     }
 
     /**

@@ -36,6 +36,7 @@ import com.brycewg.asrkb.ui.settings.asr.sections.Qwen3AsrSettingsSection
 import com.brycewg.asrkb.ui.settings.asr.sections.SenseVoiceSettingsSection
 import com.brycewg.asrkb.ui.settings.asr.sections.SiliconFlowSettingsSection
 import com.brycewg.asrkb.ui.settings.asr.sections.SonioxAsrSettingsSection
+import com.brycewg.asrkb.ui.settings.asr.sections.StepAudioSettingsSection
 import com.brycewg.asrkb.ui.settings.asr.sections.VolcengineSettingsSection
 import com.brycewg.asrkb.ui.settings.asr.sections.ZhipuAsrSettingsSection
 import com.brycewg.asrkb.ui.settings.search.SettingsSearchNavigator
@@ -123,6 +124,7 @@ class AsrSettingsActivity : BaseActivity() {
             DashScopeAsrSettingsSection(),
             GeminiAsrSettingsSection(),
             SonioxAsrSettingsSection(),
+            StepAudioSettingsSection(),
             ZhipuAsrSettingsSection(),
             SenseVoiceSettingsSection(),
             FunAsrNanoSettingsSection(),
@@ -290,6 +292,7 @@ class AsrSettingsActivity : BaseActivity() {
             com.brycewg.asrkb.asr.AsrVendor.DashScope -> R.string.vendor_dashscope
             com.brycewg.asrkb.asr.AsrVendor.Gemini -> R.string.vendor_gemini
             com.brycewg.asrkb.asr.AsrVendor.Soniox -> R.string.vendor_soniox
+            com.brycewg.asrkb.asr.AsrVendor.StepAudio -> R.string.vendor_stepaudio
             com.brycewg.asrkb.asr.AsrVendor.Zhipu -> R.string.vendor_zhipu
             com.brycewg.asrkb.asr.AsrVendor.SenseVoice -> R.string.vendor_sensevoice
             com.brycewg.asrkb.asr.AsrVendor.FunAsrNano -> R.string.vendor_funasr_nano

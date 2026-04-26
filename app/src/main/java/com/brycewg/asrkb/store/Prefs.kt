@@ -886,6 +886,20 @@ class Prefs(context: Context) {
         get() = sp.getBoolean(KEY_SONIOX_LANGUAGE_HINTS_STRICT, false)
         set(value) = sp.edit { putBoolean(KEY_SONIOX_LANGUAGE_HINTS_STRICT, value) }
 
+    // StepAudio（阶跃星辰）在线 ASR
+    var stepAudioApiKey: String by stringPref(KEY_STEPAUDIO_API_KEY, "")
+
+    var stepAudioModel: String by stringPref(
+        KEY_STEPAUDIO_MODEL,
+        DEFAULT_STEPAUDIO_ASR_MODEL
+    )
+
+    var stepAudioLanguage: String by stringPref(KEY_STEPAUDIO_LANGUAGE, "zh")
+
+    var stepAudioUseItn: Boolean
+        get() = sp.getBoolean(KEY_STEPAUDIO_USE_ITN, true)
+        set(value) = sp.edit { putBoolean(KEY_STEPAUDIO_USE_ITN, value) }
+
     // 智谱 GLM ASR
     var zhipuApiKey: String by stringPref(KEY_ZHIPU_API_KEY, "")
 
@@ -1200,6 +1214,7 @@ class Prefs(context: Context) {
     fun hasOpenAiKeys(): Boolean = hasVendorKeys(AsrVendor.OpenAI)
     fun hasGeminiKeys(): Boolean = hasVendorKeys(AsrVendor.Gemini)
     fun hasSonioxKeys(): Boolean = hasVendorKeys(AsrVendor.Soniox)
+    fun hasStepAudioKeys(): Boolean = hasVendorKeys(AsrVendor.StepAudio)
     fun hasZhipuKeys(): Boolean = hasVendorKeys(AsrVendor.Zhipu)
     fun hasAsrKeys(): Boolean = hasVendorKeys(asrVendor)
     fun hasLlmKeys(): Boolean {
@@ -1476,6 +1491,11 @@ class Prefs(context: Context) {
 
         // Zhipu GLM ASR 默认
         const val DEFAULT_ZHIPU_TEMPERATURE = 0.95f
+
+        // StepAudio ASR 默认
+        const val STEPAUDIO_ASR_ENDPOINT = "https://api.stepfun.com/v1/audio/asr/sse"
+        const val DEFAULT_STEPAUDIO_ASR_MODEL = "stepaudio-2.5-asr"
+        val STEPAUDIO_ASR_MODELS: List<String> = listOf(DEFAULT_STEPAUDIO_ASR_MODEL)
 
         // 合理的OpenAI格式默认值
         const val DEFAULT_LLM_ENDPOINT = "https://api.openai.com/v1"

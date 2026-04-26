@@ -183,6 +183,7 @@ internal object NetworkWarmupCoordinator {
         AsrVendor.DashScope -> prefs.hasDashKeys()
         AsrVendor.Gemini -> prefs.hasGeminiKeys()
         AsrVendor.Soniox -> prefs.hasSonioxKeys()
+        AsrVendor.StepAudio -> prefs.hasStepAudioKeys()
         AsrVendor.Zhipu -> prefs.hasZhipuKeys()
         AsrVendor.SenseVoice,
         AsrVendor.FunAsrNano,
@@ -279,6 +280,11 @@ internal object NetworkWarmupCoordinator {
         AsrVendor.Zhipu -> buildTarget(
             kind = WarmupKind.ASR,
             url = "https://open.bigmodel.cn/api/paas/v4/audio/transcriptions"
+        )
+
+        AsrVendor.StepAudio -> buildTarget(
+            kind = WarmupKind.ASR,
+            url = Prefs.STEPAUDIO_ASR_ENDPOINT
         )
 
         AsrVendor.SenseVoice,

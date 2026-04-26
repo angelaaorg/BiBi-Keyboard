@@ -606,6 +606,53 @@
             android:text="@string/btn_get_api_key_guide" />
         </LinearLayout>
 
+        <!-- StepAudio -->
+        <LinearLayout
+          android:id="@+id/groupStepAudio"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:orientation="vertical"
+          android:visibility="gone">
+
+          <com.google.android.material.textfield.TextInputLayout
+            style="@style/SettingsTextInputLayout"
+            android:hint="@string/label_stepaudio_api_key">
+
+            <com.google.android.material.textfield.TextInputEditText
+              android:id="@+id/etStepAudioApiKey"
+              style="@style/SettingsTextInput"
+              android:inputType="textPassword" />
+          </com.google.android.material.textfield.TextInputLayout>
+
+          <TextView
+            style="@style/SettingsLabel"
+            android:text="@string/label_stepaudio_model" />
+
+          <TextView
+            android:id="@+id/tvStepAudioModelValue"
+            style="@style/SettingsClickableValue.Dropdown"
+            android:text="@string/stepaudio_model_25_asr" />
+
+          <TextView
+            style="@style/SettingsLabel"
+            android:text="@string/label_stepaudio_language" />
+
+          <TextView
+            android:id="@+id/tvStepAudioLanguageValue"
+            style="@style/SettingsClickableValue.Dropdown"
+            android:text="@string/stepaudio_lang_zh" />
+
+          <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchStepAudioUseItn"
+            style="@style/SettingsSwitch"
+            android:text="@string/label_stepaudio_use_itn" />
+
+          <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnStepAudioGetKey"
+            style="@style/SettingsTonalButton"
+            android:text="@string/btn_get_api_key_guide" />
+        </LinearLayout>
+
         <!-- Zhipu GLM -->
         <LinearLayout
           android:id="@+id/groupZhipu"

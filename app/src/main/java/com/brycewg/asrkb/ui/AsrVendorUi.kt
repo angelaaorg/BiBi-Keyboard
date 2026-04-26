@@ -17,6 +17,7 @@ object AsrVendorUi {
         AsrVendor.DashScope,
         AsrVendor.Gemini,
         AsrVendor.Soniox,
+        AsrVendor.StepAudio,
         AsrVendor.Zhipu,
         AsrVendor.SenseVoice,
         AsrVendor.FunAsrNano,
@@ -35,6 +36,7 @@ object AsrVendorUi {
         AsrVendor.DashScope -> context.getString(R.string.vendor_dashscope)
         AsrVendor.Gemini -> context.getString(R.string.vendor_gemini)
         AsrVendor.Soniox -> context.getString(R.string.vendor_soniox)
+        AsrVendor.StepAudio -> context.getString(R.string.vendor_stepaudio)
         AsrVendor.Zhipu -> context.getString(R.string.vendor_zhipu)
         AsrVendor.SenseVoice -> context.getString(R.string.vendor_sensevoice)
         AsrVendor.FunAsrNano -> context.getString(R.string.vendor_funasr_nano)
@@ -85,6 +87,11 @@ object AsrVendorUi {
         AsrVendor.Soniox -> listOf(
             AsrVendorTag.Online,
             AsrVendorTag.Streaming,
+            AsrVendorTag.NonStreaming,
+            AsrVendorTag.Accurate
+        )
+        AsrVendor.StepAudio -> listOf(
+            AsrVendorTag.Online,
             AsrVendorTag.NonStreaming,
             AsrVendorTag.Accurate
         )

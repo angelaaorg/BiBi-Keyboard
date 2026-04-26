@@ -587,6 +587,7 @@ class ExternalSpeechService : Service() {
             return try {
                 when (backupVendor) {
                     AsrVendor.SiliconFlow -> prefs.hasSfKeys()
+                    AsrVendor.StepAudio -> prefs.hasStepAudioKeys()
                     else -> prefs.hasVendorKeys(backupVendor)
                 }
             } catch (t: Throwable) {
@@ -608,8 +609,8 @@ class ExternalSpeechService : Service() {
             AsrVendor.FireRedAsr -> false
             AsrVendor.ElevenLabs -> prefs.elevenStreamingEnabled
             AsrVendor.OpenAI -> prefs.oaAsrStreamingEnabled
-            // 其他云厂商（Gemini/SiliconFlow/Zhipu）仅非流式
-            AsrVendor.Gemini, AsrVendor.SiliconFlow, AsrVendor.Zhipu -> false
+            // 其他云厂商（Gemini/SiliconFlow/StepAudio/Zhipu）仅非流式
+            AsrVendor.Gemini, AsrVendor.SiliconFlow, AsrVendor.StepAudio, AsrVendor.Zhipu -> false
         }
 
         private fun buildEngine(
@@ -687,6 +688,13 @@ class ExternalSpeechService : Service() {
                         onRequestDuration = ::onRequestDuration
                     )
                 }
+                AsrVendor.StepAudio -> StepAudioFileAsrEngine(
+                    context,
+                    scope,
+                    prefs,
+                    this,
+                    onRequestDuration = ::onRequestDuration
+                )
                 AsrVendor.Zhipu -> ZhipuFileAsrEngine(
                     context,
                     scope,
@@ -886,6 +894,19 @@ class ExternalSpeechService : Service() {
                     prefs,
                     this,
                     com.brycewg.asrkb.asr.SiliconFlowFileAsrEngine(
+                        context,
+                        scope,
+                        prefs,
+                        this,
+                        onRequestDuration = ::onRequestDuration
+                    )
+                )
+                AsrVendor.StepAudio -> com.brycewg.asrkb.asr.GenericPushFileAsrAdapter(
+                    context,
+                    scope,
+                    prefs,
+                    this,
+                    com.brycewg.asrkb.asr.StepAudioFileAsrEngine(
                         context,
                         scope,
                         prefs,

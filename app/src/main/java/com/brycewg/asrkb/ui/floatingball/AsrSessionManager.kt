@@ -991,6 +991,17 @@ class AsrSessionManager(
             } else {
                 null
             }
+            AsrVendor.StepAudio -> if (prefs.hasStepAudioKeys()) {
+                StepAudioFileAsrEngine(
+                    context,
+                    serviceScope,
+                    prefs,
+                    engineListener,
+                    onRequestDuration = requestDurationCallback
+                )
+            } else {
+                null
+            }
             AsrVendor.Zhipu -> if (prefs.hasZhipuKeys()) {
                 ZhipuFileAsrEngine(
                     context,
@@ -1085,6 +1096,7 @@ class AsrSessionManager(
         return try {
             when (backupVendor) {
                 AsrVendor.SiliconFlow -> prefs.hasSfKeys()
+                AsrVendor.StepAudio -> prefs.hasStepAudioKeys()
                 else -> prefs.hasVendorKeys(backupVendor)
             }
         } catch (t: Throwable) {

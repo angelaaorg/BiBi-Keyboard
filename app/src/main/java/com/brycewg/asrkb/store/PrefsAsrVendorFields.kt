@@ -51,6 +51,11 @@ internal object PrefsAsrVendorFields {
         AsrVendor.Soniox to listOf(
             VendorField(KEY_SONIOX_API_KEY, required = true)
         ),
+        AsrVendor.StepAudio to listOf(
+            VendorField(KEY_STEPAUDIO_API_KEY, required = true),
+            VendorField(KEY_STEPAUDIO_MODEL, required = true, default = Prefs.DEFAULT_STEPAUDIO_ASR_MODEL),
+            VendorField(KEY_STEPAUDIO_LANGUAGE, default = "zh")
+        ),
         AsrVendor.Zhipu to listOf(
             VendorField(KEY_ZHIPU_API_KEY, required = true)
         ),

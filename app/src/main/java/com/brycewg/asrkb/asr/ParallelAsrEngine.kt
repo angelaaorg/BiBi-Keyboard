@@ -784,6 +784,14 @@ class ParallelAsrEngine(
                 )
                     .let { GenericPushFileAsrAdapter(context, scope, prefs, engineListener, it) }
             }
+            AsrVendor.StepAudio -> StepAudioFileAsrEngine(
+                context,
+                scope,
+                prefs,
+                engineListener,
+                onRequestDuration = onRequestDuration
+            )
+                .let { GenericPushFileAsrAdapter(context, scope, prefs, engineListener, it) }
             AsrVendor.Zhipu -> ZhipuFileAsrEngine(
                 context,
                 scope,

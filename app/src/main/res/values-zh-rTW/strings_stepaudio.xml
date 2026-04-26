@@ -1,0 +1,12 @@
+<resources>
+    <string name="vendor_stepaudio">StepAudio</string>
+    <string name="stepaudio_section_title">StepAudio API設定</string>
+    <string name="label_stepaudio_api_key">階躍星辰 API Key</string>
+    <string name="label_stepaudio_model">模型</string>
+    <string name="stepaudio_model_25_asr">stepaudio-2.5-asr</string>
+    <string name="label_stepaudio_language">識別語言</string>
+    <string name="stepaudio_lang_zh">中文</string>
+    <string name="stepaudio_lang_en">英文</string>
+    <string name="stepaudio_lang_auto">自動</string>
+    <string name="label_stepaudio_use_itn">啟用 ITN（數字/標點規範化）</string>
+</resources>

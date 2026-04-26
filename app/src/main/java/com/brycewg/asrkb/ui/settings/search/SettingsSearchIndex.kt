@@ -551,6 +551,11 @@ object SettingsSearchIndex {
             asrVendorId = "soniox",
             keywords = listOf("soniox")
         )
+        R.id.groupStepAudio -> VendorHint(
+            title = context.getString(R.string.vendor_stepaudio),
+            asrVendorId = "stepaudio",
+            keywords = listOf("stepaudio", "stepfun", "step")
+        )
         R.id.groupZhipu -> VendorHint(
             title = context.getString(R.string.vendor_zhipu),
             asrVendorId = "zhipu",

@@ -346,6 +346,18 @@ class AsrSessionManager(
                 null
             }
 
+            AsrVendor.StepAudio -> if (prefs.hasStepAudioKeys()) {
+                StepAudioFileAsrEngine(
+                    context,
+                    scope,
+                    prefs,
+                    engineListener,
+                    requestDurationCallback
+                )
+            } else {
+                null
+            }
+
             AsrVendor.Zhipu -> if (prefs.hasZhipuKeys()) {
                 ZhipuFileAsrEngine(context, scope, prefs, engineListener, requestDurationCallback)
             } else {
@@ -442,6 +454,7 @@ class AsrSessionManager(
         return try {
             when (backupVendor) {
                 AsrVendor.SiliconFlow -> prefs.hasSfKeys()
+                AsrVendor.StepAudio -> prefs.hasStepAudioKeys()
                 else -> prefs.hasVendorKeys(backupVendor)
             }
         } catch (t: Throwable) {
@@ -548,6 +561,8 @@ class AsrSessionManager(
                 is SonioxStreamAsrEngine -> if (prefs.sonioxStreamingEnabled) current else null
                 else -> null
             }
+
+            AsrVendor.StepAudio -> if (current is StepAudioFileAsrEngine) current else null
 
             AsrVendor.Zhipu -> if (current is ZhipuFileAsrEngine) current else null
 
