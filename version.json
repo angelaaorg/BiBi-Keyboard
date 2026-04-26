@@ -1,11 +1,11 @@
 {
-  "version": "3.15.0",
-  "version_code": 151,
-  "download_url": "https://github.com/BryceWG/BiBi-Keyboard/releases/tag/v3.15.0",
-  "release_notes": "### 新增功能\n\n- **Qwen3-ASR 本地识别支持**: 新增 Qwen3-ASR 0.6B 本地 ASR 供应商\n- **Parakeet 本地识别支持**: 新增 Parakeet 本地 ASR 引擎支持，V3版本支持多种欧洲语言，V2版本支持英语\n- **StepAudio ASR 支持**: 新增 StepAudio ASR 在线供应商支持\n\n### 改进优化\n\n- **本地模型自动卸载时机**: 调整预热启动成功后的自动卸载调度，改善本地模型资源管理\n- **[Pro]热词支持扩展**: 为 Qwen3ASR、FunASR Nano、StepAudio 增加热词功能\n\n### 问题修复\n\n- **识别供应商标识修正**: 优化 Qwen3Asr、FireRedAsr 和 Paraformer 的供应商标签\n- **识别时长统计修复**: 修复部分 ASR 供应商的识别时长上报问题",
-  "release_notes_en": "### New Features\n\n- **Qwen3-ASR Local Recognition**: Added Qwen3-ASR 0.6B as a new local ASR vendor\n- **Parakeet Local Recognition**: Added support for the Parakeet local ASR engine, with V3 supporting multiple European languages and V2 supporting English\n- **StepAudio ASR Support**: Added support for StepAudio as an online ASR vendor\n\n### Improvements\n\n- **Local Model Auto-Unload Timing**: Adjusted auto-unload scheduling after warm-up starts successfully to improve local model resource management\n- **[Pro] Expanded Hotword Support**: Added hotword support for Qwen3ASR, FunASR Nano, and StepAudio\n\n### Bug Fixes\n\n- **Vendor Tag Correction**: Improved vendor tags for Qwen3Asr, FireRedAsr, and Paraformer\n- **Recognition Duration Reporting**: Fixed duration reporting for some ASR vendors",
+  "version": "3.15.1",
+  "version_code": 152,
+  "download_url": "https://github.com/BryceWG/BiBi-Keyboard/releases/tag/v3.15.1",
+  "release_notes": "### 问题修复\n\n- **前台服务稳定性优化**: 前台服务类型与异常处理补强，优化安卓15以上用户体验",
+  "release_notes_en": "### 问题修复\n\n- **Foreground Service Stability Optimization**: Enhanced foreground service types and exception handling, improving user experience on Android 15 and above.",
   "important_notice": "0. 3.13.0版本迎来大量重构，已经过初步测试，如果您有疑虑可以暂不更新\n1. 已支持通过同文输入法与说点啥进行联动，具体操作步骤见https://github.com/BryceWG/trime-bibi-keyboard/releases\n2. BiBi Keyboard Pro版本已上架，欢迎在3.8.6后版本-关于页面中了解详情。\n3. 官方网站和使用文档均已上线,网址分别为: bibi.brycewg.com bibidocs.brycewg.com",
   "notice_level": "info",
   "min_supported_version": "2.6.5",
-  "update_time": "2026-04-26T04:01:54Z"
+  "update_time": "2026-04-26T04:50:36Z"
 }
