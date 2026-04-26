@@ -1,5 +1,25 @@
 # Changelog
 
+## v3.15.0 (2026-04-26)
+
+### New Features
+
+- **Qwen3-ASR Local Recognition**: Added Qwen3-ASR 0.6B as a new local ASR vendor
+- **Parakeet Local Recognition**: Added support for the Parakeet local ASR engine, with V3 supporting multiple European languages and V2 supporting English
+- **StepAudio ASR Support**: Added support for StepAudio as an online ASR vendor
+
+### Improvements
+
+- **Local Model Auto-Unload Timing**: Adjusted auto-unload scheduling after warm-up starts successfully to improve local model resource management
+- **[Pro] Expanded Hotword Support**: Added hotword support for Qwen3ASR, FunASR Nano, and StepAudio
+
+### Bug Fixes
+
+- **Vendor Tag Correction**: Improved vendor tags for Qwen3Asr, FireRedAsr, and Paraformer
+- **Recognition Duration Reporting**: Fixed duration reporting for some ASR vendors
+
+---
+
 ## v3.14.2 (2026-04-18)
 
 ### New Features
