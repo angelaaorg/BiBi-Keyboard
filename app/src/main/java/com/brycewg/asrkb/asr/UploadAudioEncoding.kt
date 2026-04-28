@@ -10,6 +10,7 @@ import android.media.MediaCodec
 import android.media.MediaCodecInfo
 import android.media.MediaFormat
 import android.media.MediaMuxer
+import android.os.Build
 import android.util.Log
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -23,6 +24,7 @@ enum class UploadAudioContainer(
 ) {
     M4A(extension = "m4a", mimeType = "audio/mp4", publicFormat = "m4a"),
     AAC(extension = "aac", mimeType = "audio/aac", publicFormat = "aac"),
+    OGG_OPUS(extension = "ogg", mimeType = "audio/ogg", publicFormat = "ogg"),
     WAV(extension = "wav", mimeType = "audio/wav", publicFormat = "wav")
 }
 
@@ -33,6 +35,10 @@ data class UploadAudioEncodingSpec(
     companion object {
         val M4A_AAC_LC = UploadAudioEncodingSpec(UploadAudioContainer.M4A)
         val AAC_ADTS = UploadAudioEncodingSpec(UploadAudioContainer.AAC)
+        val OGG_OPUS = UploadAudioEncodingSpec(
+            container = UploadAudioContainer.OGG_OPUS,
+            bitRate = DEFAULT_OPUS_BIT_RATE
+        )
     }
 }
 
@@ -53,9 +59,14 @@ data class UploadAudioData(
 }
 
 private const val DEFAULT_AAC_BIT_RATE = 32_000
+private const val DEFAULT_OPUS_BIT_RATE = 24_000
 private const val CHANNEL_COUNT_MONO = 1
 private const val ENCODER_TIMEOUT_US = 10_000L
 private const val TAG_UPLOAD_AUDIO_ENCODING = "UploadAudioEncoding"
+
+internal fun isOggOpusUploadEncodingSupported(): Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+
+internal fun oggOpusUploadAudioEncodingSpecIfSupported(): UploadAudioEncodingSpec? = if (isOggOpusUploadEncodingSupported()) UploadAudioEncodingSpec.OGG_OPUS else null
 
 internal fun encodePcmForUpload(
     context: Context,
@@ -111,6 +122,12 @@ internal fun createUploadAudioEncodingSession(
 ): UploadAudioEncodingSession = when (spec.container) {
     UploadAudioContainer.M4A -> AacM4aEncodingSession(context, sampleRate, spec.bitRate)
     UploadAudioContainer.AAC -> AacAdtsEncodingSession(sampleRate, spec.bitRate)
+    UploadAudioContainer.OGG_OPUS -> {
+        check(isOggOpusUploadEncodingSupported()) {
+            "OGG Opus upload audio requires Android 10 (API 29)"
+        }
+        OpusOggEncodingSession(context, sampleRate, spec.bitRate)
+    }
     UploadAudioContainer.WAV -> error("WAV upload audio does not use an encoding session")
 }
 
@@ -119,11 +136,13 @@ internal interface UploadAudioEncodingSession : AutoCloseable {
     fun finish(): UploadAudioData
 }
 
-private abstract class BaseAacEncodingSession(
+private abstract class BaseCodecEncodingSession(
     private val sampleRate: Int,
-    bitRate: Int
+    bitRate: Int,
+    private val mimeType: String,
+    private val codecLabel: String
 ) : UploadAudioEncodingSession {
-    private val codec: MediaCodec = MediaCodec.createEncoderByType(MediaFormat.MIMETYPE_AUDIO_AAC)
+    private val codec: MediaCodec = MediaCodec.createEncoderByType(mimeType)
     private val bufferInfo = MediaCodec.BufferInfo()
     private var submittedSamples: Long = 0L
     private var sourceBytes: Int = 0
@@ -134,23 +153,20 @@ private abstract class BaseAacEncodingSession(
 
     init {
         val format = MediaFormat.createAudioFormat(
-            MediaFormat.MIMETYPE_AUDIO_AAC,
+            mimeType,
             sampleRate,
             CHANNEL_COUNT_MONO
         ).apply {
-            setInteger(
-                MediaFormat.KEY_AAC_PROFILE,
-                MediaCodecInfo.CodecProfileLevel.AACObjectLC
-            )
             setInteger(MediaFormat.KEY_BIT_RATE, bitRate)
             setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, sampleRate / 5 * 2)
+            configureFormat(this)
         }
         codec.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
         codec.start()
     }
 
     override fun writePcm(pcm: ByteArray) {
-        check(!finished) { "AAC encoder has already been finished" }
+        check(!finished) { "$codecLabel encoder has already been finished" }
         val startedAt = System.nanoTime()
         try {
             sourceBytes += pcm.size
@@ -159,7 +175,7 @@ private abstract class BaseAacEncodingSession(
                 val inputIndex = codec.dequeueInputBuffer(ENCODER_TIMEOUT_US)
                 if (inputIndex >= 0) {
                     val input = codec.getInputBuffer(inputIndex)
-                        ?: error("AAC encoder input buffer is null")
+                        ?: error("$codecLabel encoder input buffer is null")
                     input.clear()
                     val length = minOf(input.remaining(), pcm.size - offset)
                     input.put(pcm, offset, length)
@@ -176,7 +192,7 @@ private abstract class BaseAacEncodingSession(
     }
 
     override fun finish(): UploadAudioData {
-        check(!finished) { "AAC encoder has already been finished" }
+        check(!finished) { "$codecLabel encoder has already been finished" }
         finished = true
         val startedAt = System.nanoTime()
         try {
@@ -234,7 +250,7 @@ private abstract class BaseAacEncodingSession(
                 }
                 outputIndex >= 0 -> {
                     val output = codec.getOutputBuffer(outputIndex)
-                        ?: error("AAC encoder output buffer is null")
+                        ?: error("$codecLabel encoder output buffer is null")
                     if (
                         bufferInfo.size > 0 &&
                         (bufferInfo.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG) == 0
@@ -258,6 +274,7 @@ private abstract class BaseAacEncodingSession(
         }
     }
 
+    protected open fun configureFormat(format: MediaFormat) = Unit
     protected abstract fun onOutputFormat(format: MediaFormat)
     protected abstract fun onEncodedBuffer(buffer: ByteBuffer, info: MediaCodec.BufferInfo)
     protected abstract fun buildResult(
@@ -269,6 +286,23 @@ private abstract class BaseAacEncodingSession(
         finishElapsedMs: Long
     ): UploadAudioData
     protected open fun releaseOutput() = Unit
+}
+
+private abstract class BaseAacEncodingSession(
+    sampleRate: Int,
+    bitRate: Int
+) : BaseCodecEncodingSession(
+    sampleRate = sampleRate,
+    bitRate = bitRate,
+    mimeType = MediaFormat.MIMETYPE_AUDIO_AAC,
+    codecLabel = "AAC"
+) {
+    override fun configureFormat(format: MediaFormat) {
+        format.setInteger(
+            MediaFormat.KEY_AAC_PROFILE,
+            MediaCodecInfo.CodecProfileLevel.AACObjectLC
+        )
+    }
 }
 
 private class AacM4aEncodingSession(
@@ -372,6 +406,79 @@ private class AacAdtsEncodingSession(
         feedElapsedMs = feedElapsedMs,
         finishElapsedMs = finishElapsedMs
     )
+}
+
+@android.annotation.TargetApi(Build.VERSION_CODES.Q)
+private class OpusOggEncodingSession(
+    context: Context,
+    sampleRate: Int,
+    bitRate: Int
+) : BaseCodecEncodingSession(
+    sampleRate = sampleRate,
+    bitRate = bitRate,
+    mimeType = MediaFormat.MIMETYPE_AUDIO_OPUS,
+    codecLabel = "Opus"
+) {
+    private val outputFile = File.createTempFile("asr_upload_", ".ogg", context.cacheDir)
+    private val muxer = MediaMuxer(outputFile.absolutePath, MediaMuxer.OutputFormat.MUXER_OUTPUT_OGG)
+    private var trackIndex = -1
+    private var muxerStarted = false
+    private var muxerReleased = false
+
+    override fun onOutputFormat(format: MediaFormat) {
+        check(!muxerStarted) { "Opus OGG muxer format changed after start" }
+        trackIndex = muxer.addTrack(format)
+        muxer.start()
+        muxerStarted = true
+    }
+
+    override fun onEncodedBuffer(buffer: ByteBuffer, info: MediaCodec.BufferInfo) {
+        check(muxerStarted) { "Opus OGG muxer has not started" }
+        muxer.writeSampleData(trackIndex, buffer, info)
+    }
+
+    override fun buildResult(
+        sampleRate: Int,
+        sourceBytes: Int,
+        durationMs: Long,
+        encodeElapsedMs: Long,
+        feedElapsedMs: Long,
+        finishElapsedMs: Long
+    ): UploadAudioData {
+        releaseMuxer()
+        val bytes = outputFile.readBytes()
+        if (!outputFile.delete()) {
+            outputFile.deleteOnExit()
+        }
+        return UploadAudioData(
+            bytes = bytes,
+            container = UploadAudioContainer.OGG_OPUS,
+            sampleRate = sampleRate,
+            channels = CHANNEL_COUNT_MONO,
+            sourceBytes = sourceBytes,
+            durationMs = durationMs,
+            encodeElapsedMs = encodeElapsedMs,
+            feedElapsedMs = feedElapsedMs,
+            finishElapsedMs = finishElapsedMs
+        )
+    }
+
+    override fun releaseOutput() {
+        releaseMuxer()
+        if (outputFile.exists() && !outputFile.delete()) {
+            outputFile.deleteOnExit()
+        }
+    }
+
+    private fun releaseMuxer() {
+        if (muxerReleased) return
+        muxerReleased = true
+        try {
+            if (muxerStarted) muxer.stop()
+        } finally {
+            muxer.release()
+        }
+    }
 }
 
 private fun ByteBuffer.sliceFor(offset: Int, size: Int): ByteBuffer {

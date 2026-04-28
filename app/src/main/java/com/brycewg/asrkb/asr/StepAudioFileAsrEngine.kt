@@ -41,6 +41,9 @@ class StepAudioFileAsrEngine(
     // StepAudio 文档未给出客户端侧上限；按在线文件识别常规限制为 20 分钟。
     override val maxRecordDurationMillis: Int = 20 * 60 * 1000
 
+    override val uploadAudioEncodingSpec: UploadAudioEncodingSpec?
+        get() = oggOpusUploadAudioEncodingSpecIfSupported()
+
     private val http: OkHttpClient = httpClient ?: OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(120, TimeUnit.SECONDS)
@@ -58,38 +61,24 @@ class StepAudioFileAsrEngine(
     }
 
     override suspend fun recognize(pcm: ByteArray) {
+        val spec = if (prefs.uploadAudioCompressionEnabled) uploadAudioEncodingSpec else null
+        if (spec != null) {
+            recognizeEncoded(encodePcmForUpload(context, pcm, sampleRate, spec))
+            return
+        }
         try {
             val body = buildRequestBody(pcm)
-            val request = Request.Builder()
-                .url(Prefs.STEPAUDIO_ASR_ENDPOINT)
-                .addHeader("Authorization", "Bearer ${prefs.stepAudioApiKey}")
-                .addHeader("Accept", "text/event-stream")
-                .addHeader("Content-Type", "application/json; charset=utf-8")
-                .post(body.toRequestBody("application/json; charset=utf-8".toMediaType()))
-                .build()
+            requestRecognition(body)
+        } catch (t: Throwable) {
+            listener.onError(
+                context.getString(R.string.error_recognize_failed_with_reason, t.message ?: "")
+            )
+        }
+    }
 
-            val t0 = System.nanoTime()
-            val resp = http.newCall(request).execute()
-            resp.use { r ->
-                val bodyStr = r.body?.string().orEmpty()
-                if (!r.isSuccessful) {
-                    val detail = formatHttpDetail(r.message, extractErrorHint(bodyStr))
-                    listener.onError(
-                        context.getString(R.string.error_request_failed_http, r.code, detail)
-                    )
-                    return
-                }
-                val text = parseSseText(bodyStr)
-                if (text.isNotBlank()) {
-                    val dt = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - t0)
-                    try {
-                        onRequestDuration?.invoke(dt)
-                    } catch (_: Throwable) {}
-                    listener.onFinal(text)
-                } else {
-                    listener.onError(context.getString(R.string.error_asr_empty_result))
-                }
-            }
+    override suspend fun recognizeEncoded(audio: UploadAudioData) {
+        try {
+            requestRecognition(buildRequestBody(audio))
         } catch (t: Throwable) {
             listener.onError(
                 context.getString(R.string.error_recognize_failed_with_reason, t.message ?: "")
@@ -99,6 +88,39 @@ class StepAudioFileAsrEngine(
 
     override suspend fun recognizeFromPcm(pcm: ByteArray) {
         recognize(pcm)
+    }
+
+    private fun requestRecognition(body: String) {
+        val request = Request.Builder()
+            .url(Prefs.STEPAUDIO_ASR_ENDPOINT)
+            .addHeader("Authorization", "Bearer ${prefs.stepAudioApiKey}")
+            .addHeader("Accept", "text/event-stream")
+            .addHeader("Content-Type", "application/json; charset=utf-8")
+            .post(body.toRequestBody("application/json; charset=utf-8".toMediaType()))
+            .build()
+
+        val t0 = System.nanoTime()
+        val resp = http.newCall(request).execute()
+        resp.use { r ->
+            val bodyStr = r.body?.string().orEmpty()
+            if (!r.isSuccessful) {
+                val detail = formatHttpDetail(r.message, extractErrorHint(bodyStr))
+                listener.onError(
+                    context.getString(R.string.error_request_failed_http, r.code, detail)
+                )
+                return
+            }
+            val text = parseSseText(bodyStr)
+            if (text.isNotBlank()) {
+                val dt = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - t0)
+                try {
+                    onRequestDuration?.invoke(dt)
+                } catch (_: Throwable) {}
+                listener.onFinal(text)
+            } else {
+                listener.onError(context.getString(R.string.error_asr_empty_result))
+            }
+        }
     }
 
     private fun buildRequestBody(pcm: ByteArray): String {
@@ -123,6 +145,34 @@ class StepAudioFileAsrEngine(
         }
         val audio = JSONObject().apply {
             put("data", Base64.encodeToString(pcm, Base64.NO_WRAP))
+            put("input", input)
+        }
+        return JSONObject().put("audio", audio).toString()
+    }
+
+    private fun buildRequestBody(audioData: UploadAudioData): String {
+        val transcription = JSONObject().apply {
+            put("model", prefs.stepAudioModel.ifBlank { Prefs.DEFAULT_STEPAUDIO_ASR_MODEL })
+            val language = prefs.stepAudioLanguage.trim()
+            if (language.isNotEmpty()) {
+                put("language", language)
+            }
+            put("enable_itn", prefs.stepAudioUseItn)
+        }
+        val format = JSONObject().apply {
+            put("type", audioData.format)
+            if (audioData.container == UploadAudioContainer.OGG_OPUS) {
+                put("codec", "opus")
+            }
+            put("rate", audioData.sampleRate)
+            put("channel", audioData.channels)
+        }
+        val input = JSONObject().apply {
+            put("transcription", transcription)
+            put("format", format)
+        }
+        val audio = JSONObject().apply {
+            put("data", Base64.encodeToString(audioData.bytes, Base64.NO_WRAP))
             put("input", input)
         }
         return JSONObject().put("audio", audio).toString()

@@ -46,6 +46,9 @@ class SiliconFlowFileAsrEngine(
     // SiliconFlow：未明确限制，本地限制为 20 分钟
     override val maxRecordDurationMillis: Int = 20 * 60 * 1000
 
+    override val uploadAudioEncodingSpec: UploadAudioEncodingSpec?
+        get() = oggOpusUploadAudioEncodingSpecIfSupported()
+
     private val http: OkHttpClient = httpClient ?: OkHttpClient.Builder()
         // 普通转写可能较慢：放宽连接/读/写与总超时，避免长音频或排队导致的 SocketTimeout
         .connectTimeout(15, TimeUnit.SECONDS)
@@ -76,16 +79,9 @@ class SiliconFlowFileAsrEngine(
 
     override suspend fun recognize(pcm: ByteArray) {
         try {
-            val wav = pcmToWav(pcm)
+            val audio = encodePcmForUploadIfEnabled(pcm)
             val t0 = System.nanoTime()
-
-            if (useFreeService) {
-                // 免费服务模式
-                recognizeWithFreeService(wav, t0)
-            } else {
-                // 自有 API Key 模式
-                recognizeWithApiKey(wav, t0)
-            }
+            recognizeAudio(audio, t0)
         } catch (t: Throwable) {
             listener.onError(
                 context.getString(R.string.error_recognize_failed_with_reason, t.message ?: "")
@@ -93,9 +89,36 @@ class SiliconFlowFileAsrEngine(
         }
     }
 
-    private fun recognizeWithFreeService(wav: ByteArray, t0: Long) {
-        val tmp = File.createTempFile("asr_", ".wav", context.cacheDir)
-        FileOutputStream(tmp).use { it.write(wav) }
+    override suspend fun recognizeEncoded(audio: UploadAudioData) {
+        try {
+            recognizeAudio(audio, System.nanoTime())
+        } catch (t: Throwable) {
+            listener.onError(
+                context.getString(R.string.error_recognize_failed_with_reason, t.message ?: "")
+            )
+        }
+    }
+
+    private fun encodePcmForUploadIfEnabled(pcm: ByteArray): UploadAudioData {
+        val spec = if (prefs.uploadAudioCompressionEnabled) uploadAudioEncodingSpec else null
+        return if (spec != null) {
+            encodePcmForUpload(context, pcm, sampleRate, spec)
+        } else {
+            pcmToWavUploadAudio(pcm)
+        }
+    }
+
+    private fun recognizeAudio(audio: UploadAudioData, t0: Long) {
+        if (useFreeService) {
+            recognizeWithFreeService(audio, t0)
+        } else {
+            recognizeWithApiKey(audio, t0)
+        }
+    }
+
+    private fun recognizeWithFreeService(audio: UploadAudioData, t0: Long) {
+        val tmp = File.createTempFile("asr_", ".${audio.container.extension}", context.cacheDir)
+        FileOutputStream(tmp).use { it.write(audio.bytes) }
 
         try {
             val model = prefs.sfFreeAsrModel.ifBlank { Prefs.DEFAULT_SF_FREE_ASR_MODEL }
@@ -104,8 +127,8 @@ class SiliconFlowFileAsrEngine(
                 .addFormDataPart("model", model)
                 .addFormDataPart(
                     "file",
-                    "audio.wav",
-                    tmp.asRequestBody("audio/wav".toMediaType())
+                    audio.fileName,
+                    tmp.asRequestBody(audio.mimeType.toMediaType())
                 )
                 .build()
 
@@ -147,7 +170,7 @@ class SiliconFlowFileAsrEngine(
                     tmp.deleteOnExit()
                 }
             } catch (t: Throwable) {
-                Log.w(TAG, "Failed to delete SiliconFlow temp wav", t)
+                Log.w(TAG, "Failed to delete SiliconFlow temp upload audio", t)
             }
         }
     }
@@ -155,20 +178,20 @@ class SiliconFlowFileAsrEngine(
     /**
      * 使用自有 API Key 进行识别
      */
-    private fun recognizeWithApiKey(wav: ByteArray, t0: Long) {
+    private fun recognizeWithApiKey(audio: UploadAudioData, t0: Long) {
         val apiKey = prefs.sfApiKey
         val selectedModel = prefs.sfModel.ifBlank { Prefs.DEFAULT_SF_MODEL }
         val isOmni = selectedModel.startsWith("Qwen/Qwen3-Omni-30B-A3B-")
 
         if (isOmni) {
-            val b64 = Base64.encodeToString(wav, Base64.NO_WRAP)
+            val b64 = Base64.encodeToString(audio.bytes, Base64.NO_WRAP)
             // Qwen3-Omni 通过 chat/completions，支持提示词
             val model = if (selectedModel.isNotBlank()) selectedModel else Prefs.DEFAULT_SF_OMNI_MODEL
             val basePrompt = prefs.sfOmniPrompt.ifBlank {
                 context.getString(R.string.prompt_default_sf_omni)
             }
             val prompt = basePrompt
-            val body = buildSfChatCompletionsBody(model, b64, prompt)
+            val body = buildSfChatCompletionsBody(model, b64, audio.mimeType, prompt)
             val request = Request.Builder()
                 .url(Prefs.SF_CHAT_COMPLETIONS_ENDPOINT)
                 .addHeader("Authorization", "Bearer $apiKey")
@@ -197,47 +220,57 @@ class SiliconFlowFileAsrEngine(
                 }
             }
         } else {
-            val tmp = File.createTempFile("asr_", ".wav", context.cacheDir)
-            FileOutputStream(tmp).use { it.write(wav) }
-            // 其他模型走 transcriptions
-            val model = selectedModel
-            val multipart = MultipartBody.Builder().setType(MultipartBody.FORM)
-                .addFormDataPart("model", model)
-                .addFormDataPart(
-                    "file",
-                    "audio.wav",
-                    tmp.asRequestBody("audio/wav".toMediaType())
-                )
-                .build()
-            val request = Request.Builder()
-                .url(Prefs.SF_ENDPOINT)
-                .addHeader("Authorization", "Bearer $apiKey")
-                .post(multipart)
-                .build()
-            val resp = http.newCall(request).execute()
-            resp.use { r ->
-                if (!r.isSuccessful) {
-                    val detail = formatHttpDetail(r.message, null)
-                    listener.onError(
-                        context.getString(R.string.error_request_failed_http, r.code, detail)
+            val tmp = File.createTempFile("asr_", ".${audio.container.extension}", context.cacheDir)
+            FileOutputStream(tmp).use { it.write(audio.bytes) }
+            try {
+                // 其他模型走 transcriptions
+                val model = selectedModel
+                val multipart = MultipartBody.Builder().setType(MultipartBody.FORM)
+                    .addFormDataPart("model", model)
+                    .addFormDataPart(
+                        "file",
+                        audio.fileName,
+                        tmp.asRequestBody(audio.mimeType.toMediaType())
                     )
-                    return
+                    .build()
+                val request = Request.Builder()
+                    .url(Prefs.SF_ENDPOINT)
+                    .addHeader("Authorization", "Bearer $apiKey")
+                    .post(multipart)
+                    .build()
+                val resp = http.newCall(request).execute()
+                resp.use { r ->
+                    if (!r.isSuccessful) {
+                        val detail = formatHttpDetail(r.message, null)
+                        listener.onError(
+                            context.getString(R.string.error_request_failed_http, r.code, detail)
+                        )
+                        return
+                    }
+                    val bodyStr = r.body?.string().orEmpty()
+                    val text = try {
+                        val obj = JSONObject(bodyStr)
+                        obj.optString("text", "")
+                    } catch (_: Throwable) {
+                        ""
+                    }
+                    if (text.isNotBlank()) {
+                        val dt = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - t0)
+                        try {
+                            onRequestDuration?.invoke(dt)
+                        } catch (_: Throwable) {}
+                        listener.onFinal(text)
+                    } else {
+                        listener.onError(context.getString(R.string.error_asr_empty_result))
+                    }
                 }
-                val bodyStr = r.body?.string().orEmpty()
-                val text = try {
-                    val obj = JSONObject(bodyStr)
-                    obj.optString("text", "")
-                } catch (_: Throwable) {
-                    ""
-                }
-                if (text.isNotBlank()) {
-                    val dt = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - t0)
-                    try {
-                        onRequestDuration?.invoke(dt)
-                    } catch (_: Throwable) {}
-                    listener.onFinal(text)
-                } else {
-                    listener.onError(context.getString(R.string.error_asr_empty_result))
+            } finally {
+                try {
+                    if (!tmp.delete()) {
+                        tmp.deleteOnExit()
+                    }
+                } catch (t: Throwable) {
+                    Log.w(TAG, "Failed to delete SiliconFlow temp upload audio", t)
                 }
             }
         }
@@ -252,7 +285,8 @@ class SiliconFlowFileAsrEngine(
      */
     private fun buildSfChatCompletionsBody(
         model: String,
-        base64Wav: String,
+        base64Audio: String,
+        mimeType: String,
         prompt: String
     ): String {
         val audioPart = JSONObject().apply {
@@ -260,7 +294,7 @@ class SiliconFlowFileAsrEngine(
             put(
                 "audio_url",
                 JSONObject().apply {
-                    put("url", "data:audio/wav;base64,$base64Wav")
+                    put("url", "data:$mimeType;base64,$base64Audio")
                 }
             )
         }

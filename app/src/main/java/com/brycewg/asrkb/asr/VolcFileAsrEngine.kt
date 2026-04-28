@@ -1,3 +1,8 @@
+/**
+ * 火山引擎极速版文件识别接入。
+ *
+ * 归属模块：asr
+ */
 package com.brycewg.asrkb.asr
 
 import android.content.Context
@@ -49,15 +54,22 @@ class VolcFileAsrEngine(
     // 火山引擎非流式：服务端上限 2h，本地稳妥限制为 1h
     override val maxRecordDurationMillis: Int = 60 * 60 * 1000
 
+    override val uploadAudioEncodingSpec: UploadAudioEncodingSpec?
+        get() = oggOpusUploadAudioEncodingSpecIfSupported()
+
     private val http: OkHttpClient = httpClient ?: OkHttpClient.Builder()
         .callTimeout(60, TimeUnit.SECONDS)
         .build()
 
     override suspend fun recognize(pcm: ByteArray) {
+        val audio = encodePcmForUploadIfEnabled(pcm)
+        recognizeEncoded(audio)
+    }
+
+    override suspend fun recognizeEncoded(audio: UploadAudioData) {
         try {
-            val wav = pcmToWav(pcm)
-            val b64 = Base64.encodeToString(wav, Base64.NO_WRAP)
-            val json = buildRequestJson(b64)
+            val b64 = Base64.encodeToString(audio.bytes, Base64.NO_WRAP)
+            val json = buildRequestJson(b64, audio)
             val reqBody = json.toRequestBody("application/json; charset=utf-8".toMediaType())
             val request = Request.Builder()
                 .url(Prefs.DEFAULT_ENDPOINT)
@@ -111,15 +123,25 @@ class VolcFileAsrEngine(
         recognize(pcm)
     }
 
+    private fun encodePcmForUploadIfEnabled(pcm: ByteArray): UploadAudioData {
+        val spec = if (prefs.uploadAudioCompressionEnabled) uploadAudioEncodingSpec else null
+        return if (spec != null) {
+            encodePcmForUpload(context, pcm, sampleRate, spec)
+        } else {
+            pcmToWavUploadAudio(pcm)
+        }
+    }
+
     /**
      * 构建火山引擎 API 请求体
      */
-    private fun buildRequestJson(base64Audio: String): String {
+    private fun buildRequestJson(base64Audio: String, audioData: UploadAudioData): String {
         val user = JSONObject().apply {
             put("uid", prefs.appKey)
         }
         val audio = JSONObject().apply {
             put("data", base64Audio)
+            putVolcAudioFormat(audioData)
         }
         val request = JSONObject().apply {
             put("model_name", "bigmodel")
@@ -132,5 +154,15 @@ class VolcFileAsrEngine(
             put("audio", audio)
             put("request", request)
         }.toString()
+    }
+
+    private fun JSONObject.putVolcAudioFormat(audio: UploadAudioData) {
+        put("format", audio.format)
+        put("rate", audio.sampleRate)
+        put("bits", 16)
+        put("channel", audio.channels)
+        if (audio.container == UploadAudioContainer.OGG_OPUS) {
+            put("codec", "opus")
+        }
     }
 }
