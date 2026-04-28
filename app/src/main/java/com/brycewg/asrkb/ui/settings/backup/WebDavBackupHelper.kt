@@ -1,11 +1,13 @@
+/**
+ * WebDAV 备份公共辅助，使用 OkHttp 完成设置备份上传与恢复。
+ *
+ * 归属模块：ui/settings/backup
+ */
 package com.brycewg.asrkb.ui.settings.backup
 
 import android.content.Context
 import android.util.Log
-import com.brycewg.asrkb.BuildConfig
 import com.brycewg.asrkb.store.Prefs
-import com.thegrizzlylabs.sardineandroid.impl.OkHttpSardine
-import com.thegrizzlylabs.sardineandroid.impl.SardineException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.Credentials
@@ -14,16 +16,13 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 
-/**
- * WebDAV 备份公共辅助：供主工程复用的后台任务工具。
- * 注意：不包含任何 UI 展示，调用方需自行提示。
- */
 object WebDavBackupHelper {
     private const val TAG = "WebDavBackupHelper"
     private val JSON_MEDIA = "application/json; charset=utf-8".toMediaType()
     private const val WEBDAV_DIRECTORY = "BiBiKeyboard"
     private const val WEBDAV_FILENAME = "asr_keyboard_settings.json"
-    private val legacyHttpClient by lazy { OkHttpClient.Builder().build() }
+    private val EMPTY_BODY = ByteArray(0).toRequestBody(null)
+    private val webDavClient by lazy { OkHttpClient.Builder().build() }
 
     sealed class UploadResult {
         object Success : UploadResult()
@@ -48,54 +47,6 @@ object WebDavBackupHelper {
     fun buildDirectoryUrl(baseUrl: String): String = "$baseUrl/$WEBDAV_DIRECTORY/"
     fun buildFileUrl(baseUrl: String): String = "$baseUrl/$WEBDAV_DIRECTORY/$WEBDAV_FILENAME"
 
-    private fun createSardine(prefs: Prefs): OkHttpSardine {
-        val sardine = OkHttpSardine()
-        val user = prefs.webdavUsername.trim()
-        val pass = prefs.webdavPassword.trim()
-        if (user.isNotEmpty()) {
-            sardine.setCredentials(user, pass)
-        }
-        return sardine
-    }
-
-    private fun ensureDirectoryExists(sardine: OkHttpSardine, dirUrl: String) {
-        val normalizedDirUrl = if (dirUrl.endsWith("/")) dirUrl else "$dirUrl/"
-
-        val exists = try {
-            sardine.exists(normalizedDirUrl)
-        } catch (t: Throwable) {
-            // 某些 WebDAV 服务器在目录 URL 无尾斜杠或已存在时返回 3xx/405，这里通过文案粗略判断视作“已存在”
-            if (isDirectoryAlreadyExistsError(t)) {
-                if (BuildConfig.DEBUG) {
-                    Log.d(
-                        TAG,
-                        "exists($normalizedDirUrl) -> ${t.javaClass.simpleName}: ${t.message}, treat as existing directory"
-                    )
-                }
-                true
-            } else {
-                throw t
-            }
-        }
-
-        if (!exists) {
-            try {
-                sardine.createDirectory(normalizedDirUrl)
-            } catch (t: Throwable) {
-                if (isDirectoryAlreadyExistsError(t)) {
-                    if (BuildConfig.DEBUG) {
-                        Log.d(
-                            TAG,
-                            "createDirectory($normalizedDirUrl) -> ${t.javaClass.simpleName}: ${t.message}, treat as existing directory"
-                        )
-                    }
-                } else {
-                    throw t
-                }
-            }
-        }
-    }
-
     /**
      * 将当前偏好（含密钥）导出为 JSON 并通过 WebDAV 上传到固定路径。
      * @return true 表示上传成功；false 表示参数不全或上传失败。
@@ -108,6 +59,7 @@ object WebDavBackupHelper {
     /**
      * 带详细状态的上传版本，便于 UI 显示具体错误信息。
      */
+    @Suppress("UNUSED_PARAMETER")
     suspend fun uploadSettingsWithStatus(context: Context, prefs: Prefs): UploadResult = withContext(Dispatchers.IO) {
         val rawUrl = prefs.webdavUrl.trim()
         if (rawUrl.isEmpty()) {
@@ -115,23 +67,14 @@ object WebDavBackupHelper {
         }
         val baseUrl = normalizeBaseUrl(rawUrl)
 
-        val sardineUpload = runCatching { performSardineUpload(baseUrl, prefs) }
-        sardineUpload.getOrNull()?.let { return@withContext UploadResult.Success }
-
-        val sardineError = sardineUpload.exceptionOrNull()
-        val sardineStatus = extractStatusCode(sardineError)
-        val sardineReason = extractResponsePhrase(sardineError)
-        if (sardineError != null) {
-            Log.e(TAG, "WebDAV upload error (sardine): ${sardineError.message}", sardineError)
+        val upload = runCatching { performWebDavUpload(baseUrl, prefs) }
+        if (upload.isSuccess) {
+            UploadResult.Success
+        } else {
+            val error = upload.exceptionOrNull()
+            Log.e(TAG, "WebDAV upload error: ${error?.message}", error)
+            UploadResult.Error(extractStatusCode(error), extractResponsePhrase(error), error)
         }
-
-        if (shouldTryLegacy(sardineStatus, baseUrl)) {
-            Log.i(TAG, "Retry WebDAV upload with legacy client for compatibility")
-            val legacyResult = uploadWithLegacy(baseUrl, prefs)
-            return@withContext legacyResult
-        }
-
-        UploadResult.Error(sardineStatus, sardineReason, sardineError)
     }
 
     /**
@@ -155,114 +98,79 @@ object WebDavBackupHelper {
         val baseUrl = normalizeBaseUrl(rawUrl)
         val fileUrl = buildFileUrl(baseUrl)
 
-        val sardineDownload = runCatching { performSardineDownload(fileUrl, prefs) }
-        sardineDownload.getOrNull()?.let { return@withContext DownloadResult.Success(it) }
+        val download = runCatching { performWebDavDownload(fileUrl, prefs) }
+        download.getOrNull()?.let { return@withContext DownloadResult.Success(it) }
 
-        val sardineError = sardineDownload.exceptionOrNull()
-        val sardineStatus = extractStatusCode(sardineError)
-        val sardineReason = extractResponsePhrase(sardineError)
-
-        if (sardineError != null) {
-            if (isNotFoundError(sardineError) || sardineStatus == 404) {
-                Log.w(TAG, "WebDAV backup not found at $fileUrl: ${sardineError.message}")
-                return@withContext DownloadResult.NotFound
-            }
-            Log.e(TAG, "WebDAV download error (sardine): ${sardineError.message}", sardineError)
+        val error = download.exceptionOrNull()
+        val statusCode = extractStatusCode(error)
+        if (statusCode == 404) {
+            Log.w(TAG, "WebDAV backup not found at $fileUrl: ${error?.message}")
+            return@withContext DownloadResult.NotFound
         }
 
-        if (shouldTryLegacy(sardineStatus, baseUrl)) {
-            Log.i(TAG, "Retry WebDAV download with legacy client for compatibility")
-            val legacyResult = downloadWithLegacy(fileUrl, prefs)
-            return@withContext legacyResult
+        if (error != null) {
+            Log.e(TAG, "WebDAV download error: ${error.message}", error)
         }
 
-        DownloadResult.Error(sardineStatus, sardineReason, sardineError)
+        DownloadResult.Error(statusCode, extractResponsePhrase(error), error)
     }
 
-    private fun performSardineUpload(baseUrl: String, prefs: Prefs) {
-        val sardine = createSardine(prefs)
-        val dirUrl = buildDirectoryUrl(baseUrl)
-        ensureDirectoryExists(sardine, dirUrl)
+    private fun performWebDavUpload(baseUrl: String, prefs: Prefs) {
+        ensureDirectoryExists(prefs, baseUrl)
 
         val payload = prefs.exportJsonString()
         val fileUrl = buildFileUrl(baseUrl)
-        sardine.put(fileUrl, payload.toByteArray(Charsets.UTF_8), "application/json")
-    }
-
-    private fun performSardineDownload(fileUrl: String, prefs: Prefs): String {
-        val sardine = createSardine(prefs)
-        sardine.get(fileUrl).use { stream ->
-            return stream.bufferedReader(Charsets.UTF_8).readText()
-        }
-    }
-
-    private fun uploadWithLegacy(baseUrl: String, prefs: Prefs): UploadResult = try {
-        ensureDirectoryExistsLegacy(prefs, baseUrl)
-
-        val payload = prefs.exportJsonString()
-        val fileUrl = buildFileUrl(baseUrl)
-        val reqBuilder = Request.Builder()
+        val requestBuilder = Request.Builder()
             .url(fileUrl)
             .put(payload.toByteArray(Charsets.UTF_8).toRequestBody(JSON_MEDIA))
-        addBasicAuthIfNeeded(reqBuilder, prefs)
+        addBasicAuthIfNeeded(requestBuilder, prefs)
 
-        legacyHttpClient.newCall(reqBuilder.build()).execute().use { resp ->
-            if (resp.isSuccessful) {
-                UploadResult.Success
-            } else {
-                UploadResult.Error(resp.code, resp.message, null)
+        webDavClient.newCall(requestBuilder.build()).execute().use { response ->
+            if (!response.isSuccessful) {
+                throw WebDavHttpException(response.code, response.message)
             }
         }
-    } catch (t: Throwable) {
-        Log.e(TAG, "Legacy WebDAV upload error: ${t.message}", t)
-        UploadResult.Error(extractStatusCode(t), extractResponsePhrase(t), t)
     }
 
-    private fun downloadWithLegacy(fileUrl: String, prefs: Prefs): DownloadResult = try {
-        val reqBuilder = Request.Builder().url(fileUrl)
-        addBasicAuthIfNeeded(reqBuilder, prefs)
+    private fun performWebDavDownload(fileUrl: String, prefs: Prefs): String {
+        val requestBuilder = Request.Builder().url(fileUrl)
+        addBasicAuthIfNeeded(requestBuilder, prefs)
 
-        legacyHttpClient.newCall(reqBuilder.build()).execute().use { resp ->
-            when {
-                resp.code == 404 -> DownloadResult.NotFound
-                resp.isSuccessful -> {
-                    val text = resp.body?.string().orEmpty()
-                    DownloadResult.Success(text)
-                }
-                else -> DownloadResult.Error(resp.code, resp.message, null)
+        webDavClient.newCall(requestBuilder.build()).execute().use { response ->
+            return when {
+                response.code == 404 -> throw WebDavHttpException(response.code, response.message)
+                response.isSuccessful -> response.body?.string().orEmpty()
+                else -> throw WebDavHttpException(response.code, response.message)
             }
         }
-    } catch (t: Throwable) {
-        Log.e(TAG, "Legacy WebDAV download error: ${t.message}", t)
-        DownloadResult.Error(extractStatusCode(t), extractResponsePhrase(t), t)
     }
 
-    private fun ensureDirectoryExistsLegacy(prefs: Prefs, baseUrl: String) {
-        val dirUrl = buildDirectoryUrl(baseUrl).trimEnd('/')
-        val checkBuilder = Request.Builder()
+    private fun ensureDirectoryExists(prefs: Prefs, baseUrl: String) {
+        val dirUrl = buildDirectoryUrl(baseUrl)
+        val checkRequestBuilder = Request.Builder()
             .url(dirUrl)
-            .method("PROPFIND", ByteArray(0).toRequestBody(null))
+            .method("PROPFIND", EMPTY_BODY)
             .addHeader("Depth", "0")
-        addBasicAuthIfNeeded(checkBuilder, prefs)
+        addBasicAuthIfNeeded(checkRequestBuilder, prefs)
 
-        legacyHttpClient.newCall(checkBuilder.build()).execute().use { resp ->
-            when (resp.code) {
-                207 -> return@use
+        webDavClient.newCall(checkRequestBuilder.build()).execute().use { response ->
+            when (response.code) {
+                200, 207 -> return
+                301, 302, 307, 308, 405 -> return
                 404 -> Unit
-                301, 302, 405 -> return@use
-                else -> throw Exception("HTTP ${resp.code}")
+                else -> throw WebDavHttpException(response.code, response.message)
             }
         }
 
-        val mkdirBuilder = Request.Builder()
+        val mkdirRequestBuilder = Request.Builder()
             .url(dirUrl)
-            .method("MKCOL", ByteArray(0).toRequestBody(null))
-        addBasicAuthIfNeeded(mkdirBuilder, prefs)
+            .method("MKCOL", EMPTY_BODY)
+        addBasicAuthIfNeeded(mkdirRequestBuilder, prefs)
 
-        legacyHttpClient.newCall(mkdirBuilder.build()).execute().use { resp ->
-            when (resp.code) {
-                201, 405 -> return@use
-                else -> throw Exception("HTTP ${resp.code}")
+        webDavClient.newCall(mkdirRequestBuilder.build()).execute().use { response ->
+            when (response.code) {
+                200, 201, 204, 405 -> return
+                else -> throw WebDavHttpException(response.code, response.message)
             }
         }
     }
@@ -280,42 +188,18 @@ object WebDavBackupHelper {
         }
     }
 
-    private fun shouldTryLegacy(statusCode: Int?, baseUrl: String): Boolean {
-        val lowerBase = baseUrl.lowercase()
-        return statusCode == 401 ||
-            statusCode == 403 ||
-            lowerBase.contains("jianguoyun") ||
-            lowerBase.contains("nutstore")
-    }
-
     private fun extractStatusCode(t: Throwable?): Int? = when (t) {
-        is SardineException -> t.statusCode
+        is WebDavHttpException -> t.statusCode
         else -> null
     }
 
     private fun extractResponsePhrase(t: Throwable?): String? = when (t) {
-        is SardineException -> t.responsePhrase
+        is WebDavHttpException -> t.responsePhrase
         else -> t?.message
     }
 
-    // 粗略根据异常信息判断是否属于“目录已存在 / 尾斜杠问题”等可忽略错误
-    private fun isDirectoryAlreadyExistsError(t: Throwable): Boolean {
-        if (t is SardineException &&
-            (t.statusCode == 301 || t.statusCode == 302 || t.statusCode == 405)
-        ) {
-            return true
-        }
-        val msg = t.message?.lowercase() ?: return false
-        return msg.contains("301") ||
-            msg.contains("302") ||
-            msg.contains("405") ||
-            msg.contains("already exists")
-    }
-
-    // 粗略根据异常信息判断 404（备份文件不存在）场景
-    private fun isNotFoundError(t: Throwable): Boolean {
-        if (t is SardineException && t.statusCode == 404) return true
-        val msg = t.message?.lowercase() ?: return false
-        return msg.contains("404") || msg.contains("not found")
-    }
+    private class WebDavHttpException(
+        val statusCode: Int,
+        val responsePhrase: String?
+    ) : Exception("HTTP $statusCode${responsePhrase?.let { " $it" }.orEmpty()}")
 }

@@ -138,10 +138,6 @@ dependencies {
     // Shizuku：用于在已授权时执行部分 shell 级操作（增强后台保活）
     implementation("dev.rikka.shizuku:api:13.1.5")
     implementation("dev.rikka.shizuku:provider:13.1.5")
-    implementation("com.github.thegrizzlylabs:sardine-android:0.9") {
-        // 避免 xpp3 中的 org.xmlpull.v1.XmlPullParser 与 Android SDK 冲突
-        exclude(module = "xpp3")
-    }
 
     // AAR 占位：sherpa-onnx Kotlin API AAR 放在 app/libs/ 会自动识别
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar", "*.aar"))))
