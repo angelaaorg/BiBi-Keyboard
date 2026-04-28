@@ -154,26 +154,32 @@ class GeminiFileAsrEngine(
             put("system_instruction", systemInstruction)
             put("contents", org.json.JSONArray().apply { put(user) })
             put(
-                "generation_config",
+                "generationConfig",
                 JSONObject().apply {
                     put("temperature", 0)
-                    if (prefs.geminiDisableThinking) {
-                        // 根据模型类型设置合适的 thinkingBudget
-                        val budget = when {
-                            model.contains("2.5-pro", ignoreCase = true) -> 128
-                            model.contains("2.5-flash", ignoreCase = true) -> 0 // Flash 可以为 0
-                            else -> 0 // 其他情况默认为 0
-                        }
-                        put(
-                            "thinkingConfig",
-                            JSONObject().apply {
-                                put("thinkingBudget", budget)
-                            }
-                        )
-                    }
+                    buildGeminiThinkingConfig(model)?.let { put("thinkingConfig", it) }
                 }
             )
         }.toString()
+    }
+
+    private fun buildGeminiThinkingConfig(model: String): JSONObject? {
+        if (!prefs.geminiDisableThinking) return null
+
+        val modelName = model.substringAfterLast('/').lowercase()
+        return when {
+            modelName.startsWith("gemini-3") -> JSONObject().apply {
+                val level = if (modelName.contains("pro")) "low" else "minimal"
+                put("thinkingLevel", level)
+            }
+            modelName.contains("2.5-pro") -> JSONObject().apply {
+                put("thinkingBudget", 128)
+            }
+            modelName.contains("2.5-flash") -> JSONObject().apply {
+                put("thinkingBudget", 0)
+            }
+            else -> null
+        }
     }
 
     private fun buildGeminiRequestUrl(endpoint: String, model: String, apiKey: String): String {
