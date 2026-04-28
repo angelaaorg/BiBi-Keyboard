@@ -147,6 +147,11 @@ class Prefs(context: Context) {
         get() = sp.getBoolean(KEY_OFFLINE_DENOISE_ENABLED, true)
         set(value) = sp.edit { putBoolean(KEY_OFFLINE_DENOISE_ENABLED, value) }
 
+    // 在线非流式识别上传前压缩，默认开启以节省上传体积
+    var uploadAudioCompressionEnabled: Boolean
+        get() = sp.getBoolean(KEY_UPLOAD_AUDIO_COMPRESSION_ENABLED, true)
+        set(value) = sp.edit { putBoolean(KEY_UPLOAD_AUDIO_COMPRESSION_ENABLED, value) }
+
     // AI 编辑默认范围：无选区时优先使用"上次识别结果"
     var aiEditDefaultToLastAsr: Boolean
         get() = sp.getBoolean(KEY_AI_EDIT_DEFAULT_TO_LAST_ASR, false)

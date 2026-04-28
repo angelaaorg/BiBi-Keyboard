@@ -103,6 +103,11 @@
             android:text="@string/label_offline_denoise" />
 
           <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchUploadAudioCompression"
+            style="@style/SettingsSwitch"
+            android:text="@string/label_upload_audio_compression" />
+
+          <com.google.android.material.materialswitch.MaterialSwitch
             android:id="@+id/switchHeadsetMicPriority"
             style="@style/SettingsSwitch"
             android:text="@string/label_headset_mic_priority" />

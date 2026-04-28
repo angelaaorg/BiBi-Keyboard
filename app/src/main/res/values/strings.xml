@@ -181,6 +181,7 @@
   <!-- ============================================== -->
   <string name="label_audio_ducking_on_record">Audio ducking during recording</string>
   <string name="label_offline_denoise">Offline denoise for non-streaming ASR</string>
+  <string name="label_upload_audio_compression">Compress non-streaming upload audio</string>
   <string name="label_headset_mic_priority">Prefer headset microphone (experimental)</string>
   <!-- External IME linking (AIDL) -->
   <string name="label_external_ime_link_aidl">Allow external IME linking (AIDL)</string>
@@ -286,6 +287,10 @@
   <!-- Offline denoise -->
   <string name="feature_offline_denoise_off_desc">Raw audio is used without model-based denoise.</string>
   <string name="feature_offline_denoise_on_desc">Applies model-based denoise before non-streaming upload or offline recognition. Limited improvement for low-volume speech.</string>
+
+  <!-- Upload audio compression -->
+  <string name="feature_upload_audio_compression_off_desc">Non-streaming online recognition uploads uncompressed WAV audio. This can increase transfer size but avoids upload encoding work.</string>
+  <string name="feature_upload_audio_compression_on_desc">Compresses audio before non-streaming online upload when the selected provider supports it, reducing transfer size and network time.</string>
 
   <!-- Headset mic priority -->
   <string name="feature_headset_mic_priority_off_desc">Uses the device\'s built-in microphone for recording.</string>

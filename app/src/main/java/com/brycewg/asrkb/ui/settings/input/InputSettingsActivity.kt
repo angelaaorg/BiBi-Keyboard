@@ -71,6 +71,8 @@ class InputSettingsActivity : BaseActivity() {
         val switchHideRecentTasks = findViewById<MaterialSwitch>(R.id.switchHideRecentTasks)
         val switchDuckMediaOnRecord = findViewById<MaterialSwitch>(R.id.switchDuckMediaOnRecord)
         val switchOfflineDenoise = findViewById<MaterialSwitch>(R.id.switchOfflineDenoise)
+        val switchUploadAudioCompression =
+            findViewById<MaterialSwitch>(R.id.switchUploadAudioCompression)
         val switchHeadsetMicPriority = findViewById<MaterialSwitch>(R.id.switchHeadsetMicPriority)
         val switchExternalImeAidl = findViewById<MaterialSwitch>(R.id.switchExternalImeAidl)
         val toggleKeyboardHeight =
@@ -120,6 +122,7 @@ class InputSettingsActivity : BaseActivity() {
             switchOfflineDenoise.isChecked = prefs.offlineDenoiseEnabled
             isUpdatingSwitchOfflineDenoise = false
 
+            switchUploadAudioCompression.isChecked = prefs.uploadAudioCompressionEnabled
             isUpdatingSwitchHeadsetMicPriority = true
             switchHeadsetMicPriority.isChecked = prefs.headsetMicPriorityEnabled
             isUpdatingSwitchHeadsetMicPriority = false
@@ -246,6 +249,16 @@ class InputSettingsActivity : BaseActivity() {
             preferenceKey = "offline_denoise_explained",
             readPref = { prefs.offlineDenoiseEnabled },
             writePref = { v -> prefs.offlineDenoiseEnabled = v },
+            hapticFeedback = { hapticTapIfEnabled(it) }
+        )
+        switchUploadAudioCompression.installExplainedSwitch(
+            context = this,
+            titleRes = R.string.label_upload_audio_compression,
+            offDescRes = R.string.feature_upload_audio_compression_off_desc,
+            onDescRes = R.string.feature_upload_audio_compression_on_desc,
+            preferenceKey = "upload_audio_compression_explained",
+            readPref = { prefs.uploadAudioCompressionEnabled },
+            writePref = { v -> prefs.uploadAudioCompressionEnabled = v },
             hapticFeedback = { hapticTapIfEnabled(it) }
         )
         switchHeadsetMicPriority.installExplainedSwitch(

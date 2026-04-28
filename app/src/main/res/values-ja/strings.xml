@@ -180,6 +180,7 @@
   <!-- ============================================== -->
   <string name="label_audio_ducking_on_record">録音中のオーディオダッキング</string>
   <string name="label_offline_denoise">非ストリーミング認識のノイズ低減</string>
+  <string name="label_upload_audio_compression">非ストリーミングのアップロード音声を圧縮</string>
   <string name="label_headset_mic_priority">ヘッドセットマイクを優先（実験的）</string>
   <!-- 外部IME連携（AIDL） -->
   <string name="label_external_ime_link_aidl">外部IME連携（AIDL）を許可</string>
@@ -285,6 +286,10 @@
   <!-- 非ストリーミングのノイズ低減 -->
   <string name="feature_offline_denoise_off_desc">非ストリーミングのアップロード/オフライン認識前にノイズ低減を行いません。</string>
   <string name="feature_offline_denoise_on_desc">非ストリーミングのアップロード/オフライン認識前にモデルのノイズ低減を行います。小さな声の改善は限定的です。</string>
+
+  <!-- アップロード音声圧縮 -->
+  <string name="feature_upload_audio_compression_off_desc">オンライン非ストリーミング認識では未圧縮の WAV 音声をアップロードします。転送量は増えますが、アップロード前のエンコード処理は行いません。</string>
+  <string name="feature_upload_audio_compression_on_desc">プロバイダーが対応している場合、オンライン非ストリーミング認識のアップロード前に音声を圧縮し、転送量とネットワーク時間を減らします。</string>
 
   <!-- ヘッドセットマイク優先 -->
   <string name="feature_headset_mic_priority_off_desc">デバイス内蔵マイクを録音に使用します。</string>

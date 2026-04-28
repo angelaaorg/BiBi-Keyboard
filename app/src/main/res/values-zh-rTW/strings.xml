@@ -179,6 +179,7 @@
   <!-- ============================================== -->
   <string name="label_audio_ducking_on_record">錄音時音訊避讓</string>
   <string name="label_offline_denoise">非串流辨識降噪</string>
+  <string name="label_upload_audio_compression">非串流上傳音訊壓縮</string>
   <string name="label_headset_mic_priority">優先嘗試使用耳機的麥克風（實驗性）</string>
   <!-- 外部輸入法聯動（AIDL） -->
   <string name="label_external_ime_link_aidl">允許外部輸入法聯動（AIDL）</string>
@@ -284,6 +285,10 @@
   <!-- 非串流降噪 -->
   <string name="feature_offline_denoise_off_desc">非串流上傳或離線辨識前不進行模型降噪。</string>
   <string name="feature_offline_denoise_on_desc">在非串流上傳或離線辨識前進行模型降噪，對低聲說話改善有限。</string>
+
+  <!-- 上傳音訊壓縮 -->
+  <string name="feature_upload_audio_compression_off_desc">線上非串流辨識會上傳未壓縮 WAV 音訊，傳輸體積會增加，但不會進行上傳前編碼。</string>
+  <string name="feature_upload_audio_compression_on_desc">在服務商支援時，線上非串流辨識會在上傳前壓縮音訊，減少傳輸體積和網路耗時。</string>
 
   <!-- 耳機麥克風優先 -->
   <string name="feature_headset_mic_priority_off_desc">使用裝置內建麥克風進行錄音。</string>

@@ -19,7 +19,7 @@ import org.json.JSONObject
 
 /**
  * Soniox 异步文件 ASR 引擎实现。
- * 录音 -> WAV -> 上传 /v1/files -> 创建转写 /v1/transcriptions -> 轮询完成 -> 拉取转写文本。
+ * 录音 -> 上传音频编码 -> 上传 /v1/files -> 创建转写 /v1/transcriptions -> 轮询完成 -> 拉取转写文本。
  */
 class SonioxFileAsrEngine(
     context: Context,
@@ -42,6 +42,9 @@ class SonioxFileAsrEngine(
         .callTimeout(120, TimeUnit.SECONDS)
         .build()
 
+    override val uploadAudioEncodingSpec: UploadAudioEncodingSpec =
+        UploadAudioEncodingSpec.M4A_AAC_LC
+
     override fun ensureReady(): Boolean {
         if (!super.ensureReady()) return false
         if (prefs.sonioxApiKey.isBlank()) {
@@ -52,14 +55,28 @@ class SonioxFileAsrEngine(
     }
 
     override suspend fun recognize(pcm: ByteArray) {
+        val audio = if (prefs.uploadAudioCompressionEnabled) {
+            encodePcmForUpload(context, pcm, sampleRate, uploadAudioEncodingSpec)
+        } else {
+            pcmToWavUploadAudio(pcm)
+        }
+        recognizeEncoded(audio)
+    }
+
+    override suspend fun recognizeEncoded(audio: UploadAudioData) {
+        var tmp: File? = null
         try {
-            val wav = pcmToWav(pcm)
-            val tmp = File.createTempFile("asr_soniox_", ".wav", context.cacheDir)
-            FileOutputStream(tmp).use { it.write(wav) }
+            val created = File.createTempFile(
+                "asr_soniox_",
+                ".${audio.container.extension}",
+                context.cacheDir
+            )
+            tmp = created
+            FileOutputStream(created).use { it.write(audio.bytes) }
 
             val apiKey = prefs.sonioxApiKey
             val t0 = System.nanoTime()
-            val fileId = uploadAudioFile(apiKey, tmp)
+            val fileId = uploadAudioFile(apiKey, created, audio)
             val transcriptionId = createTranscription(apiKey, fileId)
             waitUntilCompleted(apiKey, transcriptionId)
             val text = getTranscriptionText(apiKey, transcriptionId)
@@ -77,6 +94,15 @@ class SonioxFileAsrEngine(
             listener.onError(
                 context.getString(R.string.error_recognize_failed_with_reason, t.message ?: "")
             )
+        } finally {
+            try {
+                val file = tmp
+                if (file != null && file.exists() && !file.delete()) {
+                    file.deleteOnExit()
+                }
+            } catch (t: Throwable) {
+                Log.w(TAG, "Failed to delete Soniox temp upload audio", t)
+            }
         }
     }
 
@@ -84,12 +110,12 @@ class SonioxFileAsrEngine(
         recognize(pcm)
     }
 
-    private fun uploadAudioFile(apiKey: String, file: File): String {
+    private fun uploadAudioFile(apiKey: String, file: File, audio: UploadAudioData): String {
         val multipart = MultipartBody.Builder().setType(MultipartBody.FORM)
             .addFormDataPart(
                 "file",
-                file.name,
-                file.asRequestBody("audio/wav".toMediaType())
+                audio.fileName,
+                file.asRequestBody(audio.mimeType.toMediaType())
             )
             .build()
         val req = Request.Builder()

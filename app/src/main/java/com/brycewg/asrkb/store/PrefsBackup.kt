@@ -32,6 +32,7 @@ internal object PrefsBackup {
         o.put(KEY_AUTO_START_RECORDING_ON_SHOW, autoStartRecordingOnShow)
         o.put(KEY_DUCK_MEDIA_ON_RECORD, duckMediaOnRecordEnabled)
         o.put(KEY_OFFLINE_DENOISE_ENABLED, offlineDenoiseEnabled)
+        o.put(KEY_UPLOAD_AUDIO_COMPRESSION_ENABLED, uploadAudioCompressionEnabled)
         o.put(KEY_AUTO_STOP_ON_SILENCE_ENABLED, autoStopOnSilenceEnabled)
         o.put(KEY_AUTO_STOP_SILENCE_WINDOW_MS, autoStopSilenceWindowMs)
         o.put(KEY_AUTO_STOP_SILENCE_SENSITIVITY, autoStopSilenceSensitivity)
@@ -302,6 +303,7 @@ internal object PrefsBackup {
             optBool(KEY_AUTO_START_RECORDING_ON_SHOW)?.let { autoStartRecordingOnShow = it }
             optBool(KEY_DUCK_MEDIA_ON_RECORD)?.let { duckMediaOnRecordEnabled = it }
             optBool(KEY_OFFLINE_DENOISE_ENABLED)?.let { offlineDenoiseEnabled = it }
+            optBool(KEY_UPLOAD_AUDIO_COMPRESSION_ENABLED)?.let { uploadAudioCompressionEnabled = it }
             optBool(KEY_AUTO_STOP_ON_SILENCE_ENABLED)?.let { autoStopOnSilenceEnabled = it }
             optInt(KEY_AUTO_STOP_SILENCE_WINDOW_MS)?.let { autoStopSilenceWindowMs = it }
             optInt(KEY_AUTO_STOP_SILENCE_SENSITIVITY)?.let { autoStopSilenceSensitivity = it }

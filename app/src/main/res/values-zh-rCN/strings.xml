@@ -179,6 +179,7 @@
   <!-- ============================================== -->
   <string name="label_audio_ducking_on_record">录音时音频避让</string>
   <string name="label_offline_denoise">非流式识别降噪</string>
+  <string name="label_upload_audio_compression">非流式上传音频压缩</string>
   <string name="label_headset_mic_priority">优先尝试使用耳机的麦克风(实验性)</string>
   <!-- 外部输入法联动（AIDL） -->
   <string name="label_external_ime_link_aidl">允许外部输入法联动（AIDL）</string>
@@ -284,6 +285,10 @@
   <!-- 非流式降噪 -->
   <string name="feature_offline_denoise_off_desc">非流式上传或离线识别前不进行模型降噪。</string>
   <string name="feature_offline_denoise_on_desc">在非流式上传或离线识别前进行模型降噪，对低声说话改善有限。</string>
+
+  <!-- 上传音频压缩 -->
+  <string name="feature_upload_audio_compression_off_desc">在线非流式识别上传未压缩 WAV 音频，传输体积会增大，但不会进行上传前编码。</string>
+  <string name="feature_upload_audio_compression_on_desc">在服务商支持时，在线非流式识别会在上传前压缩音频，减少传输体积和网络耗时。</string>
 
   <!-- 耳机麦克风优先 -->
   <string name="feature_headset_mic_priority_off_desc">使用设备内置麦克风进行录音。</string>

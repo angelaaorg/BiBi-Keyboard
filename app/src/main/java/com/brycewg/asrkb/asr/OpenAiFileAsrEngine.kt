@@ -40,11 +40,28 @@ class OpenAiFileAsrEngine(
         .callTimeout(60, TimeUnit.SECONDS)
         .build()
 
+    override val uploadAudioEncodingSpec: UploadAudioEncodingSpec =
+        UploadAudioEncodingSpec.M4A_AAC_LC
+
     override suspend fun recognize(pcm: ByteArray) {
+        val audio = if (prefs.uploadAudioCompressionEnabled) {
+            encodePcmForUpload(context, pcm, sampleRate, uploadAudioEncodingSpec)
+        } else {
+            pcmToWavUploadAudio(pcm)
+        }
+        recognizeEncoded(audio)
+    }
+
+    override suspend fun recognizeEncoded(audio: UploadAudioData) {
+        var tmp: File? = null
         try {
-            val wav = pcmToWav(pcm)
-            val tmp = File.createTempFile("asr_oa_", ".wav", context.cacheDir)
-            FileOutputStream(tmp).use { it.write(wav) }
+            val created = File.createTempFile(
+                "asr_oa_",
+                ".${audio.container.extension}",
+                context.cacheDir
+            )
+            tmp = created
+            FileOutputStream(created).use { it.write(audio.bytes) }
 
             val apiKey = prefs.oaAsrApiKey
             val endpoint = prefs.oaAsrEndpoint.ifBlank { Prefs.DEFAULT_OA_ASR_ENDPOINT }
@@ -57,8 +74,8 @@ class OpenAiFileAsrEngine(
                 .addFormDataPart("model", model)
                 .addFormDataPart(
                     "file",
-                    "audio.wav",
-                    tmp.asRequestBody("audio/wav".toMediaType())
+                    audio.fileName,
+                    created.asRequestBody(audio.mimeType.toMediaType())
                 )
                 .addFormDataPart("response_format", "json")
             if (usePrompt && prompt.isNotEmpty()) {
@@ -105,6 +122,15 @@ class OpenAiFileAsrEngine(
             listener.onError(
                 context.getString(R.string.error_recognize_failed_with_reason, t.message ?: "")
             )
+        } finally {
+            try {
+                val file = tmp
+                if (file != null && file.exists() && !file.delete()) {
+                    file.deleteOnExit()
+                }
+            } catch (t: Throwable) {
+                Log.w(TAG, "Failed to delete OpenAI temp upload audio", t)
+            }
         }
     }
 

@@ -42,6 +42,9 @@ class GeminiFileAsrEngine(
         .callTimeout(90, TimeUnit.SECONDS)
         .build()
 
+    override val uploadAudioEncodingSpec: UploadAudioEncodingSpec =
+        UploadAudioEncodingSpec.AAC_ADTS
+
     override fun ensureReady(): Boolean {
         if (!super.ensureReady()) return false
         if (prefs.getGeminiApiKeys().isEmpty()) {
@@ -52,9 +55,17 @@ class GeminiFileAsrEngine(
     }
 
     override suspend fun recognize(pcm: ByteArray) {
+        val audio = if (prefs.uploadAudioCompressionEnabled) {
+            encodePcmForUpload(context, pcm, sampleRate, uploadAudioEncodingSpec)
+        } else {
+            pcmToWavUploadAudio(pcm)
+        }
+        recognizeEncoded(audio)
+    }
+
+    override suspend fun recognizeEncoded(audio: UploadAudioData) {
         try {
-            val wav = pcmToWav(pcm)
-            val b64 = Base64.encodeToString(wav, Base64.NO_WRAP)
+            val b64 = Base64.encodeToString(audio.bytes, Base64.NO_WRAP)
             val apiKeys = prefs.getGeminiApiKeys()
             val apiKey = apiKeys.random()
             val endpoint = prefs.gemEndpoint
@@ -64,7 +75,7 @@ class GeminiFileAsrEngine(
             }
             val prompt = basePrompt
 
-            val body = buildGeminiRequestBody(b64, prompt, model)
+            val body = buildGeminiRequestBody(b64, audio.mimeType, prompt, model)
             val req = Request.Builder()
                 .url(buildGeminiRequestUrl(endpoint, model, apiKey))
                 .addHeader("Content-Type", "application/json; charset=utf-8")
@@ -107,13 +118,18 @@ class GeminiFileAsrEngine(
     /**
      * 构建 Gemini API 请求体
      */
-    private fun buildGeminiRequestBody(base64Wav: String, prompt: String, model: String): String {
+    private fun buildGeminiRequestBody(
+        base64Audio: String,
+        mimeType: String,
+        prompt: String,
+        model: String
+    ): String {
         val inlineAudio = JSONObject().apply {
             put(
                 "inline_data",
                 JSONObject().apply {
-                    put("mime_type", "audio/wav")
-                    put("data", base64Wav)
+                    put("mime_type", mimeType)
+                    put("data", base64Audio)
                 }
             )
         }

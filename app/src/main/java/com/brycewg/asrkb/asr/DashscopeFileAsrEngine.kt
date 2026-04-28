@@ -57,6 +57,12 @@ class DashscopeFileAsrEngine(
         .callTimeout(180, TimeUnit.SECONDS)
         .build()
 
+    override val uploadAudioEncodingSpec: UploadAudioEncodingSpec?
+        get() {
+            val model = prefs.dashAsrModel.trim().ifBlank { Prefs.DEFAULT_DASH_MODEL }
+            return uploadAudioEncodingSpecForModel(model)
+        }
+
     override fun ensureReady(): Boolean {
         if (!super.ensureReady()) return false
         if (prefs.dashApiKey.isBlank()) {
@@ -67,38 +73,56 @@ class DashscopeFileAsrEngine(
     }
 
     override suspend fun recognize(pcm: ByteArray) {
-        val wav = try {
-            pcmToWav(pcm)
-        } catch (e: Throwable) {
-            Log.e(TAG, "Failed to materialize WAV bytes", e)
-            listener.onError(
-                context.getString(R.string.error_recognize_failed_with_reason, e.message ?: "")
-            )
-            return
-        }
-
         val model = prefs.dashAsrModel.trim().ifBlank { Prefs.DEFAULT_DASH_MODEL }
         if (prefs.isDashOmniModelId(model)) {
-            recognizeWithOmni(wav, model)
+            val audio = encodePcmForUploadIfEnabled(pcm, model)
+            recognizeWithOmni(audio, model)
         } else {
-            recognizeWithLegacySdk(wav, model)
+            val audio = encodePcmForUploadIfEnabled(pcm, model)
+            recognizeWithLegacySdk(audio, model)
         }
+    }
+
+    override suspend fun recognizeEncoded(audio: UploadAudioData) {
+        val model = prefs.dashAsrModel.trim().ifBlank { Prefs.DEFAULT_DASH_MODEL }
+        if (prefs.isDashOmniModelId(model)) {
+            recognizeWithOmni(audio, model)
+            return
+        }
+        recognizeWithLegacySdk(audio, model)
     }
 
     override suspend fun recognizeFromPcm(pcm: ByteArray) {
         recognize(pcm)
     }
 
+    private fun uploadAudioEncodingSpecForModel(model: String): UploadAudioEncodingSpec = if (prefs.isDashOmniModelId(model)) {
+        UploadAudioEncodingSpec.AAC_ADTS
+    } else {
+        UploadAudioEncodingSpec.M4A_AAC_LC
+    }
+
+    private fun encodePcmForUploadIfEnabled(pcm: ByteArray, model: String): UploadAudioData = if (prefs.uploadAudioCompressionEnabled) {
+        encodePcmForUpload(
+            context,
+            pcm,
+            sampleRate,
+            uploadAudioEncodingSpecForModel(model)
+        )
+    } else {
+        pcmToWavUploadAudio(pcm)
+    }
+
     /**
      * 旧版 DashScope SDK 文件识别路径。
      */
-    private fun recognizeWithLegacySdk(wav: ByteArray, model: String) {
+    private fun recognizeWithLegacySdk(audio: UploadAudioData, model: String) {
         val tmp = try {
-            File.createTempFile("asr_dash_", ".wav", context.cacheDir).also { f ->
-                FileOutputStream(f).use { it.write(wav) }
+            File.createTempFile("asr_dash_", ".${audio.container.extension}", context.cacheDir).also { f ->
+                FileOutputStream(f).use { it.write(audio.bytes) }
             }
         } catch (e: Throwable) {
-            Log.e(TAG, "Failed to create DashScope temp wav", e)
+            Log.e(TAG, "Failed to create DashScope temp upload audio", e)
             listener.onError(
                 context.getString(R.string.error_recognize_failed_with_reason, e.message ?: "")
             )
@@ -162,13 +186,13 @@ class DashscopeFileAsrEngine(
     /**
      * Qwen3.5-Omni 非实时识别路径。
      */
-    private fun recognizeWithOmni(wav: ByteArray, model: String) {
+    private fun recognizeWithOmni(audio: UploadAudioData, model: String) {
         try {
-            val base64Wav = Base64.encodeToString(wav, Base64.NO_WRAP)
+            val base64Audio = Base64.encodeToString(audio.bytes, Base64.NO_WRAP)
             val prompt = prefs.dashPrompt.trim().ifBlank {
                 context.getString(R.string.prompt_default_sf_omni)
             }
-            val body = buildDashOmniRequestBody(model, base64Wav, prompt)
+            val body = buildDashOmniRequestBody(model, base64Audio, audio, prompt)
             val request = Request.Builder()
                 .url(prefs.getDashCompatibleModeChatEndpoint())
                 .addHeader("Authorization", "Bearer ${prefs.dashApiKey}")
@@ -206,7 +230,12 @@ class DashscopeFileAsrEngine(
         }
     }
 
-    private fun buildDashOmniRequestBody(model: String, base64Wav: String, prompt: String): String {
+    private fun buildDashOmniRequestBody(
+        model: String,
+        base64Audio: String,
+        audio: UploadAudioData,
+        prompt: String
+    ): String {
         val systemMessage = JSONObject().apply {
             put("role", "system")
             put(
@@ -232,8 +261,8 @@ class DashscopeFileAsrEngine(
                             put(
                                 "input_audio",
                                 JSONObject().apply {
-                                    put("data", "data:audio/wav;base64,$base64Wav")
-                                    put("format", "wav")
+                                    put("data", "data:${audio.mimeType};base64,$base64Audio")
+                                    put("format", audio.format)
                                 }
                             )
                         }
