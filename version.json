@@ -1,11 +1,11 @@
 {
-  "version": "3.15.1",
-  "version_code": 152,
-  "download_url": "https://github.com/BryceWG/BiBi-Keyboard/releases/tag/v3.15.1",
-  "release_notes": "### 问题修复\n\n- **前台服务稳定性优化**: 前台服务类型与异常处理补强，优化安卓15以上用户体验",
-  "release_notes_en": "### 问题修复\n\n- **Foreground Service Stability Optimization**: Enhanced foreground service types and exception handling, improving user experience on Android 15 and above.",
+  "version": "3.15.2",
+  "version_code": 153,
+  "download_url": "https://github.com/BryceWG/BiBi-Keyboard/releases/tag/v3.15.2",
+  "release_notes": "### 新增功能\n\n- **非流式上传音频压缩**: 新增在线非流式识别上传音频压缩选项，在服务商支持时减少传输体积和网络耗时，默认开启\n\n### 改进优化\n\n- **Gemini 3 思考配置支持**: Gemini ASR 增加 Gemini 3 模型的思考配置支持，并将相关设置文案调整为降低思考强度",
+  "release_notes_en": "### New Features\n\n- **Non-Streaming Upload Audio Compression**: Added an option to compress upload audio for online non-streaming recognition when supported by the selected provider, reducing transfer size and network time. Default enabled.\n\n### Improvements\n\n- **Gemini 3 Thinking Config Support**: Added Gemini 3 model thinking configuration support for Gemini ASR and updated the related setting copy to reduce thinking intensity.",
   "important_notice": "0. 3.13.0版本迎来大量重构，已经过初步测试，如果您有疑虑可以暂不更新\n1. 已支持通过同文输入法与说点啥进行联动，具体操作步骤见https://github.com/BryceWG/trime-bibi-keyboard/releases\n2. BiBi Keyboard Pro版本已上架，欢迎在3.8.6后版本-关于页面中了解详情。\n3. 官方网站和使用文档均已上线,网址分别为: bibi.brycewg.com bibidocs.brycewg.com",
   "notice_level": "info",
   "min_supported_version": "2.6.5",
-  "update_time": "2026-04-26T04:50:36Z"
+  "update_time": "2026-04-29T01:39:25Z"
 }
