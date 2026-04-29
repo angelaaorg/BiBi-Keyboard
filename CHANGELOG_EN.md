@@ -1,5 +1,17 @@
 # Changelog
 
+## v3.15.2 (2026-04-29)
+
+### New Features
+
+- **Non-Streaming Upload Audio Compression**: Added an option to compress upload audio for online non-streaming recognition when supported by the selected provider, reducing transfer size and network time. Default enabled.
+
+### Improvements
+
+- **Gemini 3 Thinking Config Support**: Added Gemini 3 model thinking configuration support for Gemini ASR and updated the related setting copy to reduce thinking intensity.
+
+---
+
 ## v3.15.1 (2026-04-26)
 
 ### Bug Fixes
