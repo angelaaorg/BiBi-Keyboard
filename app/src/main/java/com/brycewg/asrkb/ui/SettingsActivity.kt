@@ -910,10 +910,10 @@ class SettingsActivity : BaseActivity() {
      */
     private fun showDownloadSourceDialog(originalUrl: String, version: String) {
         if (!updatesEnabled) return
-        // 根据 release 页面构造 APK 直链
-        val directApkUrl = buildDirectApkUrl(originalUrl, version)
+        // 根据 release 页面构造当前 ABI 的 APK 候选直链，新旧命名按顺序兜底。
+        val directApkUrls = buildDirectApkUrls(originalUrl, version)
 
-        val downloadOptions = DownloadSourceConfig.buildOptions(this, directApkUrl)
+        val downloadOptions = DownloadSourceConfig.buildOptions(this, directApkUrls)
 
         DownloadSourceDialog.show(
             context = this,
@@ -922,7 +922,7 @@ class SettingsActivity : BaseActivity() {
         ) { option ->
             try {
                 // 启动下载服务
-                ApkDownloadService.startDownload(this, option.url, version)
+                ApkDownloadService.startDownload(this, option.fallbackUrls, version)
                 Toast.makeText(
                     this,
                     getString(R.string.apk_download_started),
@@ -961,12 +961,12 @@ class SettingsActivity : BaseActivity() {
     }
 
     /**
-     * 构造 APK 直链
+     * 构造 APK 候选直链
      *
      * 输入: https://github.com/{owner}/{repo}/releases/tag/{tag}
-     * 输出: https://github.com/BryceWG/BiBi-Keyboard/releases/download/v{version}/lexisharp-keyboard-{version}-{abi}-release.apk
+     * 输出: https://github.com/BryceWG/BiBi-Keyboard/releases/download/v{version}/{apkName}
      */
-    private fun buildDirectApkUrl(originalUrl: String, version: String): String {
+    private fun buildDirectApkUrls(originalUrl: String, version: String): List<String> {
         val baseEnd = originalUrl.indexOf("/releases/tag/")
         val base = if (baseEnd > 0) {
             originalUrl.substring(0, baseEnd)
@@ -974,8 +974,27 @@ class SettingsActivity : BaseActivity() {
             "https://github.com/BryceWG/BiBi-Keyboard"
         }
         val tag = "v$version"
-        val apkName = "lexisharp-keyboard-$version-${selectUpdateApkAbi()}-release.apk"
-        return "$base/releases/download/$tag/$apkName"
+        return buildUpdateApkNames(version).map { apkName ->
+            "$base/releases/download/$tag/$apkName"
+        }
+    }
+
+    /**
+     * 构造当前设备 ABI 对应的新旧 APK 文件名候选。
+     */
+    private fun buildUpdateApkNames(version: String): List<String> {
+        val abi = selectUpdateApkAbi()
+        return if (abi == "armeabi-v7a") {
+            listOf(
+                "lexisharp-keyboard-$version-armeabi-v7a-release.apk",
+                "app-release-$version-armeabi-v7a.apk"
+            )
+        } else {
+            listOf(
+                "lexisharp-keyboard-$version-release.apk",
+                "app-release-$version-arm64-v8a.apk"
+            )
+        }
     }
 
     /**
