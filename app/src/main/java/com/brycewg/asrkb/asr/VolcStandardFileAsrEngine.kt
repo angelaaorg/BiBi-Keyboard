@@ -51,6 +51,7 @@ class VolcStandardFileAsrEngine(
         get() = oggOpusUploadAudioEncodingSpecIfSupported()
 
     private val http: OkHttpClient = httpClient ?: OkHttpClient.Builder()
+        .addInterceptor(ApiLogInterceptor())
         .callTimeout(60, TimeUnit.SECONDS)
         .build()
 
@@ -77,6 +78,15 @@ class VolcStandardFileAsrEngine(
             val submitJson = buildSubmitRequestJson(b64, audio)
             val submitReq = Request.Builder()
                 .url(SUBMIT_URL)
+                .tag(
+                    ApiLogMeta::class.java,
+                    ApiLogRecorder.meta(
+                        category = "ASR",
+                        vendor = "volcengine",
+                        model = resourceId,
+                        requestStructure = "json object keys=audio, request, user; audio.data=base64 omitted"
+                    )
+                )
                 .addHeader("X-Api-App-Key", prefs.appKey)
                 .addHeader("X-Api-Access-Key", prefs.accessKey)
                 .addHeader("X-Api-Resource-Id", resourceId)
@@ -176,6 +186,15 @@ class VolcStandardFileAsrEngine(
         repeat(MAX_POLL_ATTEMPTS) {
             val queryReq = Request.Builder()
                 .url(QUERY_URL)
+                .tag(
+                    ApiLogMeta::class.java,
+                    ApiLogRecorder.meta(
+                        category = "ASR",
+                        vendor = "volcengine",
+                        model = resourceId,
+                        requestStructure = "json object keys=empty"
+                    )
+                )
                 .addHeader("X-Api-App-Key", prefs.appKey)
                 .addHeader("X-Api-Access-Key", prefs.accessKey)
                 .addHeader("X-Api-Resource-Id", resourceId)

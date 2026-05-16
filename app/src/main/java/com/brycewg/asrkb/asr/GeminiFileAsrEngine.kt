@@ -39,6 +39,7 @@ class GeminiFileAsrEngine(
     override val maxRecordDurationMillis: Int = 4 * 60 * 60 * 1000
 
     private val http: OkHttpClient = httpClient ?: OkHttpClient.Builder()
+        .addInterceptor(ApiLogInterceptor())
         .callTimeout(90, TimeUnit.SECONDS)
         .build()
 
@@ -78,6 +79,15 @@ class GeminiFileAsrEngine(
             val body = buildGeminiRequestBody(b64, audio.mimeType, prompt, model)
             val req = Request.Builder()
                 .url(buildGeminiRequestUrl(endpoint, model, apiKey))
+                .tag(
+                    ApiLogMeta::class.java,
+                    ApiLogRecorder.meta(
+                        category = "ASR",
+                        vendor = "gemini",
+                        model = model,
+                        requestStructure = "json object keys=contents; inline_data.data=base64 omitted"
+                    )
+                )
                 .addHeader("Content-Type", "application/json; charset=utf-8")
                 .post(body.toRequestBody("application/json; charset=utf-8".toMediaType()))
                 .build()

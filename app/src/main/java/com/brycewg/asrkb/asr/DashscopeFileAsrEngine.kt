@@ -51,6 +51,7 @@ class DashscopeFileAsrEngine(
     override val maxRecordDurationMillis: Int = 3 * 60 * 1000
 
     private val http: OkHttpClient = httpClient ?: OkHttpClient.Builder()
+        .addInterceptor(ApiLogInterceptor())
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(120, TimeUnit.SECONDS)
         .writeTimeout(120, TimeUnit.SECONDS)
@@ -195,6 +196,15 @@ class DashscopeFileAsrEngine(
             val body = buildDashOmniRequestBody(model, base64Audio, audio, prompt)
             val request = Request.Builder()
                 .url(prefs.getDashCompatibleModeChatEndpoint())
+                .tag(
+                    ApiLogMeta::class.java,
+                    ApiLogRecorder.meta(
+                        category = "ASR",
+                        vendor = "dashscope",
+                        model = model,
+                        requestStructure = "json object keys=input, model, parameters"
+                    )
+                )
                 .addHeader("Authorization", "Bearer ${prefs.dashApiKey}")
                 .addHeader("Content-Type", "application/json; charset=utf-8")
                 .post(body.toRequestBody("application/json; charset=utf-8".toMediaType()))

@@ -105,6 +105,7 @@ class LlmPostProcessor(private val client: OkHttpClient? = null) {
 
         private val sharedHttpClient: OkHttpClient by lazy {
             OkHttpClient.Builder()
+                .addInterceptor(ApiLogInterceptor())
                 .connectTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
                 .readTimeout(0, TimeUnit.SECONDS)
                 .writeTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
@@ -113,6 +114,7 @@ class LlmPostProcessor(private val client: OkHttpClient? = null) {
 
         private val sharedModelsHttpClient: OkHttpClient by lazy {
             OkHttpClient.Builder()
+                .addInterceptor(ApiLogInterceptor())
                 .connectTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
                 .readTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
                 .writeTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
@@ -417,6 +419,15 @@ class LlmPostProcessor(private val client: OkHttpClient? = null) {
         val body = reqJson.toRequestBody(jsonMedia)
         val builder = Request.Builder()
             .url(url)
+            .tag(
+                ApiLogMeta::class.java,
+                ApiLogRecorder.meta(
+                    category = "LLM",
+                    vendor = logVendorId(config),
+                    model = config.model,
+                    requestStructure = "json object keys=model, temperature, messages, stream"
+                )
+            )
             .addHeader("Content-Type", "application/json")
             .post(body)
 
@@ -442,6 +453,16 @@ class LlmPostProcessor(private val client: OkHttpClient? = null) {
      * 获取模型列表时使用的客户端（避免无限读超时）
      */
     private fun getModelsHttpClient(): OkHttpClient = client ?: sharedModelsHttpClient
+
+    private fun logVendorId(config: LlmRequestConfig): String {
+        if (config.vendor != LlmVendor.SF_FREE) return config.vendor.id
+        val builtinKey = BuildConfig.SF_FREE_API_KEY
+        return if (builtinKey.isNotBlank() && config.apiKey == builtinKey) {
+            "siliconflow_free"
+        } else {
+            "siliconflow"
+        }
+    }
 
     /**
      * 过滤掉 AI 输出中的 <think>...</think> 标签及其内容
@@ -846,6 +867,15 @@ class LlmPostProcessor(private val client: OkHttpClient? = null) {
 
         val reqBuilder = Request.Builder()
             .url(url)
+            .tag(
+                ApiLogMeta::class.java,
+                ApiLogRecorder.meta(
+                    category = "LLM",
+                    vendor = "custom",
+                    source = "settings_test",
+                    requestStructure = "GET /models"
+                )
+            )
             .get()
             .addHeader("Content-Type", "application/json")
 

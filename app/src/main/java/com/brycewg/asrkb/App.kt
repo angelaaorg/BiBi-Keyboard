@@ -16,6 +16,7 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
 import com.brycewg.asrkb.analytics.AnalyticsManager
 import com.brycewg.asrkb.asr.VadDetector
+import com.brycewg.asrkb.store.ApiLogStore
 import com.brycewg.asrkb.store.Prefs
 import com.brycewg.asrkb.store.debug.DebugLogManager
 import com.brycewg.asrkb.ui.floating.FloatingAsrService
@@ -33,6 +34,7 @@ class App : Application() {
     override fun onCreate() {
         super.onCreate()
         DebugLogManager.initialize(this)
+        ApiLogStore.initialize(this)
         DebugLogManager.installUncaughtExceptionHandler(this)
         DebugLogManager.inspectHistoricalProcessExit(this)
         DebugLogManager.updateProcessStateSummary("phase=app_create")

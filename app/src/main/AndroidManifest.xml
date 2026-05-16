@@ -108,6 +108,10 @@
             android:name=".ui.history.AsrHistoryActivity"
             android:exported="false" />
 
+        <activity
+            android:name=".ui.history.ApiLogActivity"
+            android:exported="false" />
+
         <!-- 关于页面 -->
         <activity
             android:name=".ui.about.AboutActivity"

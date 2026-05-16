@@ -45,6 +45,7 @@ class StepAudioFileAsrEngine(
         get() = oggOpusUploadAudioEncodingSpecIfSupported()
 
     private val http: OkHttpClient = httpClient ?: OkHttpClient.Builder()
+        .addInterceptor(ApiLogInterceptor())
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(120, TimeUnit.SECONDS)
         .writeTimeout(120, TimeUnit.SECONDS)
@@ -93,6 +94,14 @@ class StepAudioFileAsrEngine(
     private fun requestRecognition(body: String) {
         val request = Request.Builder()
             .url(Prefs.STEPAUDIO_ASR_ENDPOINT)
+            .tag(
+                ApiLogMeta::class.java,
+                ApiLogRecorder.meta(
+                    category = "ASR",
+                    vendor = "stepaudio",
+                    requestStructure = "json object keys=transcription, format"
+                )
+            )
             .addHeader("Authorization", "Bearer ${prefs.stepAudioApiKey}")
             .addHeader("Accept", "text/event-stream")
             .addHeader("Content-Type", "application/json; charset=utf-8")

@@ -39,6 +39,7 @@ class OpenRouterFileAsrEngine(
     override val maxRecordDurationMillis: Int = 20 * 60 * 1000
 
     private val http: OkHttpClient = httpClient ?: OkHttpClient.Builder()
+        .addInterceptor(ApiLogInterceptor())
         .callTimeout(90, TimeUnit.SECONDS)
         .build()
 
@@ -67,6 +68,15 @@ class OpenRouterFileAsrEngine(
             val body = buildRequestBody(audio, model)
             val request = Request.Builder()
                 .url(endpoint)
+                .tag(
+                    ApiLogMeta::class.java,
+                    ApiLogRecorder.meta(
+                        category = "ASR",
+                        vendor = "openrouter",
+                        model = model,
+                        requestStructure = "json object keys=model, messages, stream"
+                    )
+                )
                 .addHeader("Authorization", "Bearer $apiKey")
                 .addHeader("Content-Type", "application/json; charset=utf-8")
                 .post(body.toRequestBody("application/json; charset=utf-8".toMediaType()))

@@ -33,12 +33,14 @@ class SonioxFileAsrEngine(
 
     companion object {
         private const val TAG = "SonioxFileAsrEngine"
+        private const val MODEL = "stt-async-v4"
     }
 
     // Soniox：未明确限制，本地限制为 1 小时
     override val maxRecordDurationMillis: Int = 60 * 60 * 1000
 
     private val http: OkHttpClient = httpClient ?: OkHttpClient.Builder()
+        .addInterceptor(ApiLogInterceptor())
         .callTimeout(120, TimeUnit.SECONDS)
         .build()
 
@@ -120,6 +122,15 @@ class SonioxFileAsrEngine(
             .build()
         val req = Request.Builder()
             .url(Prefs.SONIOX_FILES_ENDPOINT)
+            .tag(
+                ApiLogMeta::class.java,
+                ApiLogRecorder.meta(
+                    category = "ASR",
+                    vendor = "soniox",
+                    model = MODEL,
+                    requestStructure = "multipart fields=file"
+                )
+            )
             .addHeader("Authorization", "Bearer $apiKey")
             .post(multipart)
             .build()
@@ -145,7 +156,7 @@ class SonioxFileAsrEngine(
     private fun createTranscription(apiKey: String, fileId: String): String {
         val cfg = JSONObject().apply {
             put("file_id", fileId)
-            put("model", "stt-async-v4")
+            put("model", MODEL)
             put("enable_language_identification", true)
             val langs = prefs.getSonioxLanguages()
             if (langs.isNotEmpty()) {
@@ -160,6 +171,15 @@ class SonioxFileAsrEngine(
         }
         val req = Request.Builder()
             .url(Prefs.SONIOX_TRANSCRIPTIONS_ENDPOINT)
+            .tag(
+                ApiLogMeta::class.java,
+                ApiLogRecorder.meta(
+                    category = "ASR",
+                    vendor = "soniox",
+                    model = MODEL,
+                    requestStructure = "json object keys=enable_language_identification, file_id, language_hints?, language_hints_strict?, model"
+                )
+            )
             .addHeader("Authorization", "Bearer $apiKey")
             .addHeader("Content-Type", "application/json; charset=utf-8")
             .post(cfg.toString().toRequestBody("application/json; charset=utf-8".toMediaType()))
@@ -187,6 +207,15 @@ class SonioxFileAsrEngine(
         while (true) {
             val req = Request.Builder()
                 .url(Prefs.SONIOX_TRANSCRIPTIONS_ENDPOINT + "/" + transcriptionId)
+                .tag(
+                    ApiLogMeta::class.java,
+                    ApiLogRecorder.meta(
+                        category = "ASR",
+                        vendor = "soniox",
+                        model = MODEL,
+                        requestStructure = "GET transcription status"
+                    )
+                )
                 .addHeader("Authorization", "Bearer $apiKey")
                 .get()
                 .build()
@@ -227,6 +256,15 @@ class SonioxFileAsrEngine(
     private fun getTranscriptionText(apiKey: String, transcriptionId: String): String {
         val req = Request.Builder()
             .url(Prefs.SONIOX_TRANSCRIPTIONS_ENDPOINT + "/" + transcriptionId + "/transcript")
+            .tag(
+                ApiLogMeta::class.java,
+                ApiLogRecorder.meta(
+                    category = "ASR",
+                    vendor = "soniox",
+                    model = MODEL,
+                    requestStructure = "GET transcript"
+                )
+            )
             .addHeader("Authorization", "Bearer $apiKey")
             .get()
             .build()

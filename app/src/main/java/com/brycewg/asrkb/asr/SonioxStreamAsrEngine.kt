@@ -43,6 +43,7 @@ class SonioxStreamAsrEngine(
     }
 
     private val http: OkHttpClient = OkHttpClient.Builder()
+        .addInterceptor(ApiLogInterceptor())
         .pingInterval(15, TimeUnit.SECONDS)
         .callTimeout(0, TimeUnit.MILLISECONDS)
         .build()
@@ -136,7 +137,12 @@ class SonioxStreamAsrEngine(
         if (startAudio) startCaptureAndSendAudio()
         val req = Request.Builder()
             .url(Prefs.SONIOX_WS_URL)
+            .tag(
+                ApiLogMeta::class.java,
+                ApiLogRecorder.meta(category = "ASR", vendor = "soniox")
+            )
             .build()
+        val wsStartNs = System.nanoTime()
         ws = http.newWebSocket(
             req,
             object : WebSocketListener() {
@@ -183,6 +189,14 @@ class SonioxStreamAsrEngine(
                     val message = context.getString(
                         R.string.error_recognize_failed_with_reason,
                         t.message ?: ""
+                    )
+                    ApiLogRecorder.recordWebSocket(
+                        req,
+                        ApiLogRecorder.meta(category = "ASR", vendor = "soniox"),
+                        success = false,
+                        durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - wsStartNs),
+                        code = response?.code ?: 0,
+                        error = response?.message ?: t.message.orEmpty()
                     )
                     if (running.get() || awaitingFinal.get()) {
                         notifyError(message, "failure", t)

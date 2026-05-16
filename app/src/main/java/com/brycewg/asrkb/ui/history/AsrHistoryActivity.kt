@@ -3,6 +3,7 @@ package com.brycewg.asrkb.ui.history
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -58,6 +59,7 @@ class AsrHistoryActivity : BaseActivity() {
     private lateinit var tvEmpty: TextView
     private lateinit var chipFilter: com.google.android.material.chip.Chip
     private lateinit var chipSelectAll: com.google.android.material.chip.Chip
+    private lateinit var chipApiLog: com.google.android.material.chip.Chip
     private lateinit var chipClearSelection: com.google.android.material.chip.Chip
     private lateinit var chipDeleteSelected: com.google.android.material.chip.Chip
     private lateinit var chipSelectionCount: com.google.android.material.chip.Chip
@@ -131,6 +133,7 @@ class AsrHistoryActivity : BaseActivity() {
 
         chipFilter = findViewById(R.id.chipFilter)
         chipSelectAll = findViewById(R.id.chipSelectAll)
+        chipApiLog = findViewById(R.id.chipApiLog)
         chipClearSelection = findViewById(R.id.chipClearSelection)
         chipDeleteSelected = findViewById(R.id.chipDeleteSelected)
         chipSelectionCount = findViewById(R.id.chipSelectionCount)
@@ -142,6 +145,10 @@ class AsrHistoryActivity : BaseActivity() {
             hapticTapIfEnabled(v)
             adapter.selectAll(true)
             updateToolbarTitleWithSelection()
+        }
+        chipApiLog.setOnClickListener { v ->
+            hapticTapIfEnabled(v)
+            startActivity(Intent(this, ApiLogActivity::class.java))
         }
         chipClearSelection.setOnClickListener { v ->
             hapticTapIfEnabled(v)
@@ -231,6 +238,7 @@ class AsrHistoryActivity : BaseActivity() {
             chipDeleteSelected.visibility = if (anySelected) View.VISIBLE else View.GONE
             chipSelectAll.visibility =
                 if (!anySelected && adapter.hasData()) View.VISIBLE else View.GONE
+            chipApiLog.visibility = View.VISIBLE
             chipFilter.visibility = View.VISIBLE
             chipSelectionCount.text = sel.toString()
             chipSelectionCount.visibility = if (anySelected) View.VISIBLE else View.GONE

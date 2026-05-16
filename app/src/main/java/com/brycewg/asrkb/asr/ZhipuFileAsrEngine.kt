@@ -38,6 +38,7 @@ class ZhipuFileAsrEngine(
     override val maxRecordDurationMillis: Int = 20 * 60 * 1000
 
     private val http: OkHttpClient = httpClient ?: OkHttpClient.Builder()
+        .addInterceptor(ApiLogInterceptor())
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(120, TimeUnit.SECONDS)
         .writeTimeout(120, TimeUnit.SECONDS)
@@ -63,9 +64,10 @@ class ZhipuFileAsrEngine(
                 val apiKey = prefs.zhipuApiKey
                 val temperature = prefs.zhipuTemperature
                 val prompt = prefs.zhipuPrompt.trim()
+                val model = "glm-asr-2512"
 
                 val multipartBuilder = MultipartBody.Builder().setType(MultipartBody.FORM)
-                    .addFormDataPart("model", "glm-asr-2512")
+                    .addFormDataPart("model", model)
                     .addFormDataPart("temperature", temperature.toString())
                     .addFormDataPart("stream", "false")
                     .addFormDataPart(
@@ -83,6 +85,15 @@ class ZhipuFileAsrEngine(
 
                 val request = Request.Builder()
                     .url(ENDPOINT)
+                    .tag(
+                        ApiLogMeta::class.java,
+                        ApiLogRecorder.meta(
+                            category = "ASR",
+                            vendor = "zhipu",
+                            model = model,
+                            requestStructure = "multipart fields=model, temperature, stream, file, prompt?"
+                        )
+                    )
                     .addHeader("Authorization", "Bearer $apiKey")
                     .post(multipart)
                     .build()

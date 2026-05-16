@@ -58,6 +58,7 @@ class OpenAiRealtimeAsrEngine(
     }
 
     private val http: OkHttpClient = OkHttpClient.Builder()
+        .addInterceptor(ApiLogInterceptor())
         .pingInterval(15, TimeUnit.SECONDS)
         .callTimeout(0, TimeUnit.MILLISECONDS)
         .build()
@@ -205,11 +206,17 @@ class OpenAiRealtimeAsrEngine(
         if (startAudio) startCaptureAndSendAudio()
 
         val apiKey = prefs.oaAsrApiKey.trim()
+        val model = prefs.oaAsrModel.ifBlank { Prefs.DEFAULT_OA_ASR_MODEL }.trim()
         val reqBuilder = Request.Builder().url(wsUrl)
+            .tag(
+                ApiLogMeta::class.java,
+                ApiLogRecorder.meta(category = "ASR", vendor = "openai", model = model)
+            )
         if (apiKey.isNotBlank()) {
             reqBuilder.addHeader("Authorization", "Bearer $apiKey")
         }
         val req = reqBuilder.build()
+        val wsStartNs = System.nanoTime()
 
         ws = http.newWebSocket(
             req,
@@ -240,6 +247,14 @@ class OpenAiRealtimeAsrEngine(
 
                 override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                     val detail = response?.message ?: t.message.orEmpty()
+                    ApiLogRecorder.recordWebSocket(
+                        req,
+                        ApiLogRecorder.meta(category = "ASR", vendor = "openai", model = model),
+                        success = false,
+                        durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - wsStartNs),
+                        code = response?.code ?: 0,
+                        error = detail
+                    )
                     if (closingByUser.get() || awaitingFinal.get()) {
                         emitFinalIfNeeded("failure_after_stop")
                         running.set(false)
@@ -259,6 +274,14 @@ class OpenAiRealtimeAsrEngine(
 
                 override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
                     Log.d(TAG, "WebSocket closed: $code $reason")
+                    ApiLogRecorder.recordWebSocket(
+                        req,
+                        ApiLogRecorder.meta(category = "ASR", vendor = "openai", model = model),
+                        success = true,
+                        durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - wsStartNs),
+                        code = code,
+                        error = reason
+                    )
                     ws = null
                     wsReady.set(false)
                     audioJob?.cancel()

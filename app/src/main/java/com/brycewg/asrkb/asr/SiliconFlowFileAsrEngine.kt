@@ -50,6 +50,7 @@ class SiliconFlowFileAsrEngine(
         get() = oggOpusUploadAudioEncodingSpecIfSupported()
 
     private val http: OkHttpClient = httpClient ?: OkHttpClient.Builder()
+        .addInterceptor(ApiLogInterceptor())
         // 普通转写可能较慢：放宽连接/读/写与总超时，避免长音频或排队导致的 SocketTimeout
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(120, TimeUnit.SECONDS)
@@ -134,6 +135,14 @@ class SiliconFlowFileAsrEngine(
 
             val request = Request.Builder()
                 .url(Prefs.SF_ENDPOINT)
+                .tag(
+                    ApiLogMeta::class.java,
+                    ApiLogRecorder.meta(
+                        category = "ASR",
+                        vendor = "siliconflow",
+                        requestStructure = "multipart fields=model, file"
+                    )
+                )
                 .addHeader("Authorization", "Bearer $freeApiKey")
                 .post(multipart)
                 .build()
@@ -194,6 +203,15 @@ class SiliconFlowFileAsrEngine(
             val body = buildSfChatCompletionsBody(model, b64, audio.mimeType, prompt)
             val request = Request.Builder()
                 .url(Prefs.SF_CHAT_COMPLETIONS_ENDPOINT)
+                .tag(
+                    ApiLogMeta::class.java,
+                    ApiLogRecorder.meta(
+                        category = "ASR",
+                        vendor = "siliconflow",
+                        model = model,
+                        requestStructure = "json object keys=model, messages, stream"
+                    )
+                )
                 .addHeader("Authorization", "Bearer $apiKey")
                 .addHeader("Content-Type", "application/json; charset=utf-8")
                 .post(body.toRequestBody("application/json; charset=utf-8".toMediaType()))
@@ -235,6 +253,15 @@ class SiliconFlowFileAsrEngine(
                     .build()
                 val request = Request.Builder()
                     .url(Prefs.SF_ENDPOINT)
+                    .tag(
+                        ApiLogMeta::class.java,
+                        ApiLogRecorder.meta(
+                            category = "ASR",
+                            vendor = "siliconflow",
+                            model = model,
+                            requestStructure = "multipart fields=model, file"
+                        )
+                    )
                     .addHeader("Authorization", "Bearer $apiKey")
                     .post(multipart)
                     .build()

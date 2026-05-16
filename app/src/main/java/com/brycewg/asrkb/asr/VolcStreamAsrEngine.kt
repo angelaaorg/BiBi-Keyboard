@@ -81,6 +81,7 @@ class VolcStreamAsrEngine(
         get() = if (prefs.volcModelV2Enabled) STREAM_RESOURCE_V2 else STREAM_RESOURCE_V1
 
     private val http: OkHttpClient = OkHttpClient.Builder()
+        .addInterceptor(ApiLogInterceptor())
         .pingInterval(15, TimeUnit.SECONDS)
         .callTimeout(0, TimeUnit.MILLISECONDS) // 持久流式
         .build()
@@ -195,7 +196,12 @@ class VolcStreamAsrEngine(
                     connectId
                 )
             )
+            .tag(
+                ApiLogMeta::class.java,
+                ApiLogRecorder.meta(category = "ASR", vendor = "volcengine", model = streamResource)
+            )
             .build()
+        val wsStartNs = System.nanoTime()
 
         ws = http.newWebSocket(
             req,
@@ -249,6 +255,18 @@ class VolcStreamAsrEngine(
 
                 override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
                     Log.d(TAG, "WebSocket closing with code $code: $reason")
+                    ApiLogRecorder.recordWebSocket(
+                        req,
+                        ApiLogRecorder.meta(
+                            category = "ASR",
+                            vendor = "volcengine",
+                            model = streamResource
+                        ),
+                        success = true,
+                        durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - wsStartNs),
+                        code = code,
+                        error = reason
+                    )
                     try {
                         webSocket.close(code, reason)
                     } catch (t: Throwable) {
@@ -259,6 +277,18 @@ class VolcStreamAsrEngine(
 
                 override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                     Log.e(TAG, "WebSocket failed: ${t.message}", t)
+                    ApiLogRecorder.recordWebSocket(
+                        req,
+                        ApiLogRecorder.meta(
+                            category = "ASR",
+                            vendor = "volcengine",
+                            model = streamResource
+                        ),
+                        success = false,
+                        durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - wsStartNs),
+                        code = response?.code ?: 0,
+                        error = response?.message ?: t.message.orEmpty()
+                    )
                     wsReady.set(false)
                     if (running.get()) {
                         listener.onError(

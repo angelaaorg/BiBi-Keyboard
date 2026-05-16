@@ -37,6 +37,7 @@ class ElevenLabsFileAsrEngine(
     override val maxRecordDurationMillis: Int = 20 * 60 * 1000
 
     private val http: OkHttpClient = httpClient ?: OkHttpClient.Builder()
+        .addInterceptor(ApiLogInterceptor())
         .callTimeout(60, TimeUnit.SECONDS)
         .build()
 
@@ -72,6 +73,15 @@ class ElevenLabsFileAsrEngine(
 
             val request = Request.Builder()
                 .url("https://api.elevenlabs.io/v1/speech-to-text")
+                .tag(
+                    ApiLogMeta::class.java,
+                    ApiLogRecorder.meta(
+                        category = "ASR",
+                        vendor = "elevenlabs",
+                        model = MODEL_ID,
+                        requestStructure = "multipart fields=file, model_id, tag_audio_events, num_speakers, language_code?"
+                    )
+                )
                 .addHeader("xi-api-key", apiKey)
                 .post(multipartBuilder.build())
                 .build()

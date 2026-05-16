@@ -51,6 +51,7 @@ class ElevenLabsStreamAsrEngine(
     }
 
     private val httpClient = OkHttpClient.Builder()
+        .addInterceptor(ApiLogInterceptor())
         .pingInterval(15, TimeUnit.SECONDS)
         .callTimeout(0, TimeUnit.MILLISECONDS)
         .build()
@@ -141,8 +142,13 @@ class ElevenLabsStreamAsrEngine(
 
         val request = Request.Builder()
             .url(wsUrl)
+            .tag(
+                ApiLogMeta::class.java,
+                ApiLogRecorder.meta(category = "ASR", vendor = "elevenlabs", model = MODEL_ID)
+            )
             .addHeader("xi-api-key", prefs.elevenApiKey.trim())
             .build()
+        val wsStartNs = System.nanoTime()
 
         ws = httpClient.newWebSocket(
             request,
@@ -163,6 +169,14 @@ class ElevenLabsStreamAsrEngine(
 
                 override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
                     Log.d(TAG, "WebSocket closed: code=$code reason=$reason")
+                    ApiLogRecorder.recordWebSocket(
+                        request,
+                        ApiLogRecorder.meta(category = "ASR", vendor = "elevenlabs", model = MODEL_ID),
+                        success = true,
+                        durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - wsStartNs),
+                        code = code,
+                        error = reason
+                    )
                     ws = null
                     running.set(false)
                     audioJob?.cancel()
@@ -181,6 +195,14 @@ class ElevenLabsStreamAsrEngine(
 
                 override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                     Log.e(TAG, "WebSocket failure: ${t.message}", t)
+                    ApiLogRecorder.recordWebSocket(
+                        request,
+                        ApiLogRecorder.meta(category = "ASR", vendor = "elevenlabs", model = MODEL_ID),
+                        success = false,
+                        durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - wsStartNs),
+                        code = response?.code ?: 0,
+                        error = response?.message ?: t.message.orEmpty()
+                    )
                     ws = null
                     audioJob?.cancel()
                     audioJob = null

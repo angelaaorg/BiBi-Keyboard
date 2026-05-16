@@ -37,6 +37,7 @@ class OpenAiFileAsrEngine(
     override val maxRecordDurationMillis: Int = 20 * 60 * 1000
 
     private val http: OkHttpClient = httpClient ?: OkHttpClient.Builder()
+        .addInterceptor(ApiLogInterceptor())
         .callTimeout(60, TimeUnit.SECONDS)
         .build()
 
@@ -89,6 +90,15 @@ class OpenAiFileAsrEngine(
 
             val reqBuilder = Request.Builder()
                 .url(endpoint)
+                .tag(
+                    ApiLogMeta::class.java,
+                    ApiLogRecorder.meta(
+                        category = "ASR",
+                        vendor = "openai",
+                        model = model,
+                        requestStructure = "multipart fields=model, file, response_format, prompt?, language?"
+                    )
+                )
                 .post(multipart)
             if (apiKey.isNotBlank()) {
                 reqBuilder.addHeader("Authorization", "Bearer $apiKey")
