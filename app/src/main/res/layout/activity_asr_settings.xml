@@ -423,6 +423,50 @@
             android:text="@string/btn_get_api_key_guide" />
         </LinearLayout>
 
+        <!-- OpenRouter ASR -->
+        <LinearLayout
+          android:id="@+id/groupOpenRouter"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:orientation="vertical"
+          android:visibility="gone">
+
+          <com.google.android.material.textfield.TextInputLayout
+            style="@style/SettingsTextInputLayout"
+            android:hint="@string/label_openrouter_asr_endpoint">
+
+            <com.google.android.material.textfield.TextInputEditText
+              android:id="@+id/etOpenRouterAsrEndpoint"
+              style="@style/SettingsTextInput"
+              android:inputType="textUri" />
+          </com.google.android.material.textfield.TextInputLayout>
+
+          <com.google.android.material.textfield.TextInputLayout
+            style="@style/SettingsTextInputLayout"
+            android:hint="@string/label_openrouter_api_key">
+
+            <com.google.android.material.textfield.TextInputEditText
+              android:id="@+id/etOpenRouterApiKey"
+              style="@style/SettingsTextInput"
+              android:inputType="textPassword" />
+          </com.google.android.material.textfield.TextInputLayout>
+
+          <com.google.android.material.textfield.TextInputLayout
+            style="@style/SettingsTextInputLayout"
+            android:hint="@string/label_openrouter_model">
+
+            <com.google.android.material.textfield.TextInputEditText
+              android:id="@+id/etOpenRouterModel"
+              style="@style/SettingsTextInput"
+              android:inputType="text" />
+          </com.google.android.material.textfield.TextInputLayout>
+
+          <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnOpenRouterGetKey"
+            style="@style/SettingsTonalButton"
+            android:text="@string/btn_get_api_key_guide" />
+        </LinearLayout>
+
         <!-- DashScope -->
         <LinearLayout
           android:id="@+id/groupDashScope"

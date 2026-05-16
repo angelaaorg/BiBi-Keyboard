@@ -180,6 +180,7 @@ internal object NetworkWarmupCoordinator {
         AsrVendor.SiliconFlow -> prefs.hasSfKeys()
         AsrVendor.ElevenLabs -> prefs.hasElevenKeys()
         AsrVendor.OpenAI -> prefs.hasOpenAiKeys()
+        AsrVendor.OpenRouter -> prefs.hasOpenRouterKeys()
         AsrVendor.DashScope -> prefs.hasDashKeys()
         AsrVendor.Gemini -> prefs.hasGeminiKeys()
         AsrVendor.Soniox -> prefs.hasSonioxKeys()
@@ -238,6 +239,11 @@ internal object NetworkWarmupCoordinator {
                 )
             }
         }
+
+        AsrVendor.OpenRouter -> buildTarget(
+            kind = WarmupKind.ASR,
+            url = prefs.openRouterAsrEndpoint.ifBlank { Prefs.DEFAULT_OPENROUTER_ASR_ENDPOINT }
+        )
 
         AsrVendor.DashScope -> {
             if (prefs.isDashStreamingModelSelected()) {

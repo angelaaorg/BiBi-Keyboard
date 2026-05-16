@@ -662,6 +662,7 @@ class ParallelAsrEngine(
         val hasKeys = try {
             when (vendor) {
                 AsrVendor.SiliconFlow -> prefs.hasSfKeys()
+                AsrVendor.OpenRouter -> prefs.hasOpenRouterKeys()
                 else -> prefs.hasVendorKeys(vendor)
             }
         } catch (t: Throwable) {
@@ -746,6 +747,14 @@ class ParallelAsrEngine(
                     onRequestDuration = onRequestDuration
                 ).let { GenericPushFileAsrAdapter(context, scope, prefs, engineListener, it) }
             }
+            AsrVendor.OpenRouter -> OpenRouterFileAsrEngine(
+                context,
+                scope,
+                prefs,
+                engineListener,
+                onRequestDuration = onRequestDuration
+            )
+                .let { GenericPushFileAsrAdapter(context, scope, prefs, engineListener, it) }
             AsrVendor.DashScope -> if (prefs.isDashStreamingModelSelected()) {
                 DashscopeStreamAsrEngine(
                     context,

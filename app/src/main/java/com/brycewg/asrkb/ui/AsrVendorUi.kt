@@ -14,6 +14,7 @@ object AsrVendorUi {
         AsrVendor.Volc,
         AsrVendor.ElevenLabs,
         AsrVendor.OpenAI,
+        AsrVendor.OpenRouter,
         AsrVendor.DashScope,
         AsrVendor.Gemini,
         AsrVendor.Soniox,
@@ -33,6 +34,7 @@ object AsrVendorUi {
         AsrVendor.SiliconFlow -> context.getString(R.string.vendor_sf)
         AsrVendor.ElevenLabs -> context.getString(R.string.vendor_eleven)
         AsrVendor.OpenAI -> context.getString(R.string.vendor_openai)
+        AsrVendor.OpenRouter -> context.getString(R.string.vendor_openrouter)
         AsrVendor.DashScope -> context.getString(R.string.vendor_dashscope)
         AsrVendor.Gemini -> context.getString(R.string.vendor_gemini)
         AsrVendor.Soniox -> context.getString(R.string.vendor_soniox)
@@ -68,6 +70,11 @@ object AsrVendorUi {
         AsrVendor.OpenAI -> listOf(
             AsrVendorTag.Online,
             AsrVendorTag.Streaming,
+            AsrVendorTag.NonStreaming,
+            AsrVendorTag.Custom
+        )
+        AsrVendor.OpenRouter -> listOf(
+            AsrVendorTag.Online,
             AsrVendorTag.NonStreaming,
             AsrVendorTag.Custom
         )

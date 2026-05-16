@@ -221,6 +221,7 @@ class AsrRecognitionService : RecognitionService() {
             } else {
                 OpenAiFileAsrEngine(engineContext, scope, prefs, listener)
             }
+            AsrVendor.OpenRouter -> OpenRouterFileAsrEngine(engineContext, scope, prefs, listener)
             AsrVendor.DashScope -> if (streamingPref) {
                 DashscopeStreamAsrEngine(engineContext, scope, prefs, listener)
             } else {
@@ -273,6 +274,7 @@ class AsrRecognitionService : RecognitionService() {
         return try {
             when (backupVendor) {
                 AsrVendor.SiliconFlow -> prefs.hasSfKeys()
+                AsrVendor.OpenRouter -> prefs.hasOpenRouterKeys()
                 AsrVendor.StepAudio -> prefs.hasStepAudioKeys()
                 else -> prefs.hasVendorKeys(backupVendor)
             }
@@ -297,7 +299,11 @@ class AsrRecognitionService : RecognitionService() {
         AsrVendor.Qwen3Asr,
         AsrVendor.Parakeet,
         AsrVendor.FireRedAsr -> false
-        AsrVendor.Gemini, AsrVendor.SiliconFlow, AsrVendor.StepAudio, AsrVendor.Zhipu -> false
+        AsrVendor.Gemini,
+        AsrVendor.SiliconFlow,
+        AsrVendor.OpenRouter,
+        AsrVendor.StepAudio,
+        AsrVendor.Zhipu -> false
     }
 
     /**

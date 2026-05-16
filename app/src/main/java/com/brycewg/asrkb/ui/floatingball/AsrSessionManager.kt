@@ -950,6 +950,17 @@ class AsrSessionManager(
             } else {
                 null
             }
+            AsrVendor.OpenRouter -> if (prefs.hasOpenRouterKeys()) {
+                OpenRouterFileAsrEngine(
+                    context,
+                    serviceScope,
+                    prefs,
+                    engineListener,
+                    onRequestDuration = requestDurationCallback
+                )
+            } else {
+                null
+            }
             AsrVendor.DashScope -> if (prefs.hasDashKeys()) {
                 if (prefs.isDashStreamingModelSelected()) {
                     DashscopeStreamAsrEngine(context, serviceScope, prefs, engineListener)
@@ -1096,6 +1107,7 @@ class AsrSessionManager(
         return try {
             when (backupVendor) {
                 AsrVendor.SiliconFlow -> prefs.hasSfKeys()
+                AsrVendor.OpenRouter -> prefs.hasOpenRouterKeys()
                 AsrVendor.StepAudio -> prefs.hasStepAudioKeys()
                 else -> prefs.hasVendorKeys(backupVendor)
             }

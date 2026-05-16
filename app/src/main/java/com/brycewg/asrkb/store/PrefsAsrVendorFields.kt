@@ -37,6 +37,19 @@ internal object PrefsAsrVendorFields {
             // 可选语言字段（字符串）
             VendorField(KEY_OA_ASR_LANGUAGE, required = false, default = "")
         ),
+        AsrVendor.OpenRouter to listOf(
+            VendorField(
+                KEY_OPENROUTER_ASR_ENDPOINT,
+                required = true,
+                default = Prefs.DEFAULT_OPENROUTER_ASR_ENDPOINT
+            ),
+            VendorField(KEY_OPENROUTER_ASR_API_KEY, required = true),
+            VendorField(
+                KEY_OPENROUTER_ASR_MODEL,
+                required = true,
+                default = Prefs.DEFAULT_OPENROUTER_ASR_MODEL
+            )
+        ),
         AsrVendor.DashScope to listOf(
             VendorField(KEY_DASH_API_KEY, required = true),
             VendorField(KEY_DASH_PROMPT, default = ""),

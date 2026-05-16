@@ -996,6 +996,7 @@ data class AsrSettingsUiState(
     val isSfVisible: Boolean get() = selectedVendor == AsrVendor.SiliconFlow
     val isElevenVisible: Boolean get() = selectedVendor == AsrVendor.ElevenLabs
     val isOpenAiVisible: Boolean get() = selectedVendor == AsrVendor.OpenAI
+    val isOpenRouterVisible: Boolean get() = selectedVendor == AsrVendor.OpenRouter
     val isDashVisible: Boolean get() = selectedVendor == AsrVendor.DashScope
     val isGeminiVisible: Boolean get() = selectedVendor == AsrVendor.Gemini
     val isSonioxVisible: Boolean get() = selectedVendor == AsrVendor.Soniox

@@ -848,6 +848,19 @@ class Prefs(context: Context) {
             updateActiveOpenAiAsrProvider { it.copy(language = value) }
         }
 
+    // OpenRouter 语音转文字（ASR）配置
+    var openRouterAsrEndpoint: String by stringPref(
+        KEY_OPENROUTER_ASR_ENDPOINT,
+        DEFAULT_OPENROUTER_ASR_ENDPOINT
+    )
+
+    var openRouterAsrApiKey: String by stringPref(KEY_OPENROUTER_ASR_API_KEY, "")
+
+    var openRouterAsrModel: String by stringPref(
+        KEY_OPENROUTER_ASR_MODEL,
+        DEFAULT_OPENROUTER_ASR_MODEL
+    )
+
     // Google Gemini 语音理解（通过提示词转写）
     var gemEndpoint: String by stringPref(KEY_GEM_ENDPOINT, DEFAULT_GEM_ENDPOINT)
 
@@ -1188,6 +1201,11 @@ class Prefs(context: Context) {
         if (v == AsrVendor.OpenAI) {
             return hasOpenAiAsrConfigured()
         }
+        if (v == AsrVendor.OpenRouter) {
+            val endpoint = openRouterAsrEndpoint.ifBlank { DEFAULT_OPENROUTER_ASR_ENDPOINT }.trim()
+            val model = openRouterAsrModel.ifBlank { DEFAULT_OPENROUTER_ASR_MODEL }.trim()
+            return endpoint.isNotBlank() && model.isNotBlank() && openRouterAsrApiKey.isNotBlank()
+        }
         val fields = vendorFields[v] ?: return false
         return fields.filter { it.required }.all { f ->
             getPrefString(f.key, f.default).isNotBlank()
@@ -1217,6 +1235,7 @@ class Prefs(context: Context) {
     fun hasDashKeys(): Boolean = hasVendorKeys(AsrVendor.DashScope)
     fun hasElevenKeys(): Boolean = hasVendorKeys(AsrVendor.ElevenLabs)
     fun hasOpenAiKeys(): Boolean = hasVendorKeys(AsrVendor.OpenAI)
+    fun hasOpenRouterKeys(): Boolean = hasVendorKeys(AsrVendor.OpenRouter)
     fun hasGeminiKeys(): Boolean = hasVendorKeys(AsrVendor.Gemini)
     fun hasSonioxKeys(): Boolean = hasVendorKeys(AsrVendor.Soniox)
     fun hasStepAudioKeys(): Boolean = hasVendorKeys(AsrVendor.StepAudio)
@@ -1482,6 +1501,10 @@ class Prefs(context: Context) {
         // OpenAI Audio Transcriptions 默认值
         const val DEFAULT_OA_ASR_ENDPOINT = "https://api.openai.com/v1/audio/transcriptions"
         const val DEFAULT_OA_ASR_MODEL = "gpt-4o-mini-transcribe"
+
+        // OpenRouter Audio Transcriptions 默认值
+        const val DEFAULT_OPENROUTER_ASR_ENDPOINT = "https://openrouter.ai/api/v1/audio/transcriptions"
+        const val DEFAULT_OPENROUTER_ASR_MODEL = "qwen/qwen3-asr-flash-2026-02-10"
 
         // DashScope 默认
         const val DEFAULT_DASH_MODEL = "qwen3-asr-flash"

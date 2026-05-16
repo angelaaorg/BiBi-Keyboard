@@ -536,6 +536,11 @@ object SettingsSearchIndex {
             asrVendorId = "openai",
             keywords = listOf("openai")
         )
+        R.id.groupOpenRouter -> VendorHint(
+            title = context.getString(R.string.vendor_openrouter),
+            asrVendorId = "openrouter",
+            keywords = listOf("openrouter", "open router")
+        )
         R.id.groupDashScope -> VendorHint(
             title = context.getString(R.string.vendor_dashscope),
             asrVendorId = "dashscope",

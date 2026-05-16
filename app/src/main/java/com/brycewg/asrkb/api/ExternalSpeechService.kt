@@ -587,6 +587,7 @@ class ExternalSpeechService : Service() {
             return try {
                 when (backupVendor) {
                     AsrVendor.SiliconFlow -> prefs.hasSfKeys()
+                    AsrVendor.OpenRouter -> prefs.hasOpenRouterKeys()
                     AsrVendor.StepAudio -> prefs.hasStepAudioKeys()
                     else -> prefs.hasVendorKeys(backupVendor)
                 }
@@ -609,8 +610,12 @@ class ExternalSpeechService : Service() {
             AsrVendor.FireRedAsr -> false
             AsrVendor.ElevenLabs -> prefs.elevenStreamingEnabled
             AsrVendor.OpenAI -> prefs.oaAsrStreamingEnabled
-            // 其他云厂商（Gemini/SiliconFlow/StepAudio/Zhipu）仅非流式
-            AsrVendor.Gemini, AsrVendor.SiliconFlow, AsrVendor.StepAudio, AsrVendor.Zhipu -> false
+            // 其他云厂商（Gemini/SiliconFlow/OpenRouter/StepAudio/Zhipu）仅非流式
+            AsrVendor.Gemini,
+            AsrVendor.SiliconFlow,
+            AsrVendor.OpenRouter,
+            AsrVendor.StepAudio,
+            AsrVendor.Zhipu -> false
         }
 
         private fun buildEngine(
@@ -659,6 +664,13 @@ class ExternalSpeechService : Service() {
                         onRequestDuration = ::onRequestDuration
                     )
                 }
+                AsrVendor.OpenRouter -> OpenRouterFileAsrEngine(
+                    context,
+                    scope,
+                    prefs,
+                    this,
+                    onRequestDuration = ::onRequestDuration
+                )
                 AsrVendor.DashScope -> if (streamingPreferred) {
                     DashscopeStreamAsrEngine(context, scope, prefs, this)
                 } else {
@@ -875,6 +887,19 @@ class ExternalSpeechService : Service() {
                         )
                     )
                 }
+                AsrVendor.OpenRouter -> com.brycewg.asrkb.asr.GenericPushFileAsrAdapter(
+                    context,
+                    scope,
+                    prefs,
+                    this,
+                    com.brycewg.asrkb.asr.OpenRouterFileAsrEngine(
+                        context,
+                        scope,
+                        prefs,
+                        this,
+                        onRequestDuration = ::onRequestDuration
+                    )
+                )
                 AsrVendor.Gemini -> com.brycewg.asrkb.asr.GenericPushFileAsrAdapter(
                     context,
                     scope,

@@ -83,6 +83,7 @@ internal object PrefsBackup {
         getOpenAiAsrProviders()
         o.put(KEY_OA_ASR_PROVIDERS, openAiAsrProvidersJson)
         o.put(KEY_OA_ASR_ACTIVE_ID, activeOpenAiAsrProviderId)
+        // OpenRouter ASR 字符串字段（endpoint/apiKey/model）
         // Volcano streaming toggle
         o.put(KEY_VOLC_STREAMING_ENABLED, volcStreamingEnabled)
         // DashScope streaming toggle
@@ -432,6 +433,7 @@ internal object PrefsBackup {
             optString(KEY_BACKUP_ASR_VENDOR)?.let { backupAsrVendor = AsrVendor.fromId(it) }
             optInt(KEY_BACKUP_ASR_TIMEOUT_SENSITIVITY)?.let { backupAsrTimeoutSensitivity = it }
             // 供应商设置（通用导入）
+            // OpenRouter ASR 字符串字段（endpoint/apiKey/model）在这里随 vendorFields 导入。
             vendorFields.values.flatten().forEach { f ->
                 optString(f.key)?.let { v ->
                     val final = v.ifBlank { f.default }

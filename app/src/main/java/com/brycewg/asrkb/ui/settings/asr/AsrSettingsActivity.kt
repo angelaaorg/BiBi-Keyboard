@@ -29,6 +29,7 @@ import com.brycewg.asrkb.ui.settings.asr.sections.FireRedAsrSettingsSection
 import com.brycewg.asrkb.ui.settings.asr.sections.FunAsrNanoSettingsSection
 import com.brycewg.asrkb.ui.settings.asr.sections.GeminiAsrSettingsSection
 import com.brycewg.asrkb.ui.settings.asr.sections.OpenAiAsrSettingsSection
+import com.brycewg.asrkb.ui.settings.asr.sections.OpenRouterAsrSettingsSection
 import com.brycewg.asrkb.ui.settings.asr.sections.ParaformerSettingsSection
 import com.brycewg.asrkb.ui.settings.asr.sections.ParakeetSettingsSection
 import com.brycewg.asrkb.ui.settings.asr.sections.PunctuationModelSettingsSection
@@ -121,6 +122,7 @@ class AsrSettingsActivity : BaseActivity() {
             SiliconFlowSettingsSection(),
             ElevenLabsSettingsSection(),
             OpenAiAsrSettingsSection(),
+            OpenRouterAsrSettingsSection(),
             DashScopeAsrSettingsSection(),
             GeminiAsrSettingsSection(),
             SonioxAsrSettingsSection(),
@@ -289,6 +291,7 @@ class AsrSettingsActivity : BaseActivity() {
             com.brycewg.asrkb.asr.AsrVendor.SiliconFlow -> R.string.vendor_sf
             com.brycewg.asrkb.asr.AsrVendor.ElevenLabs -> R.string.vendor_eleven
             com.brycewg.asrkb.asr.AsrVendor.OpenAI -> R.string.vendor_openai
+            com.brycewg.asrkb.asr.AsrVendor.OpenRouter -> R.string.vendor_openrouter
             com.brycewg.asrkb.asr.AsrVendor.DashScope -> R.string.vendor_dashscope
             com.brycewg.asrkb.asr.AsrVendor.Gemini -> R.string.vendor_gemini
             com.brycewg.asrkb.asr.AsrVendor.Soniox -> R.string.vendor_soniox

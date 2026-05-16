@@ -5,6 +5,7 @@ enum class AsrVendor(val id: String) {
     SiliconFlow("siliconflow"),
     ElevenLabs("elevenlabs"),
     OpenAI("openai"),
+    OpenRouter("openrouter"),
     DashScope("dashscope"),
     Gemini("gemini"),
     Soniox("soniox"),
@@ -22,6 +23,7 @@ enum class AsrVendor(val id: String) {
             SiliconFlow.id -> SiliconFlow
             ElevenLabs.id -> ElevenLabs
             OpenAI.id -> OpenAI
+            OpenRouter.id, "open_router" -> OpenRouter
             DashScope.id -> DashScope
             Gemini.id -> Gemini
             Soniox.id -> Soniox
