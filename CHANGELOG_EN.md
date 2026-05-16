@@ -1,5 +1,25 @@
 # Changelog
 
+## v3.16.0 (2026-05-17)
+
+### New Features
+
+- **OpenRouter ASR Support**: Added OpenRouter as an online ASR provider with API key and model configuration
+- **API Call Logs**: Added API call recording and viewing to the recognition history page, with list, filter, search, and detail views
+- **VAD Empty Audio Filtering**: Added settings to filter empty audio requests and remove silent segments before non-streaming recognition. Default enabled.
+- **About Page Recognition Stats**: Added online ASR channel failure rate stats for the last 30 days on the About page
+
+### Improvements
+
+- **armv7a Packaging**: Added armv7a support, selected APKs by device ABI, and added fallback download URLs to improve in-app update download compatibility
+- **[Pro] Regex Edit Input**: Changed the input field in the regex rule editor to a regular text input field
+
+### Bug Fixes
+
+- **Recognition Cancellation Handling**: When using the main keyboard, post-processing changes can be reverted for a short period after post-processing completes
+
+---
+
 ## v3.15.2 (2026-04-29)
 
 ### New Features
