@@ -23,7 +23,8 @@ internal class DictationUseCase(
     private val transitionToState: (KeyboardState) -> Unit,
     private val transitionToIdle: (keepMessage: Boolean) -> Unit,
     private val transitionToIdleWithTiming: (showBackupUsedHint: Boolean) -> Unit,
-    private val scheduleProcessingTimeout: (audioMsOverride: Long?) -> Unit
+    private val scheduleProcessingTimeout: (audioMsOverride: Long?) -> Unit,
+    private val onPostprocessUndoAvailable: () -> Unit
 ) {
     suspend fun handleFinal(
         ic: InputConnection,
@@ -46,8 +47,8 @@ internal class DictationUseCase(
     ) {
         if (isCancelled(seq)) return
 
+        transitionToState(KeyboardState.AiProcessing(rawText = text))
         inputHelper.setComposingText(ic, text)
-        uiListenerProvider()?.onStatusMessage(context.getString(R.string.status_ai_processing))
 
         val postprocessResult = postprocessPipeline.process(
             ic = ic,
@@ -73,9 +74,11 @@ internal class DictationUseCase(
         inputHelper.setComposingText(ic, finalOut)
         inputHelper.finishComposingText(ic)
 
+        var autoEnterSent = false
         if (finalOut.isNotEmpty() && consumeAutoEnterOnce()) {
             try {
                 inputHelper.sendEnter(ic, getCurrentEditorInfo())
+                autoEnterSent = true
             } catch (t: Throwable) {
                 Log.w(TAG, "sendEnter after postprocess failed", t)
             }
@@ -118,6 +121,11 @@ internal class DictationUseCase(
         val usedBackupResult =
             (asrManager.getEngine() as? com.brycewg.asrkb.asr.ParallelAsrEngine)
                 ?.wasLastResultFromBackup() == true
+        if (!autoEnterSent && finalOut.isNotEmpty() && finalOut != rawText) {
+            transitionToIdle(true)
+            onPostprocessUndoAvailable()
+            return
+        }
         transitionToState(KeyboardState.Processing)
         scheduleProcessingTimeout(null)
         transitionToIdleWithTiming(usedBackupResult)

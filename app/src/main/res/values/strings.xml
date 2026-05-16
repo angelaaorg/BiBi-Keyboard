@@ -21,6 +21,8 @@
   <string name="status_cancelled">Canceled</string>
   <string name="status_last_request_ms">Last request time: %1$d ms</string>
   <string name="status_reverted_to_raw">Reverted to raw transcript</string>
+  <string name="status_revert_postprocess_unavailable">Cannot revert AI post-processing</string>
+  <string name="status_postprocess_interrupted_raw">AI post-processing canceled; used raw transcript</string>
   <string name="status_undone">Undone last change</string>
   <string name="status_llm_empty_result">AI edit failed: no result</string>
   <string name="status_last_asr_not_found">Last ASR result not found; canceled</string>
@@ -30,6 +32,7 @@
   <string name="status_llm_edit_failed">AI edit failed. Please try again</string>
   <string name="hint_need_permission">Microphone permission is required for voice input</string>
   <string name="status_postproc">AI Post-process: %1$s</string>
+  <string name="action_revert_postprocess">Revert AI post-processing</string>
 
   <string name="toggle_on">ON</string>
   <string name="toggle_off">OFF</string>

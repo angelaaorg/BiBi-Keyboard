@@ -46,6 +46,8 @@ class KeyboardActionHandler(
         fun onHideClipboardPreview()
         fun onShowRetryChip(label: String)
         fun onHideRetryChip()
+        fun onShowPostprocessUndo(label: String)
+        fun onHidePostprocessUndo()
         fun onAmplitude(amplitude: Float) { /* 默认空实现 */ }
     }
 
@@ -114,6 +116,9 @@ class KeyboardActionHandler(
         },
         scheduleProcessingTimeout = { audioMsOverride ->
             scheduleProcessingTimeout(audioMsOverride)
+        },
+        onPostprocessUndoAvailable = {
+            uiListener?.onShowPostprocessUndo(context.getString(R.string.action_revert_postprocess))
         }
     )
 
@@ -526,6 +531,52 @@ class KeyboardActionHandler(
         uiListener?.onStatusMessage(context.getString(R.string.status_postproc, state))
     }
 
+    fun handleInfoBarClick() {
+        if (currentState is KeyboardState.AiProcessing) {
+            cancelAiPostProcessingAndCommitRaw()
+        }
+    }
+
+    private fun cancelAiPostProcessingAndCommitRaw(): Boolean {
+        val state = currentState as? KeyboardState.AiProcessing ?: return false
+        val ic = getCurrentInputConnection() ?: return false
+        val rawText = state.rawText
+
+        opSeq++
+        try {
+            DebugLogManager.log(
+                "ime",
+                "opseq_inc",
+                mapOf("at" to "cancel_ai_postprocess", "opSeq" to opSeq)
+            )
+        } catch (_: Throwable) { }
+        processingTimeoutController.cancel()
+        llmPostProcessor.cancelActiveRequest()
+        isAutoStartedRecording = false
+
+        inputHelper.setComposingText(ic, rawText)
+        inputHelper.finishComposingText(ic)
+
+        if (rawText.isNotEmpty() && consumeAutoEnterOnce()) {
+            try {
+                inputHelper.sendEnter(ic, getCurrentEditorInfo())
+            } catch (t: Throwable) {
+                Log.w(TAG, "sendEnter after interrupted postprocess failed", t)
+            }
+        }
+        autoEnterOnce = false
+
+        sessionContext = sessionContext.copy(
+            lastAsrCommitText = rawText,
+            lastPostprocCommit = null
+        )
+        commitRecorder.record(text = rawText, aiProcessed = false)
+        transitionToState(KeyboardState.Idle)
+        uiListener?.onStatusMessage(context.getString(R.string.status_postprocess_interrupted_raw))
+        uiListener?.onVibrate()
+        return true
+    }
+
     /**
      * 处理全局撤销（优先撤销 AI 后处理，否则从撤销栈恢复快照）
      */
@@ -533,17 +584,7 @@ class KeyboardActionHandler(
         if (ic == null) return false
 
         // 1) 优先撤销最近一次 AI 后处理
-        val postprocCommit = sessionContext.lastPostprocCommit
-        if (postprocCommit != null && postprocCommit.processed.isNotEmpty()) {
-            val before = inputHelper.getTextBeforeCursor(ic, 10000)?.toString()
-            if (!before.isNullOrEmpty() && before.endsWith(postprocCommit.processed)) {
-                if (inputHelper.replaceText(ic, postprocCommit.processed, postprocCommit.raw)) {
-                    sessionContext = sessionContext.copy(lastPostprocCommit = null)
-                    uiListener?.onStatusMessage(context.getString(R.string.status_reverted_to_raw))
-                    return true
-                }
-            }
-        }
+        if (revertLastPostprocessCommit(ic)) return true
 
         // 2) 否则从撤销栈恢复快照
         val remaining = undoManager.popAndRestoreSnapshot(ic)
@@ -557,6 +598,31 @@ class KeyboardActionHandler(
             return true
         }
 
+        return false
+    }
+
+    fun handlePostprocessUndoClick(ic: InputConnection?): Boolean {
+        if (ic == null) return false
+        val ok = revertLastPostprocessCommit(ic)
+        if (!ok) {
+            uiListener?.onStatusMessage(context.getString(R.string.status_revert_postprocess_unavailable))
+        }
+        return ok
+    }
+
+    private fun revertLastPostprocessCommit(ic: InputConnection): Boolean {
+        val postprocCommit = sessionContext.lastPostprocCommit
+        if (postprocCommit != null && postprocCommit.processed.isNotEmpty()) {
+            val before = inputHelper.getTextBeforeCursor(ic, 10000)?.toString()
+            if (!before.isNullOrEmpty() && before.endsWith(postprocCommit.processed)) {
+                if (inputHelper.replaceText(ic, postprocCommit.processed, postprocCommit.raw)) {
+                    sessionContext = sessionContext.copy(lastPostprocCommit = null)
+                    uiListener?.onHidePostprocessUndo()
+                    uiListener?.onStatusMessage(context.getString(R.string.status_reverted_to_raw))
+                    return true
+                }
+            }
+        }
         return false
     }
 
@@ -963,6 +1029,9 @@ class KeyboardActionHandler(
         if (newState !is KeyboardState.Idle) {
             try {
                 uiListener?.onHideRetryChip()
+            } catch (_: Throwable) {}
+            try {
+                uiListener?.onHidePostprocessUndo()
             } catch (_: Throwable) {}
         }
         uiListener?.onStateChanged(newState)

@@ -51,6 +51,7 @@
     <string name="api_log_filter_failed">失敗</string>
     <string name="api_log_status_success">成功</string>
     <string name="api_log_status_failed">失敗</string>
+    <string name="api_log_status_cancelled">キャンセル</string>
     <string name="api_log_unknown">不明</string>
     <string name="api_log_meta_format">%1$s · %2$dms · model %3$s</string>
     <string name="api_log_request">リクエスト</string>

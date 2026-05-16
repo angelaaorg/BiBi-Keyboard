@@ -106,6 +106,12 @@ internal class PostprocessPipeline(
             )
         }
 
+        if (isCancelled()) {
+            committed = true
+            typewriter?.cancel()
+            return null
+        }
+
         val postprocFailed = !res.ok
         if (postprocFailed) {
             onPostprocFailed()

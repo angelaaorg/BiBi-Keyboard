@@ -42,10 +42,16 @@ class ApiLogInterceptor : Interceptor {
             if (response.code == 101) {
                 return response
             }
-            ApiLogRecorder.recordHttp(request, response, elapsedMs(started), null)
+            ApiLogRecorder.recordHttp(request, response, elapsedMs(started), null, canceled = false)
             response
         } catch (t: IOException) {
-            ApiLogRecorder.recordHttp(request, null, elapsedMs(started), t)
+            ApiLogRecorder.recordHttp(
+                request,
+                null,
+                elapsedMs(started),
+                t,
+                canceled = chain.call().isCanceled()
+            )
             throw t
         }
     }
@@ -106,7 +112,8 @@ object ApiLogRecorder {
         request: Request,
         response: Response?,
         durationMs: Long,
-        throwable: Throwable?
+        throwable: Throwable?,
+        canceled: Boolean = false
     ) {
         val meta = request.tag(ApiLogMeta::class.java)
             ?: ApiLogMeta(category = "ASR")
@@ -126,9 +133,10 @@ object ApiLogRecorder {
                 requestStructure = meta.requestStructure.ifBlank { buildRequestStructure(request) },
                 responseSummary = buildResponseSummary(response),
                 httpCode = response?.code ?: 0,
-                success = response?.isSuccessful == true && throwable == null,
+                success = response?.isSuccessful == true && throwable == null && !canceled,
+                canceled = canceled,
                 durationMs = durationMs,
-                errorSummary = buildErrorSummary(response, throwable)
+                errorSummary = if (canceled) "Canceled by user" else buildErrorSummary(response, throwable)
             )
         )
     }

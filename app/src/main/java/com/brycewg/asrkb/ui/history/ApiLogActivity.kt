@@ -140,7 +140,7 @@ class ApiLogActivity : BaseActivity() {
                 CategoryFilter.ALL -> true
                 CategoryFilter.ASR -> r.category.equals("ASR", ignoreCase = true)
                 CategoryFilter.LLM -> r.category.equals("LLM", ignoreCase = true)
-                CategoryFilter.FAILED -> !r.success
+                CategoryFilter.FAILED -> !r.success && !r.canceled
             }
             val okQuery = q.isEmpty() || searchableText(r).contains(q, ignoreCase = true)
             okCategory && okQuery
@@ -243,10 +243,10 @@ class ApiLogActivity : BaseActivity() {
             private val fmt = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
 
             fun bind(r: ApiLogStore.ApiLogRecord) {
-                val status = if (r.success) {
-                    itemView.context.getString(R.string.api_log_status_success)
-                } else {
-                    itemView.context.getString(R.string.api_log_status_failed)
+                val status = when {
+                    r.canceled -> itemView.context.getString(R.string.api_log_status_cancelled)
+                    r.success -> itemView.context.getString(R.string.api_log_status_success)
+                    else -> itemView.context.getString(R.string.api_log_status_failed)
                 }
                 val vendor = formatVendorName(r.vendor.ifBlank { itemView.context.getString(R.string.api_log_unknown) })
                 tvTitle.text = "$status · ${r.category} · $vendor"
@@ -266,7 +266,11 @@ class ApiLogActivity : BaseActivity() {
                     setColor(
                         UiColors.get(
                             itemView,
-                            if (r.success) UiColorTokens.primary else UiColorTokens.error
+                            when {
+                                r.canceled -> UiColorTokens.outline
+                                r.success -> UiColorTokens.primary
+                                else -> UiColorTokens.error
+                            }
                         )
                     )
                 }
@@ -288,10 +292,10 @@ class ApiLogActivity : BaseActivity() {
         val tvDialogResponseValue = content.findViewById<TextView>(R.id.tvDialogResponseValue)
         val tvDialogErrorValue = content.findViewById<TextView>(R.id.tvDialogErrorValue)
 
-        val status = if (r.success) {
-            getString(R.string.api_log_status_success)
-        } else {
-            getString(R.string.api_log_status_failed)
+        val status = when {
+            r.canceled -> getString(R.string.api_log_status_cancelled)
+            r.success -> getString(R.string.api_log_status_success)
+            else -> getString(R.string.api_log_status_failed)
         }
         val vendor = formatVendorName(r.vendor.ifBlank { getString(R.string.api_log_unknown) })
         tvDialogTitle.text = "$status · ${r.category} · $vendor"
@@ -322,7 +326,12 @@ class ApiLogActivity : BaseActivity() {
         r: ApiLogStore.ApiLogRecord,
         fmt: SimpleDateFormat
     ): String = buildString {
-        appendLine("${r.category} ${if (r.success) "SUCCESS" else "FAILED"}")
+        val status = when {
+            r.canceled -> "CANCELED"
+            r.success -> "SUCCESS"
+            else -> "FAILED"
+        }
+        appendLine("${r.category} $status")
         appendLine("time=${fmt.format(Date(r.timestamp))}")
         appendLine("protocol=${r.protocol}")
         appendLine("method=${r.method}")

@@ -166,10 +166,6 @@ class AsrSessionManager(
     private fun peekInterruptedPostProcessingCommitText(sessionToken: Long): String? {
         if (sessionToken == 0L) return null
         if (aiPostProcessingToken != sessionToken) return null
-        val resolvedText = aiPostProcessingResolvedText?.trim().orEmpty()
-        if (resolvedText.isNotEmpty()) return resolvedText
-        val previewText = aiPostProcessingPreviewText?.trim().orEmpty()
-        if (previewText.isNotEmpty()) return previewText
         return aiPostProcessingBaseText?.trim()?.takeIf { it.isNotEmpty() }
     }
 
@@ -326,6 +322,7 @@ class AsrSessionManager(
         Log.d(TAG, "cancelSession called")
         val sessionToken = activeSessionToken
         val commitText = peekInterruptedPostProcessingCommitText(sessionToken)
+        postproc.cancelActiveRequest()
         clearActiveSessionToken(sessionToken)
         try {
             processingTimeoutJob?.cancel()
@@ -428,6 +425,7 @@ class AsrSessionManager(
     /** 清理会话 */
     fun cleanup() {
         clearActiveSessionToken()
+        postproc.cancelActiveRequest()
         try {
             asrEngine?.stop()
         } catch (e: Throwable) {

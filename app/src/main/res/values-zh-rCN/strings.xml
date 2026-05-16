@@ -19,6 +19,8 @@
   <string name="status_cancelled">已取消</string>
   <string name="status_last_request_ms">上次识别耗时：%1$d ms</string>
   <string name="status_reverted_to_raw">已切换为原始识别结果</string>
+  <string name="status_revert_postprocess_unavailable">无法撤回后处理</string>
+  <string name="status_postprocess_interrupted_raw">已取消后处理，使用原始识别结果</string>
   <string name="status_undone">已撤回最近改动</string>
   <string name="status_llm_empty_result">AI编辑失败：未返回结果</string>
   <string name="status_last_asr_not_found">未找到上一次识别文本，已取消替换</string>
@@ -28,6 +30,7 @@
   <string name="status_llm_edit_failed">AI编辑失败，请重试</string>
   <string name="hint_need_permission">需要麦克风权限以进行语音输入</string>
   <string name="status_postproc">AI后处理：%1$s</string>
+  <string name="action_revert_postprocess">撤回后处理</string>
 
   <string name="toggle_on">开启</string>
   <string name="toggle_off">关闭</string>

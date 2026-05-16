@@ -32,6 +32,9 @@ class LlmPostProcessor(private val client: OkHttpClient? = null) {
     @Volatile
     private var activeCall: Call? = null
 
+    @Volatile
+    private var cancelRequested: Boolean = false
+
     /**
      * LLM 测试结果
      */
@@ -780,6 +783,7 @@ class LlmPostProcessor(private val client: OkHttpClient? = null) {
      * 取消当前进行中的 LLM 请求。
      */
     fun cancelActiveRequest() {
+        cancelRequested = true
         val call = activeCall
         if (call == null) return
         try {
@@ -801,9 +805,13 @@ class LlmPostProcessor(private val client: OkHttpClient? = null) {
         var attempt = 0
         var last: RawCallResult
         while (true) {
+            if (cancelRequested) {
+                return RawCallResult(false, error = "Request canceled")
+            }
             attempt++
             last = performChat(config, messages, onStreamingUpdate = onStreamingUpdate)
             if (last.ok) return last
+            if (cancelRequested) return last.copy(error = last.error ?: "Request canceled")
             if (attempt > maxRetry) return last
             Log.w(
                 TAG,
@@ -945,6 +953,7 @@ class LlmPostProcessor(private val client: OkHttpClient? = null) {
         promptOverride: String? = null,
         onStreamingUpdate: ((String) -> Unit)? = null
     ): LlmProcessResult = withContext(Dispatchers.IO) {
+        cancelRequested = false
         if (input.isBlank()) {
             Log.d(TAG, "Input is blank, skipping processing")
             return@withContext LlmProcessResult(
@@ -1017,6 +1026,7 @@ class LlmPostProcessor(private val client: OkHttpClient? = null) {
         instruction: String,
         prefs: Prefs
     ): LlmProcessResult = withContext(Dispatchers.IO) {
+        cancelRequested = false
         if (original.isBlank() || instruction.isBlank()) {
             Log.d(TAG, "Original or instruction is blank, skipping edit")
             return@withContext LlmProcessResult(

@@ -20,6 +20,8 @@
   <string name="status_cancelled">キャンセルしました</string>
   <string name="status_last_request_ms">最後のリクエスト時間：%1$d ms</string>
   <string name="status_reverted_to_raw">元のテキストに戻しました</string>
+  <string name="status_revert_postprocess_unavailable">AI後処理を取り消せません</string>
+  <string name="status_postprocess_interrupted_raw">AI後処理をキャンセルし、元のテキストを使用しました</string>
   <string name="status_undone">変更を取り消しました</string>
   <string name="status_llm_empty_result">AI編集失敗:結果なし</string>
   <string name="status_last_asr_not_found">前回の音声認識結果が見つかりません</string>
@@ -29,6 +31,7 @@
   <string name="status_llm_edit_failed">AI編集に失敗しました</string>
   <string name="hint_need_permission">音声入力にはマイク権限が必要です</string>
   <string name="status_postproc">AI後処理：%1$s</string>
+  <string name="action_revert_postprocess">AI後処理を取り消す</string>
 
   <string name="toggle_on">ON</string>
   <string name="toggle_off">OFF</string>

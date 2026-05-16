@@ -47,6 +47,7 @@ object ApiLogStore {
         val responseSummary: String = "",
         val httpCode: Int = 0,
         val success: Boolean = false,
+        val canceled: Boolean = false,
         val durationMs: Long = 0,
         val errorSummary: String = ""
     )

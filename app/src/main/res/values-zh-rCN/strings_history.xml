@@ -50,6 +50,7 @@
     <string name="api_log_filter_failed">失败</string>
     <string name="api_log_status_success">成功</string>
     <string name="api_log_status_failed">失败</string>
+    <string name="api_log_status_cancelled">取消</string>
     <string name="api_log_unknown">未知</string>
     <string name="api_log_meta_format">%1$s · %2$dms · 模型 %3$s</string>
     <string name="api_log_request">请求</string>

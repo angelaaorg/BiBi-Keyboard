@@ -39,6 +39,7 @@ internal class ImeUiRenderer(
 
     private var clipboardPreviewTimeout: Runnable? = null
     private var aiEditHintResetRunnable: Runnable? = null
+    private var postprocessUndoTimeout: Runnable? = null
     private var lastRenderMode: RenderMode? = null
     private var forceNextStructuralRender: Boolean = true
     private val imageResCache = WeakHashMap<android.widget.ImageView, Int>()
@@ -220,6 +221,47 @@ internal class ImeUiRenderer(
         }
     }
 
+    fun showPostprocessUndo(label: String) {
+        val tv = views.txtStatusText ?: return
+        postprocessUndoTimeout?.let { tv.removeCallbacks(it) }
+        postprocessUndoTimeout = null
+
+        setTextIfChanged(tv, label)
+        tv.background = null
+        tv.setPaddingRelative(0, 0, 0, 0)
+        setVisibilityIfChanged(views.txtStatusText, View.VISIBLE)
+        setVisibilityIfChanged(views.waveformView, View.GONE)
+        views.waveformView?.stop()
+        tv.maxLines = 1
+        tv.isSingleLine = true
+        tv.isClickable = true
+        tv.isFocusable = true
+        tv.setOnClickListener { v ->
+            performKeyHaptic(v)
+            val ok = actionHandler.handlePostprocessUndoClick(inputConnectionProvider())
+            if (ok) {
+                postprocessUndoTimeout?.let { tv.removeCallbacks(it) }
+                postprocessUndoTimeout = null
+            }
+        }
+
+        val r = Runnable {
+            postprocessUndoTimeout = null
+            hidePostprocessUndo()
+        }
+        postprocessUndoTimeout = r
+        tv.postDelayed(r, 3_000L)
+    }
+
+    fun hidePostprocessUndo() {
+        val tv = views.txtStatusText ?: return
+        postprocessUndoTimeout?.let { tv.removeCallbacks(it) }
+        postprocessUndoTimeout = null
+        clearStatusTextStyle()
+        forceNextStructuralRender = true
+        render(actionHandler.getCurrentState())
+    }
+
     fun hideRetryChip() {
         clearStatusTextStyle()
         forceNextStructuralRender = true
@@ -227,6 +269,8 @@ internal class ImeUiRenderer(
 
     fun clearStatusTextStyle() {
         val tv = views.txtStatusText ?: return
+        postprocessUndoTimeout?.let { tv.removeCallbacks(it) }
+        postprocessUndoTimeout = null
         enableStatusMarquee()
         tv.isClickable = false
         tv.isFocusable = false
@@ -328,7 +372,14 @@ internal class ImeUiRenderer(
         clearStatusTextStyle()
         // 显示文字，隐藏波形
         setVisibilityIfChanged(views.txtStatusText, View.VISIBLE)
-        setTextIfChanged(views.txtStatusText, context.getString(R.string.status_ai_processing))
+        val tv = views.txtStatusText
+        setTextIfChanged(tv, context.getString(R.string.status_ai_processing))
+        tv?.isClickable = true
+        tv?.isFocusable = true
+        tv?.setOnClickListener { v ->
+            performKeyHaptic(v)
+            actionHandler.handleInfoBarClick()
+        }
         setVisibilityIfChanged(views.waveformView, View.GONE)
         views.waveformView?.stop()
 

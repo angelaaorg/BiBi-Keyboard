@@ -50,6 +50,7 @@
     <string name="api_log_filter_failed">Failed</string>
     <string name="api_log_status_success">Success</string>
     <string name="api_log_status_failed">Failed</string>
+    <string name="api_log_status_cancelled">Canceled</string>
     <string name="api_log_unknown">Unknown</string>
     <string name="api_log_meta_format">%1$s · %2$dms · model %3$s</string>
     <string name="api_log_request">Request</string>

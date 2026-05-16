@@ -433,6 +433,14 @@ class AsrKeyboardService :
         uiRenderer?.hideRetryChip()
     }
 
+    override fun onShowPostprocessUndo(label: String) {
+        uiRenderer?.showPostprocessUndo(label)
+    }
+
+    override fun onHidePostprocessUndo() {
+        uiRenderer?.hidePostprocessUndo()
+    }
+
     // ========== 视图绑定和监听器设置 ==========
 
     private fun bindViews(view: View) {
