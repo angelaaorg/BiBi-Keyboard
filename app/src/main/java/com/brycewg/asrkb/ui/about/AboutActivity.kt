@@ -1,5 +1,7 @@
 package com.brycewg.asrkb.ui.about
 
+// 关于页：展示应用信息、使用统计、致谢与诊断入口。
+
 import android.Manifest
 import android.content.ActivityNotFoundException
 import android.content.Intent
@@ -18,6 +20,7 @@ import com.brycewg.asrkb.R
 import com.brycewg.asrkb.UiColorTokens
 import com.brycewg.asrkb.UiColors
 import com.brycewg.asrkb.asr.AsrVendor
+import com.brycewg.asrkb.store.ApiLogStore
 import com.brycewg.asrkb.store.Prefs
 import com.brycewg.asrkb.store.UsageStats
 import com.brycewg.asrkb.store.debug.DebugLogManager
@@ -30,6 +33,7 @@ import com.google.android.material.progressindicator.LinearProgressIndicator
 import java.text.DateFormat
 import java.text.NumberFormat
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Date
 import java.util.Locale
@@ -298,6 +302,7 @@ class AboutActivity : BaseActivity() {
         val tvSum2 = findViewById<TextView>(R.id.tvSummaryLine2)
         val tvAvg = findViewById<TextView>(R.id.tvDailyWeeklyAvg)
         val vendorContainer = findViewById<android.widget.LinearLayout>(R.id.containerVendorBars)
+        val failureContainer = findViewById<android.widget.LinearLayout>(R.id.containerOnlineAsrFailureBars)
         val last7Container = findViewById<android.widget.LinearLayout>(R.id.containerLast7)
 
         // 陪伴天数
@@ -370,11 +375,79 @@ class AboutActivity : BaseActivity() {
             }
         }
 
+        // 在线 ASR 调用失败率（近 30 天）
+        renderOnlineAsrFailureBars(failureContainer)
+
         // 最近 7 天 / 30 天（按字数）
         renderDailyBars(last7Container, stats, 7)
     }
 
     private fun vendorDisplayName(v: AsrVendor): String = com.brycewg.asrkb.ui.AsrVendorUi.name(this, v)
+
+    private fun resolveOnlineAsrVendor(rawId: String): AsrVendor? = when (rawId.trim().lowercase()) {
+        "volc", "volcengine" -> AsrVendor.Volc
+        "siliconflow" -> AsrVendor.SiliconFlow
+        "elevenlabs" -> AsrVendor.ElevenLabs
+        "openai" -> AsrVendor.OpenAI
+        "openrouter", "open_router" -> AsrVendor.OpenRouter
+        "dashscope" -> AsrVendor.DashScope
+        "gemini" -> AsrVendor.Gemini
+        "soniox" -> AsrVendor.Soniox
+        "stepaudio", "step_audio", "stepfun" -> AsrVendor.StepAudio
+        "zhipu" -> AsrVendor.Zhipu
+        else -> null
+    }
+
+    private fun renderOnlineAsrFailureBars(container: android.widget.LinearLayout) {
+        container.removeAllViews()
+        val cutoffMs = LocalDate.now()
+            .minusDays(29)
+            .atStartOfDay(ZoneId.systemDefault())
+            .toInstant()
+            .toEpochMilli()
+        val records: Map<AsrVendor, List<ApiLogStore.ApiLogRecord>> = try {
+            ApiLogStore.listAll()
+                .asSequence()
+                .filter { it.category.equals("ASR", ignoreCase = true) }
+                .filter { it.timestamp >= cutoffMs }
+                .mapNotNull { record ->
+                    resolveOnlineAsrVendor(record.vendor)?.let { vendor -> vendor to record }
+                }
+                .groupBy({ it.first }, { it.second })
+        } catch (t: Throwable) {
+            Log.w(TAG, "Failed to load API logs for ASR failure stats", t)
+            emptyMap()
+        }
+        if (records.isEmpty()) {
+            addInfoLine(container, getString(R.string.about_empty_stats_placeholder))
+            return
+        }
+        val items = records.map { (vendor, list) ->
+            val total = list.size
+            val failed = list.count { !it.success }
+            vendor to (failed to total)
+        }.sortedWith(
+            compareByDescending<Pair<AsrVendor, Pair<Int, Int>>> { it.second.first.toDouble() / it.second.second.toDouble() }
+                .thenByDescending { it.second.second }
+        )
+        items.forEach { (vendor, counts) ->
+            val failed = counts.first
+            val total = counts.second
+            val rate = if (total > 0) failed.toDouble() / total.toDouble() else 0.0
+            val line = buildString {
+                append(vendorDisplayName(vendor))
+                append("：")
+                append(formatPercent(rate))
+                append("（")
+                append(formatInt(failed.toLong()))
+                append("/")
+                append(formatInt(total.toLong()))
+                append("）")
+            }
+            addInfoLine(container, line)
+            addProgress(container, rate, UiColors.error(container))
+        }
+    }
 
     private fun addInfoLine(container: android.view.ViewGroup, text: String) {
         val tv = TextView(this)
@@ -385,9 +458,14 @@ class AboutActivity : BaseActivity() {
     }
 
     private fun addProgress(container: android.view.ViewGroup, ratio: Double) {
+        addProgress(container, ratio, UiColors.primary(this))
+    }
+
+    private fun addProgress(container: android.view.ViewGroup, ratio: Double, indicatorColor: Int) {
         val p = LinearProgressIndicator(this)
         p.isIndeterminate = false
         p.max = 1000
+        p.setIndicatorColor(indicatorColor)
         val prog = (ratio.coerceIn(0.0, 1.0) * 1000).toInt()
         p.progress = prog
         val lp = android.widget.LinearLayout.LayoutParams(
@@ -401,6 +479,8 @@ class AboutActivity : BaseActivity() {
         lp.bottomMargin = (8 * resources.displayMetrics.density).toInt()
         container.addView(p, lp)
     }
+
+    private fun formatPercent(ratio: Double): String = String.format(Locale.getDefault(), "%.1f%%", ratio * 100.0)
 
     private fun sumDaily(stats: UsageStats, days: Int): Pair<Long, Long> {
         val (audioMs, chars) = daily(stats, days)

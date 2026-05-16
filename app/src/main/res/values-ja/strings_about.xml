@@ -32,6 +32,7 @@
     <string name="about_avg_line">平均音声：%1$s・平均文字：%2$d・平均速度：%3$s文字/分</string>
     <string name="about_daily_weekly_avg">日平均（過去7日間）：%1$d文字、%2$s；週平均（過去4週間）：%3$d文字、%4$s</string>
     <string name="about_by_vendor">プロバイダー別</string>
+    <string name="about_online_asr_failure_title">オンライン ASR の失敗率（過去 30 日）</string>
     <string name="about_proc_prefix">処理時間</string>
     <string name="about_last_7_days">過去7日間（文字）</string>
     <string name="about_empty_stats_placeholder">まだデータがありません</string>

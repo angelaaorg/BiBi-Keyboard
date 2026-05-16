@@ -126,6 +126,18 @@
         android:orientation="vertical"
         android:layout_marginTop="6dp" />
 
+      <!-- 在线 ASR 调用失败率图表容器 -->
+      <TextView
+        style="@style/AboutAckTitle"
+        android:text="@string/about_online_asr_failure_title" />
+
+      <LinearLayout
+        android:id="@+id/containerOnlineAsrFailureBars"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginTop="6dp" />
+
       <!-- 最近 7 天 / 最近 30 天（字数）条形图容器 -->
       <TextView
         style="@style/AboutAckTitle"
