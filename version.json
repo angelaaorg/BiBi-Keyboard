@@ -1,11 +1,11 @@
 {
-  "version": "3.15.2",
-  "version_code": 153,
-  "download_url": "https://github.com/BryceWG/BiBi-Keyboard/releases/tag/v3.15.2",
-  "release_notes": "### 新增功能\n\n- **非流式上传音频压缩**: 新增在线非流式识别上传音频压缩选项，在服务商支持时减少传输体积和网络耗时，默认开启\n\n### 改进优化\n\n- **Gemini 3 思考配置支持**: Gemini ASR 增加 Gemini 3 模型的思考配置支持，并将相关设置文案调整为降低思考强度",
-  "release_notes_en": "### New Features\n\n- **Non-Streaming Upload Audio Compression**: Added an option to compress upload audio for online non-streaming recognition when supported by the selected provider, reducing transfer size and network time. Default enabled.\n\n### Improvements\n\n- **Gemini 3 Thinking Config Support**: Added Gemini 3 model thinking configuration support for Gemini ASR and updated the related setting copy to reduce thinking intensity.",
+  "version": "3.16.0",
+  "version_code": 154,
+  "download_url": "https://github.com/BryceWG/BiBi-Keyboard/releases/tag/v3.16.0",
+  "release_notes": "### 新增功能\n\n- **OpenRouter ASR 支持**: 新增 OpenRouter 在线 ASR 供应商支持，支持 API Key 与模型配置\n- **API 调用日志**: 识别记录页新增 API 调用记录与查看页面，支持列表、筛选、搜索和详情查看\n- **VAD 空音频过滤**: 新增非流式识别前过滤空音频请求与去除静音片段过滤的设置,默认开启\n- **关于页识别统计**: 关于页新增近 30 天在线 ASR 渠道失败率统计\n\n### 改进优化\n\n- **新增 armv7a 打包**: 支持 armv7a ,并可按设备 ABI 选择安装包并增加备用下载地址，提升应用内更新下载兼容性\n- **[Pro]正则编辑输入框**: 将正则规则编辑界面的输入框改为常规文本输入框\n\n### 问题修复\n\n- **识别取消处理**: 在主键盘使用时,可以在后处理完成后一段时间撤回后处理的处理",
+  "release_notes_en": "### New Features\n\n- **OpenRouter ASR Support**: Added OpenRouter as an online ASR provider with API key and model configuration\n- **API Call Logs**: Added API call recording and viewing to the recognition history page, with list, filter, search, and detail views\n- **VAD Empty Audio Filtering**: Added settings to filter empty audio requests and remove silent segments before non-streaming recognition. Default enabled.\n- **About Page Recognition Stats**: Added online ASR channel failure rate stats for the last 30 days on the About page\n\n### Improvements\n\n- **armv7a Packaging**: Added armv7a support, selected APKs by device ABI, and added fallback download URLs to improve in-app update download compatibility\n- **[Pro] Regex Edit Input**: Changed the input field in the regex rule editor to a regular text input field\n\n### Bug Fixes\n\n- **Recognition Cancellation Handling**: When using the main keyboard, post-processing changes can be reverted for a short period after post-processing completes",
   "important_notice": "0. 3.13.0版本迎来大量重构，已经过初步测试，如果您有疑虑可以暂不更新\n1. 已支持通过同文输入法与说点啥进行联动，具体操作步骤见https://github.com/BryceWG/trime-bibi-keyboard/releases\n2. BiBi Keyboard Pro版本已上架，欢迎在3.8.6后版本-关于页面中了解详情。\n3. 官方网站和使用文档均已上线,网址分别为: bibi.brycewg.com bibidocs.brycewg.com",
   "notice_level": "info",
   "min_supported_version": "2.6.5",
-  "update_time": "2026-04-29T01:39:25Z"
+  "update_time": "2026-05-16T16:24:57Z"
 }
