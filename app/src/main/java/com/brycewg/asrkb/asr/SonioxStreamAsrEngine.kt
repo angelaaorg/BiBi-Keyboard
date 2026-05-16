@@ -40,6 +40,7 @@ class SonioxStreamAsrEngine(
 
     companion object {
         private const val TAG = "SonioxStreamAsrEngine"
+        private const val MODEL = "stt-rt-v4"
     }
 
     private val http: OkHttpClient = OkHttpClient.Builder()
@@ -53,6 +54,8 @@ class SonioxStreamAsrEngine(
     private val awaitingFinal = AtomicBoolean(false)
     private val endOfStreamSent = AtomicBoolean(false)
     private val terminalNotified = AtomicBoolean(false)
+
+    @Volatile private var terminalSuccess: Boolean = false
     private var ws: WebSocket? = null
     private var audioJob: Job? = null
     private var finalizeJob: Job? = null
@@ -90,6 +93,7 @@ class SonioxStreamAsrEngine(
         awaitingFinal.set(false)
         endOfStreamSent.set(false)
         terminalNotified.set(false)
+        terminalSuccess = false
         finalizeJob?.cancel()
         finalizeJob = null
         synchronized(prebufferLock) { prebuffer.clear() }
@@ -135,14 +139,17 @@ class SonioxStreamAsrEngine(
         finalTextBuffer.setLength(0)
         // 非外部模式才启动录音
         if (startAudio) startCaptureAndSendAudio()
+        val meta = ApiCallLogger.meta(
+            category = "ASR",
+            vendor = "soniox",
+            model = MODEL,
+            requestStructure = "WebSocket config keys=api_key, audio_format, enable_endpoint_detection, enable_language_identification, language_hints?, language_hints_strict?, model, num_channels, sample_rate"
+        )
         val req = Request.Builder()
             .url(Prefs.SONIOX_WS_URL)
-            .tag(
-                ApiLogMeta::class.java,
-                ApiLogRecorder.meta(category = "ASR", vendor = "soniox")
-            )
+            .tag(ApiLogMeta::class.java, meta)
             .build()
-        val wsStartNs = System.nanoTime()
+        val apiLogSession = ApiCallLogger.startWebSocket(req, meta)
         ws = http.newWebSocket(
             req,
             object : WebSocketListener() {
@@ -190,11 +197,7 @@ class SonioxStreamAsrEngine(
                         R.string.error_recognize_failed_with_reason,
                         t.message ?: ""
                     )
-                    ApiLogRecorder.recordWebSocket(
-                        req,
-                        ApiLogRecorder.meta(category = "ASR", vendor = "soniox"),
-                        success = false,
-                        durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - wsStartNs),
+                    apiLogSession.failure(
                         code = response?.code ?: 0,
                         error = response?.message ?: t.message.orEmpty()
                     )
@@ -215,6 +218,11 @@ class SonioxStreamAsrEngine(
 
                 override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
                     Log.d(TAG, "WebSocket closed with code $code: $reason")
+                    apiLogSession.complete(
+                        success = terminalSuccess,
+                        code = code,
+                        error = if (terminalSuccess) "" else reason.ifBlank { "closed_without_final" }
+                    )
                     if (awaitingFinal.get()) {
                         val message = if (reason.isNotBlank()) {
                             context.getString(R.string.error_recognize_failed_with_reason, reason)
@@ -360,7 +368,7 @@ class SonioxStreamAsrEngine(
     private fun buildConfigJson(): String {
         val o = JSONObject().apply {
             put("api_key", prefs.sonioxApiKey)
-            put("model", "stt-rt-v4")
+            put("model", MODEL)
             // 原始 PCM；若改为 auto，可不传采样率/通道
             put("audio_format", "pcm_s16le")
             put("sample_rate", sampleRate)
@@ -488,6 +496,7 @@ class SonioxStreamAsrEngine(
 
     private fun notifyFinal(text: String, reason: String) {
         if (!terminalNotified.compareAndSet(false, true)) return
+        terminalSuccess = true
         val finalText = stripEndMarker(text)
         Log.d(TAG, "Received final result ($reason), length: ${finalText.length}")
         try {
@@ -499,6 +508,7 @@ class SonioxStreamAsrEngine(
 
     private fun notifyError(message: String, reason: String, error: Throwable?) {
         if (!terminalNotified.compareAndSet(false, true)) return
+        terminalSuccess = false
         if (error != null) {
             Log.e(TAG, "ASR error ($reason): $message", error)
         } else {

@@ -140,15 +140,18 @@ class ElevenLabsStreamAsrEngine(
         val httpUrl = urlBuilder.build()
         val wsUrl = httpUrl.toString().replaceFirst("https:", "wss:")
 
+        val meta = ApiCallLogger.meta(
+            category = "ASR",
+            vendor = "elevenlabs",
+            model = MODEL_ID,
+            requestStructure = "WebSocket query=model_id, audio_format, sample_rate, commit_strategy, language_code?"
+        )
         val request = Request.Builder()
             .url(wsUrl)
-            .tag(
-                ApiLogMeta::class.java,
-                ApiLogRecorder.meta(category = "ASR", vendor = "elevenlabs", model = MODEL_ID)
-            )
+            .tag(ApiLogMeta::class.java, meta)
             .addHeader("xi-api-key", prefs.elevenApiKey.trim())
             .build()
-        val wsStartNs = System.nanoTime()
+        val apiLogSession = ApiCallLogger.startWebSocket(request, meta)
 
         ws = httpClient.newWebSocket(
             request,
@@ -169,11 +172,8 @@ class ElevenLabsStreamAsrEngine(
 
                 override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
                     Log.d(TAG, "WebSocket closed: code=$code reason=$reason")
-                    ApiLogRecorder.recordWebSocket(
-                        request,
-                        ApiLogRecorder.meta(category = "ASR", vendor = "elevenlabs", model = MODEL_ID),
+                    apiLogSession.complete(
                         success = true,
-                        durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - wsStartNs),
                         code = code,
                         error = reason
                     )
@@ -195,11 +195,7 @@ class ElevenLabsStreamAsrEngine(
 
                 override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                     Log.e(TAG, "WebSocket failure: ${t.message}", t)
-                    ApiLogRecorder.recordWebSocket(
-                        request,
-                        ApiLogRecorder.meta(category = "ASR", vendor = "elevenlabs", model = MODEL_ID),
-                        success = false,
-                        durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - wsStartNs),
+                    apiLogSession.failure(
                         code = response?.code ?: 0,
                         error = response?.message ?: t.message.orEmpty()
                     )

@@ -181,6 +181,12 @@ class VolcStreamAsrEngine(
     private fun openWebSocket(startAudio: Boolean) {
         val connectId = UUID.randomUUID().toString()
         if (startAudio) startAudioStreaming()
+        val meta = ApiCallLogger.meta(
+            category = "ASR",
+            vendor = "volcengine",
+            model = streamResource,
+            requestStructure = "WebSocket binary protocol; full client request json; audio frames=gzip pcm"
+        )
         val req = Request.Builder()
             .url(WS_ENDPOINT_BIDI_ASYNC)
             .headers(
@@ -196,12 +202,9 @@ class VolcStreamAsrEngine(
                     connectId
                 )
             )
-            .tag(
-                ApiLogMeta::class.java,
-                ApiLogRecorder.meta(category = "ASR", vendor = "volcengine", model = streamResource)
-            )
+            .tag(ApiLogMeta::class.java, meta)
             .build()
-        val wsStartNs = System.nanoTime()
+        val apiLogSession = ApiCallLogger.startWebSocket(req, meta)
 
         ws = http.newWebSocket(
             req,
@@ -255,15 +258,8 @@ class VolcStreamAsrEngine(
 
                 override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
                     Log.d(TAG, "WebSocket closing with code $code: $reason")
-                    ApiLogRecorder.recordWebSocket(
-                        req,
-                        ApiLogRecorder.meta(
-                            category = "ASR",
-                            vendor = "volcengine",
-                            model = streamResource
-                        ),
+                    apiLogSession.complete(
                         success = true,
-                        durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - wsStartNs),
                         code = code,
                         error = reason
                     )
@@ -277,15 +273,7 @@ class VolcStreamAsrEngine(
 
                 override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                     Log.e(TAG, "WebSocket failed: ${t.message}", t)
-                    ApiLogRecorder.recordWebSocket(
-                        req,
-                        ApiLogRecorder.meta(
-                            category = "ASR",
-                            vendor = "volcengine",
-                            model = streamResource
-                        ),
-                        success = false,
-                        durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - wsStartNs),
+                    apiLogSession.failure(
                         code = response?.code ?: 0,
                         error = response?.message ?: t.message.orEmpty()
                     )

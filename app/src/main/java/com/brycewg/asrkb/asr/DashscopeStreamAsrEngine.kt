@@ -81,6 +81,7 @@ class DashscopeStreamAsrEngine(
     private var finalTranscript: String? = null
     private var finalResultDeferred: CompletableDeferred<String?>? = null
     private val finalDelivered = AtomicBoolean(false)
+    private var apiLogSession: ApiCallLogger.Session? = null
 
     override val isRunning: Boolean
         get() = running.get()
@@ -115,6 +116,7 @@ class DashscopeStreamAsrEngine(
         finalTranscript = null
         finalResultDeferred = null
         finalDelivered.set(false)
+        apiLogSession = null
 
         // 在 IO 线程启动 SDK 识别并随后启动采集
         controlJob?.cancel()
@@ -135,6 +137,11 @@ class DashscopeStreamAsrEngine(
                 } else {
                     WS_URL_CN
                 }
+                prepareApiLog(
+                    wsUrl = wsUrl,
+                    model = MODEL_QWEN3,
+                    requestStructure = "SDK WebSocket session; config=modalities, turn_detection, transcription; audio=base64 pcm frames"
+                )
 
                 // 构建 OmniRealtimeParam
                 val param = OmniRealtimeParam.builder()
@@ -187,6 +194,7 @@ class DashscopeStreamAsrEngine(
                     override fun onClose(code: Int, reason: String) {
                         Log.d(TAG, "WebSocket closed: $code $reason")
                         if (running.get()) {
+                            recordApiLogOnce(success = false, code = code, error = reason)
                             // 非预期关闭
                             running.set(false)
                             try {
@@ -215,6 +223,7 @@ class DashscopeStreamAsrEngine(
                 }
             } catch (t: Throwable) {
                 Log.e(TAG, "Failed to start DashScope streaming recognition", t)
+                recordApiLogOnce(success = false, error = t.message.orEmpty())
                 try {
                     listener.onError(
                         context.getString(
@@ -242,6 +251,11 @@ class DashscopeStreamAsrEngine(
         } else {
             WS_URL_INFER_CN
         }
+        prepareApiLog(
+            wsUrl = wsUrl,
+            model = MODEL_FUN_ASR,
+            requestStructure = "SDK WebSocket recognition; format=pcm, sample_rate=16000, language_hints?, semantic_punctuation_enabled?"
+        )
         try {
             Constants.baseWebsocketApiUrl = wsUrl
         } catch (t: Throwable) {
@@ -328,6 +342,7 @@ class DashscopeStreamAsrEngine(
         finalResultDeferred?.complete(finalText)
 
         if (finalDelivered.compareAndSet(false, true)) {
+            recordApiLogOnce(success = true)
             try {
                 listener.onFinal(finalText)
             } catch (t: Throwable) {
@@ -339,6 +354,7 @@ class DashscopeStreamAsrEngine(
     private fun handleFunAsrError(e: Exception) {
         val msg = e.message ?: "Recognition error"
         Log.e(TAG, "Fun-ASR streaming error: $msg", e)
+        recordApiLogOnce(success = false, error = msg)
         if (running.get()) {
             running.set(false)
             if (!finalDelivered.get()) {
@@ -434,6 +450,7 @@ class DashscopeStreamAsrEngine(
 
                 // 通知 UI 最终结果
                 if (finalDelivered.compareAndSet(false, true)) {
+                    recordApiLogOnce(success = true)
                     try {
                         listener.onFinal(transcript)
                     } catch (t: Throwable) {
@@ -448,6 +465,7 @@ class DashscopeStreamAsrEngine(
                 Log.e(TAG, "Transcription failed: $errorMsg")
                 running.set(false)
                 if (!finalDelivered.get()) {
+                    recordApiLogOnce(success = false, error = errorMsg)
                     try {
                         listener.onError(
                             context.getString(R.string.error_recognize_failed_with_reason, errorMsg)
@@ -472,6 +490,7 @@ class DashscopeStreamAsrEngine(
                 Log.e(TAG, "Server error: $errorMsg")
                 if (running.get()) {
                     running.set(false)
+                    recordApiLogOnce(success = false, error = errorMsg)
                     try {
                         listener.onError(
                             context.getString(R.string.error_recognize_failed_with_reason, errorMsg)
@@ -585,6 +604,7 @@ class DashscopeStreamAsrEngine(
                         Log.w(TAG, "recognizer.stop() failed", t)
                         val fallbackText = (currentTurnText + currentTurnStash).trim()
                         if (finalDelivered.compareAndSet(false, true)) {
+                            recordApiLogOnce(success = false, error = "recognizer.stop failed: ${t.message.orEmpty()}")
                             try {
                                 listener.onFinal(fallbackText)
                             } catch (notifyError: Throwable) {
@@ -606,6 +626,7 @@ class DashscopeStreamAsrEngine(
                         // 如果 commit 失败，使用当前预览作为最终结果
                         val fallbackText = (currentTurnText + currentTurnStash).trim()
                         if (finalDelivered.compareAndSet(false, true)) {
+                            recordApiLogOnce(success = false, error = "commit failed: ${t.message.orEmpty()}")
                             try {
                                 listener.onFinal(fallbackText)
                             } catch (notifyError: Throwable) {
@@ -621,6 +642,7 @@ class DashscopeStreamAsrEngine(
                 // 等待 completed 事件返回或超时
                 val awaited = withTimeoutOrNull(FINAL_RESULT_TIMEOUT_MS) { resultDeferred.await() }
                 if (awaited == null && finalDelivered.compareAndSet(false, true)) {
+                    recordApiLogOnce(success = false, error = "final result timeout")
                     // 超时后使用当前文本作为兜底结果
                     val fallbackText = (finalTranscript ?: (currentTurnText + currentTurnStash)).trim()
                     try {
@@ -739,5 +761,27 @@ class DashscopeStreamAsrEngine(
         } finally {
             recognizer = null
         }
+    }
+
+    private fun prepareApiLog(
+        wsUrl: String,
+        model: String,
+        requestStructure: String
+    ) {
+        val meta = ApiCallLogger.meta(
+            category = "ASR",
+            vendor = "dashscope",
+            model = model,
+            requestStructure = requestStructure
+        )
+        apiLogSession = ApiCallLogger.startSdkWebSocket(wsUrl, meta)
+    }
+
+    private fun recordApiLogOnce(
+        success: Boolean,
+        code: Int = 0,
+        error: String = ""
+    ) {
+        apiLogSession?.complete(success = success, code = code, error = error)
     }
 }

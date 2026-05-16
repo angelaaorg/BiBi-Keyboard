@@ -207,16 +207,19 @@ class OpenAiRealtimeAsrEngine(
 
         val apiKey = prefs.oaAsrApiKey.trim()
         val model = prefs.oaAsrModel.ifBlank { Prefs.DEFAULT_OA_ASR_MODEL }.trim()
+        val meta = ApiCallLogger.meta(
+            category = "ASR",
+            vendor = "openai",
+            model = model,
+            requestStructure = "WebSocket session.update; input_audio_buffer.append/commit; response audio transcription"
+        )
         val reqBuilder = Request.Builder().url(wsUrl)
-            .tag(
-                ApiLogMeta::class.java,
-                ApiLogRecorder.meta(category = "ASR", vendor = "openai", model = model)
-            )
+            .tag(ApiLogMeta::class.java, meta)
         if (apiKey.isNotBlank()) {
             reqBuilder.addHeader("Authorization", "Bearer $apiKey")
         }
         val req = reqBuilder.build()
-        val wsStartNs = System.nanoTime()
+        val apiLogSession = ApiCallLogger.startWebSocket(req, meta)
 
         ws = http.newWebSocket(
             req,
@@ -247,11 +250,7 @@ class OpenAiRealtimeAsrEngine(
 
                 override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                     val detail = response?.message ?: t.message.orEmpty()
-                    ApiLogRecorder.recordWebSocket(
-                        req,
-                        ApiLogRecorder.meta(category = "ASR", vendor = "openai", model = model),
-                        success = false,
-                        durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - wsStartNs),
+                    apiLogSession.failure(
                         code = response?.code ?: 0,
                         error = detail
                     )
@@ -274,11 +273,8 @@ class OpenAiRealtimeAsrEngine(
 
                 override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
                     Log.d(TAG, "WebSocket closed: $code $reason")
-                    ApiLogRecorder.recordWebSocket(
-                        req,
-                        ApiLogRecorder.meta(category = "ASR", vendor = "openai", model = model),
+                    apiLogSession.complete(
                         success = true,
-                        durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - wsStartNs),
                         code = code,
                         error = reason
                     )
