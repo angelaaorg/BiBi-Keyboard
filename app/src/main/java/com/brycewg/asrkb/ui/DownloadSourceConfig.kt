@@ -16,19 +16,29 @@ object DownloadSourceConfig {
         context: Context,
         officialUrl: String,
         officialLabelRes: Int = R.string.download_source_github_official
+    ): List<DownloadSourceDialog.Option> = buildOptions(context, listOf(officialUrl), officialLabelRes)
+
+    fun buildOptions(
+        context: Context,
+        officialUrls: List<String>,
+        officialLabelRes: Int = R.string.download_source_github_official
     ): List<DownloadSourceDialog.Option> {
+        val primaryOfficialUrl = officialUrls.firstOrNull().orEmpty()
         val options = ArrayList<DownloadSourceDialog.Option>(mirrors.size + 1)
         options.add(
             DownloadSourceDialog.Option(
                 context.getString(officialLabelRes),
-                officialUrl
+                primaryOfficialUrl,
+                officialUrls
             )
         )
         mirrors.forEach { mirror ->
+            val mirroredUrls = officialUrls.map { applyMirrorPrefix(it, mirror.prefix) }
             options.add(
                 DownloadSourceDialog.Option(
                     context.getString(mirror.labelRes),
-                    applyMirrorPrefix(officialUrl, mirror.prefix)
+                    mirroredUrls.firstOrNull().orEmpty(),
+                    mirroredUrls
                 )
             )
         }

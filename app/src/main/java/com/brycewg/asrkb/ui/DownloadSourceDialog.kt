@@ -28,7 +28,11 @@ object DownloadSourceDialog {
     private const val TAG = "DownloadSourceDialog"
     private const val LATENCY_TIMEOUT_MS = 3000
 
-    data class Option(val label: String, val url: String)
+    data class Option(
+        val label: String,
+        val url: String,
+        val fallbackUrls: List<String> = listOf(url)
+    )
 
     fun show(
         context: Context,

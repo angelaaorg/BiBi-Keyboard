@@ -4,6 +4,13 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization") version "2.2.20"
 }
 
+val packagedAbiFilters = (findProperty("abiFilters") as String?)
+    ?.split(",")
+    ?.map { it.trim() }
+    ?.filter { it.isNotEmpty() }
+    ?.takeIf { it.isNotEmpty() }
+    ?: listOf("arm64-v8a")
+
 android {
     namespace = "com.brycewg.asrkb"
     compileSdk = 36
@@ -15,9 +22,9 @@ android {
         versionCode = 153
         versionName = "3.15.2"
 
-        // 仅构建 arm64-v8a 以减小包体体积
+        // 默认仅构建 arm64-v8a 以减小包体体积；CI 可通过 -PabiFilters=armeabi-v7a 单独出包。
         ndk {
-            abiFilters += listOf("arm64-v8a")
+            abiFilters += packagedAbiFilters
         }
 
         // 从环境变量注入免费服务内置 API Key（GitHub Secrets）

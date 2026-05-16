@@ -270,65 +270,69 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           SF_FREE_API_KEY: ${{ secrets.SF_FREE_API_KEY }}
           POCKETBASE_BASE_URL: ${{ secrets.POCKETBASE_BASE_URL || vars.POCKETBASE_BASE_URL }}
+          VERSION: ${{ steps.version.outputs.version_name }}
         run: |
-          echo "使用签名密钥构建 Release APK..."
-          ./gradlew --no-daemon clean :app:assembleRelease
-          ls -lah app/build/outputs/apk/release/ || true
+          echo "使用签名密钥分 ABI 构建 Release APK..."
+          mkdir -p release-artifacts
+          for ABI in arm64-v8a armeabi-v7a; do
+            echo "构建 ABI: $ABI"
+            ./gradlew --no-daemon clean :app:assembleRelease -PabiFilters="$ABI"
+            APK_PATH=$(ls app/build/outputs/apk/release/*.apk 2>/dev/null | grep -v unaligned | head -n 1 || true)
+            if [ -z "$APK_PATH" ]; then
+              echo "未找到 $ABI Release APK"
+              exit 1
+            fi
+            if [ "$ABI" = "arm64-v8a" ]; then
+              NEW_PATH="release-artifacts/lexisharp-keyboard-${VERSION}-release.apk"
+            else
+              NEW_PATH="release-artifacts/lexisharp-keyboard-${VERSION}-${ABI}-release.apk"
+            fi
+            cp "$APK_PATH" "$NEW_PATH"
+            ls -lh "$NEW_PATH"
+          done
 
       - name: Build Debug APK (fallback)
         if: steps.version.outputs.changed == 'true' && steps.check_keystore.outputs.has_keystore != 'true'
         env:
           SF_FREE_API_KEY: ${{ secrets.SF_FREE_API_KEY }}
           POCKETBASE_BASE_URL: ${{ secrets.POCKETBASE_BASE_URL || vars.POCKETBASE_BASE_URL }}
+          VERSION: ${{ steps.version.outputs.version_name }}
         run: |
-          echo "未配置签名密钥,构建 Debug APK..."
-          ./gradlew --no-daemon clean :app:assembleDebug
+          echo "未配置签名密钥,分 ABI 构建 Debug APK..."
+          mkdir -p release-artifacts
+          for ABI in arm64-v8a armeabi-v7a; do
+            echo "构建 ABI: $ABI"
+            ./gradlew --no-daemon clean :app:assembleDebug -PabiFilters="$ABI"
+            APK_PATH=$(ls app/build/outputs/apk/debug/*.apk 2>/dev/null | head -n 1 || true)
+            if [ -z "$APK_PATH" ]; then
+              echo "未找到 $ABI Debug APK"
+              exit 1
+            fi
+            if [ "$ABI" = "arm64-v8a" ]; then
+              NEW_PATH="release-artifacts/lexisharp-keyboard-${VERSION}-debug.apk"
+            else
+              NEW_PATH="release-artifacts/lexisharp-keyboard-${VERSION}-${ABI}-debug.apk"
+            fi
+            cp "$APK_PATH" "$NEW_PATH"
+            ls -lh "$NEW_PATH"
+          done
 
-      - name: Locate built APK
+      - name: Locate built APKs
         if: steps.version.outputs.changed == 'true'
-        id: locate_apk
+        id: locate_apks
         run: |
-          # 优先查找 release APK
-          RELEASE_APK=$(ls app/build/outputs/apk/release/*.apk 2>/dev/null | grep -v unaligned | head -n 1 || true)
-          DEBUG_APK=$(ls app/build/outputs/apk/debug/*.apk 2>/dev/null | head -n 1 || true)
-
-          if [ -n "$RELEASE_APK" ]; then
-            APK_PATH="$RELEASE_APK"
-            APK_TYPE="release"
-          elif [ -n "$DEBUG_APK" ]; then
-            APK_PATH="$DEBUG_APK"
-            APK_TYPE="debug"
-          else
-            APK_PATH=""
-            APK_TYPE="none"
-          fi
-
-          echo "apk_path=$APK_PATH" >> "$GITHUB_OUTPUT"
-          echo "apk_type=$APK_TYPE" >> "$GITHUB_OUTPUT"
-
-          if [ -n "$APK_PATH" ]; then
-            echo "找到 APK ($APK_TYPE): $APK_PATH"
-            ls -lh "$APK_PATH"
-          else
+          APK_FILES=$(find release-artifacts -maxdepth 1 -type f -name "*.apk" | sort || true)
+          if [ -z "$APK_FILES" ]; then
             echo "未找到 APK 文件"
+            exit 1
           fi
-
-      - name: Rename APK
-        if: steps.version.outputs.changed == 'true' && steps.locate_apk.outputs.apk_path != ''
-        id: rename_apk
-        run: |
-          APK_PATH="${{ steps.locate_apk.outputs.apk_path }}"
-          APK_TYPE="${{ steps.locate_apk.outputs.apk_type }}"
-          VERSION="${{ steps.version.outputs.version_name }}"
-
-          # 生成新文件名
-          NEW_NAME="lexisharp-keyboard-${VERSION}-${APK_TYPE}.apk"
-          NEW_PATH="app/build/outputs/apk/${NEW_NAME}"
-
-          cp "$APK_PATH" "$NEW_PATH"
-          echo "renamed_apk_path=$NEW_PATH" >> "$GITHUB_OUTPUT"
-          echo "重命名 APK: $NEW_NAME"
-          ls -lh "$NEW_PATH"
+          {
+            echo "apk_paths<<EOF"
+            echo "$APK_FILES"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+          echo "找到 APK 文件:"
+          ls -lh release-artifacts/*.apk
 
       - name: Update version.json
         if: steps.version.outputs.changed == 'true'
@@ -504,7 +508,7 @@ jobs:
           tag_name: ${{ steps.tag.outputs.tag }}
           name: "Release ${{ steps.tag.outputs.version_display }}"
           body_path: changelog.md
-          files: ${{ steps.rename_apk.outputs.renamed_apk_path }}
+          files: ${{ steps.locate_apks.outputs.apk_paths }}
           draft: false
           prerelease: false
         env:

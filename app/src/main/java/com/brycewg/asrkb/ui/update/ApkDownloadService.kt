@@ -56,15 +56,24 @@ class ApkDownloadService : Service() {
         private const val ACTION_CANCEL = "com.brycewg.asrkb.action.APK_DOWNLOAD_CANCEL"
 
         private const val EXTRA_URL = "url"
+        private const val EXTRA_URLS = "urls"
         private const val EXTRA_VERSION = "version"
 
         /**
          * 启动下载服务
          */
         fun startDownload(context: Context, url: String, version: String) {
+            startDownload(context, listOf(url), version)
+        }
+
+        /**
+         * 启动下载服务，按 URL 顺序重试直到成功。
+         */
+        fun startDownload(context: Context, urls: List<String>, version: String) {
             val intent = Intent(context, ApkDownloadService::class.java).apply {
                 action = ACTION_START_DOWNLOAD
-                putExtra(EXTRA_URL, url)
+                putExtra(EXTRA_URL, urls.firstOrNull().orEmpty())
+                putStringArrayListExtra(EXTRA_URLS, ArrayList(urls.filter { it.isNotBlank() }))
                 putExtra(EXTRA_VERSION, version)
             }
             context.startService(intent)
@@ -122,14 +131,17 @@ class ApkDownloadService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_START_DOWNLOAD -> {
-                val url = intent.getStringExtra(EXTRA_URL)
+                val urls = intent.getStringArrayListExtra(EXTRA_URLS)
+                    ?.filter { it.isNotBlank() }
+                    ?.takeIf { it.isNotEmpty() }
+                    ?: listOfNotNull(intent.getStringExtra(EXTRA_URL)?.takeIf { it.isNotBlank() })
                 val version = intent.getStringExtra(EXTRA_VERSION)
 
-                if (url != null && version != null && !isDownloading) {
+                if (urls.isNotEmpty() && version != null && !isDownloading) {
                     isDownloading = true
                     startForegroundWithNotification()
                     downloadJob = scope.launch {
-                        downloadAndInstall(url, version)
+                        downloadAndInstall(urls, version)
                     }
                 } else {
                     stopSelfSafely()
@@ -228,10 +240,10 @@ class ApkDownloadService : Service() {
     /**
      * 下载并安装 APK
      */
-    private suspend fun downloadAndInstall(url: String, version: String) {
+    private suspend fun downloadAndInstall(urls: List<String>, version: String) {
         try {
             // 1. 下载 APK
-            val apkFile = downloadApk(url, version)
+            val apkFile = downloadApkWithFallback(urls, version)
             downloadedApkFile = apkFile
 
             // 仅在缺少“未知来源应用安装”权限时才记录待安装 APK：
@@ -269,6 +281,27 @@ class ApkDownloadService : Service() {
             }
             stopSelfSafely()
         }
+    }
+
+    /**
+     * 下载 APK 文件
+     */
+    private suspend fun downloadApkWithFallback(urls: List<String>, version: String): File {
+        var lastError: Exception? = null
+        urls.distinct().forEachIndexed { index, url ->
+            try {
+                if (index > 0) {
+                    Log.d(TAG, "Retrying APK download with fallback URL: $url")
+                }
+                return downloadApk(url, version)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                lastError = e
+                Log.w(TAG, "APK download URL failed: $url", e)
+            }
+        }
+        throw lastError ?: Exception("No APK download URL available")
     }
 
     /**

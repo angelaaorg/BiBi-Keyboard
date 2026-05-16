@@ -964,7 +964,7 @@ class SettingsActivity : BaseActivity() {
      * 构造 APK 直链
      *
      * 输入: https://github.com/{owner}/{repo}/releases/tag/{tag}
-     * 输出: https://github.com/BryceWG/BiBi-Keyboard/releases/download/v{version}/lexisharp-keyboard-{version}-release.apk
+     * 输出: https://github.com/BryceWG/BiBi-Keyboard/releases/download/v{version}/lexisharp-keyboard-{version}-{abi}-release.apk
      */
     private fun buildDirectApkUrl(originalUrl: String, version: String): String {
         val baseEnd = originalUrl.indexOf("/releases/tag/")
@@ -974,8 +974,20 @@ class SettingsActivity : BaseActivity() {
             "https://github.com/BryceWG/BiBi-Keyboard"
         }
         val tag = "v$version"
-        val apkName = "lexisharp-keyboard-$version-release.apk"
+        val apkName = "lexisharp-keyboard-$version-${selectUpdateApkAbi()}-release.apk"
         return "$base/releases/download/$tag/$apkName"
+    }
+
+    /**
+     * 选择与当前设备兼容的开源版更新 APK ABI。
+     */
+    private fun selectUpdateApkAbi(): String {
+        val supportedAbis = Build.SUPPORTED_ABIS.toList()
+        return when {
+            "arm64-v8a" in supportedAbis -> "arm64-v8a"
+            "armeabi-v7a" in supportedAbis -> "armeabi-v7a"
+            else -> "arm64-v8a"
+        }
     }
 
     /**
