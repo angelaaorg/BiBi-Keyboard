@@ -178,6 +178,8 @@
   <!-- 其他通用設定 -->
   <!-- ============================================== -->
   <string name="label_audio_ducking_on_record">錄音時音訊避讓</string>
+  <string name="label_auto_cancel_empty_audio_input">自動取消空白音訊輸入</string>
+  <string name="label_auto_filter_silent_audio_segments">自動過濾靜音片段</string>
   <string name="label_offline_denoise">非串流辨識降噪</string>
   <string name="label_upload_audio_compression">非串流上傳音訊壓縮</string>
   <string name="label_headset_mic_priority">優先嘗試使用耳機的麥克風（實驗性）</string>
@@ -281,6 +283,12 @@
   <!-- 錄音時音訊避讓 -->
   <string name="feature_duck_media_on_record_off_desc">錄音時媒體播放音量保持不變。</string>
   <string name="feature_duck_media_on_record_on_desc">錄音時自動暫停媒體播放，減少干擾提高識別準確率。</string>
+
+  <!-- 空白音訊偵測與靜音過濾 -->
+  <string name="feature_auto_cancel_empty_audio_input_off_desc">非串流辨識會照常送出錄音，即使錄音中沒有偵測到人聲。</string>
+  <string name="feature_auto_cancel_empty_audio_input_on_desc">非串流辨識前使用本機 VAD 模型偵測人聲。沒有偵測到人聲時，不向辨識服務商送出本次音訊。</string>
+  <string name="feature_auto_filter_silent_audio_segments_off_desc">非串流辨識使用原始錄音，包含中間停頓和靜音片段。</string>
+  <string name="feature_auto_filter_silent_audio_segments_on_desc">非串流辨識前使用本機 VAD 模型移除靜音片段，縮短音訊長度並減少上傳時間。</string>
 
   <!-- 非串流降噪 -->
   <string name="feature_offline_denoise_off_desc">非串流上傳或離線辨識前不進行模型降噪。</string>

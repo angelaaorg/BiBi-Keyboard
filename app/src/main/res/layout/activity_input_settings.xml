@@ -103,6 +103,16 @@
             android:text="@string/label_offline_denoise" />
 
           <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchAutoCancelEmptyAudioInput"
+            style="@style/SettingsSwitch"
+            android:text="@string/label_auto_cancel_empty_audio_input" />
+
+          <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchAutoFilterSilentAudioSegments"
+            style="@style/SettingsSwitch"
+            android:text="@string/label_auto_filter_silent_audio_segments" />
+
+          <com.google.android.material.materialswitch.MaterialSwitch
             android:id="@+id/switchUploadAudioCompression"
             style="@style/SettingsSwitch"
             android:text="@string/label_upload_audio_compression" />

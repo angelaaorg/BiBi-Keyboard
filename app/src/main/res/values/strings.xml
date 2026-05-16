@@ -180,6 +180,8 @@
   <!-- Other General Settings -->
   <!-- ============================================== -->
   <string name="label_audio_ducking_on_record">Audio ducking during recording</string>
+  <string name="label_auto_cancel_empty_audio_input">Auto cancel empty audio input</string>
+  <string name="label_auto_filter_silent_audio_segments">Auto filter silent audio segments</string>
   <string name="label_offline_denoise">Offline denoise for non-streaming ASR</string>
   <string name="label_upload_audio_compression">Compress non-streaming upload audio</string>
   <string name="label_headset_mic_priority">Prefer headset microphone (experimental)</string>
@@ -283,6 +285,12 @@
   <!-- Duck media on record -->
   <string name="feature_duck_media_on_record_off_desc">Media playback volume remains unchanged during recording.</string>
   <string name="feature_duck_media_on_record_on_desc">Automatically pauses media playback during recording to reduce interference and improve recognition accuracy.</string>
+
+  <!-- Offline denoise -->
+  <string name="feature_auto_cancel_empty_audio_input_off_desc">Non-streaming recognition requests are sent even when the recording contains no detected speech.</string>
+  <string name="feature_auto_cancel_empty_audio_input_on_desc">Uses the local VAD model before non-streaming recognition. If no speech is detected, the audio is not sent to the recognition provider.</string>
+  <string name="feature_auto_filter_silent_audio_segments_off_desc">Non-streaming recognition uses the original recording, including silent pauses.</string>
+  <string name="feature_auto_filter_silent_audio_segments_on_desc">Uses the local VAD model to remove silent parts before non-streaming recognition, reducing audio length and upload time.</string>
 
   <!-- Offline denoise -->
   <string name="feature_offline_denoise_off_desc">Raw audio is used without model-based denoise.</string>

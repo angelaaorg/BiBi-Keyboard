@@ -31,6 +31,8 @@ internal object PrefsBackup {
         o.put(KEY_MIC_TAP_TOGGLE_ENABLED, micTapToggleEnabled)
         o.put(KEY_AUTO_START_RECORDING_ON_SHOW, autoStartRecordingOnShow)
         o.put(KEY_DUCK_MEDIA_ON_RECORD, duckMediaOnRecordEnabled)
+        o.put(KEY_AUTO_CANCEL_EMPTY_AUDIO_INPUT, autoCancelEmptyAudioInputEnabled)
+        o.put(KEY_AUTO_FILTER_SILENT_AUDIO_SEGMENTS, autoFilterSilentAudioSegmentsEnabled)
         o.put(KEY_OFFLINE_DENOISE_ENABLED, offlineDenoiseEnabled)
         o.put(KEY_UPLOAD_AUDIO_COMPRESSION_ENABLED, uploadAudioCompressionEnabled)
         o.put(KEY_AUTO_STOP_ON_SILENCE_ENABLED, autoStopOnSilenceEnabled)
@@ -303,6 +305,8 @@ internal object PrefsBackup {
             optBool(KEY_MIC_TAP_TOGGLE_ENABLED)?.let { micTapToggleEnabled = it }
             optBool(KEY_AUTO_START_RECORDING_ON_SHOW)?.let { autoStartRecordingOnShow = it }
             optBool(KEY_DUCK_MEDIA_ON_RECORD)?.let { duckMediaOnRecordEnabled = it }
+            optBool(KEY_AUTO_CANCEL_EMPTY_AUDIO_INPUT)?.let { autoCancelEmptyAudioInputEnabled = it }
+            optBool(KEY_AUTO_FILTER_SILENT_AUDIO_SEGMENTS)?.let { autoFilterSilentAudioSegmentsEnabled = it }
             optBool(KEY_OFFLINE_DENOISE_ENABLED)?.let { offlineDenoiseEnabled = it }
             optBool(KEY_UPLOAD_AUDIO_COMPRESSION_ENABLED)?.let { uploadAudioCompressionEnabled = it }
             optBool(KEY_AUTO_STOP_ON_SILENCE_ENABLED)?.let { autoStopOnSilenceEnabled = it }

@@ -178,6 +178,8 @@
   <!-- 其他通用设置 -->
   <!-- ============================================== -->
   <string name="label_audio_ducking_on_record">录音时音频避让</string>
+  <string name="label_auto_cancel_empty_audio_input">自动取消空音频输入</string>
+  <string name="label_auto_filter_silent_audio_segments">自动过滤静音片段</string>
   <string name="label_offline_denoise">非流式识别降噪</string>
   <string name="label_upload_audio_compression">非流式上传音频压缩</string>
   <string name="label_headset_mic_priority">优先尝试使用耳机的麦克风(实验性)</string>
@@ -281,6 +283,12 @@
   <!-- 录音时音频避让 -->
   <string name="feature_duck_media_on_record_off_desc">录音时媒体播放音量保持不变。</string>
   <string name="feature_duck_media_on_record_on_desc">录音时自动暂停媒体播放，减少干扰提高识别准确率。</string>
+
+  <!-- 空音频检测与静音过滤 -->
+  <string name="feature_auto_cancel_empty_audio_input_off_desc">非流式识别会照常发送录音，即使录音中没有检测到人声。</string>
+  <string name="feature_auto_cancel_empty_audio_input_on_desc">非流式识别前使用本地 VAD 模型检测人声。没有检测到人声时，不向识别服务商发送本次音频。</string>
+  <string name="feature_auto_filter_silent_audio_segments_off_desc">非流式识别使用原始录音，包含中间停顿和静音片段。</string>
+  <string name="feature_auto_filter_silent_audio_segments_on_desc">非流式识别前使用本地 VAD 模型移除静音片段，缩短音频长度并减少上传时间。</string>
 
   <!-- 非流式降噪 -->
   <string name="feature_offline_denoise_off_desc">非流式上传或离线识别前不进行模型降噪。</string>

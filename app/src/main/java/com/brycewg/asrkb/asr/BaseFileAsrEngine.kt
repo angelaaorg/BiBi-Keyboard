@@ -83,19 +83,23 @@ abstract class BaseFileAsrEngine(
                         if (discardOnStop) {
                             continue
                         }
-                        // 记录最近一次用于识别的片段，供“重试”功能使用
-                        lastSegmentForRetry = seg
                         when (seg) {
                             is RecordedSegment.Pcm -> {
+                                val processed = processPcmForRecognition(seg.pcm) ?: continue
+                                // 记录最近一次真正用于识别的片段，供“重试”功能使用
+                                lastSegmentForRetry = RecordedSegment.Pcm(processed)
                                 val denoised = OfflineSpeechDenoiserManager.denoiseIfEnabled(
                                     context = context,
                                     prefs = prefs,
-                                    pcm = seg.pcm,
+                                    pcm = processed,
                                     sampleRate = sampleRate
                                 )
                                 recognize(denoised)
                             }
-                            is RecordedSegment.Encoded -> recognizeEncoded(seg.audio)
+                            is RecordedSegment.Encoded -> {
+                                lastSegmentForRetry = seg
+                                recognizeEncoded(seg.audio)
+                            }
                         }
                     } catch (t: Throwable) {
                         Log.e(TAG, "Recognition failed for segment", t)
@@ -118,11 +122,15 @@ abstract class BaseFileAsrEngine(
         // 持续录音并按上限切段，投递到识别队列
         audioJob = scope.launch(Dispatchers.IO) {
             try {
-                val encodingSpec = if (prefs.uploadAudioCompressionEnabled) {
-                    uploadAudioEncodingSpec
-                } else {
-                    null
-                }
+                val needsPcmVoiceProcessing =
+                    prefs.autoCancelEmptyAudioInputEnabled ||
+                        prefs.autoFilterSilentAudioSegmentsEnabled
+                val encodingSpec =
+                    if (prefs.uploadAudioCompressionEnabled && !needsPcmVoiceProcessing) {
+                        uploadAudioEncodingSpec
+                    } else {
+                        null
+                    }
                 if (encodingSpec == null) {
                     recordAndEnqueueSegments(chan)
                 } else {
@@ -622,6 +630,35 @@ abstract class BaseFileAsrEngine(
      * 子类可覆盖此方法直接上传编码后的音频。
      */
     protected open suspend fun recognizeEncoded(audio: UploadAudioData): Unit = throw UnsupportedOperationException("Encoded upload audio is not supported by this ASR engine")
+
+    private fun processPcmForRecognition(pcm: ByteArray): ByteArray? {
+        val result = RecordedAudioVoiceFilter.processIfEnabled(
+            context = context,
+            prefs = prefs,
+            pcm = pcm,
+            sampleRate = sampleRate,
+            chunkMillis = chunkMillis
+        )
+        if (result.droppedAsEmptyAudio) {
+            Log.d(
+                TAG,
+                "Dropped empty audio before recognition (${result.originalDurationMs}ms)"
+            )
+            try {
+                listener.onError(context.getString(R.string.error_audio_empty))
+            } catch (t: Throwable) {
+                Log.e(TAG, "Failed to notify empty audio", t)
+            }
+            return null
+        }
+        if (result.pcm.size != pcm.size) {
+            Log.d(
+                TAG,
+                "Filtered silent audio: ${result.originalDurationMs}ms -> ${result.outputDurationMs}ms"
+            )
+        }
+        return result.pcm
+    }
 
     private fun logUncompressedUploadSegment(pcm: ByteArray) {
         logUploadAudioCompression(

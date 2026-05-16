@@ -142,6 +142,16 @@ class Prefs(context: Context) {
         get() = sp.getBoolean(KEY_DUCK_MEDIA_ON_RECORD, true)
         set(value) = sp.edit { putBoolean(KEY_DUCK_MEDIA_ON_RECORD, value) }
 
+    // 非流式识别前自动取消未检测到人声的空音频，默认开启
+    var autoCancelEmptyAudioInputEnabled: Boolean
+        get() = sp.getBoolean(KEY_AUTO_CANCEL_EMPTY_AUDIO_INPUT, true)
+        set(value) = sp.edit { putBoolean(KEY_AUTO_CANCEL_EMPTY_AUDIO_INPUT, value) }
+
+    // 非流式识别前自动过滤静音片段，默认开启
+    var autoFilterSilentAudioSegmentsEnabled: Boolean
+        get() = sp.getBoolean(KEY_AUTO_FILTER_SILENT_AUDIO_SEGMENTS, true)
+        set(value) = sp.edit { putBoolean(KEY_AUTO_FILTER_SILENT_AUDIO_SEGMENTS, value) }
+
     // 非流式音频降噪（上传前/本地离线识别前），默认开启
     var offlineDenoiseEnabled: Boolean
         get() = sp.getBoolean(KEY_OFFLINE_DENOISE_ENABLED, true)

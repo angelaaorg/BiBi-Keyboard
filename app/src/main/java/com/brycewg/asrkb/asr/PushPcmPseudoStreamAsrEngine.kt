@@ -154,10 +154,25 @@ abstract class PushPcmPseudoStreamAsrEngine(
 
         scope.launch(Dispatchers.IO) {
             try {
-                val denoised = OfflineSpeechDenoiserManager.denoiseIfEnabled(
+                val processed = RecordedAudioVoiceFilter.processIfEnabled(
                     context = context,
                     prefs = prefs,
                     pcm = fullPcm,
+                    sampleRate = sampleRate,
+                    chunkMillis = 200
+                )
+                if (processed.droppedAsEmptyAudio) {
+                    try {
+                        listener.onError(context.getString(R.string.error_audio_empty))
+                    } catch (t: Throwable) {
+                        Log.w(TAG, "notify empty audio failed", t)
+                    }
+                    return@launch
+                }
+                val denoised = OfflineSpeechDenoiserManager.denoiseIfEnabled(
+                    context = context,
+                    prefs = prefs,
+                    pcm = processed.pcm,
                     sampleRate = sampleRate
                 )
                 onSessionFinished(denoised)

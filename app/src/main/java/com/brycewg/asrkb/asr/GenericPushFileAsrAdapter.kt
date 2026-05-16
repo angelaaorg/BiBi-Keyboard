@@ -25,7 +25,8 @@ class GenericPushFileAsrAdapter(
     private val scope: CoroutineScope,
     private val prefs: Prefs,
     private val listener: StreamingAsrEngine.Listener,
-    private val recognizer: PcmBatchRecognizer
+    private val recognizer: PcmBatchRecognizer,
+    private val applyVoiceFilter: Boolean = true
 ) : StreamingAsrEngine,
     ExternalPcmConsumer {
 
@@ -64,10 +65,33 @@ class GenericPushFileAsrAdapter(
         }
         scope.launch(Dispatchers.IO) {
             try {
+                val processed = if (applyVoiceFilter) {
+                    RecordedAudioVoiceFilter.processIfEnabled(
+                        context = context,
+                        prefs = prefs,
+                        pcm = data,
+                        sampleRate = 16000,
+                        chunkMillis = 200
+                    )
+                } else {
+                    RecordedAudioVoiceFilter.Result(
+                        pcm = data,
+                        hasSpeech = data.isNotEmpty(),
+                        droppedAsEmptyAudio = false,
+                        originalDurationMs = data.size / 2 * 1_000L / 16000,
+                        outputDurationMs = data.size / 2 * 1_000L / 16000
+                    )
+                }
+                if (processed.droppedAsEmptyAudio) {
+                    try {
+                        listener.onError(context.getString(R.string.error_audio_empty))
+                    } catch (_: Throwable) { }
+                    return@launch
+                }
                 val denoised = OfflineSpeechDenoiserManager.denoiseIfEnabled(
                     context = context,
                     prefs = prefs,
-                    pcm = data,
+                    pcm = processed.pcm,
                     sampleRate = 16000
                 )
                 recognizer.recognizeFromPcm(denoised)

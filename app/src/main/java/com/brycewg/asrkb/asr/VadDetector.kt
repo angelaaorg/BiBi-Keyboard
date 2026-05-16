@@ -305,6 +305,8 @@ class VadDetector(
      */
     fun shouldStop(buf: ByteArray, len: Int): Boolean = analyzeFrame(buf, len).silenceStop
 
+    fun isAvailable(): Boolean = vad != null
+
     /**
      * 对单帧音频进行 VAD 分析，返回“是否语音”与“是否触发静音停录”。
      *

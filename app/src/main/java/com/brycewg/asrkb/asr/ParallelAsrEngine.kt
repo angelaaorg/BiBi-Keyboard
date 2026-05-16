@@ -6,6 +6,7 @@ import android.os.SystemClock
 import android.util.Log
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.store.Prefs
+import java.io.ByteArrayOutputStream
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.CancellationException
@@ -94,6 +95,8 @@ class ParallelAsrEngine(
     private var backupEngine: StreamingAsrEngine? = null
     private var primaryConsumer: ExternalPcmConsumer? = null
     private var backupConsumer: ExternalPcmConsumer? = null
+    private val deferredPcmLock = Any()
+    private val deferredPcmBuffer = ByteArrayOutputStream()
 
     override fun start() {
         if (!running.compareAndSet(false, true)) return
@@ -106,6 +109,9 @@ class ParallelAsrEngine(
         backupTerminal = null
         lastFinalFromBackup = false
         audioBytes.set(0L)
+        synchronized(deferredPcmLock) {
+            deferredPcmBuffer.reset()
+        }
         primaryTimeoutJob?.cancel()
         primaryTimeoutJob = null
 
@@ -169,6 +175,8 @@ class ParallelAsrEngine(
             audioJob = null
         }
 
+        flushDeferredPcmToBatchConsumers()
+
         try {
             primaryEngine?.stop()
         } catch (t: Throwable) {
@@ -195,16 +203,7 @@ class ParallelAsrEngine(
         } catch (t: Throwable) {
             Log.w(TAG, "notify amplitude failed (externalPcmInput)", t)
         }
-        try {
-            primaryConsumer?.appendPcm(pcm, sampleRate, channels)
-        } catch (t: Throwable) {
-            Log.w(TAG, "primary appendPcm failed (externalPcmInput)", t)
-        }
-        try {
-            backupConsumer?.appendPcm(pcm, sampleRate, channels)
-        } catch (t: Throwable) {
-            Log.w(TAG, "backup appendPcm failed (externalPcmInput)", t)
-        }
+        appendPcmToConsumers(pcm, sourceLabel = "externalPcmInput")
     }
 
     private fun cleanupAfterTerminal() {
@@ -281,16 +280,7 @@ class ParallelAsrEngine(
                     }
                     audioBytes.addAndGet(chunk.size.toLong())
 
-                    try {
-                        primaryConsumer?.appendPcm(chunk, SAMPLE_RATE, CHANNELS)
-                    } catch (t: Throwable) {
-                        Log.w(TAG, "primary appendPcm failed", t)
-                    }
-                    try {
-                        backupConsumer?.appendPcm(chunk, SAMPLE_RATE, CHANNELS)
-                    } catch (t: Throwable) {
-                        Log.w(TAG, "backup appendPcm failed", t)
-                    }
+                    appendPcmToConsumers(chunk, sourceLabel = "capture")
 
                     if (vadDetector?.shouldStop(chunk, chunk.size) == true) {
                         Log.d(TAG, "VAD silence detected, stopping session")
@@ -321,6 +311,77 @@ class ParallelAsrEngine(
     private fun fatalCaptureError(message: String) {
         onTerminal(Source.PRIMARY, Terminal.Error(message))
         onTerminal(Source.BACKUP, Terminal.Error(message))
+    }
+
+    private fun appendPcmToConsumers(pcm: ByteArray, sourceLabel: String) {
+        val primaryDeferred = primaryConsumer is GenericPushFileAsrAdapter
+        val backupDeferred = backupConsumer is GenericPushFileAsrAdapter
+        if (primaryDeferred || backupDeferred) {
+            try {
+                synchronized(deferredPcmLock) {
+                    deferredPcmBuffer.write(pcm)
+                }
+            } catch (t: Throwable) {
+                Log.w(TAG, "buffer deferred PCM failed ($sourceLabel)", t)
+            }
+        }
+
+        if (!primaryDeferred) {
+            try {
+                primaryConsumer?.appendPcm(pcm, SAMPLE_RATE, CHANNELS)
+            } catch (t: Throwable) {
+                Log.w(TAG, "primary appendPcm failed ($sourceLabel)", t)
+            }
+        }
+        if (!backupDeferred) {
+            try {
+                backupConsumer?.appendPcm(pcm, SAMPLE_RATE, CHANNELS)
+            } catch (t: Throwable) {
+                Log.w(TAG, "backup appendPcm failed ($sourceLabel)", t)
+            }
+        }
+    }
+
+    private fun flushDeferredPcmToBatchConsumers() {
+        val hasPrimaryDeferred = primaryConsumer is GenericPushFileAsrAdapter
+        val hasBackupDeferred = backupConsumer is GenericPushFileAsrAdapter
+        if (!hasPrimaryDeferred && !hasBackupDeferred) return
+
+        val pcm = synchronized(deferredPcmLock) {
+            val out = deferredPcmBuffer.toByteArray()
+            deferredPcmBuffer.reset()
+            out
+        }
+        if (pcm.isEmpty()) return
+
+        val processed = RecordedAudioVoiceFilter.processIfEnabled(
+            context = context,
+            prefs = prefs,
+            pcm = pcm,
+            sampleRate = SAMPLE_RATE,
+            chunkMillis = CHUNK_MS
+        )
+        if (processed.droppedAsEmptyAudio) {
+            val message = context.getString(R.string.error_audio_empty)
+            if (hasPrimaryDeferred) onTerminal(Source.PRIMARY, Terminal.Error(message))
+            if (hasBackupDeferred) onTerminal(Source.BACKUP, Terminal.Error(message))
+            return
+        }
+
+        if (hasPrimaryDeferred) {
+            try {
+                primaryConsumer?.appendPcm(processed.pcm, SAMPLE_RATE, CHANNELS)
+            } catch (t: Throwable) {
+                Log.w(TAG, "primary append deferred PCM failed", t)
+            }
+        }
+        if (hasBackupDeferred) {
+            try {
+                backupConsumer?.appendPcm(processed.pcm, SAMPLE_RATE, CHANNELS)
+            } catch (t: Throwable) {
+                Log.w(TAG, "backup append deferred PCM failed", t)
+            }
+        }
     }
 
     private fun notifyStoppedIfNeeded() {
@@ -654,6 +715,18 @@ class ParallelAsrEngine(
         }
     }
 
+    private fun wrapPushFileEngine(
+        engineListener: StreamingAsrEngine.Listener,
+        recognizer: PcmBatchRecognizer
+    ): GenericPushFileAsrAdapter = GenericPushFileAsrAdapter(
+        context = context,
+        scope = scope,
+        prefs = prefs,
+        listener = engineListener,
+        recognizer = recognizer,
+        applyVoiceFilter = false
+    )
+
     private fun buildPushPcmEngine(
         vendor: AsrVendor,
         engineListener: StreamingAsrEngine.Listener,
@@ -676,10 +749,7 @@ class ParallelAsrEngine(
                 VolcStreamAsrEngine(context, scope, prefs, engineListener, externalPcmMode = true)
             } else {
                 if (prefs.volcFileStandardEnabled) {
-                    GenericPushFileAsrAdapter(
-                        context,
-                        scope,
-                        prefs,
+                    wrapPushFileEngine(
                         engineListener,
                         VolcStandardFileAsrEngine(
                             context,
@@ -690,10 +760,7 @@ class ParallelAsrEngine(
                         )
                     )
                 } else {
-                    GenericPushFileAsrAdapter(
-                        context,
-                        scope,
-                        prefs,
+                    wrapPushFileEngine(
                         engineListener,
                         VolcFileAsrEngine(
                             context,
@@ -711,7 +778,7 @@ class ParallelAsrEngine(
                 prefs,
                 engineListener,
                 onRequestDuration = onRequestDuration
-            ).let { GenericPushFileAsrAdapter(context, scope, prefs, engineListener, it) }
+            ).let { wrapPushFileEngine(engineListener, it) }
             AsrVendor.ElevenLabs -> if (prefs.elevenStreamingEnabled) {
                 ElevenLabsStreamAsrEngine(
                     context,
@@ -728,7 +795,7 @@ class ParallelAsrEngine(
                     engineListener,
                     onRequestDuration = onRequestDuration
                 )
-                    .let { GenericPushFileAsrAdapter(context, scope, prefs, engineListener, it) }
+                    .let { wrapPushFileEngine(engineListener, it) }
             }
             AsrVendor.OpenAI -> if (prefs.oaAsrStreamingEnabled) {
                 OpenAiRealtimeAsrEngine(
@@ -745,7 +812,7 @@ class ParallelAsrEngine(
                     prefs,
                     engineListener,
                     onRequestDuration = onRequestDuration
-                ).let { GenericPushFileAsrAdapter(context, scope, prefs, engineListener, it) }
+                ).let { wrapPushFileEngine(engineListener, it) }
             }
             AsrVendor.OpenRouter -> OpenRouterFileAsrEngine(
                 context,
@@ -754,7 +821,7 @@ class ParallelAsrEngine(
                 engineListener,
                 onRequestDuration = onRequestDuration
             )
-                .let { GenericPushFileAsrAdapter(context, scope, prefs, engineListener, it) }
+                .let { wrapPushFileEngine(engineListener, it) }
             AsrVendor.DashScope -> if (prefs.isDashStreamingModelSelected()) {
                 DashscopeStreamAsrEngine(
                     context,
@@ -771,7 +838,7 @@ class ParallelAsrEngine(
                     engineListener,
                     onRequestDuration = onRequestDuration
                 )
-                    .let { GenericPushFileAsrAdapter(context, scope, prefs, engineListener, it) }
+                    .let { wrapPushFileEngine(engineListener, it) }
             }
             AsrVendor.Gemini -> GeminiFileAsrEngine(
                 context,
@@ -780,7 +847,7 @@ class ParallelAsrEngine(
                 engineListener,
                 onRequestDuration = onRequestDuration
             )
-                .let { GenericPushFileAsrAdapter(context, scope, prefs, engineListener, it) }
+                .let { wrapPushFileEngine(engineListener, it) }
             AsrVendor.Soniox -> if (prefs.sonioxStreamingEnabled) {
                 SonioxStreamAsrEngine(context, scope, prefs, engineListener, externalPcmMode = true)
             } else {
@@ -791,7 +858,7 @@ class ParallelAsrEngine(
                     engineListener,
                     onRequestDuration = onRequestDuration
                 )
-                    .let { GenericPushFileAsrAdapter(context, scope, prefs, engineListener, it) }
+                    .let { wrapPushFileEngine(engineListener, it) }
             }
             AsrVendor.StepAudio -> StepAudioFileAsrEngine(
                 context,
@@ -800,7 +867,7 @@ class ParallelAsrEngine(
                 engineListener,
                 onRequestDuration = onRequestDuration
             )
-                .let { GenericPushFileAsrAdapter(context, scope, prefs, engineListener, it) }
+                .let { wrapPushFileEngine(engineListener, it) }
             AsrVendor.Zhipu -> ZhipuFileAsrEngine(
                 context,
                 scope,
@@ -808,7 +875,7 @@ class ParallelAsrEngine(
                 engineListener,
                 onRequestDuration = onRequestDuration
             )
-                .let { GenericPushFileAsrAdapter(context, scope, prefs, engineListener, it) }
+                .let { wrapPushFileEngine(engineListener, it) }
             AsrVendor.SenseVoice -> if (prefs.svPseudoStreamEnabled) {
                 SenseVoicePushPcmPseudoStreamAsrEngine(
                     context,
@@ -825,7 +892,7 @@ class ParallelAsrEngine(
                     engineListener,
                     onRequestDuration = onRequestDuration
                 )
-                    .let { GenericPushFileAsrAdapter(context, scope, prefs, engineListener, it) }
+                    .let { wrapPushFileEngine(engineListener, it) }
             }
             AsrVendor.FunAsrNano -> FunAsrNanoFileAsrEngine(
                 context,
@@ -834,7 +901,7 @@ class ParallelAsrEngine(
                 engineListener,
                 onRequestDuration = onRequestDuration
             )
-                .let { GenericPushFileAsrAdapter(context, scope, prefs, engineListener, it) }
+                .let { wrapPushFileEngine(engineListener, it) }
             AsrVendor.Qwen3Asr -> Qwen3AsrFileAsrEngine(
                 context,
                 scope,
@@ -842,7 +909,7 @@ class ParallelAsrEngine(
                 engineListener,
                 onRequestDuration = onRequestDuration
             )
-                .let { GenericPushFileAsrAdapter(context, scope, prefs, engineListener, it) }
+                .let { wrapPushFileEngine(engineListener, it) }
             AsrVendor.Parakeet -> ParakeetFileAsrEngine(
                 context,
                 scope,
@@ -850,7 +917,7 @@ class ParallelAsrEngine(
                 engineListener,
                 onRequestDuration = onRequestDuration
             )
-                .let { GenericPushFileAsrAdapter(context, scope, prefs, engineListener, it) }
+                .let { wrapPushFileEngine(engineListener, it) }
             AsrVendor.FireRedAsr -> if (prefs.frPseudoStreamEnabled) {
                 FireRedAsrPushPcmPseudoStreamAsrEngine(
                     context,
@@ -867,7 +934,7 @@ class ParallelAsrEngine(
                     engineListener,
                     onRequestDuration = onRequestDuration
                 )
-                    .let { GenericPushFileAsrAdapter(context, scope, prefs, engineListener, it) }
+                    .let { wrapPushFileEngine(engineListener, it) }
             }
             AsrVendor.Paraformer -> ParaformerStreamAsrEngine(
                 context,

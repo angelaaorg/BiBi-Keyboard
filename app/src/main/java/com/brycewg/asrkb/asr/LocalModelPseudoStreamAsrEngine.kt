@@ -284,10 +284,26 @@ abstract class LocalModelPseudoStreamAsrEngine(
 
                 if (hasRecordedAudio && sessionId == activeSessionId) {
                     val fullPcm = sessionBuffer.toByteArray()
-                    val denoised = OfflineSpeechDenoiserManager.denoiseIfEnabled(
+                    val processed = RecordedAudioVoiceFilter.processIfEnabled(
                         context = context,
                         prefs = prefs,
                         pcm = fullPcm,
+                        sampleRate = sampleRate,
+                        chunkMillis = chunkMillis
+                    )
+                    if (processed.droppedAsEmptyAudio) {
+                        try {
+                            listener.onError(context.getString(R.string.error_audio_empty))
+                        } catch (t: Throwable) {
+                            Log.e(TAG, "Failed to notify empty audio", t)
+                        }
+                        running.set(false)
+                        return@launch
+                    }
+                    val denoised = OfflineSpeechDenoiserManager.denoiseIfEnabled(
+                        context = context,
+                        prefs = prefs,
+                        pcm = processed.pcm,
                         sampleRate = sampleRate
                     )
                     // stop() 会 cancel 录音协程。若直接在 finally 内调用 suspend 的 onSessionFinished，

@@ -47,6 +47,8 @@ class InputSettingsActivity : BaseActivity() {
     private var isUpdatingSwitchReturnPrevImeOnHide = false
     private var isUpdatingSwitchHideRecentTasks = false
     private var isUpdatingSwitchDuckMediaOnRecord = false
+    private var isUpdatingSwitchAutoCancelEmptyAudioInput = false
+    private var isUpdatingSwitchAutoFilterSilentAudioSegments = false
     private var isUpdatingSwitchOfflineDenoise = false
     private var isUpdatingSwitchHeadsetMicPriority = false
 
@@ -71,6 +73,10 @@ class InputSettingsActivity : BaseActivity() {
         val switchHideRecentTasks = findViewById<MaterialSwitch>(R.id.switchHideRecentTasks)
         val switchDuckMediaOnRecord = findViewById<MaterialSwitch>(R.id.switchDuckMediaOnRecord)
         val switchOfflineDenoise = findViewById<MaterialSwitch>(R.id.switchOfflineDenoise)
+        val switchAutoCancelEmptyAudioInput =
+            findViewById<MaterialSwitch>(R.id.switchAutoCancelEmptyAudioInput)
+        val switchAutoFilterSilentAudioSegments =
+            findViewById<MaterialSwitch>(R.id.switchAutoFilterSilentAudioSegments)
         val switchUploadAudioCompression =
             findViewById<MaterialSwitch>(R.id.switchUploadAudioCompression)
         val switchHeadsetMicPriority = findViewById<MaterialSwitch>(R.id.switchHeadsetMicPriority)
@@ -121,6 +127,15 @@ class InputSettingsActivity : BaseActivity() {
             isUpdatingSwitchOfflineDenoise = true
             switchOfflineDenoise.isChecked = prefs.offlineDenoiseEnabled
             isUpdatingSwitchOfflineDenoise = false
+
+            isUpdatingSwitchAutoCancelEmptyAudioInput = true
+            switchAutoCancelEmptyAudioInput.isChecked = prefs.autoCancelEmptyAudioInputEnabled
+            isUpdatingSwitchAutoCancelEmptyAudioInput = false
+
+            isUpdatingSwitchAutoFilterSilentAudioSegments = true
+            switchAutoFilterSilentAudioSegments.isChecked =
+                prefs.autoFilterSilentAudioSegmentsEnabled
+            isUpdatingSwitchAutoFilterSilentAudioSegments = false
 
             switchUploadAudioCompression.isChecked = prefs.uploadAudioCompressionEnabled
             isUpdatingSwitchHeadsetMicPriority = true
@@ -249,6 +264,26 @@ class InputSettingsActivity : BaseActivity() {
             preferenceKey = "offline_denoise_explained",
             readPref = { prefs.offlineDenoiseEnabled },
             writePref = { v -> prefs.offlineDenoiseEnabled = v },
+            hapticFeedback = { hapticTapIfEnabled(it) }
+        )
+        switchAutoCancelEmptyAudioInput.installExplainedSwitch(
+            context = this,
+            titleRes = R.string.label_auto_cancel_empty_audio_input,
+            offDescRes = R.string.feature_auto_cancel_empty_audio_input_off_desc,
+            onDescRes = R.string.feature_auto_cancel_empty_audio_input_on_desc,
+            preferenceKey = "auto_cancel_empty_audio_input_explained",
+            readPref = { prefs.autoCancelEmptyAudioInputEnabled },
+            writePref = { v -> prefs.autoCancelEmptyAudioInputEnabled = v },
+            hapticFeedback = { hapticTapIfEnabled(it) }
+        )
+        switchAutoFilterSilentAudioSegments.installExplainedSwitch(
+            context = this,
+            titleRes = R.string.label_auto_filter_silent_audio_segments,
+            offDescRes = R.string.feature_auto_filter_silent_audio_segments_off_desc,
+            onDescRes = R.string.feature_auto_filter_silent_audio_segments_on_desc,
+            preferenceKey = "auto_filter_silent_audio_segments_explained",
+            readPref = { prefs.autoFilterSilentAudioSegmentsEnabled },
+            writePref = { v -> prefs.autoFilterSilentAudioSegmentsEnabled = v },
             hapticFeedback = { hapticTapIfEnabled(it) }
         )
         switchUploadAudioCompression.installExplainedSwitch(
