@@ -29,7 +29,8 @@ object RecordedAudioVoiceFilter {
     private const val FILTER_VAD_SENSITIVITY = 1
 
     private data class ChunkMark(
-        val bytes: ByteArray,
+        val offset: Int,
+        val length: Int,
         val durationMs: Int,
         val isSpeech: Boolean,
         val maxAbs: Int,
@@ -150,7 +151,8 @@ object RecordedAudioVoiceFilter {
             val energy = measureEnergy(chunk, chunk.size)
             marks.add(
                 ChunkMark(
-                    bytes = chunk,
+                    offset = offset,
+                    length = len,
                     durationMs = frameMs,
                     isSpeech = isSpeech,
                     maxAbs = energy.maxAbs,
@@ -165,7 +167,7 @@ object RecordedAudioVoiceFilter {
         val hasContent = marks.any { it.shouldKeepAsContent() }
         val shouldDrop = cancelEmpty && shouldDropAsEmptyAudio(marks)
         val filterOutput = if (filterSilent && hasContent) {
-            filterLongNonContentRuns(marks)
+            filterLongNonContentRuns(pcm, marks)
         } else {
             null
         }
@@ -218,7 +220,7 @@ object RecordedAudioVoiceFilter {
 
     private fun shouldDropAsEmptyAudio(marks: List<ChunkMark>): Boolean = marks.isNotEmpty() && marks.none { it.shouldKeepAsContent() }
 
-    private fun filterLongNonContentRuns(marks: List<ChunkMark>): FilterOutput {
+    private fun filterLongNonContentRuns(pcm: ByteArray, marks: List<ChunkMark>): FilterOutput {
         val keep = BooleanArray(marks.size)
         marks.forEachIndexed { index, mark ->
             if (mark.shouldKeepAsContent()) keep[index] = true
@@ -269,9 +271,9 @@ object RecordedAudioVoiceFilter {
             }
         }
 
-        val out = ByteArrayOutputStream()
+        val out = ByteArrayOutputStream(pcm.size)
         marks.forEachIndexed { i, mark ->
-            if (keep[i]) out.write(mark.bytes)
+            if (keep[i]) out.write(pcm, mark.offset, mark.length)
         }
         return FilterOutput(
             pcm = out.toByteArray(),
