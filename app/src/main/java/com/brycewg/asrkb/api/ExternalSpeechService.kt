@@ -508,6 +508,7 @@ class ExternalSpeechService : Service() {
             ensureAutoStopSuppressed()
             engine?.let { startedEngine ->
                 NetworkWarmupCoordinator.warmupForRecordingStart(prefs)
+                preloadLocalAsrForImmediateUse(context, prefs)
                 startedEngine.start()
             }
         }

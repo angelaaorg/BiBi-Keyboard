@@ -689,77 +689,14 @@ class AsrSessionManager(
         } else {
             Log.d(TAG, "Audio ducking disabled by user; skip audio focus request")
         }
-        // 若为本地 SenseVoice / FunASR Nano / FireRedASR，在录音触发时后台开始加载模型
+        // 本地模型在录音开始时后台预热，让加载耗时尽量与录音阶段重叠。
         try {
-            if (
-                prefs.asrVendor == AsrVendor.SenseVoice ||
-                prefs.asrVendor == AsrVendor.FunAsrNano ||
-                prefs.asrVendor == AsrVendor.Qwen3Asr ||
-                prefs.asrVendor == AsrVendor.Parakeet ||
-                prefs.asrVendor == AsrVendor.FireRedAsr
-            ) {
-                val prepared = try {
-                    when (prefs.asrVendor) {
-                        AsrVendor.SenseVoice -> com.brycewg.asrkb.asr.isSenseVoicePrepared()
-                        AsrVendor.FunAsrNano -> com.brycewg.asrkb.asr.isFunAsrNanoPrepared()
-                        AsrVendor.Qwen3Asr -> com.brycewg.asrkb.asr.isQwen3AsrPrepared()
-                        AsrVendor.Parakeet -> com.brycewg.asrkb.asr.isParakeetPrepared()
-                        AsrVendor.FireRedAsr -> com.brycewg.asrkb.asr.isFireRedAsrPrepared()
-                        else -> false
-                    }
-                } catch (t: Throwable) {
-                    Log.e(TAG, "Failed to check local model prepared state", t)
-                    false
-                }
-                if (!prepared) {
-                    try {
-                        when (prefs.asrVendor) {
-                            AsrVendor.FunAsrNano -> com.brycewg.asrkb.asr.preloadFunAsrNanoIfConfigured(
-                                context,
-                                prefs,
-                                onLoadStart = { onLocalModelLoadStart() },
-                                onLoadDone = { onLocalModelLoadDone() },
-                                suppressToastOnStart = true,
-                                forImmediateUse = true
-                            )
-                            AsrVendor.Qwen3Asr -> com.brycewg.asrkb.asr.preloadQwen3AsrIfConfigured(
-                                context,
-                                prefs,
-                                onLoadStart = { onLocalModelLoadStart() },
-                                onLoadDone = { onLocalModelLoadDone() },
-                                suppressToastOnStart = true,
-                                forImmediateUse = true
-                            )
-                            AsrVendor.Parakeet -> com.brycewg.asrkb.asr.preloadParakeetIfConfigured(
-                                context,
-                                prefs,
-                                onLoadStart = { onLocalModelLoadStart() },
-                                onLoadDone = { onLocalModelLoadDone() },
-                                suppressToastOnStart = true,
-                                forImmediateUse = true
-                            )
-                            AsrVendor.FireRedAsr -> com.brycewg.asrkb.asr.preloadFireRedAsrIfConfigured(
-                                context,
-                                prefs,
-                                onLoadStart = { onLocalModelLoadStart() },
-                                onLoadDone = { onLocalModelLoadDone() },
-                                suppressToastOnStart = true,
-                                forImmediateUse = true
-                            )
-                            else -> com.brycewg.asrkb.asr.preloadSenseVoiceIfConfigured(
-                                context,
-                                prefs,
-                                onLoadStart = { onLocalModelLoadStart() },
-                                onLoadDone = { onLocalModelLoadDone() },
-                                suppressToastOnStart = true,
-                                forImmediateUse = true
-                            )
-                        }
-                    } catch (t: Throwable) {
-                        Log.e(TAG, "Failed to trigger local model preload on startRecording", t)
-                    }
-                }
-            }
+            preloadLocalAsrForImmediateUse(
+                context = context,
+                prefs = prefs,
+                onLoadStart = { onLocalModelLoadStart() },
+                onLoadDone = { onLocalModelLoadDone() }
+            )
         } catch (t: Throwable) {
             Log.e(TAG, "Local model preload guard failed", t)
         }

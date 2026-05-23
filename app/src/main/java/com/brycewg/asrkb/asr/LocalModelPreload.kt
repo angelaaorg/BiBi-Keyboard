@@ -81,6 +81,36 @@ fun preloadLocalAsrIfConfigured(
 }
 
 /**
+ * 录音会话即将开始时的本地模型预热。
+ *
+ * 与“首次显示时预加载”不同，这里不依赖 UI 出现；只要本次会话会用本地模型，
+ * 就尽早在录音阶段启动加载，让加载耗时尽量与用户说话时间重叠。
+ */
+fun preloadLocalAsrForImmediateUse(
+    context: Context,
+    prefs: Prefs,
+    onLoadStart: (() -> Unit)? = null,
+    onLoadDone: (() -> Unit)? = null
+) {
+    val vendor = try {
+        prefs.asrVendor
+    } catch (t: Throwable) {
+        Log.e("LocalModelPreload", "preloadLocalAsrForImmediateUse: read vendor failed", t)
+        return
+    }
+    if (!isLocalAsrVendor(vendor)) return
+    if (isLocalAsrPrepared(prefs)) return
+    preloadLocalAsrIfConfigured(
+        context = context,
+        prefs = prefs,
+        onLoadStart = onLoadStart,
+        onLoadDone = onLoadDone,
+        suppressToastOnStart = true,
+        forImmediateUse = true
+    )
+}
+
+/**
  * 统一检查本地 ASR 是否已准备（模型已加载或正在加载中）
  */
 fun isLocalAsrPrepared(prefs: Prefs): Boolean = try {
