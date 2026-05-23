@@ -7,6 +7,7 @@ import java.util.Locale
 internal object AsrErrorMessageMapper {
     fun map(context: Context, raw: String): String? {
         if (raw.isEmpty()) return null
+        if (raw == context.getString(R.string.error_audio_empty_skipped)) return raw
 
         val lower = raw.lowercase(Locale.ROOT)
 
