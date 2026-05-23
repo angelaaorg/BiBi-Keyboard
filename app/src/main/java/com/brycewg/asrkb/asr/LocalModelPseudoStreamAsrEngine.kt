@@ -293,7 +293,7 @@ abstract class LocalModelPseudoStreamAsrEngine(
                     )
                     if (processed.droppedAsEmptyAudio) {
                         try {
-                            listener.onError(context.getString(R.string.error_audio_empty))
+                            listener.onError(context.getString(R.string.error_audio_empty_skipped))
                         } catch (t: Throwable) {
                             Log.e(TAG, "Failed to notify empty audio", t)
                         }

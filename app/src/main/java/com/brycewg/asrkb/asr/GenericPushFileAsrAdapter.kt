@@ -84,7 +84,7 @@ class GenericPushFileAsrAdapter(
                 }
                 if (processed.droppedAsEmptyAudio) {
                     try {
-                        listener.onError(context.getString(R.string.error_audio_empty))
+                        listener.onError(context.getString(R.string.error_audio_empty_skipped))
                     } catch (_: Throwable) { }
                     return@launch
                 }

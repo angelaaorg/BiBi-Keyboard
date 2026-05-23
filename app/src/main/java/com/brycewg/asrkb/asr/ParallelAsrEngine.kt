@@ -362,7 +362,7 @@ class ParallelAsrEngine(
             chunkMillis = CHUNK_MS
         )
         if (processed.droppedAsEmptyAudio) {
-            val message = context.getString(R.string.error_audio_empty)
+            val message = context.getString(R.string.error_audio_empty_skipped)
             if (hasPrimaryDeferred) onTerminal(Source.PRIMARY, Terminal.Error(message))
             if (hasBackupDeferred) onTerminal(Source.BACKUP, Terminal.Error(message))
             return
