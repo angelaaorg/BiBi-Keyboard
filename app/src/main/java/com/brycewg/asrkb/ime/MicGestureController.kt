@@ -151,6 +151,9 @@ internal class MicGestureController(
     }
 
     private fun handleMainMicTouch(v: View, event: MotionEvent): Boolean {
+        if (actionHandler.isMicLockedBySwipe()) {
+            return handleLockedMicTouch(v, event)
+        }
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 performKeyHaptic(v)
@@ -257,6 +260,41 @@ internal class MicGestureController(
                 return true
             }
             else -> return false
+        }
+    }
+
+    private fun handleLockedMicTouch(v: View, event: MotionEvent): Boolean {
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                performKeyHaptic(v)
+                safeLog(
+                    event = "mic_locked_down",
+                    data = mapOf(
+                        "state" to actionHandler.getCurrentState()::class.java.simpleName
+                    )
+                )
+                return true
+            }
+            MotionEvent.ACTION_UP -> {
+                safeLog(
+                    event = "mic_locked_up",
+                    data = mapOf(
+                        "state" to actionHandler.getCurrentState()::class.java.simpleName
+                    )
+                )
+                actionHandler.handleLockedMicTap()
+                return true
+            }
+            MotionEvent.ACTION_CANCEL -> {
+                safeLog(
+                    event = "mic_locked_cancel",
+                    data = mapOf(
+                        "state" to actionHandler.getCurrentState()::class.java.simpleName
+                    )
+                )
+                return true
+            }
+            else -> return true
         }
     }
 
