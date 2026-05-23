@@ -1,5 +1,25 @@
 # Changelog
 
+## v3.16.1 (2026-05-23)
+
+### New Features
+
+- **[Pro] Input Field Context**: When using the main keyboard, LLM post-processing can now use the existing text in the input field as context, improving rewrite coherence
+- **API Log Page Local ASR Records**: Added local ASR call logging support to the API Log page
+
+### Improvements
+
+- **Empty Audio Filtering Disabled by Default**: Changed VAD empty audio auto-cancel and silent segment filtering to be disabled by default; users can enable it as needed
+- **Empty Audio Skip Message Optimization**: Improved error messages for empty audio skips to differentiate between skip reasons
+- **Audio Filter Rewrite**: Rewrote the audio filter with chunk-based analysis and trimming for improved silence detection accuracy
+- **Local Model Loading Optimization**: Extended preload-on-recording logic to cover external linkage scenarios
+
+### Bug Fixes
+
+- **Swipe Lock Touch Event Handling**: Fixed touch event handling for the microphone button when in swipe-locked mode
+
+---
+
 ## v3.16.0 (2026-05-17)
 
 ### New Features
