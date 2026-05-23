@@ -36,9 +36,14 @@ internal class SenseVoicePseudoStreamDelegate(
     @Volatile
     private var previewJob: Job? = null
 
+    @Volatile
+    private var loadLog: LocalAsrCallLogger.Session? = null
+
     fun onSessionStart(sessionId: Long) {
         previewJob?.cancel()
         previewJob = null
+        loadLog?.cancel("New pseudo stream session")
+        loadLog = null
         activeSessionId = sessionId
         previewSegments = mutableListOf()
     }
@@ -118,6 +123,13 @@ internal class SenseVoicePseudoStreamDelegate(
 
     suspend fun onSessionFinished(sessionId: Long, fullPcm: ByteArray) {
         val t0 = System.currentTimeMillis()
+        val localLog = LocalAsrCallLogger.startInference(
+            prefs = prefs,
+            vendor = AsrVendor.SenseVoice,
+            source = "pseudo_stream_final",
+            audioBytes = fullPcm.size,
+            sampleRate = sampleRate
+        )
         try {
             if (sessionId != activeSessionId) return
             previewJob?.cancel()
@@ -134,14 +146,17 @@ internal class SenseVoicePseudoStreamDelegate(
             if (sessionId != activeSessionId) return
             if (text.isNullOrBlank()) {
                 if (sessionId != activeSessionId) return
+                val msg = context.getString(R.string.error_asr_empty_result)
+                localLog.failure(msg)
                 try {
-                    listener.onError(context.getString(R.string.error_asr_empty_result))
+                    listener.onError(msg)
                 } catch (t: Throwable) {
                     Log.e(tag, "Failed to notify empty result error", t)
                 }
             } else {
                 val raw = text.trim()
                 if (sessionId != activeSessionId) return
+                localLog.successWithText(raw)
                 try {
                     listener.onFinal(raw)
                 } catch (t: Throwable) {
@@ -153,17 +168,21 @@ internal class SenseVoicePseudoStreamDelegate(
         } catch (t: Throwable) {
             Log.e(tag, "Final recognition failed", t)
             if (sessionId != activeSessionId) return
+            val msg = context.getString(
+                R.string.error_recognize_failed_with_reason,
+                t.message ?: ""
+            )
+            loadLog?.failure(t.message ?: msg)
+            loadLog = null
+            localLog.failure(msg)
             try {
-                listener.onError(
-                    context.getString(
-                        R.string.error_recognize_failed_with_reason,
-                        t.message ?: ""
-                    )
-                )
+                listener.onError(msg)
             } catch (e: Throwable) {
                 Log.e(tag, "Failed to notify final recognition error", e)
             }
         } finally {
+            loadLog?.failure("Model load did not complete")
+            loadLog = null
             previewJob = null
             try {
                 previewMutex.withLock {
@@ -291,8 +310,19 @@ internal class SenseVoicePseudoStreamDelegate(
             sampleRate = sampleRate,
             keepAliveMs = keepMs,
             alwaysKeep = alwaysKeep,
-            onLoadStart = { notifyLoadStart() },
-            onLoadDone = { notifyLoadDone() }
+            onLoadStart = {
+                loadLog = LocalAsrCallLogger.startLoad(
+                    prefs = prefs,
+                    vendor = AsrVendor.SenseVoice,
+                    source = if (reportErrorToUser) "pseudo_stream_final_load" else "pseudo_stream_preview_load"
+                )
+                notifyLoadStart()
+            },
+            onLoadDone = {
+                loadLog?.success("loaded=true")
+                loadLog = null
+                notifyLoadDone()
+            }
         )
 
         if (text.isNullOrBlank()) {

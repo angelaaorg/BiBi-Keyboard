@@ -188,6 +188,7 @@ class ApiLogActivity : BaseActivity() {
         r.category,
         r.vendor,
         r.model,
+        r.source,
         r.protocol,
         r.method,
         r.host,
@@ -251,7 +252,7 @@ class ApiLogActivity : BaseActivity() {
                 val vendor = formatVendorName(r.vendor.ifBlank { itemView.context.getString(R.string.api_log_unknown) })
                 tvTitle.text = "$status · ${r.category} · $vendor"
                 tvTime.text = fmt.format(Date(r.timestamp))
-                tvEndpoint.text = "${r.method.ifBlank { r.protocol }} ${r.host}${r.path}"
+                tvEndpoint.text = formatEndpoint(itemView.context, r)
                 val codePart = if (r.httpCode != 0) "code ${r.httpCode}" else r.protocol
                 val modelPart = r.model.takeIf { it.isNotBlank() } ?: "-"
                 tvMeta.text = itemView.context.getString(
@@ -299,7 +300,7 @@ class ApiLogActivity : BaseActivity() {
         }
         val vendor = formatVendorName(r.vendor.ifBlank { getString(R.string.api_log_unknown) })
         tvDialogTitle.text = "$status · ${r.category} · $vendor"
-        tvDialogEndpoint.text = "${r.method.ifBlank { r.protocol }} ${r.host}${r.path}"
+        tvDialogEndpoint.text = formatEndpoint(this, r)
         val codePart = if (r.httpCode != 0) "code ${r.httpCode}" else r.protocol
         val modelPart = r.model.takeIf { it.isNotBlank() } ?: "-"
         tvDialogMeta.text = getString(
@@ -335,7 +336,7 @@ class ApiLogActivity : BaseActivity() {
         appendLine("time=${fmt.format(Date(r.timestamp))}")
         appendLine("protocol=${r.protocol}")
         appendLine("method=${r.method}")
-        appendLine("url=${r.host}${r.path}")
+        appendLine("target=${formatEndpoint(this@ApiLogActivity, r)}")
         appendLine("queryKeys=${r.queryKeys}")
         appendLine("vendor=${formatVendorName(r.vendor)}")
         appendLine("model=${r.model}")
@@ -345,6 +346,34 @@ class ApiLogActivity : BaseActivity() {
         appendLine("structure=${r.requestStructure}")
         appendLine("response=${r.responseSummary}")
         if (r.errorSummary.isNotBlank()) appendLine("error=${r.errorSummary}")
+    }
+
+    private fun formatEndpoint(context: Context, r: ApiLogStore.ApiLogRecord): String {
+        if (r.protocol.equals("Local", ignoreCase = true)) {
+            val action = formatLocalAction(context, r.method)
+            val source = formatLocalSource(context, r.source.ifBlank { r.path.ifBlank { r.vendor } })
+            return context.getString(R.string.api_log_local_endpoint_format, action, source)
+        }
+        return "${r.method.ifBlank { r.protocol }} ${r.host}${r.path}"
+    }
+
+    private fun formatLocalAction(context: Context, action: String): String = when (action.lowercase(Locale.US)) {
+        "infer" -> context.getString(R.string.api_log_local_action_infer)
+        "load" -> context.getString(R.string.api_log_local_action_load)
+        else -> action.ifBlank { context.getString(R.string.api_log_unknown) }
+    }
+
+    private fun formatLocalSource(context: Context, source: String): String = when (source.lowercase(Locale.US)) {
+        "preload" -> context.getString(R.string.api_log_local_source_preload)
+        "file" -> context.getString(R.string.api_log_local_source_file)
+        "inference_load" -> context.getString(R.string.api_log_local_source_inference_load)
+        "pseudo_stream_final" -> context.getString(R.string.api_log_local_source_pseudo_stream_final)
+        "pseudo_stream_final_load" -> context.getString(R.string.api_log_local_source_pseudo_stream_final_load)
+        "pseudo_stream_preview_load" -> context.getString(R.string.api_log_local_source_pseudo_stream_preview_load)
+        "streaming_load" -> context.getString(R.string.api_log_local_source_streaming_load)
+        "streaming" -> context.getString(R.string.api_log_local_source_streaming)
+        "external_pcm_stream" -> context.getString(R.string.api_log_local_source_external_pcm_stream)
+        else -> source.ifBlank { context.getString(R.string.api_log_unknown) }
     }
 
     private fun formatVendorName(vendor: String): String = when (vendor.lowercase(Locale.US)) {

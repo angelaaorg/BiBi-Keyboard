@@ -72,6 +72,11 @@ class ParaformerStreamAsrEngine(
 
     private var lastEmitUptimeMs: Long = 0L
     private var lastEmittedText: String? = null
+    private val loggedAudioBytes = AtomicInteger(0)
+
+    @Volatile private var streamLog: LocalAsrCallLogger.Session? = null
+
+    @Volatile private var loadLog: LocalAsrCallLogger.Session? = null
 
     override val isRunning: Boolean
         get() = running.get()
@@ -81,6 +86,14 @@ class ParaformerStreamAsrEngine(
         closing.set(false)
         finalizeOnce.set(false)
         closeSilently.set(false)
+        loggedAudioBytes.set(0)
+        streamLog = LocalAsrCallLogger.startInference(
+            prefs = prefs,
+            vendor = AsrVendor.Paraformer,
+            source = if (externalPcmMode) "external_pcm_stream" else "streaming",
+            audioBytes = 0,
+            sampleRate = sampleRate
+        )
         // 外部推流模式下不检查录音权限
         if (!externalPcmMode) {
             val hasPermission = ContextCompat.checkSelfPermission(
@@ -88,13 +101,17 @@ class ParaformerStreamAsrEngine(
                 Manifest.permission.RECORD_AUDIO
             ) == PackageManager.PERMISSION_GRANTED
             if (!hasPermission) {
-                listener.onError(context.getString(R.string.error_record_permission_denied))
+                val msg = context.getString(R.string.error_record_permission_denied)
+                failStreamLog(msg)
+                listener.onError(msg)
                 return
             }
         }
 
         if (!mgr.isOnnxAvailable()) {
-            listener.onError(context.getString(R.string.error_local_asr_not_ready))
+            val msg = context.getString(R.string.error_local_asr_not_ready)
+            failStreamLog(msg)
+            listener.onError(msg)
             return
         }
 
@@ -138,7 +155,9 @@ class ParaformerStreamAsrEngine(
             }
             val dir = findPfModelDir(group)
             if (dir == null) {
-                listener.onError(context.getString(R.string.error_paraformer_model_missing))
+                val msg = context.getString(R.string.error_paraformer_model_missing)
+                failStreamLog(msg)
+                listener.onError(msg)
                 running.set(false)
                 return@launch
             }
@@ -162,7 +181,9 @@ class ParaformerStreamAsrEngine(
                 java.io.File(dir, "decoder.onnx")
             }
             if (!enc.exists() || !dec.exists()) {
-                listener.onError(context.getString(R.string.error_paraformer_model_missing))
+                val msg = context.getString(R.string.error_paraformer_model_missing)
+                failStreamLog(msg)
+                listener.onError(msg)
                 running.set(false)
                 return@launch
             }
@@ -178,17 +199,34 @@ class ParaformerStreamAsrEngine(
                 numThreads = prefs.pfNumThreads,
                 keepAliveMs = keepMs,
                 alwaysKeep = alwaysKeep,
-                onLoadStart = { notifyLoadUi(true) },
-                onLoadDone = { notifyLoadUi(false) }
+                onLoadStart = {
+                    loadLog = LocalAsrCallLogger.startLoad(
+                        prefs = prefs,
+                        vendor = AsrVendor.Paraformer,
+                        source = "streaming_load"
+                    )
+                    notifyLoadUi(true)
+                },
+                onLoadDone = {
+                    loadLog?.success("loaded=true")
+                    loadLog = null
+                    notifyLoadUi(false)
+                }
             )
             if (!ok) {
                 Log.w(TAG, "Paraformer prepare() failed")
+                loadLog?.failure("prepare returned false")
+                loadLog = null
+                failStreamLog("Paraformer prepare returned false")
+                running.set(false)
                 return@launch
             }
 
             val stream = mgr.createStreamOrNull()
             if (stream == null) {
-                listener.onError(context.getString(R.string.error_local_asr_not_ready))
+                val msg = context.getString(R.string.error_local_asr_not_ready)
+                failStreamLog(msg)
+                listener.onError(msg)
                 return@launch
             }
             currentStream = stream
@@ -206,13 +244,16 @@ class ParaformerStreamAsrEngine(
                     ) {
                         Log.e(TAG, "releaseStreamSilently failed", t)
                     }
+                    failStreamLog("Stream released silently")
                 } else {
                     val finalText = try {
                         finalizeAndRelease(stream)
                     } catch (t: Throwable) {
                         Log.e(TAG, "finalizeAndRelease failed", t)
+                        failStreamLog(t.message ?: "finalizeAndRelease failed")
                         ""
                     }
+                    completeStreamLog(finalText)
                     try {
                         listener.onFinal(finalText)
                     } catch (
@@ -232,6 +273,9 @@ class ParaformerStreamAsrEngine(
     override fun appendPcm(pcm: ByteArray, sampleRate: Int, channels: Int) {
         if (!running.get() && currentStream == null && !closing.get()) return
         if (sampleRate != 16000 || channels != 1) return
+        if (pcm.isNotEmpty()) {
+            loggedAudioBytes.addAndGet(pcm.size)
+        }
         try {
             listener.onAmplitude(com.brycewg.asrkb.asr.calculateNormalizedAmplitude(pcm))
         } catch (
@@ -265,8 +309,10 @@ class ParaformerStreamAsrEngine(
                     finalizeAndRelease(s)
                 } catch (t: Throwable) {
                     Log.e(TAG, "finalizeAndRelease failed", t)
+                    failStreamLog(t.message ?: "finalizeAndRelease failed")
                     ""
                 }
+                completeStreamLog(finalText)
                 try {
                     listener.onFinal(finalText)
                 } catch (
@@ -284,6 +330,22 @@ class ParaformerStreamAsrEngine(
         if (start) ui.onLocalModelLoadStart() else ui.onLocalModelLoadDone()
     }
 
+    private fun completeStreamLog(finalText: String) {
+        val trimmed = finalText.trim()
+        val response = "resultChars=${trimmed.length}; empty=${trimmed.isEmpty()}; audioBytes=${loggedAudioBytes.get()}"
+        if (trimmed.isEmpty()) {
+            streamLog?.failure("Empty ASR result")
+        } else {
+            streamLog?.success(response)
+        }
+        streamLog = null
+    }
+
+    private fun failStreamLog(message: String) {
+        streamLog?.failure(message)
+        streamLog = null
+    }
+
     private fun startCapture() {
         audioJob?.cancel()
         audioJob = scope.launch(Dispatchers.IO) {
@@ -298,7 +360,9 @@ class ParaformerStreamAsrEngine(
 
             if (!audioManager.hasPermission()) {
                 Log.e(TAG, "Missing RECORD_AUDIO permission")
-                listener.onError(context.getString(R.string.error_record_permission_denied))
+                val msg = context.getString(R.string.error_record_permission_denied)
+                failStreamLog(msg)
+                listener.onError(msg)
                 running.set(false)
                 return@launch
             }
@@ -318,6 +382,9 @@ class ParaformerStreamAsrEngine(
                 Log.d(TAG, "Starting audio capture for Paraformer with chunk=${chunkMillis}ms")
                 audioManager.startCapture().collect { audioChunk ->
                     if (!running.get() && currentStream == null) return@collect
+                    if (audioChunk.isNotEmpty()) {
+                        loggedAudioBytes.addAndGet(audioChunk.size)
+                    }
 
                     // Calculate and send audio amplitude (for waveform animation)
                     try {
@@ -364,6 +431,7 @@ class ParaformerStreamAsrEngine(
                     } else {
                         context.getString(R.string.error_audio_error, t.message ?: "")
                     }
+                    failStreamLog(msg)
                     try {
                         listener.onError(msg)
                     } catch (
@@ -1068,13 +1136,30 @@ fun preloadParaformerIfConfigured(
 ) {
     try {
         val manager = ParaformerOnnxManager.getInstance()
-        if (!manager.isOnnxAvailable()) return
+        if (!manager.isOnnxAvailable()) {
+            LocalAsrCallLogger.recordLoadFailure(
+                prefs,
+                AsrVendor.Paraformer,
+                "preload",
+                context.getString(com.brycewg.asrkb.R.string.error_local_asr_not_ready)
+            )
+            return
+        }
 
         val base = context.getExternalFilesDir(null) ?: context.filesDir
         val root = java.io.File(base, "paraformer")
         val isTri = prefs.pfModelVariant.startsWith("trilingual")
         val group = if (isTri) java.io.File(root, "trilingual") else java.io.File(root, "bilingual")
-        val dir = findPfModelDir(group) ?: return
+        val dir = findPfModelDir(group)
+        if (dir == null) {
+            LocalAsrCallLogger.recordLoadFailure(
+                prefs,
+                AsrVendor.Paraformer,
+                "preload",
+                context.getString(com.brycewg.asrkb.R.string.error_paraformer_model_missing)
+            )
+            return
+        }
         val tokensPath = java.io.File(dir, "tokens.txt").absolutePath
         val int8 = prefs.pfModelVariant.contains("int8")
         val enc = if (int8) {
@@ -1093,7 +1178,15 @@ fun preloadParaformerIfConfigured(
         } else {
             java.io.File(dir, "decoder.onnx")
         }
-        if (!enc.exists() || !dec.exists()) return
+        if (!enc.exists() || !dec.exists()) {
+            LocalAsrCallLogger.recordLoadFailure(
+                prefs,
+                AsrVendor.Paraformer,
+                "preload",
+                context.getString(com.brycewg.asrkb.R.string.error_paraformer_model_missing)
+            )
+            return
+        }
 
         val keepMinutes = prefs.pfKeepAliveMinutes
         val keepMs = if (keepMinutes <= 0) 0L else keepMinutes.toLong() * 60_000L
@@ -1104,6 +1197,7 @@ fun preloadParaformerIfConfigured(
 
         val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
         LocalModelLoadCoordinator.request(key) {
+            var loadLog: LocalAsrCallLogger.Session? = null
             val t0 = android.os.SystemClock.uptimeMillis()
             val ok = manager.prepare(
                 tokens = tokensPath,
@@ -1113,6 +1207,11 @@ fun preloadParaformerIfConfigured(
                 keepAliveMs = keepMs,
                 alwaysKeep = alwaysKeep,
                 onLoadStart = {
+                    loadLog = LocalAsrCallLogger.startLoad(
+                        prefs = prefs,
+                        vendor = AsrVendor.Paraformer,
+                        source = "preload"
+                    )
                     if (!suppressToastOnStart) {
                         mainHandler.post {
                             android.widget.Toast.makeText(
@@ -1124,8 +1223,16 @@ fun preloadParaformerIfConfigured(
                     }
                     onLoadStart?.invoke()
                 },
-                onLoadDone = onLoadDone
+                onLoadDone = {
+                    loadLog?.success("loaded=true")
+                    loadLog = null
+                    onLoadDone?.invoke()
+                }
             )
+            if (!ok) {
+                loadLog?.failure("prepare returned false")
+                loadLog = null
+            }
             if (ok) {
                 try {
                     SherpaPunctuationManager.getInstance().ensureOfflineLoaded(

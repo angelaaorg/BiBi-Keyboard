@@ -82,6 +82,14 @@ internal class FireRedAsrFileAsrEngine(
 
     override suspend fun recognize(pcm: ByteArray) {
         val t0 = System.currentTimeMillis()
+        val localLog = LocalAsrCallLogger.startInference(
+            prefs = prefs,
+            vendor = AsrVendor.FireRedAsr,
+            source = "file",
+            audioBytes = pcm.size,
+            sampleRate = sampleRate
+        )
+        var loadLog: LocalAsrCallLogger.Session? = null
         var durationReported = false
         fun reportDuration() {
             if (durationReported) return
@@ -103,21 +111,27 @@ internal class FireRedAsrFileAsrEngine(
             val manager = FireRedAsrOnnxManager.getInstance()
             if (!manager.isOnnxAvailable()) {
                 reportDuration()
-                listener.onError(context.getString(R.string.error_local_asr_not_ready))
+                val msg = context.getString(R.string.error_local_asr_not_ready)
+                localLog.failure(msg)
+                listener.onError(msg)
                 return
             }
 
             val modelFiles = resolveFireRedAsrModelFiles(context, prefs)
             if (modelFiles == null) {
                 reportDuration()
-                listener.onError(context.getString(R.string.error_firered_asr_model_missing))
+                val msg = context.getString(R.string.error_firered_asr_model_missing)
+                localLog.failure(msg)
+                listener.onError(msg)
                 return
             }
 
             val samples = fireRedAsrPcmToFloatArray(pcm)
             if (samples.isEmpty()) {
                 reportDuration()
-                listener.onError(context.getString(R.string.error_audio_empty))
+                val msg = context.getString(R.string.error_audio_empty)
+                localLog.failure(msg)
+                listener.onError(msg)
                 return
             }
 
@@ -148,14 +162,27 @@ internal class FireRedAsrFileAsrEngine(
                 sampleRate = sampleRate,
                 keepAliveMs = keepMs,
                 alwaysKeep = alwaysKeep,
-                onLoadStart = { notifyLoadStart() },
-                onLoadDone = { notifyLoadDone() }
+                onLoadStart = {
+                    loadLog = LocalAsrCallLogger.startLoad(
+                        prefs = prefs,
+                        vendor = AsrVendor.FireRedAsr,
+                        source = "inference_load"
+                    )
+                    notifyLoadStart()
+                },
+                onLoadDone = {
+                    loadLog?.success("loaded=true")
+                    loadLog = null
+                    notifyLoadDone()
+                }
             )
 
             val sanitizedText = sanitizeFireRedAsrResult(text)
             if (sanitizedText.isNullOrEmpty()) {
                 reportDuration()
-                listener.onError(context.getString(R.string.error_asr_empty_result))
+                val msg = context.getString(R.string.error_asr_empty_result)
+                localLog.failure(msg)
+                listener.onError(msg)
             } else {
                 val useItn = try {
                     prefs.frUseItn
@@ -175,18 +202,22 @@ internal class FireRedAsrFileAsrEngine(
                     normalized
                 }
                 reportDuration()
+                localLog.successWithText(finalText)
                 listener.onFinal(finalText)
             }
         } catch (t: Throwable) {
             Log.e(TAG, "Recognition failed", t)
             reportDuration()
-            listener.onError(
-                context.getString(
-                    R.string.error_recognize_failed_with_reason,
-                    t.message ?: ""
-                )
+            val msg = context.getString(
+                R.string.error_recognize_failed_with_reason,
+                t.message ?: ""
             )
+            loadLog?.failure(t.message ?: msg)
+            loadLog = null
+            localLog.failure(msg)
+            listener.onError(msg)
         } finally {
+            loadLog?.failure("Model load did not complete")
             reportDuration()
         }
     }
@@ -229,9 +260,26 @@ internal fun preloadFireRedAsrIfConfigured(
 ) {
     try {
         val manager = FireRedAsrOnnxManager.getInstance()
-        if (!manager.isOnnxAvailable()) return
+        if (!manager.isOnnxAvailable()) {
+            LocalAsrCallLogger.recordLoadFailure(
+                prefs,
+                AsrVendor.FireRedAsr,
+                "preload",
+                context.getString(R.string.error_local_asr_not_ready)
+            )
+            return
+        }
 
-        val modelFiles = resolveFireRedAsrModelFiles(context, prefs) ?: return
+        val modelFiles = resolveFireRedAsrModelFiles(context, prefs)
+        if (modelFiles == null) {
+            LocalAsrCallLogger.recordLoadFailure(
+                prefs,
+                AsrVendor.FireRedAsr,
+                "preload",
+                context.getString(R.string.error_firered_asr_model_missing)
+            )
+            return
+        }
         val keepMinutes = prefs.frKeepAliveMinutes
         val keepMs = if (keepMinutes <= 0) 0L else keepMinutes.toLong() * 60_000L
         val alwaysKeep = keepMinutes < 0
@@ -254,6 +302,7 @@ internal fun preloadFireRedAsrIfConfigured(
 
         val mainHandler = Handler(Looper.getMainLooper())
         LocalModelLoadCoordinator.request(key) {
+            var loadLog: LocalAsrCallLogger.Session? = null
             val t0 = android.os.SystemClock.uptimeMillis()
             val ok = manager.prepare(
                 assetManager = null,
@@ -266,6 +315,11 @@ internal fun preloadFireRedAsrIfConfigured(
                 keepAliveMs = keepMs,
                 alwaysKeep = alwaysKeep,
                 onLoadStart = {
+                    loadLog = LocalAsrCallLogger.startLoad(
+                        prefs = prefs,
+                        vendor = AsrVendor.FireRedAsr,
+                        source = "preload"
+                    )
                     if (!suppressToastOnStart) {
                         mainHandler.post {
                             Toast.makeText(
@@ -277,8 +331,16 @@ internal fun preloadFireRedAsrIfConfigured(
                     }
                     onLoadStart?.invoke()
                 },
-                onLoadDone = onLoadDone
+                onLoadDone = {
+                    loadLog?.success("loaded=true")
+                    loadLog = null
+                    onLoadDone?.invoke()
+                }
             )
+            if (!ok) {
+                loadLog?.failure("prepare returned false")
+                loadLog = null
+            }
             if (ok) {
                 try {
                     SherpaPunctuationManager.getInstance().ensureOfflineLoaded(

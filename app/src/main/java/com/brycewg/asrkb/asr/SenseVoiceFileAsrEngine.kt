@@ -93,6 +93,14 @@ class SenseVoiceFileAsrEngine(
 
     override suspend fun recognize(pcm: ByteArray) {
         val t0 = System.currentTimeMillis()
+        val localLog = LocalAsrCallLogger.startInference(
+            prefs = prefs,
+            vendor = AsrVendor.SenseVoice,
+            source = "file",
+            audioBytes = pcm.size,
+            sampleRate = sampleRate
+        )
+        var loadLog: LocalAsrCallLogger.Session? = null
         var durationReported = false
         fun reportDuration() {
             if (durationReported) return
@@ -108,13 +116,17 @@ class SenseVoiceFileAsrEngine(
             val manager = SenseVoiceOnnxManager.getInstance()
             if (!manager.isOnnxAvailable()) {
                 reportDuration()
-                listener.onError(context.getString(R.string.error_local_asr_not_ready))
+                val msg = context.getString(R.string.error_local_asr_not_ready)
+                localLog.failure(msg)
+                listener.onError(msg)
                 return
             }
             val resolvedModel = resolveSenseVoiceModel(context, prefs)
             if (resolvedModel == null) {
                 reportDuration()
-                listener.onError(context.getString(R.string.error_sensevoice_model_missing))
+                val msg = context.getString(R.string.error_sensevoice_model_missing)
+                localLog.failure(msg)
+                listener.onError(msg)
                 return
             }
 
@@ -122,7 +134,9 @@ class SenseVoiceFileAsrEngine(
             val samples = pcmToFloatArray(pcm)
             if (samples.isEmpty()) {
                 reportDuration()
-                listener.onError(context.getString(R.string.error_audio_empty))
+                val msg = context.getString(R.string.error_audio_empty)
+                localLog.failure(msg)
+                listener.onError(msg)
                 return
             }
 
@@ -166,28 +180,45 @@ class SenseVoiceFileAsrEngine(
                 sampleRate = sampleRate,
                 keepAliveMs = keepMs,
                 alwaysKeep = alwaysKeep,
-                onLoadStart = { notifyLoadStart() },
-                onLoadDone = { notifyLoadDone() }
+                onLoadStart = {
+                    loadLog = LocalAsrCallLogger.startLoad(
+                        prefs = prefs,
+                        vendor = AsrVendor.SenseVoice,
+                        source = "inference_load"
+                    )
+                    notifyLoadStart()
+                },
+                onLoadDone = {
+                    loadLog?.success("loaded=true")
+                    loadLog = null
+                    notifyLoadDone()
+                }
             )
 
             if (text.isNullOrBlank()) {
                 reportDuration()
-                listener.onError(context.getString(R.string.error_asr_empty_result))
+                val msg = context.getString(R.string.error_asr_empty_result)
+                localLog.failure(msg)
+                listener.onError(msg)
             } else {
                 val raw = text.trim()
                 reportDuration()
+                localLog.successWithText(raw)
                 listener.onFinal(raw)
             }
         } catch (t: Throwable) {
             Log.e("SenseVoiceFileAsrEngine", "Recognition failed", t)
             reportDuration()
-            listener.onError(
-                context.getString(
-                    R.string.error_recognize_failed_with_reason,
-                    t.message ?: ""
-                )
+            val msg = context.getString(
+                R.string.error_recognize_failed_with_reason,
+                t.message ?: ""
             )
+            loadLog?.failure(t.message ?: msg)
+            loadLog = null
+            localLog.failure(msg)
+            listener.onError(msg)
         } finally {
+            loadLog?.failure("Model load did not complete")
             reportDuration()
         }
     }
@@ -242,9 +273,26 @@ fun preloadSenseVoiceIfConfigured(
 ) {
     try {
         val manager = SenseVoiceOnnxManager.getInstance()
-        if (!manager.isOnnxAvailable()) return
+        if (!manager.isOnnxAvailable()) {
+            LocalAsrCallLogger.recordLoadFailure(
+                prefs,
+                AsrVendor.SenseVoice,
+                "preload",
+                context.getString(R.string.error_local_asr_not_ready)
+            )
+            return
+        }
 
-        val resolvedModel = resolveSenseVoiceModel(context, prefs) ?: return
+        val resolvedModel = resolveSenseVoiceModel(context, prefs)
+        if (resolvedModel == null) {
+            LocalAsrCallLogger.recordLoadFailure(
+                prefs,
+                AsrVendor.SenseVoice,
+                "preload",
+                context.getString(R.string.error_sensevoice_model_missing)
+            )
+            return
+        }
 
         val keepMinutes = prefs.svKeepAliveMinutes
         val keepMs = if (keepMinutes <= 0) 0L else keepMinutes.toLong() * 60_000L
@@ -258,6 +306,7 @@ fun preloadSenseVoiceIfConfigured(
         val mainHandler = Handler(Looper.getMainLooper())
 
         LocalModelLoadCoordinator.request(key) {
+            var loadLog: LocalAsrCallLogger.Session? = null
             val t0 = android.os.SystemClock.uptimeMillis()
             val ok = manager.prepare(
                 assetManager = null,
@@ -270,6 +319,11 @@ fun preloadSenseVoiceIfConfigured(
                 keepAliveMs = keepMs,
                 alwaysKeep = alwaysKeep,
                 onLoadStart = {
+                    loadLog = LocalAsrCallLogger.startLoad(
+                        prefs = prefs,
+                        vendor = AsrVendor.SenseVoice,
+                        source = "preload"
+                    )
                     if (!suppressToastOnStart) {
                         mainHandler.post {
                             Toast.makeText(
@@ -281,8 +335,16 @@ fun preloadSenseVoiceIfConfigured(
                     }
                     onLoadStart?.invoke()
                 },
-                onLoadDone = onLoadDone
+                onLoadDone = {
+                    loadLog?.success("loaded=true")
+                    loadLog = null
+                    onLoadDone?.invoke()
+                }
             )
+            if (!ok) {
+                loadLog?.failure("prepare returned false")
+                loadLog = null
+            }
             if (ok && !forImmediateUse) {
                 val dt = (android.os.SystemClock.uptimeMillis() - t0).coerceAtLeast(0)
                 mainHandler.post {

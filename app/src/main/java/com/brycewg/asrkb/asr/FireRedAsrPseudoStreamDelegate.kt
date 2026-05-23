@@ -44,9 +44,14 @@ internal class FireRedAsrPseudoStreamDelegate(
     fun onSessionStart(sessionId: Long) {
         previewJob?.cancel()
         previewJob = null
+        loadLog?.cancel("New pseudo stream session")
+        loadLog = null
         activeSessionId = sessionId
         previewSegments = mutableListOf()
     }
+
+    @Volatile
+    private var loadLog: LocalAsrCallLogger.Session? = null
 
     fun ensureReady(): Boolean {
         val manager = FireRedAsrOnnxManager.getInstance()
@@ -126,6 +131,13 @@ internal class FireRedAsrPseudoStreamDelegate(
 
     suspend fun onSessionFinished(sessionId: Long, fullPcm: ByteArray) {
         val t0 = System.currentTimeMillis()
+        val localLog = LocalAsrCallLogger.startInference(
+            prefs = prefs,
+            vendor = AsrVendor.FireRedAsr,
+            source = "pseudo_stream_final",
+            audioBytes = fullPcm.size,
+            sampleRate = sampleRate
+        )
         try {
             if (sessionId != activeSessionId) return
             previewJob?.cancel()
@@ -142,8 +154,10 @@ internal class FireRedAsrPseudoStreamDelegate(
             if (sessionId != activeSessionId) return
             if (text.isNullOrBlank()) {
                 if (sessionId != activeSessionId) return
+                val msg = context.getString(R.string.error_asr_empty_result)
+                localLog.failure(msg)
                 try {
-                    listener.onError(context.getString(R.string.error_asr_empty_result))
+                    listener.onError(msg)
                 } catch (t: Throwable) {
                     Log.e(tag, "Failed to notify empty result error", t)
                 }
@@ -173,6 +187,7 @@ internal class FireRedAsrPseudoStreamDelegate(
                     normalized
                 }
                 if (sessionId != activeSessionId) return
+                localLog.successWithText(finalText)
                 try {
                     listener.onFinal(finalText)
                 } catch (t: Throwable) {
@@ -184,17 +199,21 @@ internal class FireRedAsrPseudoStreamDelegate(
         } catch (t: Throwable) {
             Log.e(tag, "Final recognition failed", t)
             if (sessionId != activeSessionId) return
+            val msg = context.getString(
+                R.string.error_recognize_failed_with_reason,
+                t.message ?: ""
+            )
+            loadLog?.failure(t.message ?: msg)
+            loadLog = null
+            localLog.failure(msg)
             try {
-                listener.onError(
-                    context.getString(
-                        R.string.error_recognize_failed_with_reason,
-                        t.message ?: ""
-                    )
-                )
+                listener.onError(msg)
             } catch (e: Throwable) {
                 Log.e(tag, "Failed to notify final recognition error", e)
             }
         } finally {
+            loadLog?.failure("Model load did not complete")
+            loadLog = null
             previewJob = null
             try {
                 previewMutex.withLock {
@@ -313,8 +332,19 @@ internal class FireRedAsrPseudoStreamDelegate(
             sampleRate = sampleRate,
             keepAliveMs = keepMs,
             alwaysKeep = alwaysKeep,
-            onLoadStart = { notifyLoadStart() },
-            onLoadDone = { notifyLoadDone() }
+            onLoadStart = {
+                loadLog = LocalAsrCallLogger.startLoad(
+                    prefs = prefs,
+                    vendor = AsrVendor.FireRedAsr,
+                    source = if (reportErrorToUser) "pseudo_stream_final_load" else "pseudo_stream_preview_load"
+                )
+                notifyLoadStart()
+            },
+            onLoadDone = {
+                loadLog?.success("loaded=true")
+                loadLog = null
+                notifyLoadDone()
+            }
         )
 
         val sanitizedText = sanitizeFireRedAsrResult(text)
