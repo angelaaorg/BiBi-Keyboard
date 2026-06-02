@@ -23,8 +23,8 @@ import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
-import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.material3.Text as MaterialText
+import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -32,18 +32,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.dp
+import com.brycewg.asrkb.R
 import com.brycewg.asrkb.ui.settings.compose.core.BibiUiMode
+import com.brycewg.asrkb.ui.settings.compose.core.LocalBibiSettingsDark
 import com.brycewg.asrkb.ui.settings.compose.core.SettingsLayoutMetrics
 import com.brycewg.asrkb.ui.settings.compose.core.settingsSegmentedItemShape
+import top.yukonga.miuix.kmp.basic.Text as MiuixText
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import top.yukonga.miuix.kmp.preference.RadioButtonLocation
 import top.yukonga.miuix.kmp.preference.RadioButtonPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import top.yukonga.miuix.kmp.basic.Text as MiuixText
 
 internal data class SettingsChoiceTag(
     val label: String,
@@ -296,6 +297,7 @@ private fun ChoiceTags(
     tags: List<SettingsChoiceTag>,
     modifier: Modifier = Modifier
 ) {
+    val isDark = LocalBibiSettingsDark.current
     FlowRow(
         modifier = modifier.padding(top = SettingsLayoutMetrics.ChoiceTagTopPadding),
         horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(SettingsLayoutMetrics.ChoiceTagSpacing),
@@ -304,8 +306,8 @@ private fun ChoiceTags(
         tags.forEach { tag ->
             Surface(
                 shape = RoundedCornerShape(percent = 50),
-                color = colorResource(tag.bgColorResId),
-                contentColor = colorResource(tag.textColorResId)
+                color = asrTagColor(tag.bgColorResId, isDark),
+                contentColor = asrTagColor(tag.textColorResId, isDark)
             ) {
                 MaterialText(
                     text = tag.label,
@@ -318,4 +320,24 @@ private fun ChoiceTags(
             }
         }
     }
+}
+
+private fun asrTagColor(@ColorRes colorResId: Int, isDark: Boolean): Color = when (colorResId) {
+    R.color.asr_tag_bg_online -> if (isDark) Color(0xFF1E2B3A) else Color(0xFFE3EBF4)
+    R.color.asr_tag_fg_online -> if (isDark) Color(0xFFBBD4F4) else Color(0xFF2F4A67)
+    R.color.asr_tag_bg_local -> if (isDark) Color(0xFF1D3328) else Color(0xFFE2EEE7)
+    R.color.asr_tag_fg_local -> if (isDark) Color(0xFFBFE6D2) else Color(0xFF2E5A45)
+    R.color.asr_tag_bg_streaming -> if (isDark) Color(0xFF3A321E) else Color(0xFFF2EBD9)
+    R.color.asr_tag_fg_streaming -> if (isDark) Color(0xFFFFE7B6) else Color(0xFF6B5630)
+    R.color.asr_tag_bg_non_streaming -> if (isDark) Color(0xFF263233) else Color(0xFFE6EDEC)
+    R.color.asr_tag_fg_non_streaming -> if (isDark) Color(0xFFCBE0E0) else Color(0xFF3E5B5C)
+    R.color.asr_tag_bg_pseudo_streaming -> if (isDark) Color(0xFF322B1A) else Color(0xFFEFE2C8)
+    R.color.asr_tag_fg_pseudo_streaming -> if (isDark) Color(0xFFFFE7B6) else Color(0xFF6B5630)
+    R.color.asr_tag_bg_custom -> if (isDark) Color(0xFF2B2035) else Color(0xFFEAE4F1)
+    R.color.asr_tag_fg_custom -> if (isDark) Color(0xFFE0C9F2) else Color(0xFF5B3E73)
+    R.color.asr_tag_bg_cn_dialect -> if (isDark) Color(0xFF3A1F28) else Color(0xFFF0DEE4)
+    R.color.asr_tag_fg_cn_dialect -> if (isDark) Color(0xFFFFB8C8) else Color(0xFF6A3D4A)
+    R.color.asr_tag_bg_accurate -> if (isDark) Color(0xFF2A2F38) else Color(0xFFE5E8EF)
+    R.color.asr_tag_fg_accurate -> if (isDark) Color(0xFFD8E0EF) else Color(0xFF3B4557)
+    else -> Color.Unspecified
 }
