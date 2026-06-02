@@ -78,7 +78,7 @@
     <string name="llm_vendor_sf_free">硅基流动</string>
     <string name="llm_vendor_openai">OpenAI</string>
     <string name="llm_vendor_gemini">Google Gemini</string>
-    <string name="llm_vendor_deepseek">DeepSeek（深度求索）</string>
+    <string name="llm_vendor_deepseek">DeepSeek</string>
     <string name="llm_vendor_moonshot">月之暗面 (Kimi)</string>
     <string name="llm_vendor_zhipu">智谱 GLM</string>
     <string name="llm_vendor_volcengine">火山引擎</string>
