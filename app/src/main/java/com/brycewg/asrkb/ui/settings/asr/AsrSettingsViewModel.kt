@@ -24,11 +24,20 @@ class AsrSettingsViewModel : ViewModel() {
 
     private lateinit var prefs: Prefs
     private lateinit var appContext: Context
+    private var initialized = false
 
     fun initialize(context: Context) {
+        if (initialized) return
         appContext = context.applicationContext
         prefs = Prefs(appContext)
         loadInitialState()
+        initialized = true
+    }
+
+    fun refreshFromPrefs() {
+        if (initialized) {
+            loadInitialState()
+        }
     }
 
     private fun loadInitialState() {

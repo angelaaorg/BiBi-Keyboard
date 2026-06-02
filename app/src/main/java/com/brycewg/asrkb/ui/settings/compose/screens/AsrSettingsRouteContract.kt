@@ -1,0 +1,143 @@
+/**
+ * Compose ASR 设置页路由状态与动作契约。
+ *
+ * 归属模块：ui/settings/compose/screens
+ */
+package com.brycewg.asrkb.ui.settings.compose.screens
+
+import com.brycewg.asrkb.asr.AsrVendor
+import com.brycewg.asrkb.store.Prefs
+
+internal typealias AsrVendorPicker = (
+    titleResId: Int,
+    selectedVendor: AsrVendor,
+    onSelected: (AsrVendor) -> Unit
+) -> Unit
+
+internal typealias AsrVolcSwitchExplainer = (
+    target: Boolean,
+    titleResId: Int,
+    offDescResId: Int,
+    onDescResId: Int,
+    currentState: Boolean,
+    preferenceKey: String,
+    onConfirm: (Boolean) -> Unit
+) -> Unit
+
+internal data class AsrOnlineSettingsRouteState(
+    val volcAppKey: String,
+    val onVolcAppKeyChange: (String) -> Unit,
+    val volcAccessKey: String,
+    val onVolcAccessKeyChange: (String) -> Unit,
+    val dashApiKey: String,
+    val onDashApiKeyChange: (String) -> Unit,
+    val dashModel: String,
+    val dashPrompt: String,
+    val onDashPromptChange: (String) -> Unit,
+    val dashLanguage: String,
+    val onDashLanguageChange: (String) -> Unit,
+    val dashRegion: String,
+    val onDashRegionChange: (String) -> Unit,
+    val dashSemanticPunct: Boolean,
+    val onDashSemanticPunctChange: (Boolean) -> Unit,
+    val sfFreeAsrEnabled: Boolean,
+    val onSfFreeAsrEnabledChange: (Boolean) -> Unit,
+    val sfFreeAsrModel: String,
+    val sfApiKey: String,
+    val onSfApiKeyChange: (String) -> Unit,
+    val sfModel: String,
+    val elevenApiKey: String,
+    val onElevenApiKeyChange: (String) -> Unit,
+    val elevenStreaming: Boolean,
+    val onElevenStreamingChange: (Boolean) -> Unit,
+    val elevenLanguageCode: String,
+    val onElevenLanguageChange: (String) -> Unit,
+    val stepAudioApiKey: String,
+    val onStepAudioApiKeyChange: (String) -> Unit,
+    val stepAudioModel: String,
+    val stepAudioLanguage: String,
+    val onStepAudioLanguageChange: (String) -> Unit,
+    val stepAudioUseItn: Boolean,
+    val onStepAudioUseItnChange: (Boolean) -> Unit,
+    val zhipuApiKey: String,
+    val onZhipuApiKeyChange: (String) -> Unit,
+    val zhipuTemperature: Float,
+    val onZhipuTemperatureChange: (Float) -> Unit,
+    val geminiApiKey: String,
+    val onGeminiApiKeyChange: (String) -> Unit,
+    val geminiEndpoint: String,
+    val onGeminiEndpointChange: (String) -> Unit,
+    val geminiModel: String,
+    val onGeminiModelChange: (String) -> Unit,
+    val geminiPrompt: String,
+    val onGeminiPromptChange: (String) -> Unit,
+    val geminiDisableThinking: Boolean,
+    val onGeminiDisableThinkingChange: (Boolean) -> Unit,
+    val openRouterEndpoint: String,
+    val onOpenRouterEndpointChange: (String) -> Unit,
+    val openRouterApiKey: String,
+    val onOpenRouterApiKeyChange: (String) -> Unit,
+    val openRouterModel: String,
+    val onOpenRouterModelChange: (String) -> Unit,
+    val openAiProviders: List<Prefs.OpenAiAsrProvider>,
+    val openAiActiveProviderId: String,
+    val onOpenAiProviderSelected: (String) -> Unit,
+    val onOpenAiProviderAdded: () -> Unit,
+    val onOpenAiProviderDeleted: () -> Boolean,
+    val openAiProfileName: String,
+    val onOpenAiProfileNameChange: (String) -> Unit,
+    val openAiEndpoint: String,
+    val onOpenAiEndpointChange: (String) -> Unit,
+    val openAiApiKey: String,
+    val onOpenAiApiKeyChange: (String) -> Unit,
+    val openAiModel: String,
+    val onOpenAiModelChange: (String) -> Unit,
+    val openAiStreaming: Boolean,
+    val onOpenAiStreamingChange: (Boolean) -> Unit,
+    val openAiUsePrompt: Boolean,
+    val onOpenAiUsePromptChange: (Boolean) -> Unit,
+    val openAiPrompt: String,
+    val onOpenAiPromptChange: (String) -> Unit,
+    val openAiLanguage: String,
+    val onOpenAiLanguageChange: (String) -> Unit,
+    val sonioxApiKey: String,
+    val onSonioxApiKeyChange: (String) -> Unit,
+    val sonioxStreaming: Boolean,
+    val onSonioxStreamingChange: (Boolean) -> Unit,
+    val sonioxLanguages: List<String>,
+    val sonioxLanguageStrict: Boolean,
+    val onSonioxLanguageStrictChange: (Boolean) -> Unit
+)
+
+internal data class AsrBackupSettingsRouteState(
+    val enabled: Boolean,
+    val onEnabledChange: (Boolean) -> Unit,
+    val vendor: AsrVendor,
+    val onVendorChange: (AsrVendor) -> Unit,
+    val sensitivity: Int
+)
+
+internal data class AsrLocalModelRouteState(
+    val readyByKey: Map<String, Boolean>,
+    val statusByKey: Map<String, String>,
+    val onDownload: (AsrLocalModelSpec, String) -> Unit,
+    val onImport: (AsrLocalModelSpec, String) -> Unit,
+    val onClear: (AsrLocalModelSpec) -> Unit,
+    val onRefresh: () -> Unit
+)
+
+internal data class AsrSettingsRouteActions(
+    val hapticTap: () -> Unit,
+    val showVendorPicker: AsrVendorPicker,
+    val showBackupSensitivityPicker: () -> Unit,
+    val showSfFreeModelPicker: () -> Unit,
+    val showSfPaidModelPicker: () -> Unit,
+    val showDashModelPicker: () -> Unit,
+    val showStepAudioModelPicker: () -> Unit,
+    val showSonioxLanguagePicker: () -> Unit,
+    val onPrimaryVendorSelected: (AsrVendor) -> Unit,
+    val applyAutoStopSwitch: (Boolean) -> Unit,
+    val applyVolcSwitch: AsrVolcSwitchExplainer,
+    val rebuildVadIfNeeded: () -> Unit,
+    val onOpenUrl: (String) -> Unit
+)
