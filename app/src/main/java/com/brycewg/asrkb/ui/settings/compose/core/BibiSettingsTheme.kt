@@ -9,8 +9,8 @@ package com.brycewg.asrkb.ui.settings.compose.core
 
 import android.app.Activity
 import android.os.Build
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
@@ -47,7 +47,10 @@ fun BibiSettingsTheme(
 
     SyncSystemBarAppearance(isDark)
 
-    CompositionLocalProvider(LocalBibiUiMode provides uiMode) {
+    CompositionLocalProvider(
+        LocalBibiUiMode provides uiMode,
+        LocalBibiSettingsDark provides isDark
+    ) {
         when (uiMode) {
             BibiUiMode.Material -> MaterialTheme(
                 colorScheme = materialColorScheme,

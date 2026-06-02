@@ -65,9 +65,6 @@ internal fun SfFreeLlmSection(
         count = itemCount,
         onCheckedChange = actions.onToggleSfFree
     )
-    if (sfUseFreeService) {
-        AiBodyText(uiMode = uiMode, textRes = R.string.sf_free_service_desc)
-    }
     if (!sfUseFreeService) {
         AiTextField(
             uiMode = uiMode,
@@ -135,6 +132,10 @@ internal fun SfFreeLlmSection(
             enabled = testEnabled,
             onClick = actions.onTestCall
         )
+    }
+    if (sfUseFreeService) {
+        AiBodyText(uiMode = uiMode, textRes = R.string.sf_free_service_desc)
+        SiliconFlowPoweredByImage()
     }
 }
 
@@ -476,5 +477,4 @@ internal fun builtinLlmPrimaryItemCount(
     return 3 + (if (showCustomModel) 1 else 0)
 }
 
-internal fun customLlmPrimaryItemCount(customModelInputVisible: Boolean): Int =
-    6 + (if (customModelInputVisible) 1 else 0)
+internal fun customLlmPrimaryItemCount(customModelInputVisible: Boolean): Int = 6 + (if (customModelInputVisible) 1 else 0)

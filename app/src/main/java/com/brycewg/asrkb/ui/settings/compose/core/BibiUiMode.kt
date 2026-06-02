@@ -22,3 +22,4 @@ enum class BibiUiMode(val id: String) {
 }
 
 val LocalBibiUiMode = staticCompositionLocalOf { BibiUiMode.Miuix }
+val LocalBibiSettingsDark = staticCompositionLocalOf { false }

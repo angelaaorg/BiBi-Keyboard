@@ -7,13 +7,18 @@
 
 package com.brycewg.asrkb.ui.settings.compose.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -26,6 +31,7 @@ import com.brycewg.asrkb.ui.settings.compose.components.SettingsSliderPreference
 import com.brycewg.asrkb.ui.settings.compose.components.SettingsTextField
 import com.brycewg.asrkb.ui.settings.compose.components.SettingsValuePreference
 import com.brycewg.asrkb.ui.settings.compose.core.BibiUiMode
+import com.brycewg.asrkb.ui.settings.compose.core.LocalBibiSettingsDark
 import com.brycewg.asrkb.ui.settings.compose.model.DropdownOption
 import com.brycewg.asrkb.ui.settings.compose.model.SettingsEntry
 import top.yukonga.miuix.kmp.basic.Text as MiuixText
@@ -198,6 +204,24 @@ internal fun AsrBodyText(uiMode: BibiUiMode, text: String) {
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp)
         )
     }
+}
+
+@Composable
+internal fun SiliconFlowPoweredByImage() {
+    val drawableRes = if (LocalBibiSettingsDark.current) {
+        R.drawable.powered_by_siliconflow_dark
+    } else {
+        R.drawable.powered_by_siliconflow_light
+    }
+    Image(
+        painter = painterResource(drawableRes),
+        contentDescription = stringResource(R.string.sf_powered_by_desc),
+        contentScale = ContentScale.FillWidth,
+        alignment = Alignment.CenterStart,
+        modifier = Modifier
+            .padding(horizontal = 20.dp, vertical = 8.dp)
+            .fillMaxWidth()
+    )
 }
 
 @Composable

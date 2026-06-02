@@ -118,7 +118,6 @@ internal fun CurrentAsrVendorConfig(
                 count = itemCount,
                 onCheckedChange = onSfFreeAsrEnabledChange
             )
-            AsrBodyText(uiMode = uiMode, textRes = R.string.sf_free_description)
             if (sfFreeAsrEnabled) {
                 AsrValuePreference(
                     titleRes = R.string.label_sf_model_select,
@@ -145,6 +144,8 @@ internal fun CurrentAsrVendorConfig(
                     onClick = onChooseSfModel
                 )
             }
+            AsrBodyText(uiMode = uiMode, textRes = R.string.sf_free_description)
+            SiliconFlowPoweredByImage()
         }
 
         AsrVendor.ElevenLabs -> {
