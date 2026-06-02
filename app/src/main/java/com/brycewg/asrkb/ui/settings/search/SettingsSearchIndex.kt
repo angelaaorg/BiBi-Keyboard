@@ -5,29 +5,12 @@
  */
 package com.brycewg.asrkb.ui.settings.search
 
-import android.app.Activity
 import android.content.Context
-import android.graphics.Typeface
-import android.util.TypedValue
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
-import android.widget.LinearLayout
-import android.widget.TextView
-import androidx.annotation.IdRes
-import androidx.annotation.LayoutRes
 import androidx.annotation.StringRes
 import com.brycewg.asrkb.R
+import com.brycewg.asrkb.asr.AsrVendor
 import com.brycewg.asrkb.asr.LlmVendor
-import com.brycewg.asrkb.ui.settings.ai.AiPostSettingsActivity
-import com.brycewg.asrkb.ui.settings.asr.AsrSettingsActivity
-import com.brycewg.asrkb.ui.settings.backup.BackupSettingsActivity
-import com.brycewg.asrkb.ui.settings.floating.FloatingSettingsActivity
-import com.brycewg.asrkb.ui.settings.input.InputSettingsActivity
-import com.brycewg.asrkb.ui.settings.other.OtherSettingsActivity
-import com.google.android.material.button.MaterialButton
-import com.google.android.material.materialswitch.MaterialSwitch
-import com.google.android.material.textfield.TextInputLayout
+import com.brycewg.asrkb.ui.settings.compose.core.BibiSettingsRoute
 import java.util.Locale
 
 object SettingsSearchIndex {
@@ -56,140 +39,247 @@ object SettingsSearchIndex {
         }
     }
 
-    private data class ScreenSpec(
-        @param:LayoutRes @field:LayoutRes val layoutResId: Int,
-        @param:StringRes @field:StringRes val screenTitleResId: Int,
-        val activityClass: Class<out Activity>,
-        val manualMappings: List<ManualMapping>
-    )
-
-    private data class ManualMapping(
-        @param:StringRes @field:StringRes val labelResId: Int,
-        @param:IdRes @field:IdRes val targetViewId: Int
-    )
-
-    private data class VendorHint(
-        val title: String,
-        val asrVendorId: String? = null,
-        val llmVendorId: String? = null,
-        val keywords: List<String> = emptyList()
-    )
-
     private fun buildIndex(context: Context): List<SettingsSearchEntry> {
-        val minCardTitlePx = TypedValue.applyDimension(
-            TypedValue.COMPLEX_UNIT_SP,
-            18f,
-            context.resources.displayMetrics
-        )
-        val specs = listOf(
-            ScreenSpec(
-                layoutResId = R.layout.activity_input_settings,
-                screenTitleResId = R.string.title_input_settings,
-                activityClass = InputSettingsActivity::class.java,
-                manualMappings = listOf(
-                    ManualMapping(R.string.label_ime_switch_target, R.id.tvImeSwitchTargetValue),
-                    ManualMapping(R.string.label_keyboard_height, R.id.toggleKeyboardHeight),
-                    ManualMapping(
-                        R.string.label_haptic_feedback_strength,
-                        R.id.sliderHapticFeedbackStrength
-                    ),
-                    ManualMapping(R.string.label_keyboard_bottom_padding, R.id.sliderBottomPadding),
-                    ManualMapping(
-                        R.string.label_waveform_sensitivity,
-                        R.id.sliderWaveformSensitivity
-                    ),
-                    ManualMapping(R.string.label_language, R.id.tvLanguageValue),
-                    ManualMapping(R.string.label_extension_buttons, R.id.tvExtensionButtonsValue)
-                )
-            ),
-            ScreenSpec(
-                layoutResId = R.layout.activity_asr_settings,
-                screenTitleResId = R.string.title_asr_settings,
-                activityClass = AsrSettingsActivity::class.java,
-                manualMappings = listOf(
-                    ManualMapping(R.string.label_asr_vendor, R.id.tvAsrVendorValue),
-                    ManualMapping(R.string.label_silence_window_ms, R.id.sliderSilenceWindow),
-                    ManualMapping(
-                        R.string.label_silence_sensitivity,
-                        R.id.sliderSilenceSensitivity
-                    )
-                )
-            ),
-            ScreenSpec(
-                layoutResId = R.layout.activity_ai_post_settings,
-                screenTitleResId = R.string.title_ai_settings,
-                activityClass = AiPostSettingsActivity::class.java,
-                manualMappings = listOf(
-                    ManualMapping(R.string.label_llm_vendor, R.id.tvLlmVendor),
-                    ManualMapping(R.string.title_ai_skip_under, R.id.sliderSkipAiUnderChars)
-                )
-            ),
-            ScreenSpec(
-                layoutResId = R.layout.activity_floating_settings,
-                screenTitleResId = R.string.title_floating_settings,
-                activityClass = FloatingSettingsActivity::class.java,
-                manualMappings = listOf(
-                    ManualMapping(R.string.label_floating_alpha, R.id.sliderFloatingAlpha),
-                    ManualMapping(R.string.label_floating_size, R.id.sliderFloatingSize)
-                )
-            ),
-            ScreenSpec(
-                layoutResId = R.layout.activity_other_settings,
-                screenTitleResId = R.string.title_other_settings,
-                activityClass = OtherSettingsActivity::class.java,
-                manualMappings = listOf(
-                    ManualMapping(R.string.label_speech_preset_section, R.id.tvSpeechPresetsValue)
-                )
-            ),
-            ScreenSpec(
-                layoutResId = R.layout.activity_backup_settings,
-                screenTitleResId = R.string.title_backup_settings,
-                activityClass = BackupSettingsActivity::class.java,
-                manualMappings = emptyList()
-            )
-        )
-
         val unique = LinkedHashMap<String, SettingsSearchEntry>()
-        for (spec in specs) {
-            val root = LayoutInflater.from(context).inflate(spec.layoutResId, null, false)
-            val auto = collectAutoEntries(spec, root, minCardTitlePx)
-            for (entry in auto) {
-                unique.putIfAbsent(entry.uniqueKey(), entry)
-            }
-            for (mapping in spec.manualMappings) {
-                val title = runCatching {
-                    context.getString(mapping.labelResId)
-                }.getOrNull().orEmpty()
-                if (title.isBlank()) continue
-                val sectionPathAndVendors =
-                    resolveSectionPathAndVendors(root, mapping.targetViewId, minCardTitlePx)
-                val manual = SettingsSearchEntry(
-                    title = title,
-                    sectionPath = sectionPathAndVendors.sectionPath,
-                    screenTitleResId = spec.screenTitleResId,
-                    activityClass = spec.activityClass,
-                    targetViewId = mapping.targetViewId,
-                    keywords = sectionPathAndVendors.keywords,
-                    forceAsrVendorId = sectionPathAndVendors.forceAsrVendorId,
-                    forceLlmVendorId = sectionPathAndVendors.forceLlmVendorId
-                )
-                unique.putIfAbsent(manual.uniqueKey(), manual)
-            }
-            if (spec.activityClass == AiPostSettingsActivity::class.java) {
-                val vendorEntries = buildAiPostProcessModelVendorSubgroupEntries(spec, context)
-                for (entry in vendorEntries) {
-                    unique.putIfAbsent(entry.uniqueKey(), entry)
-                }
-            }
+        fun add(entry: SettingsSearchEntry) {
+            unique.putIfAbsent(entry.uniqueKey(), entry)
         }
+
+        baseEntries().forEach { add(it.toSearchEntry(context)) }
+        asrVendorEntries(context).forEach(::add)
+        llmVendorEntries(context).forEach(::add)
 
         return unique.values.toList()
     }
 
+    private data class DeclarativeEntry(
+        @param:StringRes @field:StringRes val titleRes: Int,
+        @param:StringRes @field:StringRes val screenTitleRes: Int,
+        val route: BibiSettingsRoute,
+        @param:StringRes @field:StringRes val sectionTitleRes: Int? = null,
+        val keywords: List<String> = emptyList(),
+        val forceAsrVendorId: String? = null,
+        val forceLlmVendorId: String? = null
+    ) {
+        fun toSearchEntry(context: Context): SettingsSearchEntry = SettingsSearchEntry(
+            title = context.getString(titleRes),
+            sectionPath = sectionTitleRes?.let { listOf(context.getString(it)) }.orEmpty(),
+            screenTitleResId = screenTitleRes,
+            composeRoute = route,
+            targetEntryId = context.resources.getResourceEntryName(titleRes).toTargetEntryId(),
+            keywords = keywords,
+            forceAsrVendorId = forceAsrVendorId,
+            forceLlmVendorId = forceLlmVendorId
+        )
+    }
+
+    private fun baseEntries(): List<DeclarativeEntry> = buildList {
+        add(DeclarativeEntry(R.string.btn_one_click_setup, R.string.settings_title, BibiSettingsRoute.Home))
+        add(DeclarativeEntry(R.string.btn_settings_search, R.string.settings_title, BibiSettingsRoute.Home))
+        add(DeclarativeEntry(R.string.btn_test_input, R.string.settings_title, BibiSettingsRoute.Home))
+        add(DeclarativeEntry(R.string.title_input_settings, R.string.settings_title, BibiSettingsRoute.Input))
+        add(DeclarativeEntry(R.string.title_floating_settings, R.string.settings_title, BibiSettingsRoute.Floating))
+        add(DeclarativeEntry(R.string.title_asr_settings, R.string.settings_title, BibiSettingsRoute.Asr))
+        add(DeclarativeEntry(R.string.title_ai_settings, R.string.settings_title, BibiSettingsRoute.Ai))
+        add(DeclarativeEntry(R.string.btn_open_asr_history, R.string.settings_title, BibiSettingsRoute.History))
+        add(DeclarativeEntry(R.string.btn_check_update, R.string.settings_title, BibiSettingsRoute.Home))
+        add(DeclarativeEntry(R.string.title_backup_settings, R.string.settings_title, BibiSettingsRoute.Backup))
+        add(DeclarativeEntry(R.string.title_other_settings, R.string.settings_title, BibiSettingsRoute.Other))
+        add(DeclarativeEntry(R.string.about_title, R.string.settings_title, BibiSettingsRoute.About))
+
+        addInputEntries()
+        addFloatingEntries()
+        addAsrEntries()
+        addAiEntries()
+        addOtherEntries()
+        addBackupEntries()
+        addAboutEntries()
+    }
+
+    private fun MutableList<DeclarativeEntry>.addInputEntries() {
+        val route = BibiSettingsRoute.Input
+        val screen = R.string.title_input_settings
+        fun item(@StringRes title: Int, @StringRes section: Int, vararg keywords: String) {
+            add(DeclarativeEntry(title, screen, route, section, keywords.toList()))
+        }
+        item(R.string.label_trim_trailing_punct, R.string.section_input_behavior)
+        item(R.string.label_mic_tap_toggle, R.string.section_input_behavior)
+        item(R.string.label_auto_start_recording_on_show, R.string.section_input_behavior)
+        item(R.string.label_hide_recent_task_card, R.string.section_input_behavior)
+        item(R.string.label_fcitx5_return_on_switcher, R.string.section_input_behavior, "fcitx5")
+        item(R.string.label_return_prev_ime_on_hide, R.string.section_input_behavior)
+        item(R.string.label_ime_switch_target, R.string.section_input_behavior)
+        item(R.string.label_audio_ducking_on_record, R.string.section_audio_and_link)
+        item(R.string.label_offline_denoise, R.string.section_audio_and_link)
+        item(R.string.label_auto_cancel_empty_audio_input, R.string.section_audio_and_link)
+        item(R.string.label_auto_filter_silent_audio_segments, R.string.section_audio_and_link)
+        item(R.string.label_upload_audio_compression, R.string.section_audio_and_link)
+        item(R.string.label_headset_mic_priority, R.string.section_audio_and_link)
+        item(R.string.label_external_ime_link_aidl, R.string.section_audio_and_link, "aidl")
+        item(R.string.label_keyboard_height, R.string.section_ui_settings)
+        item(R.string.label_haptic_feedback_strength, R.string.section_ui_settings)
+        item(R.string.label_keyboard_bottom_padding, R.string.section_ui_settings)
+        item(R.string.label_waveform_sensitivity, R.string.section_ui_settings)
+        item(R.string.label_language, R.string.section_ui_settings)
+        item(R.string.label_extension_buttons, R.string.section_ui_settings)
+    }
+
+    private fun MutableList<DeclarativeEntry>.addFloatingEntries() {
+        val route = BibiSettingsRoute.Floating
+        val screen = R.string.title_floating_settings
+        fun item(@StringRes title: Int, @StringRes section: Int, vararg keywords: String) {
+            add(DeclarativeEntry(title, screen, route, section, keywords.toList()))
+        }
+        item(R.string.label_floating_asr, R.string.section_floating_basic)
+        item(R.string.label_floating_only_when_ime_visible, R.string.section_floating_basic)
+        item(R.string.label_floating_direct_drag, R.string.section_floating_basic)
+        item(R.string.label_floating_alpha, R.string.section_floating_basic)
+        item(R.string.label_floating_size, R.string.section_floating_basic)
+        item(R.string.label_reset_floating_position, R.string.section_floating_basic)
+        item(R.string.label_floating_write_compat, R.string.section_floating_compat)
+        item(R.string.label_floating_write_compat_pkgs, R.string.section_floating_compat)
+        item(R.string.label_floating_write_paste, R.string.section_floating_compat)
+        item(R.string.label_floating_write_paste_pkgs, R.string.section_floating_compat)
+    }
+
+    private fun MutableList<DeclarativeEntry>.addAsrEntries() {
+        val route = BibiSettingsRoute.Asr
+        val screen = R.string.title_asr_settings
+        fun item(@StringRes title: Int, @StringRes section: Int, vararg keywords: String) {
+            add(DeclarativeEntry(title, screen, route, section, keywords.toList()))
+        }
+        item(R.string.label_auto_stop_silence, R.string.label_auto_stop_silence)
+        item(R.string.label_silence_window_ms, R.string.label_auto_stop_silence)
+        item(R.string.label_silence_sensitivity, R.string.label_auto_stop_silence)
+        item(R.string.label_asr_vendor, R.string.label_asr_vendor)
+        item(R.string.label_backup_asr_vendor, R.string.label_backup_asr_engine)
+        item(R.string.label_backup_asr_timeout_sensitivity, R.string.label_backup_asr_engine)
+    }
+
+    private fun MutableList<DeclarativeEntry>.addAiEntries() {
+        val route = BibiSettingsRoute.Ai
+        val screen = R.string.title_ai_settings
+        fun item(@StringRes title: Int, @StringRes section: Int, vararg keywords: String) {
+            add(DeclarativeEntry(title, screen, route, section, keywords.toList()))
+        }
+        item(R.string.label_ai_post_process_enabled, R.string.section_post_process_scope)
+        item(R.string.label_postproc_typewriter_enabled, R.string.section_post_process_scope)
+        item(R.string.label_ai_edit_default_use_last_asr, R.string.section_post_process_scope)
+        item(R.string.title_ai_skip_under, R.string.section_post_process_scope)
+        item(R.string.label_llm_vendor, R.string.section_post_process_model, "llm")
+        item(R.string.label_llm_choose_profile, R.string.section_post_process_model)
+        item(R.string.label_llm_model_select, R.string.section_post_process_model)
+        item(R.string.label_llm_prompt_presets, R.string.label_llm_prompt_presets)
+    }
+
+    private fun MutableList<DeclarativeEntry>.addOtherEntries() {
+        val route = BibiSettingsRoute.Other
+        val screen = R.string.title_other_settings
+        fun item(@StringRes title: Int, @StringRes section: Int, vararg keywords: String) {
+            add(DeclarativeEntry(title, screen, route, section, keywords.toList()))
+        }
+        item(R.string.label_floating_keep_alive_foreground, R.string.section_general)
+        item(R.string.label_floating_keep_alive_privileged, R.string.section_general, "shizuku", "root")
+        item(R.string.label_request_battery_whitelist, R.string.section_general)
+        item(R.string.label_disable_asr_history, R.string.section_data_retention)
+        item(R.string.label_disable_usage_stats, R.string.section_data_retention)
+        item(R.string.label_data_collection, R.string.section_data_retention)
+        item(R.string.label_custom_punct_1, R.string.custom_punct_section_title)
+        item(R.string.label_custom_punct_2, R.string.custom_punct_section_title)
+        item(R.string.label_custom_punct_3, R.string.custom_punct_section_title)
+        item(R.string.label_custom_punct_4, R.string.custom_punct_section_title)
+        item(R.string.label_speech_preset_section, R.string.label_speech_preset_section)
+        item(R.string.section_sync_clipboard, R.string.section_sync_clipboard, "syncclipboard")
+        item(R.string.label_enable_sync_clipboard, R.string.section_sync_clipboard, "syncclipboard")
+        item(R.string.label_sc_server_base, R.string.section_sync_clipboard, "syncclipboard")
+        item(R.string.label_sc_username, R.string.section_sync_clipboard, "syncclipboard")
+        item(R.string.label_sc_password, R.string.section_sync_clipboard, "syncclipboard")
+        item(R.string.label_sc_auto_pull, R.string.section_sync_clipboard, "syncclipboard")
+        item(R.string.label_sc_pull_interval, R.string.section_sync_clipboard, "syncclipboard")
+    }
+
+    private fun MutableList<DeclarativeEntry>.addBackupEntries() {
+        val route = BibiSettingsRoute.Backup
+        val screen = R.string.title_backup_settings
+        fun item(@StringRes title: Int, @StringRes section: Int, vararg keywords: String) {
+            add(DeclarativeEntry(title, screen, route, section, keywords.toList()))
+        }
+        item(R.string.btn_export_to_file, R.string.section_file_backup)
+        item(R.string.btn_import_from_file, R.string.section_file_backup)
+        item(R.string.hint_webdav_url, R.string.section_webdav_sync, "webdav")
+        item(R.string.hint_webdav_username, R.string.section_webdav_sync, "webdav")
+        item(R.string.hint_webdav_password, R.string.section_webdav_sync, "webdav")
+        item(R.string.btn_webdav_upload, R.string.section_webdav_sync, "webdav")
+        item(R.string.btn_webdav_download, R.string.section_webdav_sync, "webdav")
+    }
+
+    private fun MutableList<DeclarativeEntry>.addAboutEntries() {
+        val route = BibiSettingsRoute.About
+        val screen = R.string.about_title
+        fun item(@StringRes title: Int, @StringRes section: Int? = null, vararg keywords: String) {
+            add(DeclarativeEntry(title, screen, route, section, keywords.toList()))
+        }
+        item(R.string.about_auto_update_check)
+        item(R.string.about_open_github)
+        item(R.string.about_open_website)
+        item(R.string.about_open_docs)
+        item(R.string.about_btn_learn_pro, null, "pro")
+        item(R.string.about_view_full_licenses, R.string.about_acknowledgements_title)
+        item(R.string.btn_debug_export, R.string.about_debug_title)
+    }
+
+    private fun asrVendorEntries(context: Context): List<SettingsSearchEntry> {
+        val section = context.getString(R.string.label_asr_vendor)
+        return AsrVendor.entries.map { vendor ->
+            SettingsSearchEntry(
+                title = context.getString(vendor.displayNameRes()),
+                sectionPath = listOf(section),
+                screenTitleResId = R.string.title_asr_settings,
+                composeRoute = BibiSettingsRoute.Asr,
+                targetEntryId = "asr_vendor",
+                keywords = listOf(vendor.id),
+                forceAsrVendorId = vendor.id
+            )
+        }
+    }
+
+    private fun llmVendorEntries(context: Context): List<SettingsSearchEntry> {
+        val section = context.getString(R.string.section_post_process_model)
+        return LlmVendor.allVendors().map { vendor ->
+            SettingsSearchEntry(
+                title = context.getString(vendor.displayNameResId),
+                sectionPath = listOf(section),
+                screenTitleResId = R.string.title_ai_settings,
+                composeRoute = BibiSettingsRoute.Ai,
+                targetEntryId = "llm_vendor",
+                keywords = listOf(vendor.id),
+                forceLlmVendorId = vendor.id
+            )
+        }
+    }
+
+    @StringRes
+    private fun AsrVendor.displayNameRes(): Int = when (this) {
+        AsrVendor.Volc -> R.string.vendor_volc
+        AsrVendor.SiliconFlow -> R.string.vendor_sf
+        AsrVendor.ElevenLabs -> R.string.vendor_eleven
+        AsrVendor.OpenAI -> R.string.vendor_openai
+        AsrVendor.OpenRouter -> R.string.vendor_openrouter
+        AsrVendor.DashScope -> R.string.vendor_dashscope
+        AsrVendor.Gemini -> R.string.vendor_gemini
+        AsrVendor.Soniox -> R.string.vendor_soniox
+        AsrVendor.StepAudio -> R.string.vendor_stepaudio
+        AsrVendor.Zhipu -> R.string.vendor_zhipu
+        AsrVendor.SenseVoice -> R.string.vendor_sensevoice
+        AsrVendor.FunAsrNano -> R.string.vendor_funasr_nano
+        AsrVendor.Qwen3Asr -> R.string.vendor_qwen3_asr
+        AsrVendor.Parakeet -> R.string.vendor_parakeet
+        AsrVendor.FireRedAsr -> R.string.vendor_firered_asr
+        AsrVendor.Paraformer -> R.string.vendor_paraformer
+    }
+
     private fun SettingsSearchEntry.uniqueKey(): String = buildString {
-        append(activityClass.name)
-        append('#')
-        append(targetViewId)
+        append(composeRoute?.id.orEmpty())
         append('#')
         append(title.lowercase(Locale.ROOT))
         if (sectionPath.isNotEmpty()) {
@@ -205,409 +295,9 @@ object SettingsSearchIndex {
             append(forceLlmVendorId.lowercase(Locale.ROOT))
         }
     }
-
-    private fun collectAutoEntries(
-        spec: ScreenSpec,
-        root: View,
-        minCardTitlePx: Float
-    ): List<SettingsSearchEntry> {
-        val results = mutableListOf<SettingsSearchEntry>()
-        collectFromView(
-            spec = spec,
-            view = root,
-            currentSectionPath = emptyList(),
-            extraKeywords = emptyList(),
-            forceAsrVendorId = null,
-            forceLlmVendorId = null,
-            minCardTitlePx = minCardTitlePx,
-            out = results
-        )
-        return results
-    }
-
-    private fun collectFromView(
-        spec: ScreenSpec,
-        view: View,
-        currentSectionPath: List<String>,
-        extraKeywords: List<String>,
-        forceAsrVendorId: String?,
-        forceLlmVendorId: String?,
-        minCardTitlePx: Float,
-        out: MutableList<SettingsSearchEntry>
-    ) {
-        when (view) {
-            is MaterialSwitch -> {
-                val title = view.text?.toString()?.trim().orEmpty()
-                if (title.isNotBlank() && view.id != View.NO_ID) {
-                    out.add(
-                        SettingsSearchEntry(
-                            title = title,
-                            sectionPath = currentSectionPath,
-                            screenTitleResId = spec.screenTitleResId,
-                            activityClass = spec.activityClass,
-                            targetViewId = view.id,
-                            keywords = extraKeywords,
-                            forceAsrVendorId = forceAsrVendorId,
-                            forceLlmVendorId = forceLlmVendorId
-                        )
-                    )
-                }
-            }
-
-            is MaterialButton -> {
-                val title = view.text?.toString()?.trim().orEmpty()
-                if (title.isNotBlank() && view.id != View.NO_ID) {
-                    out.add(
-                        SettingsSearchEntry(
-                            title = title,
-                            sectionPath = currentSectionPath,
-                            screenTitleResId = spec.screenTitleResId,
-                            activityClass = spec.activityClass,
-                            targetViewId = view.id,
-                            keywords = extraKeywords,
-                            forceAsrVendorId = forceAsrVendorId,
-                            forceLlmVendorId = forceLlmVendorId
-                        )
-                    )
-                }
-            }
-
-            is TextInputLayout -> {
-                val title = view.hint?.toString()?.trim().orEmpty()
-                val editTextId = view.editText?.id ?: View.NO_ID
-                if (title.isNotBlank() && editTextId != View.NO_ID) {
-                    out.add(
-                        SettingsSearchEntry(
-                            title = title,
-                            sectionPath = currentSectionPath,
-                            screenTitleResId = spec.screenTitleResId,
-                            activityClass = spec.activityClass,
-                            targetViewId = editTextId,
-                            keywords = extraKeywords,
-                            forceAsrVendorId = forceAsrVendorId,
-                            forceLlmVendorId = forceLlmVendorId
-                        )
-                    )
-                }
-            }
-        }
-
-        if (view is ViewGroup) {
-            if (shouldSkipAiPostProcessModelVendorDetails(spec, view.id)) {
-                return
-            }
-            val nextSectionPath = extractCardTitleText(view, minCardTitlePx)
-                ?.takeIf { it.isNotBlank() }
-                ?.let { listOf(it) }
-                ?: currentSectionPath
-
-            val vendorHint = resolveVendorHint(view.context, view.id)
-            val nextForceAsrVendorId = vendorHint?.asrVendorId ?: forceAsrVendorId
-            val nextForceLlmVendorId = vendorHint?.llmVendorId ?: forceLlmVendorId
-            val nextKeywords = buildList(extraKeywords.size + 4) {
-                addAll(extraKeywords)
-                if (vendorHint != null) {
-                    addAll(vendorHint.keywords)
-                }
-            }
-            val vendorTitle = vendorHint?.title?.takeIf { it.isNotBlank() }
-            val nextSectionPathWithVendor = if (vendorTitle == null) {
-                nextSectionPath
-            } else if (nextSectionPath.lastOrNull() == vendorTitle) {
-                nextSectionPath
-            } else {
-                nextSectionPath + vendorTitle
-            }
-
-            var pendingLabel: String? = null
-            for (i in 0 until view.childCount) {
-                val child = view.getChildAt(i)
-
-                val childTextView = child as? TextView
-                if (childTextView != null) {
-                    val labelText = childTextView.text?.toString()?.trim().orEmpty()
-                    val labelMinPx = TypedValue.applyDimension(
-                        TypedValue.COMPLEX_UNIT_SP,
-                        14f,
-                        childTextView.resources.displayMetrics
-                    )
-                    val isLabelCandidate =
-                        !childTextView.isClickable &&
-                            !childTextView.isFocusable &&
-                            labelText.isNotBlank() &&
-                            childTextView.textSize >= labelMinPx &&
-                            !isLikelyCardTitleTextView(childTextView, minCardTitlePx)
-                    if (isLabelCandidate) {
-                        pendingLabel = labelText
-                    }
-
-                    val isClickableValue =
-                        childTextView.isClickable &&
-                            childTextView.id != View.NO_ID &&
-                            childTextView !is android.widget.Button
-                    if (isClickableValue) {
-                        val title = pendingLabel?.takeIf { it.isNotBlank() } ?: labelText
-                        if (title.isNotBlank()) {
-                            out.add(
-                                SettingsSearchEntry(
-                                    title = title,
-                                    sectionPath = nextSectionPathWithVendor,
-                                    screenTitleResId = spec.screenTitleResId,
-                                    activityClass = spec.activityClass,
-                                    targetViewId = childTextView.id,
-                                    keywords = nextKeywords,
-                                    forceAsrVendorId = nextForceAsrVendorId,
-                                    forceLlmVendorId = nextForceLlmVendorId
-                                )
-                            )
-                        }
-                        pendingLabel = null
-                        continue
-                    }
-                }
-
-                if (
-                    child is MaterialSwitch ||
-                    child is MaterialButton ||
-                    child is TextInputLayout
-                ) {
-                    pendingLabel = null
-                }
-
-                collectFromView(
-                    spec = spec,
-                    view = child,
-                    currentSectionPath = nextSectionPathWithVendor,
-                    extraKeywords = nextKeywords,
-                    forceAsrVendorId = nextForceAsrVendorId,
-                    forceLlmVendorId = nextForceLlmVendorId,
-                    minCardTitlePx = minCardTitlePx,
-                    out = out
-                )
-            }
-        }
-    }
-
-    private fun shouldSkipAiPostProcessModelVendorDetails(
-        spec: ScreenSpec,
-        @IdRes viewId: Int
-    ): Boolean {
-        if (spec.activityClass != AiPostSettingsActivity::class.java) return false
-        return when (viewId) {
-            R.id.groupSfFreeLlm,
-            R.id.groupBuiltinLlm,
-            R.id.groupCustomLlm -> true
-            else -> false
-        }
-    }
-
-    private fun buildAiPostProcessModelVendorSubgroupEntries(
-        spec: ScreenSpec,
-        context: Context
-    ): List<SettingsSearchEntry> {
-        val sectionTitle = runCatching {
-            context.getString(R.string.section_post_process_model)
-        }.getOrNull().orEmpty()
-        if (sectionTitle.isBlank()) return emptyList()
-
-        return buildList(LlmVendor.allVendors().size) {
-            for (vendor in LlmVendor.allVendors()) {
-                val title = runCatching {
-                    context.getString(vendor.displayNameResId)
-                }.getOrNull().orEmpty()
-                if (title.isBlank()) continue
-                val targetViewId = when (vendor) {
-                    LlmVendor.SF_FREE -> R.id.groupSfFreeLlm
-                    LlmVendor.CUSTOM -> R.id.groupCustomLlm
-                    else -> R.id.groupBuiltinLlm
-                }
-                add(
-                    SettingsSearchEntry(
-                        title = title,
-                        sectionPath = listOf(sectionTitle),
-                        screenTitleResId = spec.screenTitleResId,
-                        activityClass = spec.activityClass,
-                        targetViewId = targetViewId,
-                        keywords = listOf(vendor.id),
-                        forceLlmVendorId = vendor.id
-                    )
-                )
-            }
-        }
-    }
-
-    private fun extractCardTitleText(group: ViewGroup, minCardTitlePx: Float): String? {
-        val linear = group as? LinearLayout ?: return null
-        if (linear.orientation != LinearLayout.VERTICAL) return null
-
-        // SettingsSectionCardTitle：bold + 20sp。使用字号与粗体做启发式识别。
-        val titleView = (0 until linear.childCount)
-            .asSequence()
-            .map { linear.getChildAt(it) }
-            .filterIsInstance<TextView>()
-            .firstOrNull { v ->
-                val text = v.text?.toString()?.trim().orEmpty()
-                text.isNotBlank() && isLikelyCardTitleTextView(v, minCardTitlePx)
-            } ?: return null
-
-        val title = titleView.text?.toString()?.trim().orEmpty()
-        if (title.isBlank()) return null
-        return title
-    }
-
-    private fun isLikelyCardTitleTextView(view: TextView, minCardTitlePx: Float): Boolean {
-        if (view.textSize < minCardTitlePx) return false
-        val typefaceStyle = view.typeface?.style ?: 0
-        val isBold = (typefaceStyle and Typeface.BOLD) == Typeface.BOLD || view.paint.isFakeBoldText
-        return isBold
-    }
-
-    private data class ResolvedPathAndVendors(
-        val sectionPath: List<String>,
-        val forceAsrVendorId: String?,
-        val forceLlmVendorId: String?,
-        val keywords: List<String>
-    )
-
-    private fun resolveSectionPathAndVendors(
-        root: View,
-        @IdRes targetViewId: Int,
-        minCardTitlePx: Float
-    ): ResolvedPathAndVendors {
-        val target = root.findViewById<View>(targetViewId)
-        if (target == null) {
-            return ResolvedPathAndVendors(
-                sectionPath = emptyList(),
-                forceAsrVendorId = null,
-                forceLlmVendorId = null,
-                keywords = emptyList()
-            )
-        }
-
-        var sectionTitle: String? = null
-        var vendorHint: VendorHint? = null
-        var p: Any? = target.parent
-        while (p is ViewGroup) {
-            if (sectionTitle.isNullOrBlank()) {
-                sectionTitle = extractCardTitleText(p, minCardTitlePx)
-            }
-            if (vendorHint == null && p.id != View.NO_ID) {
-                vendorHint = resolveVendorHint(p.context, p.id)
-            }
-            p = p.parent
-        }
-
-        val sectionPath = buildList(2) {
-            if (!sectionTitle.isNullOrBlank()) add(sectionTitle!!.trim())
-            if (!vendorHint?.title.isNullOrBlank()) add(vendorHint!!.title)
-        }
-        val keywords = buildList(4) {
-            if (vendorHint != null) addAll(vendorHint!!.keywords)
-        }
-        return ResolvedPathAndVendors(
-            sectionPath = sectionPath,
-            forceAsrVendorId = vendorHint?.asrVendorId,
-            forceLlmVendorId = vendorHint?.llmVendorId,
-            keywords = keywords
-        )
-    }
-
-    private fun resolveVendorHint(context: Context, @IdRes viewId: Int): VendorHint? = when (viewId) {
-        // ======== ASR 供应商分组 ========
-        R.id.groupVolc -> VendorHint(
-            title = context.getString(R.string.vendor_volc),
-            asrVendorId = "volc",
-            keywords = listOf("volc")
-        )
-        R.id.groupSf,
-        R.id.groupSfFreeModel,
-        R.id.groupSfApiKey -> VendorHint(
-            title = context.getString(R.string.vendor_sf),
-            asrVendorId = "siliconflow",
-            keywords = listOf("siliconflow", "sf")
-        )
-        R.id.groupEleven -> VendorHint(
-            title = context.getString(R.string.vendor_eleven),
-            asrVendorId = "elevenlabs",
-            keywords = listOf("eleven", "elevenlabs")
-        )
-        R.id.groupOpenAI -> VendorHint(
-            title = context.getString(R.string.vendor_openai),
-            asrVendorId = "openai",
-            keywords = listOf("openai")
-        )
-        R.id.groupOpenRouter -> VendorHint(
-            title = context.getString(R.string.vendor_openrouter),
-            asrVendorId = "openrouter",
-            keywords = listOf("openrouter", "open router")
-        )
-        R.id.groupDashScope -> VendorHint(
-            title = context.getString(R.string.vendor_dashscope),
-            asrVendorId = "dashscope",
-            keywords = listOf("dashscope")
-        )
-        R.id.groupGemini -> VendorHint(
-            title = context.getString(R.string.vendor_gemini),
-            asrVendorId = "gemini",
-            keywords = listOf("gemini")
-        )
-        R.id.groupSoniox -> VendorHint(
-            title = context.getString(R.string.vendor_soniox),
-            asrVendorId = "soniox",
-            keywords = listOf("soniox")
-        )
-        R.id.groupStepAudio -> VendorHint(
-            title = context.getString(R.string.vendor_stepaudio),
-            asrVendorId = "stepaudio",
-            keywords = listOf("stepaudio", "stepfun", "step")
-        )
-        R.id.groupZhipu -> VendorHint(
-            title = context.getString(R.string.vendor_zhipu),
-            asrVendorId = "zhipu",
-            keywords = listOf("zhipu", "glm")
-        )
-        R.id.groupSenseVoice -> VendorHint(
-            title = context.getString(R.string.vendor_sensevoice),
-            asrVendorId = "sensevoice",
-            keywords = listOf("sensevoice")
-        )
-        R.id.groupFunAsrNano -> VendorHint(
-            title = context.getString(R.string.vendor_funasr_nano),
-            asrVendorId = "funasr_nano",
-            keywords = listOf("funasr", "funasr_nano")
-        )
-        R.id.groupQwen3Asr -> VendorHint(
-            title = context.getString(R.string.vendor_qwen3_asr),
-            asrVendorId = "qwen3_asr",
-            keywords = listOf("qwen", "qwen3", "qwen3_asr")
-        )
-        R.id.groupParakeet -> VendorHint(
-            title = context.getString(R.string.vendor_parakeet),
-            asrVendorId = "parakeet",
-            keywords = listOf("parakeet", "nemo", "nemo_transducer")
-        )
-        R.id.groupFireRedAsr -> VendorHint(
-            title = context.getString(R.string.vendor_firered_asr),
-            asrVendorId = "firered_asr",
-            keywords = listOf("firered_asr", "firered", "fire-red-asr2", "fire red asr")
-        )
-        R.id.groupParaformer -> VendorHint(
-            title = context.getString(R.string.vendor_paraformer),
-            asrVendorId = "paraformer",
-            keywords = listOf("paraformer", "zipformer")
-        )
-
-        // ======== LLM 分组 ========
-        R.id.groupSfFreeLlm -> VendorHint(
-            title = context.getString(R.string.llm_vendor_sf_free),
-            llmVendorId = "sf_free",
-            keywords = listOf("sf_free", "siliconflow", "sf")
-        )
-        R.id.groupCustomLlm -> VendorHint(
-            title = context.getString(R.string.llm_vendor_custom),
-            llmVendorId = "custom",
-            keywords = listOf("custom")
-        )
-        else -> null
-    }
 }
+
+private fun String.toTargetEntryId(): String = removePrefix("label_")
+    .removePrefix("btn_")
+    .removePrefix("title_")
+    .removePrefix("hint_")

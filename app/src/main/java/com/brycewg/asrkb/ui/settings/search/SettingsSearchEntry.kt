@@ -5,9 +5,8 @@
  */
 package com.brycewg.asrkb.ui.settings.search
 
-import android.app.Activity
-import androidx.annotation.IdRes
 import androidx.annotation.StringRes
+import com.brycewg.asrkb.ui.settings.compose.core.BibiSettingsRoute
 
 data class SettingsSearchEntry(
     val title: String,
@@ -18,8 +17,8 @@ data class SettingsSearchEntry(
      */
     val sectionPath: List<String> = emptyList(),
     @param:StringRes @field:StringRes val screenTitleResId: Int,
-    val activityClass: Class<out Activity>,
-    @param:IdRes @field:IdRes val targetViewId: Int,
+    val composeRoute: BibiSettingsRoute? = null,
+    val targetEntryId: String? = null,
     val keywords: List<String> = emptyList(),
     /**
      * 搜索跳转时强制切换到指定 ASR 供应商（用于进入被隐藏的供应商配置分组）。

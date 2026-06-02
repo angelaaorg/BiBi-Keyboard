@@ -1,5 +1,5 @@
 /**
- * 新手引导主页面（可左右滑动）。
+ * 新手引导主页面。
  *
  * 归属模块：ui/setup
  */
@@ -14,82 +14,121 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
-import android.view.View
 import android.view.inputmethod.InputMethodManager
-import android.widget.Button
-import android.widget.TextView
-import android.widget.Toast
+import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
-import androidx.core.view.isVisible
-import androidx.viewpager2.widget.ViewPager2
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.analytics.AnalyticsManager
+import com.brycewg.asrkb.asr.AsrVendor
 import com.brycewg.asrkb.ime.AsrKeyboardService
 import com.brycewg.asrkb.store.Prefs
 import com.brycewg.asrkb.ui.BaseActivity
-import com.brycewg.asrkb.ui.ProPromoDialog
-import com.brycewg.asrkb.ui.WindowInsetsHelper
-import com.brycewg.asrkb.ui.permission.PermissionActivity
-import com.google.android.material.card.MaterialCardView
-import com.google.android.material.materialswitch.MaterialSwitch
-import com.google.android.material.progressindicator.LinearProgressIndicator
+import com.brycewg.asrkb.ui.DownloadSourceOption
+import com.brycewg.asrkb.ui.settings.compose.components.ProPromoDialogHost
+import com.brycewg.asrkb.ui.settings.compose.components.ProPromoDialogUiState
+import com.brycewg.asrkb.ui.settings.compose.components.SettingsMessageDialog
+import com.brycewg.asrkb.ui.settings.compose.components.SettingsMessageDialogState
+import com.brycewg.asrkb.ui.settings.compose.core.BibiSettingsTheme
+import com.brycewg.asrkb.ui.settings.compose.core.BibiUiMode
+import com.brycewg.asrkb.ui.setup.compose.OnboardingAsrChoice
+import com.brycewg.asrkb.ui.setup.compose.OnboardingDialogHost
+import com.brycewg.asrkb.ui.setup.compose.OnboardingDialogState
+import com.brycewg.asrkb.ui.setup.compose.OnboardingGuideScreen
+import com.brycewg.asrkb.ui.setup.compose.OnboardingPermissionGroup
+import com.brycewg.asrkb.ui.setup.compose.OnboardingPermissionItem
 
 /**
  * 重构后的“查看使用指南”入口：整合权限、服务选择、隐私和相关信息。
  */
-class OnboardingGuideActivity :
-    BaseActivity(),
-    OnboardingPagerAdapter.Callbacks {
+class OnboardingGuideActivity : BaseActivity() {
 
     companion object {
         private const val TAG = "OnboardingGuideActivity"
     }
 
-    private enum class AsrChoice {
-        SiliconFlowFree,
-        LocalModel,
-        OnlineCustom
-    }
-
     private lateinit var prefs: Prefs
-    private lateinit var viewPager: ViewPager2
-    private lateinit var progressOnboarding: LinearProgressIndicator
-    private lateinit var tvPageIndicator: TextView
-    private lateinit var btnSkip: Button
-    private lateinit var btnPrev: Button
-    private lateinit var btnNext: Button
-    private lateinit var pagerAdapter: OnboardingPagerAdapter
-
     private lateinit var actionExecutor: OnboardingActionExecutor
 
-    private var asrChoice: AsrChoice = AsrChoice.SiliconFlowFree
+    private var refreshKeyState = mutableIntStateOf(0)
+    private var asrChoiceState = mutableStateOf(OnboardingAsrChoice.SiliconFlowFree)
+    private var dataCollectionEnabledState = mutableStateOf(false)
+    private var dialogState = mutableStateOf<OnboardingDialogState>(OnboardingDialogState.None)
+    private var messageDialogState = mutableStateOf<SettingsMessageDialogState?>(null)
+    private var messageDismissAction: (() -> Unit)? = null
+    private var proPromoDialogState = mutableStateOf<ProPromoDialogUiState>(ProPromoDialogUiState.Hidden)
     private var isCompletingOnboarding: Boolean = false
 
     private val requestNotificationPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) {
             refreshPermissionPage()
         }
+    private val requestMicrophonePermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) {
+            refreshPermissionPage()
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_onboarding_guide)
-
-        findViewById<View>(android.R.id.content).let { rootView ->
-            WindowInsetsHelper.applySystemBarsInsets(rootView)
-        }
 
         prefs = Prefs(this)
         actionExecutor = OnboardingActionExecutor(this)
-        asrChoice = deriveInitialAsrChoice()
+        asrChoiceState.value = deriveInitialAsrChoice()
+        dataCollectionEnabledState.value = prefs.dataCollectionEnabled
 
         markOnboardingAsShown()
-        bindViews()
-        setupToolbar()
-        setupPager()
-        setupBottomButtons()
-        refreshNavigationUi()
+        setContent {
+            val refreshKey by refreshKeyState
+            val asrChoice by asrChoiceState
+            val dataCollectionEnabled by dataCollectionEnabledState
+            val onboardingDialog by dialogState
+            val messageDialog by messageDialogState
+            val proPromoDialog by proPromoDialogState
+            val uiMode = BibiUiMode.fromId(prefs.settingsUiMode)
+
+            BibiSettingsTheme(
+                uiMode = uiMode,
+                themeMode = prefs.settingsThemeMode
+            ) {
+                OnboardingGuideScreen(
+                    uiMode = uiMode,
+                    refreshKey = refreshKey,
+                    permissionGroups = buildPermissionGroups(),
+                    asrChoice = asrChoice,
+                    dataCollectionEnabled = dataCollectionEnabled,
+                    onBack = ::finishOnboarding,
+                    onSkip = ::finishOnboarding,
+                    onNextFromLastPage = ::completeOnboardingWithSelectedAsrChoice,
+                    onAsrChoiceChange = { asrChoiceState.value = it },
+                    onDataCollectionChange = ::updateDataCollectionEnabled,
+                    onOpenProject = { openUrl(getString(R.string.about_project_url)) },
+                    onOpenWebsite = { openUrl(getString(R.string.about_website_url)) },
+                    onOpenDocs = { openUrl(getString(R.string.about_docs_url)) },
+                    onOpenPro = ::showProPromo
+                )
+                OnboardingDialogHost(
+                    state = onboardingDialog,
+                    uiMode = uiMode,
+                    onDismiss = ::dismissOnboardingDialog,
+                    onConfirmOnlineGuide = ::confirmOnlineGuide,
+                    onSelectDownloadSource = ::selectLocalModelDownloadSource
+                )
+                SettingsMessageDialog(
+                    state = messageDialog,
+                    uiMode = uiMode,
+                    onDismiss = ::dismissOnboardingMessage
+                )
+                ProPromoDialogHost(
+                    state = proPromoDialog,
+                    uiMode = uiMode,
+                    onStateChange = { proPromoDialogState.value = it }
+                )
+            }
+        }
     }
 
     override fun onResume() {
@@ -97,230 +136,102 @@ class OnboardingGuideActivity :
         refreshPermissionPage()
     }
 
-    override fun bindPermissionPage(root: View) {
+    private fun buildPermissionGroups(): List<OnboardingPermissionGroup> {
         val floatingEnabled = prefs.floatingAsrEnabled
-
-        root.findViewById<View>(R.id.cardOverlayRequired).isVisible = floatingEnabled
-        root.findViewById<View>(R.id.cardA11yRequired).isVisible = floatingEnabled
-        root.findViewById<View>(R.id.cardOverlayOptional).isVisible = !floatingEnabled
-        root.findViewById<View>(R.id.cardA11yOptional).isVisible = !floatingEnabled
-
-        updatePermissionCard(
-            root = root,
-            statusViewId = R.id.tvImeEnableStatus,
-            actionButtonId = R.id.btnImeEnableAction,
-            granted = isOurImeEnabled(),
-            onRequest = { requestEnableIme() }
-        )
-        updatePermissionCard(
-            root = root,
-            statusViewId = R.id.tvImeSwitchStatus,
-            actionButtonId = R.id.btnImeSwitchAction,
-            granted = isOurImeCurrent(),
-            onRequest = { requestSwitchIme() }
-        )
-
-        updatePermissionCard(
-            root = root,
-            statusViewId = R.id.tvMicStatus,
-            actionButtonId = R.id.btnMicAction,
-            granted = hasMicrophonePermission(),
-            onRequest = { requestMicrophonePermission() }
-        )
-
         val overlayGranted = hasOverlayPermission()
-        updatePermissionCard(
-            root = root,
-            statusViewId = R.id.tvOverlayRequiredStatus,
-            actionButtonId = R.id.btnOverlayRequiredAction,
-            granted = overlayGranted,
-            onRequest = { requestOverlayPermission() }
-        )
-        updatePermissionCard(
-            root = root,
-            statusViewId = R.id.tvOverlayOptionalStatus,
-            actionButtonId = R.id.btnOverlayOptionalAction,
-            granted = overlayGranted,
-            onRequest = { requestOverlayPermission() }
-        )
-
         val a11yGranted = hasAccessibilityPermission()
-        updatePermissionCard(
-            root = root,
-            statusViewId = R.id.tvA11yRequiredStatus,
-            actionButtonId = R.id.btnA11yRequiredAction,
-            granted = a11yGranted,
-            onRequest = { requestAccessibilityPermission() }
-        )
-        updatePermissionCard(
-            root = root,
-            statusViewId = R.id.tvA11yOptionalStatus,
-            actionButtonId = R.id.btnA11yOptionalAction,
-            granted = a11yGranted,
-            onRequest = { requestAccessibilityPermission() }
-        )
-
-        updatePermissionCard(
-            root = root,
-            statusViewId = R.id.tvNotifStatus,
-            actionButtonId = R.id.btnNotifAction,
-            granted = hasNotificationPermission(),
-            onRequest = { requestNotificationPermission() }
-        )
-    }
-
-    override fun bindAsrChoicePage(root: View) {
-        val cardSfFree = root.findViewById<MaterialCardView>(R.id.cardOnboardingSiliconFlowFree)
-        val cardLocal = root.findViewById<MaterialCardView>(R.id.cardOnboardingLocalModel)
-        val cardOnline = root.findViewById<MaterialCardView>(R.id.cardOnboardingOnlineModel)
-
-        cardSfFree.isChecked = asrChoice == AsrChoice.SiliconFlowFree
-        cardLocal.isChecked = asrChoice == AsrChoice.LocalModel
-        cardOnline.isChecked = asrChoice == AsrChoice.OnlineCustom
-
-        cardSfFree.setOnClickListener { updateAsrChoice(AsrChoice.SiliconFlowFree) }
-        cardLocal.setOnClickListener { updateAsrChoice(AsrChoice.LocalModel) }
-        cardOnline.setOnClickListener { updateAsrChoice(AsrChoice.OnlineCustom) }
-    }
-
-    override fun bindPrivacyPage(root: View) {
-        val switchDataCollection = root.findViewById<MaterialSwitch>(
-            R.id.switchOnboardingDataCollection
-        )
-
-        switchDataCollection.setOnCheckedChangeListener(null)
-        switchDataCollection.isChecked = prefs.dataCollectionEnabled
-        switchDataCollection.setOnCheckedChangeListener { _, checked ->
-            updateDataCollectionEnabled(checked)
-        }
-    }
-
-    override fun bindLinksPage(root: View) {
-        root.findViewById<Button>(R.id.btnOnboardingOpenProject).setOnClickListener {
-            openUrl(getString(R.string.about_project_url))
-        }
-        root.findViewById<Button>(R.id.btnOnboardingOpenWebsite).setOnClickListener {
-            openUrl(getString(R.string.about_website_url))
-        }
-        root.findViewById<Button>(R.id.btnOnboardingOpenDocs).setOnClickListener {
-            openUrl(getString(R.string.about_docs_url))
-        }
-        root.findViewById<Button>(R.id.btnOnboardingLearnPro).setOnClickListener {
-            try {
-                ProPromoDialog.showForce(this)
-            } catch (t: Throwable) {
-                Log.e(TAG, "Failed to show Pro promo dialog", t)
+        val requiredItems = buildList {
+            add(
+                OnboardingPermissionItem(
+                    titleRes = R.string.onboarding_permission_ime_enable_title,
+                    descriptionRes = R.string.onboarding_permission_ime_enable_desc,
+                    granted = isOurImeEnabled(),
+                    onRequest = ::requestEnableIme
+                )
+            )
+            add(
+                OnboardingPermissionItem(
+                    titleRes = R.string.onboarding_permission_ime_switch_title,
+                    descriptionRes = R.string.onboarding_permission_ime_switch_desc,
+                    granted = isOurImeCurrent(),
+                    onRequest = ::requestSwitchIme
+                )
+            )
+            add(
+                OnboardingPermissionItem(
+                    titleRes = R.string.onboarding_permission_mic_title,
+                    descriptionRes = R.string.onboarding_permission_mic_desc,
+                    granted = hasMicrophonePermission(),
+                    onRequest = ::requestMicrophonePermission
+                )
+            )
+            if (floatingEnabled) {
+                add(
+                    OnboardingPermissionItem(
+                        titleRes = R.string.onboarding_permission_overlay_title,
+                        descriptionRes = R.string.onboarding_permission_overlay_desc,
+                        granted = overlayGranted,
+                        onRequest = ::requestOverlayPermission
+                    )
+                )
+                add(
+                    OnboardingPermissionItem(
+                        titleRes = R.string.onboarding_permission_a11y_title,
+                        descriptionRes = R.string.onboarding_permission_a11y_desc,
+                        granted = a11yGranted,
+                        onRequest = ::requestAccessibilityPermission
+                    )
+                )
             }
         }
-    }
-
-    private fun bindViews() {
-        viewPager = findViewById(R.id.viewPagerOnboarding)
-        progressOnboarding = findViewById(R.id.progressOnboarding)
-        tvPageIndicator = findViewById(R.id.tvOnboardingPageIndicator)
-        btnSkip = findViewById(R.id.btnOnboardingSkip)
-        btnPrev = findViewById(R.id.btnOnboardingPrev)
-        btnNext = findViewById(R.id.btnOnboardingNext)
-    }
-
-    private fun setupToolbar() {
-        findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.toolbarOnboarding)
-            .setNavigationOnClickListener {
-                finishOnboarding()
+        val optionalItems = buildList {
+            if (!floatingEnabled) {
+                add(
+                    OnboardingPermissionItem(
+                        titleRes = R.string.onboarding_permission_overlay_title,
+                        descriptionRes = R.string.onboarding_permission_overlay_desc,
+                        granted = overlayGranted,
+                        onRequest = ::requestOverlayPermission
+                    )
+                )
+                add(
+                    OnboardingPermissionItem(
+                        titleRes = R.string.onboarding_permission_a11y_title,
+                        descriptionRes = R.string.onboarding_permission_a11y_desc,
+                        granted = a11yGranted,
+                        onRequest = ::requestAccessibilityPermission
+                    )
+                )
             }
-    }
-
-    private fun setupPager() {
-        pagerAdapter = OnboardingPagerAdapter(this)
-        viewPager.adapter = pagerAdapter
-        viewPager.offscreenPageLimit = OnboardingPagerAdapter.PAGE_LINKS
-        progressOnboarding.max = pagerAdapter.itemCount
-
-        viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
-            override fun onPageSelected(position: Int) {
-                refreshNavigationUi()
-            }
-        })
-    }
-
-    private fun setupBottomButtons() {
-        btnSkip.setOnClickListener {
-            finishOnboarding()
+            add(
+                OnboardingPermissionItem(
+                    titleRes = R.string.onboarding_permission_notif_title,
+                    descriptionRes = R.string.onboarding_permission_notif_desc,
+                    granted = hasNotificationPermission(),
+                    onRequest = ::requestNotificationPermission
+                )
+            )
         }
-        btnPrev.setOnClickListener {
-            val current = viewPager.currentItem
-            if (current > 0) {
-                viewPager.currentItem = current - 1
-            }
-        }
-        btnNext.setOnClickListener {
-            val current = viewPager.currentItem
-            if (current >= OnboardingPagerAdapter.PAGE_LINKS) {
-                completeOnboardingWithSelectedAsrChoice()
-            } else {
-                viewPager.currentItem = current + 1
-            }
-        }
-    }
-
-    private fun refreshNavigationUi() {
-        val current = viewPager.currentItem
-        val total = pagerAdapter.itemCount
-
-        tvPageIndicator.text = getString(
-            R.string.onboarding_page_indicator,
-            current + 1,
-            total
+        return listOf(
+            OnboardingPermissionGroup(
+                titleRes = R.string.onboarding_permissions_required_title,
+                descriptionRes = R.string.onboarding_permissions_required_desc,
+                items = requiredItems
+            ),
+            OnboardingPermissionGroup(
+                titleRes = R.string.onboarding_permissions_optional_title,
+                descriptionRes = R.string.onboarding_permissions_optional_desc,
+                items = optionalItems
+            )
         )
-        progressOnboarding.setProgressCompat(current + 1, true)
-
-        btnPrev.isEnabled = current > 0
-        btnSkip.isVisible = current < OnboardingPagerAdapter.PAGE_LINKS
-        btnNext.text = if (current >= OnboardingPagerAdapter.PAGE_LINKS) {
-            getString(R.string.onboarding_btn_finish)
-        } else {
-            getString(R.string.onboarding_btn_next)
-        }
     }
 
     private fun refreshPermissionPage() {
-        if (!::pagerAdapter.isInitialized) return
-        pagerAdapter.notifyItemChanged(OnboardingPagerAdapter.PAGE_PERMISSIONS)
-    }
-
-    private fun updateAsrChoice(newChoice: AsrChoice) {
-        if (asrChoice == newChoice) return
-        asrChoice = newChoice
-        pagerAdapter.notifyItemChanged(OnboardingPagerAdapter.PAGE_ASR_CHOICE)
-    }
-
-    private fun updatePermissionCard(
-        root: View,
-        statusViewId: Int,
-        actionButtonId: Int,
-        granted: Boolean,
-        onRequest: () -> Unit
-    ) {
-        val statusView = root.findViewById<TextView>(statusViewId)
-        val actionButton = root.findViewById<Button>(actionButtonId)
-
-        statusView.text = if (granted) {
-            getString(R.string.onboarding_permission_status_granted)
-        } else {
-            getString(R.string.onboarding_permission_status_missing)
-        }
-
-        actionButton.isEnabled = !granted
-        actionButton.text = if (granted) {
-            getString(R.string.onboarding_permission_btn_enabled)
-        } else {
-            getString(R.string.onboarding_permission_btn_go_enable)
-        }
-
-        actionButton.setOnClickListener(if (granted) null else View.OnClickListener { onRequest() })
+        refreshKeyState.intValue += 1
     }
 
     private fun updateDataCollectionEnabled(enabled: Boolean) {
+        dataCollectionEnabledState.value = enabled
         prefs.dataCollectionConsentShown = true
         prefs.dataCollectionEnabled = enabled
 
@@ -341,7 +252,7 @@ class OnboardingGuideActivity :
 
     private fun requestMicrophonePermission() {
         try {
-            startActivity(Intent(this, PermissionActivity::class.java))
+            requestMicrophonePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to request microphone permission", e)
         }
@@ -369,11 +280,7 @@ class OnboardingGuideActivity :
 
     private fun requestNotificationPermission() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-            Toast.makeText(
-                this,
-                R.string.onboarding_permission_status_granted,
-                Toast.LENGTH_SHORT
-            ).show()
+            showOnboardingMessage(R.string.onboarding_permission_status_granted)
             return
         }
         requestNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
@@ -401,7 +308,34 @@ class OnboardingGuideActivity :
             startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
         } catch (e: Exception) {
             Log.e(TAG, "Failed to open url: $url", e)
-            Toast.makeText(this, getString(R.string.error_open_browser), Toast.LENGTH_SHORT).show()
+            showOnboardingMessage(R.string.error_open_browser)
+        }
+    }
+
+    private fun showOnboardingMessage(
+        messageRes: Int,
+        onDismiss: (() -> Unit)? = null
+    ) {
+        messageDismissAction = onDismiss
+        messageDialogState.value = SettingsMessageDialogState(
+            title = getString(R.string.onboarding_title),
+            message = getString(messageRes),
+            confirmText = getString(android.R.string.ok)
+        )
+    }
+
+    private fun dismissOnboardingMessage() {
+        val dismissAction = messageDismissAction
+        messageDismissAction = null
+        messageDialogState.value = null
+        dismissAction?.invoke()
+    }
+
+    private fun showProPromo() {
+        try {
+            proPromoDialogState.value = ProPromoDialogUiState.Promo
+        } catch (t: Throwable) {
+            Log.e(TAG, "Failed to show Pro promo dialog", t)
         }
     }
 
@@ -413,11 +347,45 @@ class OnboardingGuideActivity :
     private fun completeOnboardingWithSelectedAsrChoice() {
         if (isCompletingOnboarding) return
         isCompletingOnboarding = true
-        when (asrChoice) {
-            AsrChoice.SiliconFlowFree -> actionExecutor.applySiliconFlowFree { finishOnboarding() }
-            AsrChoice.LocalModel -> actionExecutor.applyLocalModel { finishOnboarding() }
-            AsrChoice.OnlineCustom -> actionExecutor.applyOnlineCustom { finishOnboarding() }
+        when (asrChoiceState.value) {
+            OnboardingAsrChoice.SiliconFlowFree -> {
+                showOnboardingMessage(
+                    actionExecutor.applySiliconFlowFree(),
+                    onDismiss = ::finishOnboarding
+                )
+            }
+
+            OnboardingAsrChoice.LocalModel -> {
+                dialogState.value = OnboardingDialogState.DownloadSources(actionExecutor.applyLocalModel())
+            }
+
+            OnboardingAsrChoice.OnlineCustom -> {
+                actionExecutor.applyOnlineCustom()
+                dialogState.value = OnboardingDialogState.OnlineGuide
+            }
         }
+    }
+
+    private fun dismissOnboardingDialog() {
+        if (dialogState.value == OnboardingDialogState.None) return
+        dialogState.value = OnboardingDialogState.None
+        finishOnboarding()
+    }
+
+    private fun confirmOnlineGuide() {
+        val messageRes = actionExecutor.openOnlineModelConfigGuide()
+        dialogState.value = OnboardingDialogState.None
+        if (messageRes == null) {
+            finishOnboarding()
+        } else {
+            showOnboardingMessage(messageRes, onDismiss = ::finishOnboarding)
+        }
+    }
+
+    private fun selectLocalModelDownloadSource(option: DownloadSourceOption) {
+        val messageRes = actionExecutor.startLocalModelDownload(option)
+        dialogState.value = OnboardingDialogState.None
+        showOnboardingMessage(messageRes, onDismiss = ::finishOnboarding)
     }
 
     private fun markOnboardingAsShown() {
@@ -426,10 +394,10 @@ class OnboardingGuideActivity :
         }
     }
 
-    private fun deriveInitialAsrChoice(): AsrChoice = when {
-        prefs.sfFreeAsrEnabled -> AsrChoice.SiliconFlowFree
-        prefs.asrVendor == com.brycewg.asrkb.asr.AsrVendor.SenseVoice -> AsrChoice.LocalModel
-        else -> AsrChoice.OnlineCustom
+    private fun deriveInitialAsrChoice(): OnboardingAsrChoice = when {
+        prefs.sfFreeAsrEnabled -> OnboardingAsrChoice.SiliconFlowFree
+        prefs.asrVendor == AsrVendor.SenseVoice -> OnboardingAsrChoice.LocalModel
+        else -> OnboardingAsrChoice.OnlineCustom
     }
 
     private fun hasMicrophonePermission(): Boolean = ContextCompat.checkSelfPermission(

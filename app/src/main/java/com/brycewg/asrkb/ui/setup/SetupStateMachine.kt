@@ -9,20 +9,21 @@ import android.os.Build
 import android.provider.Settings
 import android.util.Log
 import android.view.inputmethod.InputMethodManager
-import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.ime.AsrKeyboardService
 import com.brycewg.asrkb.store.Prefs
-import com.brycewg.asrkb.ui.permission.PermissionActivity
 
 /**
  * 一键设置流程的状态机管理器
  *
  * 负责管理设置流程的状态转换、权限检查和用户交互
  */
-class SetupStateMachine(private val context: Context) {
+class SetupStateMachine(
+    private val context: Context,
+    private val showMessage: (String) -> Unit = {}
+) {
     companion object {
         private const val TAG = "SetupStateMachine"
         private const val IME_PICKER_TIMEOUT_MS = 8000L
@@ -92,7 +93,7 @@ class SetupStateMachine(private val context: Context) {
                 ) {
                     // 超时，中止流程
                     Log.w(TAG, "IME selection timeout")
-                    SetupState.Aborted("选择输入法超时")
+                    SetupState.Aborted(context.getString(R.string.setup_abort_reason_ime_timeout))
                 } else {
                     // 继续等待
                     state
@@ -132,11 +133,7 @@ class SetupStateMachine(private val context: Context) {
             is SetupState.EnablingIme -> {
                 if (!state.askedOnce) {
                     // 引导用户前往系统设置启用输入法
-                    Toast.makeText(
-                        context,
-                        context.getString(R.string.toast_setup_enable_keyboard_first),
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    showSetupMessage(R.string.toast_setup_enable_keyboard_first)
                     try {
                         context.startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS))
                         // 更新状态标记已提示过
@@ -184,21 +181,13 @@ class SetupStateMachine(private val context: Context) {
 
             is SetupState.Completed -> {
                 // 显示完成提示
-                Toast.makeText(
-                    context,
-                    context.getString(R.string.toast_setup_all_done),
-                    Toast.LENGTH_SHORT
-                ).show()
+                showSetupMessage(R.string.toast_setup_all_done)
                 false
             }
 
             is SetupState.Aborted -> {
                 // 显示中止提示
-                Toast.makeText(
-                    context,
-                    "设置已中止: ${state.reason}",
-                    Toast.LENGTH_LONG
-                ).show()
+                showMessage(context.getString(R.string.toast_setup_aborted, state.reason))
                 false
             }
 
@@ -220,26 +209,15 @@ class SetupStateMachine(private val context: Context) {
         // 1) 麦克风权限（必需）
         if (!state.askedMic && !hasMicrophonePermission()) {
             Log.d(TAG, "Requesting microphone permission")
-            try {
-                context.startActivity(Intent(context, PermissionActivity::class.java))
-                currentState = state.copy(askedMic = true)
-                return true
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to request microphone permission", e)
-                currentState = state.copy(askedMic = true)
-                return false
-            }
+            currentState = state.copy(askedMic = true)
+            return true
         }
 
         // 2) 悬浮窗权限（当启用悬浮功能时需要）
         val needOverlay = prefs.floatingAsrEnabled
         if (!state.askedOverlay && needOverlay && !hasOverlayPermission()) {
             Log.d(TAG, "Requesting overlay permission")
-            Toast.makeText(
-                context,
-                context.getString(R.string.toast_need_overlay_perm),
-                Toast.LENGTH_LONG
-            ).show()
+            showSetupMessage(R.string.toast_need_overlay_perm)
             try {
                 val intent = Intent(
                     Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
@@ -270,11 +248,7 @@ class SetupStateMachine(private val context: Context) {
         val needA11y = prefs.floatingAsrEnabled
         if (!state.askedA11y && needA11y && !hasAccessibilityPermission()) {
             Log.d(TAG, "Requesting accessibility permission")
-            Toast.makeText(
-                context,
-                context.getString(R.string.toast_need_accessibility_perm),
-                Toast.LENGTH_LONG
-            ).show()
+            showSetupMessage(R.string.toast_need_accessibility_perm)
             try {
                 context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
                 currentState = state.copy(askedA11y = true)
@@ -297,6 +271,10 @@ class SetupStateMachine(private val context: Context) {
     fun reset() {
         Log.d(TAG, "Resetting state machine")
         currentState = SetupState.NotStarted
+    }
+
+    private fun showSetupMessage(messageRes: Int) {
+        showMessage(context.getString(messageRes))
     }
 
     /**
