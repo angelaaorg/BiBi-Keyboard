@@ -40,3 +40,5 @@ docs/.vitepress/dist
 docs/.vitepress/cache
 
 app/.cxx/Debug/
+# CocoIndex Code (ccc)
+/.cocoindex_code/
