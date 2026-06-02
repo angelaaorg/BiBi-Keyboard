@@ -2,11 +2,15 @@ package com.brycewg.asrkb.ui.settings.ai
 
 import android.util.Log
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.brycewg.asrkb.asr.LlmVendor
 import com.brycewg.asrkb.asr.ReasoningMode
 import com.brycewg.asrkb.store.Prefs
 import com.brycewg.asrkb.store.PromptPreset
 import java.util.UUID
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -48,6 +52,11 @@ class AiPostSettingsViewModel : ViewModel() {
 
     private val _activePromptPreset = MutableStateFlow<PromptPreset?>(null)
     val activePromptPreset: StateFlow<PromptPreset?> = _activePromptPreset.asStateFlow()
+    private var pendingLlmProviders: List<Prefs.LlmProvider>? = null
+    private var pendingPromptPresets: List<PromptPreset>? = null
+    private var llmProvidersPersistJob: Job? = null
+    private var promptPresetsPersistJob: Job? = null
+    private var latestPrefs: Prefs? = null
 
     // ======== Initialization ========
 
@@ -55,6 +64,7 @@ class AiPostSettingsViewModel : ViewModel() {
      * Loads all data from preferences and updates state flows
      */
     fun loadData(prefs: Prefs) {
+        rememberPrefs(prefs)
         loadLlmVendor(prefs)
         loadLlmProviders(prefs)
         loadPromptPresets(prefs)
@@ -96,6 +106,7 @@ class AiPostSettingsViewModel : ViewModel() {
      * Selects a LLM vendor
      */
     fun selectVendor(prefs: Prefs, vendor: LlmVendor) {
+        rememberPrefs(prefs)
         try {
             prefs.llmVendor = vendor
             _selectedVendor.value = vendor
@@ -110,6 +121,7 @@ class AiPostSettingsViewModel : ViewModel() {
      * Updates builtin vendor API key
      */
     fun updateBuiltinApiKey(prefs: Prefs, apiKey: String) {
+        rememberPrefs(prefs)
         val vendor = _selectedVendor.value
         if (vendor == LlmVendor.CUSTOM || vendor == LlmVendor.SF_FREE) return
         try {
@@ -124,6 +136,7 @@ class AiPostSettingsViewModel : ViewModel() {
      * Updates builtin vendor model
      */
     fun updateBuiltinModel(prefs: Prefs, model: String) {
+        rememberPrefs(prefs)
         val vendor = _selectedVendor.value
         if (vendor == LlmVendor.CUSTOM || vendor == LlmVendor.SF_FREE) return
         try {
@@ -138,6 +151,7 @@ class AiPostSettingsViewModel : ViewModel() {
      * Updates builtin vendor temperature
      */
     fun updateBuiltinTemperature(prefs: Prefs, temperature: Float) {
+        rememberPrefs(prefs)
         val vendor = _selectedVendor.value
         if (vendor == LlmVendor.CUSTOM || vendor == LlmVendor.SF_FREE) return
         try {
@@ -153,6 +167,7 @@ class AiPostSettingsViewModel : ViewModel() {
      * Updates builtin vendor reasoning enabled state
      */
     fun updateBuiltinReasoningEnabled(prefs: Prefs, enabled: Boolean) {
+        rememberPrefs(prefs)
         val vendor = _selectedVendor.value
         if (vendor == LlmVendor.CUSTOM || vendor == LlmVendor.SF_FREE) return
         try {
@@ -197,7 +212,9 @@ class AiPostSettingsViewModel : ViewModel() {
      * Selects a specific LLM provider by ID
      */
     fun selectLlmProvider(prefs: Prefs, profileId: String) {
+        rememberPrefs(prefs)
         try {
+            flushPendingLlmProviders(prefs)
             val profiles = _llmProfiles.value
             val selected = profiles.firstOrNull { it.id == profileId }
             if (selected != null) {
@@ -216,6 +233,7 @@ class AiPostSettingsViewModel : ViewModel() {
      * Updates the active LLM provider with a mutation function
      */
     fun updateActiveLlmProvider(prefs: Prefs, mutator: (Prefs.LlmProvider) -> Prefs.LlmProvider) {
+        rememberPrefs(prefs)
         try {
             val list = _llmProfiles.value.toMutableList()
             val activeId = prefs.activeLlmId
@@ -234,7 +252,7 @@ class AiPostSettingsViewModel : ViewModel() {
                 prefs.activeLlmId = created.id
             }
 
-            prefs.setLlmProviders(list)
+            scheduleLlmProvidersPersist(prefs, list)
             _llmProfiles.value = list
             _activeLlmProvider.value = list.firstOrNull { it.id == prefs.activeLlmId }
         } catch (e: Exception) {
@@ -264,6 +282,8 @@ class AiPostSettingsViewModel : ViewModel() {
      * Adds a new LLM provider
      */
     fun addLlmProvider(prefs: Prefs, defaultProfileName: String): Boolean = try {
+        rememberPrefs(prefs)
+        flushPendingLlmProviders(prefs)
         val id = UUID.randomUUID().toString()
         val newProvider = Prefs.LlmProvider(
             id = id,
@@ -293,6 +313,8 @@ class AiPostSettingsViewModel : ViewModel() {
      * Deletes the currently active LLM provider
      */
     fun deleteActiveLlmProvider(prefs: Prefs): Boolean {
+        rememberPrefs(prefs)
+        flushPendingLlmProviders(prefs)
         return try {
             val list = _llmProfiles.value.toMutableList()
             if (list.isEmpty()) {
@@ -344,7 +366,9 @@ class AiPostSettingsViewModel : ViewModel() {
      * Selects a specific prompt preset by ID
      */
     fun selectPromptPreset(prefs: Prefs, presetId: String) {
+        rememberPrefs(prefs)
         try {
+            flushPendingPromptPresets(prefs)
             val presets = _promptPresets.value
             val selected = presets.firstOrNull { it.id == presetId }
             if (selected != null) {
@@ -363,6 +387,7 @@ class AiPostSettingsViewModel : ViewModel() {
      * Updates the active prompt preset with a mutation function
      */
     fun updateActivePromptPreset(prefs: Prefs, mutator: (PromptPreset) -> PromptPreset) {
+        rememberPrefs(prefs)
         try {
             val list = _promptPresets.value.toMutableList()
             val activeId = prefs.activePromptId
@@ -370,7 +395,7 @@ class AiPostSettingsViewModel : ViewModel() {
 
             if (idx >= 0) {
                 list[idx] = mutator(list[idx])
-                prefs.setPromptPresets(list)
+                schedulePromptPresetsPersist(prefs, list)
                 _promptPresets.value = list
                 _activePromptPreset.value = list[idx]
             } else {
@@ -385,6 +410,8 @@ class AiPostSettingsViewModel : ViewModel() {
      * Adds a new prompt preset
      */
     fun addPromptPreset(prefs: Prefs, defaultTitle: String, defaultContent: String): Boolean = try {
+        rememberPrefs(prefs)
+        flushPendingPromptPresets(prefs)
         val newPreset = PromptPreset(
             id = UUID.randomUUID().toString(),
             title = defaultTitle,
@@ -409,6 +436,8 @@ class AiPostSettingsViewModel : ViewModel() {
      * Deletes the currently active prompt preset
      */
     fun deleteActivePromptPreset(prefs: Prefs): Boolean {
+        rememberPrefs(prefs)
+        flushPendingPromptPresets(prefs)
         return try {
             val list = _promptPresets.value.toMutableList()
             if (list.isEmpty()) {
@@ -455,5 +484,56 @@ class AiPostSettingsViewModel : ViewModel() {
     fun getActivePromptPresetIndex(): Int {
         val activeId = _activePromptPreset.value?.id ?: return 0
         return _promptPresets.value.indexOfFirst { it.id == activeId }.let { if (it < 0) 0 else it }
+    }
+
+    fun flushPendingWrites(prefs: Prefs) {
+        rememberPrefs(prefs)
+        flushPendingLlmProviders(prefs)
+        flushPendingPromptPresets(prefs)
+    }
+
+    private fun rememberPrefs(prefs: Prefs) {
+        latestPrefs = prefs
+    }
+
+    private fun scheduleLlmProvidersPersist(prefs: Prefs, list: List<Prefs.LlmProvider>) {
+        pendingLlmProviders = list
+        llmProvidersPersistJob?.cancel()
+        llmProvidersPersistJob = viewModelScope.launch {
+            delay(350L)
+            flushPendingLlmProviders(prefs)
+        }
+    }
+
+    private fun flushPendingLlmProviders(prefs: Prefs) {
+        llmProvidersPersistJob?.cancel()
+        llmProvidersPersistJob = null
+        pendingLlmProviders?.let { pending ->
+            prefs.setLlmProviders(pending)
+            pendingLlmProviders = null
+        }
+    }
+
+    private fun schedulePromptPresetsPersist(prefs: Prefs, list: List<PromptPreset>) {
+        pendingPromptPresets = list
+        promptPresetsPersistJob?.cancel()
+        promptPresetsPersistJob = viewModelScope.launch {
+            delay(350L)
+            flushPendingPromptPresets(prefs)
+        }
+    }
+
+    private fun flushPendingPromptPresets(prefs: Prefs) {
+        promptPresetsPersistJob?.cancel()
+        promptPresetsPersistJob = null
+        pendingPromptPresets?.let { pending ->
+            prefs.setPromptPresets(pending)
+            pendingPromptPresets = null
+        }
+    }
+
+    override fun onCleared() {
+        latestPrefs?.let { flushPendingWrites(it) }
+        super.onCleared()
     }
 }
