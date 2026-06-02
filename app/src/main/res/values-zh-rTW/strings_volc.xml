@@ -4,13 +4,13 @@
     <string name="vendor_volc">豆包語音</string>
 
     <!-- Volc configuration -->
-    <string name="label_volc_streaming">使用串流識別（WebSocket）</string>
-    <string name="label_volc_file_standard">使用檔案識別普通版（提交/查詢）</string>
+    <string name="label_volc_streaming">串流識別</string>
+    <string name="label_volc_file_standard">使用檔案識別普通版</string>
     <string name="label_volc_model_v2">使用豆包語音識別 2.0 模型</string>
     <string name="label_volc_ddc">啟用語義順滑（實驗性）</string>
     <string name="label_volc_vad">啟用 VAD 分句（實驗性）</string>
     <string name="label_volc_nonstream">啟用二遍識別（實驗性）</string>
-    <string name="label_volc_language">識別語言（用於二遍識別）</string>
+    <string name="label_volc_language">識別語言</string>
 
     <!-- Volc modes hint -->
     <string name="volc_modes_hint">模式說明：\n

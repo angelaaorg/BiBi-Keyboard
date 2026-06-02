@@ -12,8 +12,8 @@
     <string name="hint_webdav_url">WebDAV URL（例：https://dav.example.com）</string>
     <string name="hint_webdav_username">ユーザー名（オプション）</string>
     <string name="hint_webdav_password">パスワード（オプション）</string>
-    <string name="btn_webdav_upload">WebDAVにアップロード</string>
-    <string name="btn_webdav_download">WebDAVから復元</string>
+    <string name="btn_webdav_upload">アップロード</string>
+    <string name="btn_webdav_download">復元</string>
 
     <string name="toast_webdav_upload_success">WebDAVにアップロードしました</string>
     <string name="toast_webdav_upload_failed">アップロード失敗：%1$s</string>

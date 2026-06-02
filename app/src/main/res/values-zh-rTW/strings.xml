@@ -42,16 +42,36 @@
   <string name="hint_tap_to_stop_recording">點按結束錄音</string>
 
   <string name="label_ai_edit_default_use_last_asr">AI 編輯預設範圍改為上次識別結果</string>
-  <string name="label_auto_start_recording_on_show">啟動鍵盤面板時自動開始錄音</string>
+  <string name="label_auto_start_recording_on_show">鍵盤出現自動開始錄音</string>
   <string name="btn_retry">連線失敗，重試？</string>
 
   <!-- ============================================== -->
   <!-- 設定相關 -->
   <!-- ============================================== -->
-  <string name="settings_instructions">首次使用步驟：\n1. 點擊「啟用鍵盤」，在系統設定中啟用說點啥\n2. 點擊「選擇鍵盤」，切換到說點啥\n3. 授予麥克風權限後，返回任意輸入框，長按鍵盤上的麥克風按鈕即可體驗\n\n為獲得更穩定的後臺服務體驗，建議在系統設定中為本應用程式授予以下權限：\n• 後臺自啟動\n• 後臺執行（保活）\n• 後臺彈出介面\n\n本軟體為開源專案，保證不會上傳任何隱私資料。</string>
   <string name="btn_one_click_setup">一鍵設定</string>
 
   <string name="settings_title">說點啥設定</string>
+  <string name="settings_tab_input">輸入</string>
+  <string name="settings_tab_smart">智慧</string>
+  <string name="settings_tab_system">系統</string>
+  <string name="settings_ui_mode">介面風格</string>
+  <string name="settings_ui_mode_summary">選擇 Miuix 或 Material 風格</string>
+  <string name="settings_ui_mode_miuix">Miuix</string>
+  <string name="settings_ui_mode_material">Material</string>
+  <string name="settings_theme_mode">主題模式</string>
+  <string name="settings_theme_mode_system">跟隨系統</string>
+  <string name="settings_theme_mode_light">淺色</string>
+  <string name="settings_theme_mode_dark">深色</string>
+  <string name="home_summary_enabled">已開啟</string>
+  <string name="home_summary_disabled">已關閉</string>
+  <string name="home_summary_setup_done">基礎設定已完成</string>
+  <string name="home_summary_setup_progress">基礎設定進度 %1$d/%2$d</string>
+  <string name="home_summary_input_tap_control">點按控制</string>
+  <string name="home_summary_input_hold_control">長按控制</string>
+  <string name="home_summary_asr_format">錄音判停%1$s · %2$s</string>
+  <string name="home_summary_ai_format">%1$s · %2$s · %3$s</string>
+  <string name="home_summary_api_log_errors">近 10 筆 API 呼叫存在錯誤</string>
+  <string name="home_summary_update_available">發現新版本</string>
   <string name="title_input_settings">輸入設定</string>
   <string name="title_asr_settings">語音辨識設定</string>
   <string name="title_ai_settings">AI 後處理設定</string>
@@ -59,6 +79,9 @@
   <string name="btn_settings_search">搜尋設定</string>
   <string name="title_settings_search">搜尋設定</string>
   <string name="hint_settings_search">搜尋設定項目</string>
+  <string name="cd_settings_search_clear">清除搜尋內容</string>
+  <string name="cd_show_password">顯示密碼</string>
+  <string name="cd_hide_password">隱藏密碼</string>
   <string name="text_settings_search_empty">找不到符合的設定項目</string>
 
   <!-- Settings page section titles -->
@@ -83,10 +106,10 @@
   <!-- 自定義標點 -->
   <!-- ============================================== -->
   <string name="custom_punct_section_title">自定義標點按鈕</string>
-  <string name="label_custom_punct_1">按鈕 1（字元或標點）</string>
-  <string name="label_custom_punct_2">按鈕 2（字元或標點）</string>
-  <string name="label_custom_punct_3">按鈕 3（字元或標點）</string>
-  <string name="label_custom_punct_4">按鈕 4（字元或標點）</string>
+  <string name="label_custom_punct_1">按鈕1</string>
+  <string name="label_custom_punct_2">按鈕2</string>
+  <string name="label_custom_punct_3">按鈕3</string>
+  <string name="label_custom_punct_4">按鈕4</string>
 
   <!-- ============================================== -->
   <!-- 語音預設 -->
@@ -96,8 +119,8 @@
   <string name="speech_preset_untitled">未命名預置資訊</string>
   <string name="hint_speech_preset_name">預置資訊名稱</string>
   <string name="hint_speech_preset_content">預置資訊內容</string>
-  <string name="btn_speech_preset_add">新增預置資訊</string>
-  <string name="btn_speech_preset_delete">刪除目前預置</string>
+  <string name="btn_speech_preset_add">新增</string>
+  <string name="btn_speech_preset_delete">刪除</string>
   <string name="speech_preset_default_name">預置資訊 %1$d</string>
   <string name="toast_speech_preset_added">已新增預置資訊</string>
   <string name="toast_speech_preset_deleted">已刪除預置資訊</string>
@@ -129,16 +152,16 @@
   <!-- ============================================== -->
   <!-- 輸入相關 -->
   <!-- ============================================== -->
-  <string name="label_trim_trailing_punct">完成後去除句末標點與 emoji</string>
+  <string name="label_trim_trailing_punct">去除句末標點與 emoji</string>
   <string name="label_mic_haptic">按鍵與懸浮球震動回饋</string>
-  <string name="label_mic_tap_toggle">語音鍵盤使用點按控制</string>
-  <string name="label_test_input">測試輸入（用於體驗輸入法）</string>
-  <string name="btn_test_input">測試輸入</string>
+  <string name="label_mic_tap_toggle">鍵盤錄音使用點按啟停</string>
+  <string name="label_test_input">體驗輸入</string>
+  <string name="btn_test_input">體驗輸入</string>
 
   <!-- ============================================== -->
   <!-- 擴展按鈕配置 -->
   <!-- ============================================== -->
-  <string name="label_extension_buttons">擴展按鈕配置</string>
+  <string name="label_extension_buttons">自訂第一排按鈕</string>
   <string name="ext_btn_default_summary">復原、全選、複製、隱藏鍵盤</string>
   <string name="ext_btn_none_selected">未選擇</string>
   <string name="ext_btn_must_select_4">請選擇恰好 4 個按鈕</string>
@@ -166,6 +189,8 @@
   <string name="toast_setup_all_done">已完成所有設定</string>
   <string name="toast_setup_enable_keyboard_first">請在系統設定中啟用鍵盤後返回</string>
   <string name="toast_setup_choose_keyboard">請選擇「說點啥」為目前輸入法</string>
+  <string name="toast_setup_aborted">設定已中止：%1$s</string>
+  <string name="setup_abort_reason_ime_timeout">選擇輸入法逾時</string>
   <string name="btn_get_api_key_guide">去查看配置教學</string>
   <string name="btn_local_model_guide">去查看配置教學</string>
 
@@ -173,7 +198,7 @@
   <!-- 錄音判停設定 -->
   <!-- ============================================== -->
   <string name="section_silence_autostop">錄音判停設定</string>
-  <string name="label_auto_stop_silence">無人說話自動停止錄音</string>
+  <string name="label_auto_stop_silence">停說自動停止錄音</string>
   <string name="label_silence_window_ms">判停時間閾值（毫秒）</string>
   <string name="label_silence_sensitivity">靈敏度（1-10，越高越敏感）</string>
 
@@ -181,11 +206,11 @@
   <!-- 其他通用設定 -->
   <!-- ============================================== -->
   <string name="label_audio_ducking_on_record">錄音時音訊避讓</string>
-  <string name="label_auto_cancel_empty_audio_input">自動取消空白音訊輸入</string>
-  <string name="label_auto_filter_silent_audio_segments">自動過濾靜音片段</string>
+  <string name="label_auto_cancel_empty_audio_input">自動撤銷無效輸入</string>
+  <string name="label_auto_filter_silent_audio_segments">自動過濾靜音部分</string>
   <string name="label_offline_denoise">非串流辨識降噪</string>
-  <string name="label_upload_audio_compression">非串流上傳音訊壓縮</string>
-  <string name="label_headset_mic_priority">優先嘗試使用耳機的麥克風（實驗性）</string>
+  <string name="label_upload_audio_compression">上傳音訊前壓縮</string>
+  <string name="label_headset_mic_priority">嘗試使用耳機麥克風（實驗性）</string>
   <!-- 外部輸入法聯動（AIDL） -->
   <string name="label_external_ime_link_aidl">允許外部輸入法聯動（AIDL）</string>
   <string name="external_aidl_guide_title">如何使用聯動功能</string>

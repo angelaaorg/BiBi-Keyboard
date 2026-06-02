@@ -50,10 +50,30 @@
   <!-- ============================================== -->
   <!-- Settings Related -->
   <!-- ============================================== -->
-  <string name="settings_instructions">First-time setup:\n1. Tap \"Enable Keyboard\" and enable BiBi Keyboard in system settings\n2. Tap \"Choose Keyboard\" to switch to BiBi Keyboard\n3. Grant microphone permission, then long‑press the mic button on the keyboard to try\n\nFor better background service stability, it\'s recommended to grant the following permissions in system settings:\n• Auto-start in background\n• Background running (keep alive)\n• Show pop-up windows while running in the background\n\nThis is an open-source app that guarantees no privacy data will be uploaded.</string>
   <string name="btn_one_click_setup">One-click Setup</string>
 
   <string name="settings_title">BiBi Keyboard Settings</string>
+  <string name="settings_tab_input">Input</string>
+  <string name="settings_tab_smart">Smart</string>
+  <string name="settings_tab_system">System</string>
+  <string name="settings_ui_mode">UI style</string>
+  <string name="settings_ui_mode_summary">Choose Miuix or Material style</string>
+  <string name="settings_ui_mode_miuix">Miuix</string>
+  <string name="settings_ui_mode_material">Material</string>
+  <string name="settings_theme_mode">Theme mode</string>
+  <string name="settings_theme_mode_system">Follow system</string>
+  <string name="settings_theme_mode_light">Light</string>
+  <string name="settings_theme_mode_dark">Dark</string>
+  <string name="home_summary_enabled">Enabled</string>
+  <string name="home_summary_disabled">Disabled</string>
+  <string name="home_summary_setup_done">Basic setup complete</string>
+  <string name="home_summary_setup_progress">Basic setup %1$d/%2$d</string>
+  <string name="home_summary_input_tap_control">Tap control</string>
+  <string name="home_summary_input_hold_control">Long-press control</string>
+  <string name="home_summary_asr_format">Auto-stop %1$s · %2$s</string>
+  <string name="home_summary_ai_format">%1$s · %2$s · %3$s</string>
+  <string name="home_summary_api_log_errors">Recent API calls have errors</string>
+  <string name="home_summary_update_available">New version available</string>
   <string name="title_input_settings">Input Settings</string>
   <string name="title_asr_settings">Speech Recognition Settings</string>
   <string name="title_ai_settings">AI Post-processing Settings</string>
@@ -61,6 +81,9 @@
   <string name="btn_settings_search">Search Settings</string>
   <string name="title_settings_search">Search Settings</string>
   <string name="hint_settings_search">Search settings</string>
+  <string name="cd_settings_search_clear">Clear search text</string>
+  <string name="cd_show_password">Show password</string>
+  <string name="cd_hide_password">Hide password</string>
   <string name="text_settings_search_empty">No matching settings</string>
 
   <!-- Settings page section titles -->
@@ -85,10 +108,10 @@
   <!-- Custom Punctuation -->
   <!-- ============================================== -->
   <string name="custom_punct_section_title">Custom Punctuation Buttons</string>
-  <string name="label_custom_punct_1">Button 1 (char or punctuation)</string>
-  <string name="label_custom_punct_2">Button 2 (char or punctuation)</string>
-  <string name="label_custom_punct_3">Button 3 (char or punctuation)</string>
-  <string name="label_custom_punct_4">Button 4 (char or punctuation)</string>
+  <string name="label_custom_punct_1">Button 1</string>
+  <string name="label_custom_punct_2">Button 2</string>
+  <string name="label_custom_punct_3">Button 3</string>
+  <string name="label_custom_punct_4">Button 4</string>
 
   <!-- ============================================== -->
   <!-- Speech Presets -->
@@ -98,8 +121,8 @@
   <string name="speech_preset_untitled">Untitled preset</string>
   <string name="hint_speech_preset_name">Preset name</string>
   <string name="hint_speech_preset_content">Preset content</string>
-  <string name="btn_speech_preset_add">Add Preset</string>
-  <string name="btn_speech_preset_delete">Delete Preset</string>
+  <string name="btn_speech_preset_add">Add</string>
+  <string name="btn_speech_preset_delete">Delete</string>
   <string name="speech_preset_default_name">Preset %1$d</string>
   <string name="toast_speech_preset_added">Preset added</string>
   <string name="toast_speech_preset_deleted">Preset deleted</string>
@@ -131,16 +154,16 @@
   <!-- ============================================== -->
   <!-- Input Related -->
   <!-- ============================================== -->
-  <string name="label_trim_trailing_punct">Remove trailing punctuation and emoji on finish</string>
+  <string name="label_trim_trailing_punct">Remove trailing punctuation and emoji</string>
   <string name="label_mic_haptic">Haptic feedback for keys and floating ball</string>
-  <string name="label_mic_tap_toggle">Use tap to control recording</string>
-  <string name="label_test_input">Test input (try the IME here)</string>
-  <string name="btn_test_input">Test Input</string>
+  <string name="label_mic_tap_toggle">Tap to start/stop recording</string>
+  <string name="label_test_input">Try the IME</string>
+  <string name="btn_test_input">Try the IME</string>
 
   <!-- ============================================== -->
   <!-- Extension Button Configuration -->
   <!-- ============================================== -->
-  <string name="label_extension_buttons">Extension Buttons Configuration</string>
+  <string name="label_extension_buttons">Customize toolbar buttons</string>
   <string name="ext_btn_default_summary">Undo, Select All, Copy, Hide Keyboard</string>
   <string name="ext_btn_none_selected">Not selected</string>
   <string name="ext_btn_must_select_4">Please select exactly 4 buttons</string>
@@ -168,6 +191,8 @@
   <string name="toast_setup_all_done">All set</string>
   <string name="toast_setup_enable_keyboard_first">Enable the keyboard in system settings, then come back</string>
   <string name="toast_setup_choose_keyboard">Please select "BiBi Keyboard" as the current input method</string>
+  <string name="toast_setup_aborted">Setup aborted: %1$s</string>
+  <string name="setup_abort_reason_ime_timeout">Input method selection timed out</string>
   <string name="btn_get_api_key_guide">View Configuration Guide</string>
   <string name="btn_local_model_guide">View Configuration Guide</string>
 
@@ -183,11 +208,11 @@
   <!-- Other General Settings -->
   <!-- ============================================== -->
   <string name="label_audio_ducking_on_record">Audio ducking during recording</string>
-  <string name="label_auto_cancel_empty_audio_input">Auto cancel empty audio input</string>
-  <string name="label_auto_filter_silent_audio_segments">Auto filter silent audio segments</string>
+  <string name="label_auto_cancel_empty_audio_input">Auto discard invalid input</string>
+  <string name="label_auto_filter_silent_audio_segments">Auto filter silent parts</string>
   <string name="label_offline_denoise">Offline denoise for non-streaming ASR</string>
-  <string name="label_upload_audio_compression">Compress non-streaming upload audio</string>
-  <string name="label_headset_mic_priority">Prefer headset microphone (experimental)</string>
+  <string name="label_upload_audio_compression">Compress audio before upload</string>
+  <string name="label_headset_mic_priority">Try headset microphone (experimental)</string>
   <!-- External IME linking (AIDL) -->
   <string name="label_external_ime_link_aidl">Allow external IME linking (AIDL)</string>
   <string name="external_aidl_guide_title">How to Use the Linking Feature</string>

@@ -1,7 +1,7 @@
 <resources>
     <!-- Shared sherpa-onnx punctuation model (ct-transformer zh+en) -->
-    <string name="label_punct_model_shared">Shared punctuation model (FireRedASR V2 / Paraformer)</string>
-    <string name="btn_punct_download_model">Download punctuation model (60MB, shared)</string>
+    <string name="label_punct_model_shared">Shared punctuation model (60MB, used by some ASR models)</string>
+    <string name="btn_punct_download_model">Download punctuation model</string>
     <string name="btn_punct_import_model">Import punctuation model</string>
     <string name="btn_punct_clear_model">Clear punctuation model</string>
 

@@ -1,7 +1,7 @@
 <resources>
     <!-- 通用 sherpa-onnx 标点模型（ct-transformer zh+en） -->
-    <string name="label_punct_model_shared">通用标点模型（FireRedASR V2 / Paraformer 共用）</string>
-    <string name="btn_punct_download_model">下载标点模型（60MB 通用）</string>
+    <string name="label_punct_model_shared">通用标点模型（60MB，配合部分语音识别模型使用）</string>
+    <string name="btn_punct_download_model">下载标点模型</string>
     <string name="btn_punct_import_model">导入标点模型</string>
     <string name="btn_punct_clear_model">清除标点模型</string>
 

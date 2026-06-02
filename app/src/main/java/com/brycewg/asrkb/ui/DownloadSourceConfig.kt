@@ -3,7 +3,13 @@ package com.brycewg.asrkb.ui
 import android.content.Context
 import com.brycewg.asrkb.R
 
-object DownloadSourceConfig {
+internal data class DownloadSourceOption(
+    val label: String,
+    val url: String,
+    val fallbackUrls: List<String> = listOf(url)
+)
+
+internal object DownloadSourceConfig {
     private data class Mirror(val labelRes: Int, val prefix: String)
 
     private val mirrors = listOf(
@@ -16,17 +22,17 @@ object DownloadSourceConfig {
         context: Context,
         officialUrl: String,
         officialLabelRes: Int = R.string.download_source_github_official
-    ): List<DownloadSourceDialog.Option> = buildOptions(context, listOf(officialUrl), officialLabelRes)
+    ): List<DownloadSourceOption> = buildOptions(context, listOf(officialUrl), officialLabelRes)
 
     fun buildOptions(
         context: Context,
         officialUrls: List<String>,
         officialLabelRes: Int = R.string.download_source_github_official
-    ): List<DownloadSourceDialog.Option> {
+    ): List<DownloadSourceOption> {
         val primaryOfficialUrl = officialUrls.firstOrNull().orEmpty()
-        val options = ArrayList<DownloadSourceDialog.Option>(mirrors.size + 1)
+        val options = ArrayList<DownloadSourceOption>(mirrors.size + 1)
         options.add(
-            DownloadSourceDialog.Option(
+            DownloadSourceOption(
                 context.getString(officialLabelRes),
                 primaryOfficialUrl,
                 officialUrls
@@ -35,7 +41,7 @@ object DownloadSourceConfig {
         mirrors.forEach { mirror ->
             val mirroredUrls = officialUrls.map { applyMirrorPrefix(it, mirror.prefix) }
             options.add(
-                DownloadSourceDialog.Option(
+                DownloadSourceOption(
                     context.getString(mirror.labelRes),
                     mirroredUrls.firstOrNull().orEmpty(),
                     mirroredUrls

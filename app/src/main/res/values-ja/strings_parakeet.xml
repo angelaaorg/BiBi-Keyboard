@@ -7,9 +7,9 @@
     <string name="pk_model_06b_v3_int8">0.6B V3 Int8 European（456MB）</string>
     <string name="pk_model_06b_v2_int8">0.6B V2 Int8 English（451MB）</string>
     <string name="label_pk_threads">スレッド数（1-8）</string>
-    <string name="label_pk_preload">初回表示時にモデルを事前読み込み</string>
-    <string name="label_pk_keep_alive">モデル保持時間</string>
-    <string name="btn_pk_download_model">Parakeetモデルをワンクリックでダウンロード</string>
+    <string name="label_pk_preload">積極的にモデルを読み込む</string>
+    <string name="label_pk_keep_alive">モデルアンロード方針</string>
+    <string name="btn_pk_download_model">モデルをワンクリックでダウンロード</string>
     <string name="btn_pk_import_model">ローカルファイルからモデルをインポート</string>
     <string name="btn_pk_clear_model">ダウンロードしたParakeetモデルをクリア</string>
     <string name="pk_download_status_downloading">ダウンロード中…%1$d%%</string>

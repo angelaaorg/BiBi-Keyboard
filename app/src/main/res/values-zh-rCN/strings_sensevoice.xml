@@ -12,10 +12,10 @@
     <string name="sv_lang_ja">日语 (ja)</string>
     <string name="sv_lang_ko">韩语 (ko)</string>
     <string name="sv_lang_yue">粤语 (yue)</string>
-    <string name="label_sv_use_itn">启用 ITN（数字/标点规范化）</string>
-    <string name="btn_sv_download_model">一键下载 SenseVoice 模型</string>
-    <string name="btn_sv_download_model_int8">一键下载 SenseVoice 模型（small int8，约 160MB）</string>
-    <string name="btn_sv_download_model_full">一键下载 SenseVoice 模型（small fp32，约 850MB）</string>
+    <string name="label_sv_use_itn">启用 ITN（数字智能识别）</string>
+    <string name="btn_sv_download_model">一键下载模型</string>
+    <string name="btn_sv_download_model_int8">一键下载模型</string>
+    <string name="btn_sv_download_model_full">一键下载模型</string>
     <string name="btn_sv_import_model">从本地导入模型</string>
     <string name="btn_sv_clear_model">清除已下载模型</string>
     <string name="sv_download_status_downloading">下载中… %1$d%%</string>
@@ -38,8 +38,8 @@
     <string name="sv_loading_model_while_listening">正在聆听…本地模型后台加载中…</string>
     <string name="sv_model_ready">本地模型加载完成</string>
     <string name="sv_model_ready_with_ms">本地模型加载完成（%1$d ms）</string>
-    <string name="label_sv_preload">首次显示时加载模型</string>
-    <string name="label_sv_keep_alive">模型内存保留时长</string>
+    <string name="label_sv_preload">积极加载模型</string>
+    <string name="label_sv_keep_alive">模型卸载策略</string>
     <string name="sv_keep_alive_immediate">不保留（识别后立即卸载）</string>
     <string name="sv_keep_alive_5m">5 分钟</string>
     <string name="sv_keep_alive_15m">15 分钟</string>
@@ -68,7 +68,7 @@
     <string name="feature_sv_preload_on_desc">键盘显示时预加载模型，减少首次使用延迟。</string>
 
     <!-- 伪流式模式 - Pseudo streaming -->
-    <string name="label_sv_pseudo_stream">启用伪流式预览（按停顿分句）</string>
+    <string name="label_sv_pseudo_stream">启用伪流式预览（固定时长分句）</string>
     <string name="feature_sv_pseudo_stream_off_desc">不进行分句预览，整段录音结束后一次性识别，效果与传统本地识别相同。</string>
-    <string name="feature_sv_pseudo_stream_on_desc">在每次停顿处将语音拆成小段，先给出本地预览结果，整段录音结束后再统一识别并覆盖预览文本。</string>
+    <string name="feature_sv_pseudo_stream_on_desc">按固定时长将语音拆成小段，先给出本地预览结果，整段录音结束后再统一识别并覆盖预览文本。</string>
 </resources>

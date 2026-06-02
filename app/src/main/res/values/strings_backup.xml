@@ -11,8 +11,8 @@
     <string name="hint_webdav_url">WebDAV URL (e.g., https://dav.example.com)</string>
     <string name="hint_webdav_username">Username (optional)</string>
     <string name="hint_webdav_password">Password (optional)</string>
-    <string name="btn_webdav_upload">Upload to WebDAV</string>
-    <string name="btn_webdav_download">Restore from WebDAV</string>
+    <string name="btn_webdav_upload">Upload</string>
+    <string name="btn_webdav_download">Restore</string>
 
     <string name="toast_webdav_upload_success">Uploaded to WebDAV</string>
     <string name="toast_webdav_upload_failed">Upload failed: %1$s</string>

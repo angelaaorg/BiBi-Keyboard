@@ -4,8 +4,8 @@
     <string name="vendor_soniox">Soniox</string>
 
     <!-- Soniox configuration -->
-    <string name="label_soniox_streaming">使用 Soniox 流式识别（WebSocket）</string>
-    <string name="label_soniox_language">识别语言（Language Hints）</string>
+    <string name="label_soniox_streaming">流式识别</string>
+    <string name="label_soniox_language">识别语言（可多选）</string>
     <string name="label_soniox_language_strict">严格限制识别语言</string>
     <string name="label_soniox_api_key">API Key（Bearer）</string>
 

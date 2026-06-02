@@ -16,6 +16,7 @@
     <string name="btn_manual_check">Manual Check</string>
     <string name="btn_cancel">Cancel</string>
     <string name="btn_view_changelog">History</string>
+    <string name="update_feedback_title">Update</string>
 
     <string name="download_source_title">Select Download Source</string>
     <string name="download_source_github_official">GitHub (official)</string>

@@ -12,13 +12,13 @@
     <string name="dash_model_qwen_realtime">Qwen3-ASR-Flash-Realtime（流式）</string>
     <string name="dash_model_fun_realtime">Fun-ASR-Realtime（流式）</string>
     <string name="label_dash_prompt">自定义提示词/识别上下文（可选）</string>
-    <string name="label_dash_language">识别语言（可选，已知语种可提升准确率）</string>
-    <string name="label_dash_streaming">使用 DashScope 流式识别（WebSocket）</string>
+    <string name="label_dash_language">识别语言</string>
+    <string name="label_dash_streaming">流式识别</string>
     <string name="dash_streaming_note">模型选择决定是否流式。Qwen3 与 Qwen3.5-Omni 模型支持自定义提示词/上下文；Qwen3.5-Omni 不支持识别语言设置，Fun-ASR-Realtime 不支持自定义提示词。</string>
     <string name="label_dash_fun_asr">使用 Fun-ASR 模型进行识别（fun-asr-realtime）</string>
     <string name="label_dash_funasr_semantic_punct">使用语义断句（Fun-ASR）</string>
-    <string name="dash_lang_auto">自动（启用语种识别）</string>
-    <string name="label_dash_region">DashScope 地域</string>
+    <string name="dash_lang_auto">自动识别</string>
+    <string name="label_dash_region">服务器地区</string>
     <string name="dash_region_cn">中国大陆（aliyuncs.com）</string>
     <string name="dash_region_intl">新加坡/国际（dashscope-intl.aliyuncs.com）</string>
 

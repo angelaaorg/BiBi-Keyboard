@@ -12,13 +12,13 @@
     <string name="dash_model_qwen_realtime">Qwen3-ASR-Flash-Realtime（串流）</string>
     <string name="dash_model_fun_realtime">Fun-ASR-Realtime（串流）</string>
     <string name="label_dash_prompt">自定義提示詞/識別上下文（可選）</string>
-    <string name="label_dash_language">識別語言（可選，已知語種可提升準確率）</string>
-    <string name="label_dash_streaming">使用 DashScope 串流識別（WebSocket）</string>
+    <string name="label_dash_language">識別語言</string>
+    <string name="label_dash_streaming">串流識別</string>
     <string name="dash_streaming_note">模型選擇決定是否串流。Qwen3 與 Qwen3.5-Omni 模型支援自訂提示詞/上下文；Qwen3.5-Omni 不支援識別語言設定，Fun-ASR-Realtime 不支援自訂提示詞。</string>
     <string name="label_dash_fun_asr">使用 Fun-ASR 模型進行識別（fun-asr-realtime）</string>
     <string name="label_dash_funasr_semantic_punct">使用語義斷句（Fun-ASR）</string>
-    <string name="dash_lang_auto">自動（啟用語種識別）</string>
-    <string name="label_dash_region">DashScope 地域</string>
+    <string name="dash_lang_auto">自動識別</string>
+    <string name="label_dash_region">伺服器地區</string>
     <string name="dash_region_cn">中國大陸（aliyuncs.com）</string>
     <string name="dash_region_intl">新加坡/國際（dashscope-intl.aliyuncs.com）</string>
 

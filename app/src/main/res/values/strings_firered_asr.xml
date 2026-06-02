@@ -6,10 +6,10 @@
     <!-- FireRedASR V2 configuration -->
     <string name="label_fr_model_variant">Model variant</string>
     <string name="label_fr_threads">Threads (1-8)</string>
-    <string name="label_fr_keep_alive">Keep model in memory</string>
-    <string name="label_fr_preload">Load model on first show</string>
+    <string name="label_fr_keep_alive">Model unload policy</string>
+    <string name="label_fr_preload">Aggressive model loading</string>
     <string name="fr_model_ctc_int8">Zh + En CTC (int8, ~740MB)</string>
-    <string name="btn_fr_download_model">Download FireRedASR V2 model</string>
+    <string name="btn_fr_download_model">One-click download model</string>
     <string name="btn_fr_import_model">Import from local</string>
     <string name="btn_fr_clear_model">Clear downloaded FireRedASR V2 model</string>
     <string name="fr_download_status_downloading">Downloading… %1$d%%</string>
@@ -37,12 +37,12 @@
     <string name="feature_fr_preload_on_desc">Preloads the model when the keyboard appears to reduce first-use latency.</string>
 
     <!-- FireRedASR V2 - Use ITN -->
-    <string name="label_fr_use_itn">Enable ITN (inverse text normalization)</string>
+    <string name="label_fr_use_itn">Enable ITN (smart number recognition)</string>
     <string name="feature_fr_use_itn_off_desc">Outputs spoken-form text, such as \"one thousand two hundred thirty-four\".</string>
     <string name="feature_fr_use_itn_on_desc">Uses Inverse Text Normalization to automatically convert to written form, such as \"1234\".</string>
 
     <!-- FireRedASR V2 - Pseudo streaming -->
-    <string name="label_fr_pseudo_stream">Enable pseudo streaming preview</string>
+    <string name="label_fr_pseudo_stream">Enable pseudo streaming preview (fixed-length segments)</string>
     <string name="feature_fr_pseudo_stream_off_desc">Disable pseudo streaming. Audio is recognized once at the end, same as traditional offline mode.</string>
-    <string name="feature_fr_pseudo_stream_on_desc">Use VAD to split speech by pauses, sending small segments for quick local preview, then run a full-segment recognition at the end to overwrite the preview text.</string>
+    <string name="feature_fr_pseudo_stream_on_desc">Splits audio into fixed-length segments for local preview, then runs full recognition at the end to overwrite the preview text.</string>
 </resources>

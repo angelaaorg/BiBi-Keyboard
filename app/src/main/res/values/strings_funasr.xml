@@ -41,12 +41,12 @@
     <string name="fn_lang_sl">Slovenian</string>
     <string name="fn_lang_sv">Swedish</string>
     <string name="label_fn_threads">Threads (1-8)</string>
-    <string name="label_fn_use_itn">Enable ITN (inverse text normalization)</string>
+    <string name="label_fn_use_itn">Enable ITN (smart number recognition)</string>
     <string name="label_fn_user_prompt">User prompt</string>
     <string name="fn_user_prompt_hint">Long prompts may slow down processing.</string>
-    <string name="label_fn_preload">Load model on first show</string>
-    <string name="label_fn_keep_alive">Model keep-alive duration</string>
-    <string name="btn_fn_download_model">One-click download FunASR Nano model</string>
+    <string name="label_fn_preload">Aggressive model loading</string>
+    <string name="label_fn_keep_alive">Model unload policy</string>
+    <string name="btn_fn_download_model">One-click download model</string>
     <string name="btn_fn_import_model">Import model from local file</string>
     <string name="btn_fn_clear_model">Clear downloaded model</string>
     <string name="fn_download_status_downloading">Downloading… %1$d%%</string>

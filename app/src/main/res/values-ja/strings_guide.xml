@@ -48,6 +48,10 @@
     <string name="onboarding_permission_ime_enable_desc">システムの入力方法設定で BiBi キーボードを有効にします。</string>
     <string name="onboarding_permission_ime_switch_title">BiBi キーボードへ切り替え</string>
     <string name="onboarding_permission_ime_switch_desc">入力方法ピッカーを開き、現在のキーボードを BiBi キーボードに切り替えます。</string>
+    <string name="settings_ime_picker_title">入力方法ピッカー</string>
+    <string name="settings_ime_picker_selected_message">現在の入力方法が BiBi キーボードになりました。</string>
+    <string name="settings_ime_picker_closed_message">システムピッカーを閉じました。切り替えていない場合は、もう一度開いて BiBi キーボードを選択してください。</string>
+    <string name="settings_ime_picker_open_failed_message">システムの入力方法ピッカーを開けませんでした。システム設定からキーボードを切り替えられます。</string>
     <string name="onboarding_permission_mic_title">マイク権限</string>
     <string name="onboarding_permission_mic_desc">音声認識のための録音に必要です。</string>
     <string name="onboarding_permission_overlay_title">オーバーレイ権限</string>

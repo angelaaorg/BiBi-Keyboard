@@ -6,12 +6,12 @@
     <string name="label_qw_model_variant">模型版本</string>
     <string name="qw_model_qwen3_06b_int8">Qwen3-ASR 0.6B Int8（806MB）</string>
     <string name="label_qw_threads">线程数（1-8）</string>
-    <string name="label_qw_preload">首次显示时预加载模型</string>
-    <string name="label_qw_use_itn">启用规则 ITN</string>
+    <string name="label_qw_preload">积极加载模型</string>
+    <string name="label_qw_use_itn">启用 ITN（数字智能识别）</string>
     <string name="feature_qw_use_itn_off_desc">输出口语化文本，如“一千二百三十四”。</string>
     <string name="feature_qw_use_itn_on_desc">使用本地规则反向文本规范化，将支持的中文口语数字、日期、时间转换为书面形式。</string>
-    <string name="label_qw_keep_alive">模型保留时长</string>
-    <string name="btn_qw_download_model">一键下载 Qwen3-ASR 模型</string>
+    <string name="label_qw_keep_alive">模型卸载策略</string>
+    <string name="btn_qw_download_model">一键下载模型</string>
     <string name="btn_qw_import_model">从本地导入模型</string>
     <string name="btn_qw_clear_model">清理已下载 Qwen3-ASR 模型</string>
     <string name="qw_download_status_downloading">下载中… %1$d%%</string>

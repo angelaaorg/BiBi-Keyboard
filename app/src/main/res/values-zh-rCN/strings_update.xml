@@ -16,6 +16,7 @@
     <string name="btn_manual_check">手动查看</string>
     <string name="btn_cancel">取消</string>
     <string name="btn_view_changelog">历史</string>
+    <string name="update_feedback_title">更新</string>
 
     <string name="download_source_title">选择下载源</string>
     <string name="download_source_github_official">GitHub 官方</string>

@@ -41,12 +41,12 @@
     <string name="fn_lang_sl">スロベニア語</string>
     <string name="fn_lang_sv">スウェーデン語</string>
     <string name="label_fn_threads">スレッド数（1-8）</string>
-    <string name="label_fn_use_itn">ITNを有効化（逆テキスト正規化）</string>
+    <string name="label_fn_use_itn">ITNを有効化（数字スマート認識）</string>
     <string name="label_fn_user_prompt">ユーザープロンプト</string>
     <string name="fn_user_prompt_hint">長いプロンプトは処理が遅くなる可能性があります。</string>
-    <string name="label_fn_preload">初回表示時にモデルを事前読み込み</string>
-    <string name="label_fn_keep_alive">モデル保持時間</string>
-    <string name="btn_fn_download_model">FunASR Nanoモデルをワンクリックでダウンロード</string>
+    <string name="label_fn_preload">積極的にモデルを読み込む</string>
+    <string name="label_fn_keep_alive">モデルアンロード方針</string>
+    <string name="btn_fn_download_model">モデルをワンクリックでダウンロード</string>
     <string name="btn_fn_import_model">ローカルファイルからモデルをインポート</string>
     <string name="btn_fn_clear_model">ダウンロードしたモデルをクリア</string>
     <string name="fn_download_status_downloading">ダウンロード中…%1$d%%</string>

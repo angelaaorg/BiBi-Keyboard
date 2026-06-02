@@ -9,7 +9,7 @@ import androidx.appcompat.app.AppCompatActivity
  *
  * 统一处理 Android 15 (SDK 35) 边缘到边缘显示的兼容性：
  * - 调用 enableEdgeToEdge() 确保在所有 Android 版本上行为一致
- * - 子类应在 setContentView() 后调用 WindowInsetsHelper.applySystemBarsInsets() 处理 insets
+ * - View UI 子类需要自行处理 insets；Compose 页面通过各自 Scaffold/windowInsets 处理
  */
 abstract class BaseActivity : AppCompatActivity() {
 

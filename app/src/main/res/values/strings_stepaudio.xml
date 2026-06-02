@@ -8,5 +8,5 @@
     <string name="stepaudio_lang_zh">Chinese</string>
     <string name="stepaudio_lang_en">English</string>
     <string name="stepaudio_lang_auto">Auto</string>
-    <string name="label_stepaudio_use_itn">Enable ITN (inverse text normalization)</string>
+    <string name="label_stepaudio_use_itn">Enable ITN (smart number recognition)</string>
 </resources>

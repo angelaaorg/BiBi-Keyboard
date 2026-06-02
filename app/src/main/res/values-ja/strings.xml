@@ -49,10 +49,30 @@
   <!-- ============================================== -->
   <!-- 设置相关 -->
   <!-- ============================================== -->
-  <string name="settings_instructions">初回セットアップ:\n1.「キーボードを有効化」をタップし、システム設定でBiBi Keyboardを有効にします\n2.「キーボードを選択」をタップし、BiBi Keyboardに切り替えます\n3.マイク権限を許可し、キーボードのマイクボタンを長押しして音声入力をお試しください\n\nより安定したバックグラウンドサービスを利用するため、システム設定で以下の権限を許可することを推奨します：\n• バックグラウンドでの自動起動\n• バックグラウンド実行（常駐）\n• バックグラウンドでのポップアップ表示\n\n本ソフトウェアはオープンソースであり、いかなるプライバシーデータもアップロードしないことを保証します。</string>
   <string name="btn_one_click_setup">ワンクリック設定</string>
 
   <string name="settings_title">BiBi Keyboard 設定</string>
+  <string name="settings_tab_input">入力</string>
+  <string name="settings_tab_smart">スマート</string>
+  <string name="settings_tab_system">システム</string>
+  <string name="settings_ui_mode">UI スタイル</string>
+  <string name="settings_ui_mode_summary">Miuix または Material スタイルを選択</string>
+  <string name="settings_ui_mode_miuix">Miuix</string>
+  <string name="settings_ui_mode_material">Material</string>
+  <string name="settings_theme_mode">テーマモード</string>
+  <string name="settings_theme_mode_system">システムに従う</string>
+  <string name="settings_theme_mode_light">ライト</string>
+  <string name="settings_theme_mode_dark">ダーク</string>
+  <string name="home_summary_enabled">有効</string>
+  <string name="home_summary_disabled">無効</string>
+  <string name="home_summary_setup_done">基本設定は完了</string>
+  <string name="home_summary_setup_progress">基本設定 %1$d/%2$d</string>
+  <string name="home_summary_input_tap_control">タップ操作</string>
+  <string name="home_summary_input_hold_control">長押し操作</string>
+  <string name="home_summary_asr_format">自動停止 %1$s · %2$s</string>
+  <string name="home_summary_ai_format">%1$s · %2$s · %3$s</string>
+  <string name="home_summary_api_log_errors">直近の API 呼び出しにエラーがあります</string>
+  <string name="home_summary_update_available">新しいバージョンがあります</string>
   <string name="title_input_settings">入力設定</string>
   <string name="title_asr_settings">音声認識設定</string>
   <string name="title_ai_settings">AI後処理設定</string>
@@ -60,6 +80,9 @@
   <string name="btn_settings_search">設定を検索</string>
   <string name="title_settings_search">設定を検索</string>
   <string name="hint_settings_search">設定を検索</string>
+  <string name="cd_settings_search_clear">検索テキストをクリア</string>
+  <string name="cd_show_password">パスワードを表示</string>
+  <string name="cd_hide_password">パスワードを非表示</string>
   <string name="text_settings_search_empty">一致する設定がありません</string>
 
   <!-- Settings page section titles -->
@@ -84,10 +107,10 @@
   <!-- 自定义标点 -->
   <!-- ============================================== -->
   <string name="custom_punct_section_title">カスタム句読点ボタン</string>
-  <string name="label_custom_punct_1">ボタン1（文字または句読点）</string>
-  <string name="label_custom_punct_2">ボタン2（文字または句読点）</string>
-  <string name="label_custom_punct_3">ボタン3（文字または句読点）</string>
-  <string name="label_custom_punct_4">ボタン4（文字または句読点）</string>
+  <string name="label_custom_punct_1">ボタン1</string>
+  <string name="label_custom_punct_2">ボタン2</string>
+  <string name="label_custom_punct_3">ボタン3</string>
+  <string name="label_custom_punct_4">ボタン4</string>
 
   <!-- ============================================== -->
   <!-- 语音预设 -->
@@ -97,8 +120,8 @@
   <string name="speech_preset_untitled">無題のプリセット</string>
   <string name="hint_speech_preset_name">プリセット名</string>
   <string name="hint_speech_preset_content">プリセット内容</string>
-  <string name="btn_speech_preset_add">プリセットを追加</string>
-  <string name="btn_speech_preset_delete">プリセットを削除</string>
+  <string name="btn_speech_preset_add">追加</string>
+  <string name="btn_speech_preset_delete">削除</string>
   <string name="speech_preset_default_name">プリセット%1$d</string>
   <string name="toast_speech_preset_added">プリセットが追加されました</string>
   <string name="toast_speech_preset_deleted">プリセットが削除されました</string>
@@ -130,16 +153,16 @@
   <!-- ============================================== -->
   <!-- 输入相关 -->
   <!-- ============================================== -->
-  <string name="label_trim_trailing_punct">確定時に末尾の句読点と絵文字を削除</string>
+  <string name="label_trim_trailing_punct">に末尾の句読点と絵文字を削除</string>
   <string name="label_mic_haptic">キーとフローティングボールのバイブレーション</string>
-  <string name="label_mic_tap_toggle">タップで録音操作する</string>
-  <string name="label_test_input">テスト入力（ここでIMEを試してください）</string>
-  <string name="btn_test_input">テスト入力</string>
+  <string name="label_mic_tap_toggle">タップで録音開始/停止</string>
+  <string name="label_test_input">IMEを試す</string>
+  <string name="btn_test_input">IMEを試す</string>
 
   <!-- ============================================== -->
   <!-- 拡張ボタン設定 -->
   <!-- ============================================== -->
-  <string name="label_extension_buttons">拡張ボタン設定</string>
+  <string name="label_extension_buttons">ツールバーボタンをカスタマイズ</string>
   <string name="ext_btn_default_summary">元に戻す、すべて選択、コピー、キーボードを非表示</string>
   <string name="ext_btn_none_selected">未選択</string>
   <string name="ext_btn_must_select_4">正確に4つのボタンを選択してください</string>
@@ -167,6 +190,8 @@
   <string name="toast_setup_all_done">すべて設定完了</string>
   <string name="toast_setup_enable_keyboard_first">システム設定でキーボードを有効にしてから戻ってください</string>
   <string name="toast_setup_choose_keyboard">現在の入力メソッドとして「BiBi Keyboard」を選択してください</string>
+  <string name="toast_setup_aborted">セットアップを中止しました: %1$s</string>
+  <string name="setup_abort_reason_ime_timeout">入力方法の選択がタイムアウトしました</string>
   <string name="btn_get_api_key_guide">設定ガイドを表示</string>
   <string name="btn_local_model_guide">設定ガイドを表示</string>
 
@@ -182,11 +207,11 @@
   <!-- 其他通用设置 -->
   <!-- ============================================== -->
   <string name="label_audio_ducking_on_record">録音中のオーディオダッキング</string>
-  <string name="label_auto_cancel_empty_audio_input">空の音声入力を自動キャンセル</string>
+  <string name="label_auto_cancel_empty_audio_input">無効な入力を自動破棄</string>
   <string name="label_auto_filter_silent_audio_segments">無音部分を自動フィルタリング</string>
   <string name="label_offline_denoise">非ストリーミング認識のノイズ低減</string>
-  <string name="label_upload_audio_compression">非ストリーミングのアップロード音声を圧縮</string>
-  <string name="label_headset_mic_priority">ヘッドセットマイクを優先（実験的）</string>
+  <string name="label_upload_audio_compression">アップロード前に音声を圧縮</string>
+  <string name="label_headset_mic_priority">ヘッドセットマイクを試す（実験的）</string>
   <!-- 外部IME連携（AIDL） -->
   <string name="label_external_ime_link_aidl">外部IME連携（AIDL）を許可</string>
   <string name="external_aidl_guide_title">連携機能の使用方法</string>

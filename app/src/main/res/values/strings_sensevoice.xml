@@ -12,10 +12,10 @@
     <string name="sv_lang_ja">Japanese (ja)</string>
     <string name="sv_lang_ko">Korean (ko)</string>
     <string name="sv_lang_yue">Cantonese (yue)</string>
-    <string name="label_sv_use_itn">Enable ITN (inverse text normalization)</string>
-    <string name="btn_sv_download_model">One-click download SenseVoice model</string>
-    <string name="btn_sv_download_model_int8">One-click download SenseVoice (small int8, ~160MB)</string>
-    <string name="btn_sv_download_model_full">One-click download SenseVoice (small fp32, ~850MB)</string>
+    <string name="label_sv_use_itn">Enable ITN (smart number recognition)</string>
+    <string name="btn_sv_download_model">One-click download model</string>
+    <string name="btn_sv_download_model_int8">One-click download model</string>
+    <string name="btn_sv_download_model_full">One-click download model</string>
     <string name="btn_sv_import_model">Import model from local file</string>
     <string name="btn_sv_clear_model">Clear downloaded model</string>
     <string name="sv_download_status_downloading">Downloading… %1$d%%</string>
@@ -38,8 +38,8 @@
     <string name="sv_loading_model_while_listening">Listening… loading local model in background…</string>
     <string name="sv_model_ready">Local model loaded</string>
     <string name="sv_model_ready_with_ms">Local model loaded (%1$d ms)</string>
-    <string name="label_sv_preload">Load model on first show</string>
-    <string name="label_sv_keep_alive">Model keep-alive duration</string>
+    <string name="label_sv_preload">Aggressive model loading</string>
+    <string name="label_sv_keep_alive">Model unload policy</string>
     <string name="sv_keep_alive_immediate">No keep-alive (unload after recognition)</string>
     <string name="sv_keep_alive_5m">5 minutes</string>
     <string name="sv_keep_alive_15m">15 minutes</string>
@@ -67,7 +67,7 @@
     <string name="feature_sv_preload_on_desc">Preloads the model when the keyboard appears to reduce first-use latency.</string>
 
     <!-- SenseVoice - Pseudo streaming -->
-    <string name="label_sv_pseudo_stream">Enable pseudo streaming preview</string>
+    <string name="label_sv_pseudo_stream">Enable pseudo streaming preview (fixed-length segments)</string>
     <string name="feature_sv_pseudo_stream_off_desc">Disable pseudo streaming. Audio is recognized once at the end, same as traditional offline mode.</string>
-    <string name="feature_sv_pseudo_stream_on_desc">Use VAD to split speech by pauses, sending small segments for quick local preview, then run a full-segment recognition at the end to overwrite the preview text.</string>
+    <string name="feature_sv_pseudo_stream_on_desc">Splits audio into fixed-length segments for local preview, then runs full recognition at the end to overwrite the preview text.</string>
 </resources>

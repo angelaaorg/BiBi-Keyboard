@@ -13,20 +13,15 @@ import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import android.util.Log
-import android.view.LayoutInflater
-import android.widget.LinearLayout
-import android.widget.Toast
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.store.Prefs
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import java.io.File
 import java.io.FileOutputStream
 
 /**
- * Pro 版本宣传弹窗工具类
+ * Pro 版本宣传弹窗动作工具类
  *
- * 用于向用户展示 Pro 版本的功能介绍，仅显示一次。
- * 可在关于页面手动触发再次显示。
+ * Compose 弹窗宿主位于 ui/settings/compose/components/ProPromoDialogHost.kt。
  */
 object ProPromoDialog {
 
@@ -37,6 +32,12 @@ object ProPromoDialog {
 
     // Telegram 群链接
     private const val TELEGRAM_URL = "https://t.me/+UGFobXqi2bYzMDFl"
+
+    // 作者邮箱
+    private const val AUTHOR_EMAIL = "bryce1577006721@gmail.com"
+
+    val authorEmail: String
+        get() = AUTHOR_EMAIL
 
     /**
      * 检查是否需要显示弹窗（仅检查是否已显示过）
@@ -49,179 +50,50 @@ object ProPromoDialog {
         return !prefs.proPromoShown
     }
 
-    /**
-     * 显示弹窗（自动标记已显示）
-     *
-     * @param context Context
-     */
-    fun show(context: Context) {
-        showInternal(context, markAsShown = true)
+    fun markShown(context: Context) {
+        Prefs(context).proPromoShown = true
     }
 
-    /**
-     * 强制显示弹窗（不标记已显示，用于关于页面手动触发）
-     *
-     * @param context Context
-     */
-    fun showForce(context: Context) {
-        showInternal(context, markAsShown = false)
-    }
+    fun openPlayStore(context: Context): Int? = openUrl(context, PLAY_STORE_URL)
 
-    /**
-     * 检查并在需要时显示弹窗
-     *
-     * @param context Context
-     * @return true 如果显示了弹窗
-     */
-    fun showIfNeeded(context: Context): Boolean {
-        if (shouldShow(context)) {
-            show(context)
-            return true
-        }
-        return false
-    }
+    fun openTelegram(context: Context): Int? = openUrl(context, TELEGRAM_URL)
 
-    private fun showInternal(context: Context, markAsShown: Boolean) {
-        try {
-            // 立即标记已显示，避免返回桌面后再次出现弹窗
-            if (markAsShown) {
-                val prefs = Prefs(context)
-                prefs.proPromoShown = true
-            }
-
-            val inflater = LayoutInflater.from(context)
-            val customView = inflater.inflate(R.layout.dialog_pro_promo, null)
-
-            val btnPlayStore = customView.findViewById<com.google.android.material.button.MaterialButton>(
-                R.id.btnPlayStore
-            )
-            val btnTelegram = customView.findViewById<com.google.android.material.button.MaterialButton>(
-                R.id.btnTelegram
-            )
-            val btnPaymentQr = customView.findViewById<com.google.android.material.button.MaterialButton>(
-                R.id.btnPaymentQr
-            )
-            val btnClose = customView.findViewById<com.google.android.material.button.MaterialButton>(
-                R.id.btnClose
-            )
-
-            val dialog = MaterialAlertDialogBuilder(context)
-                .setView(customView)
-                .setCancelable(false) // 只能通过点击关闭按钮关闭，防止误触
-                .create()
-
-            btnPlayStore.setOnClickListener {
-                openUrl(context, PLAY_STORE_URL)
-            }
-
-            btnTelegram.setOnClickListener {
-                openUrl(context, TELEGRAM_URL)
-            }
-
-            btnPaymentQr.setOnClickListener {
-                showPaymentQrDialog(context)
-            }
-
-            btnClose.setOnClickListener {
-                dialog.dismiss()
-            }
-
-            dialog.show()
-        } catch (e: Throwable) {
-            Log.e(TAG, "Failed to show Pro promo dialog", e)
-        }
-    }
-
-    private fun openUrl(context: Context, url: String) {
+    private fun openUrl(context: Context, url: String): Int? =
         try {
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
             context.startActivity(intent)
+            null
         } catch (e: ActivityNotFoundException) {
             Log.e(TAG, "No browser found to open URL: $url", e)
-            Toast.makeText(context, R.string.error_open_browser, Toast.LENGTH_SHORT).show()
+            R.string.error_open_browser
         } catch (e: Throwable) {
             Log.e(TAG, "Failed to open URL: $url", e)
-            Toast.makeText(context, R.string.error_open_browser, Toast.LENGTH_SHORT).show()
+            R.string.error_open_browser
         }
-    }
-
-    // 作者邮箱
-    private const val AUTHOR_EMAIL = "bryce1577006721@gmail.com"
-
-    /**
-     * 显示付款码弹窗
-     *
-     * @param context Context
-     */
-    private fun showPaymentQrDialog(context: Context) {
-        try {
-            val inflater = LayoutInflater.from(context)
-            val customView = inflater.inflate(R.layout.dialog_payment_qr, null)
-
-            val btnClose = customView.findViewById<com.google.android.material.button.MaterialButton>(
-                R.id.btnClosePayment
-            )
-            val btnSaveWechat = customView.findViewById<com.google.android.material.button.MaterialButton>(
-                R.id.btnSaveWechat
-            )
-            val btnSaveAlipay = customView.findViewById<com.google.android.material.button.MaterialButton>(
-                R.id.btnSaveAlipay
-            )
-            val layoutEmail = customView.findViewById<LinearLayout>(R.id.layoutEmail)
-
-            val dialog = MaterialAlertDialogBuilder(context)
-                .setView(customView)
-                .setCancelable(true)
-                .create()
-
-            // 邮箱点击复制
-            layoutEmail.setOnClickListener {
-                copyEmailToClipboard(context)
-            }
-
-            // 保存微信付款码
-            btnSaveWechat.setOnClickListener {
-                saveQrCodeToGallery(context, R.drawable.qr_wechat_pay, "wechat_pay_qr")
-            }
-
-            // 保存支付宝付款码
-            btnSaveAlipay.setOnClickListener {
-                saveQrCodeToGallery(context, R.drawable.qr_alipay, "alipay_qr")
-            }
-
-            btnClose.setOnClickListener {
-                dialog.dismiss()
-            }
-
-            dialog.show()
-        } catch (e: Throwable) {
-            Log.e(TAG, "Failed to show payment QR dialog", e)
-        }
-    }
 
     /**
      * 复制邮箱到剪贴板
      */
-    private fun copyEmailToClipboard(context: Context) {
+    fun copyEmailToClipboard(context: Context): Int? {
         try {
             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
             val clip = ClipData.newPlainText("email", AUTHOR_EMAIL)
             clipboard.setPrimaryClip(clip)
-            Toast.makeText(context, R.string.payment_qr_email_copied, Toast.LENGTH_SHORT).show()
+            return R.string.payment_qr_email_copied
         } catch (e: Throwable) {
             Log.e(TAG, "Failed to copy email to clipboard", e)
         }
+        return null
     }
 
     /**
      * 保存二维码到相册
      */
-    private fun saveQrCodeToGallery(context: Context, drawableResId: Int, fileName: String) {
+    fun saveQrCodeToGallery(context: Context, drawableResId: Int, fileName: String): Int {
         try {
             val bitmap = BitmapFactory.decodeResource(context.resources, drawableResId)
             if (bitmap == null) {
-                Toast.makeText(context, R.string.payment_qr_save_failed, Toast.LENGTH_SHORT).show()
-                return
+                return R.string.payment_qr_save_failed
             }
 
             val saved = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -232,14 +104,14 @@ object ProPromoDialog {
                 saveImageToExternalStorage(context, bitmap, fileName)
             }
 
-            if (saved) {
-                Toast.makeText(context, R.string.payment_qr_save_success, Toast.LENGTH_SHORT).show()
+            return if (saved) {
+                R.string.payment_qr_save_success
             } else {
-                Toast.makeText(context, R.string.payment_qr_save_failed, Toast.LENGTH_SHORT).show()
+                R.string.payment_qr_save_failed
             }
         } catch (e: Throwable) {
             Log.e(TAG, "Failed to save QR code to gallery", e)
-            Toast.makeText(context, R.string.payment_qr_save_failed, Toast.LENGTH_SHORT).show()
+            return R.string.payment_qr_save_failed
         }
     }
 

@@ -12,10 +12,10 @@
     <string name="sv_lang_ja">日語 (ja)</string>
     <string name="sv_lang_ko">韓語 (ko)</string>
     <string name="sv_lang_yue">粵語 (yue)</string>
-    <string name="label_sv_use_itn">啟用 ITN（數字/標點規範化）</string>
-    <string name="btn_sv_download_model">一鍵下載 SenseVoice 模型</string>
-    <string name="btn_sv_download_model_int8">一鍵下載 SenseVoice 模型（small int8，約 160MB）</string>
-    <string name="btn_sv_download_model_full">一鍵下載 SenseVoice 模型（small fp32，約 850MB）</string>
+    <string name="label_sv_use_itn">啟用 ITN（數字智慧識別）</string>
+    <string name="btn_sv_download_model">一鍵下載模型</string>
+    <string name="btn_sv_download_model_int8">一鍵下載模型</string>
+    <string name="btn_sv_download_model_full">一鍵下載模型</string>
     <string name="btn_sv_import_model">從本機匯入模型</string>
     <string name="btn_sv_clear_model">清除已下載模型</string>
     <string name="sv_download_status_downloading">下載中… %1$d%%</string>
@@ -38,8 +38,8 @@
     <string name="sv_loading_model_while_listening">正在聆聽…本機模型背景載入中…</string>
     <string name="sv_model_ready">本機模型載入完成</string>
     <string name="sv_model_ready_with_ms">本機模型載入完成（%1$d ms）</string>
-    <string name="label_sv_preload">首次顯示時載入模型</string>
-    <string name="label_sv_keep_alive">模型記憶體保留時長</string>
+    <string name="label_sv_preload">積極載入模型</string>
+    <string name="label_sv_keep_alive">模型卸載策略</string>
     <string name="sv_keep_alive_immediate">不保留（識別後立即卸載）</string>
     <string name="sv_keep_alive_5m">5 分鐘</string>
     <string name="sv_keep_alive_15m">15 分鐘</string>
@@ -67,7 +67,7 @@
     <string name="feature_sv_preload_on_desc">鍵盤顯示時預載入模型，減少首次使用延遲。</string>
 
     <!-- SenseVoice - 伺流式模式 -->
-    <string name="label_sv_pseudo_stream">啟用伺流式預覽（依停頓分句）</string>
+    <string name="label_sv_pseudo_stream">啟用偽串流預覽（固定時長分句）</string>
     <string name="feature_sv_pseudo_stream_off_desc">不啟用伺流式預覽，錄音結束後一次性辨識，行為與傳統本機辨識相同。</string>
-    <string name="feature_sv_pseudo_stream_on_desc">在每次停頓處將語音切成小段，先給出本機預覽結果，錄音結束後再對整段語音重新辨識並覆寫預覽文字。</string>
+    <string name="feature_sv_pseudo_stream_on_desc">按固定時長將語音切成小段，先給出本機預覽結果，錄音結束後再對整段語音重新辨識並覆寫預覽文字。</string>
 </resources>

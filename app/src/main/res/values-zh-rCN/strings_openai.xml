@@ -9,13 +9,13 @@
     <string name="toast_openai_profile_deleted">已删除渠道</string>
     <string name="toast_openai_profile_delete_blocked">请至少保留一个渠道</string>
     <string name="openai_profile_default_name">OpenAI 渠道 %1$d</string>
-    <string name="label_openai_asr_endpoint">ASR Endpoint（例如：https://api.openai.com/v1/audio/transcriptions）</string>
+    <string name="label_openai_asr_endpoint">ASR Endpoint(../transcriptions)</string>
     <string name="label_openai_api_key">API Key（Bearer）</string>
     <string name="label_openai_model">模型名称（如：gpt-4o-mini-transcribe 或 whisper-1）</string>
-    <string name="label_openai_streaming">启用流式识别（Realtime）</string>
-    <string name="label_openai_use_prompt">使用自定义 Prompt（部分模型不支持）</string>
+    <string name="label_openai_streaming">流式识别</string>
+    <string name="label_openai_use_prompt">自定义 Prompt（仅部分模型可用）</string>
     <string name="label_openai_prompt">自定义 Prompt（可选）</string>
-    <string name="label_openai_language">识别语言（可选）</string>
+    <string name="label_openai_language">识别语言</string>
 
     <!-- ============================================== -->
     <!-- OpenAI ASR - 功能说明 -->

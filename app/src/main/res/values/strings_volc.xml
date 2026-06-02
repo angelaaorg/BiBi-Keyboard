@@ -4,13 +4,13 @@
     <string name="vendor_volc">Volcano Engine</string>
 
     <!-- Volc configuration -->
-    <string name="label_volc_streaming">Use streaming recognition (WebSocket)</string>
-    <string name="label_volc_file_standard">Use file recognition (standard, submit/query)</string>
+    <string name="label_volc_streaming">Streaming recognition</string>
+    <string name="label_volc_file_standard">Use file recognition (standard)</string>
     <string name="label_volc_model_v2">Use Doubao ASR 2.0 model</string>
     <string name="label_volc_ddc">Enable semantic smoothing (experimental)</string>
     <string name="label_volc_vad">Enable VAD segmentation (experimental)</string>
     <string name="label_volc_nonstream">Enable two-pass recognition (experimental)</string>
-    <string name="label_volc_language">Recognition language (for nonstream)</string>
+    <string name="label_volc_language">Recognition language</string>
 
     <!-- Volc modes hint -->
     <string name="volc_modes_hint">Modes:\n

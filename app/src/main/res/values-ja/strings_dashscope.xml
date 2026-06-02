@@ -12,13 +12,13 @@
     <string name="dash_model_qwen_realtime">Qwen3-ASR-Flash-Realtime（ストリーミング）</string>
     <string name="dash_model_fun_realtime">Fun-ASR-Realtime（ストリーミング）</string>
     <string name="label_dash_prompt">カスタムプロンプト/コンテキスト（オプション）</string>
-    <string name="label_dash_language">認識言語（オプション。既知の場合は精度向上）</string>
-    <string name="label_dash_streaming">DashScope ストリーミングを使用（WebSocket）</string>
+    <string name="label_dash_language">認識言語</string>
+    <string name="label_dash_streaming">ストリーミング認識</string>
     <string name="dash_streaming_note">モデル選択でストリーミング動作が決まります。Qwen3 と Qwen3.5-Omni はカスタムプロンプト/コンテキストに対応します。Qwen3.5-Omni は認識言語の設定に非対応で、Fun-ASR-Realtime はカスタムプロンプトに非対応です。</string>
     <string name="label_dash_fun_asr">Fun-ASR モデルを使用（fun-asr-realtime）</string>
     <string name="label_dash_funasr_semantic_punct">セマンティック区切りを使用（Fun-ASR）</string>
-    <string name="dash_lang_auto">自動（言語識別を有効化）</string>
-    <string name="label_dash_region">DashScope リージョン</string>
+    <string name="dash_lang_auto">自動識別）</string>
+    <string name="label_dash_region">サーバー地域</string>
     <string name="dash_region_cn">中国本土（aliyuncs.com）</string>
     <string name="dash_region_intl">シンガポール/国際（dashscope-intl.aliyuncs.com）</string>
 

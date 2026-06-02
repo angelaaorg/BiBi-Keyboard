@@ -3,14 +3,14 @@
     <!-- LLM関連文字列 - LLM related strings -->
 
     <!-- LLM settings -->
-    <string name="label_llm_endpoint">OpenAIエンドポイント（例：https://api.openai.com/v1 または /chat/completionsを含む）</string>
+    <string name="label_llm_endpoint">OpenAIエンドポイント（../v1 または ../chat/completions）</string>
     <string name="label_llm_api_key">APIキー</string>
     <string name="label_llm_model">モデル名（任意）</string>
     <string name="label_llm_temperature">温度</string>
     <string name="label_llm_prompt">後処理プロンプト（処理されたテキストのみ出力）</string>
     <string name="label_llm_prompt_title">プロンプトプリセットタイトル</string>
     <string name="label_llm_prompt_presets">プロンプトプリセットを選択</string>
-    <string name="btn_add_preset">プリセットとして追加/保存</string>
+    <string name="btn_add_preset">プリセットとして追加</string>
     <string name="btn_delete_preset">プリセットを削除</string>
     <string name="label_llm_choose_profile">カスタムベンダーを選択</string>
     <string name="label_llm_profile_name">プロファイル名</string>
@@ -21,7 +21,7 @@
     <string name="untitled_profile">無題のプロファイル</string>
 
     <!-- LLM test call -->
-    <string name="btn_llm_test_call">LLM呼び出しをテスト</string>
+    <string name="btn_llm_test_call">しをテスト</string>
     <string name="btn_llm_fetch_models">モデル一覧を取得</string>
     <string name="llm_test_running">LLM呼び出しをテスト中…</string>
     <string name="llm_test_success_title">テスト成功</string>
@@ -40,7 +40,7 @@
     <!-- Skip AI under char count -->
     <string name="label_ai_skip_under_chars">文字数が閾値未満の場合はAI後処理をスキップ</string>
     <string name="helper_ai_skip_under_chars">有効文字数（CJKは文字、英語は単語）がこの数値未満の場合、AI後処理を実行しません。0で無効化します。</string>
-    <string name="title_ai_skip_under">自動スキップ閾値（有効文字数）</string>
+    <string name="title_ai_skip_under">自動スキップ閾値</string>
 
     <!-- ============================================== -->
     <!-- AI後処理設定 - 機能説明 -->
@@ -70,7 +70,7 @@
     <string name="llm_vendor_group_configured">設定済み</string>
     <string name="llm_vendor_group_unconfigured">未設定</string>
     <string name="label_llm_model_select">モデルを選択</string>
-    <string name="btn_llm_register">アカウント登録</string>
+    <string name="btn_llm_register">API Keyを取得</string>
     <string name="btn_llm_guide">設定ガイド</string>
     <string name="custom_llm_description">OpenAI互換APIのフルカスタマイズ設定。異なるプロバイダー向けに複数のプロファイルを作成できます。</string>
 
@@ -91,6 +91,7 @@
 
     <!-- 推論モード -->
     <string name="label_reasoning_mode">深い思考を有効化</string>
+    <string name="label_custom_reasoning_params">カスタム推論パラメータ</string>
     <string name="hint_reasoning_mode">有効にすると、モデルは推論分析を実行します。処理は遅くなりますが、複雑なタスクではより良い結果が得られます。</string>
     <string name="hint_reasoning_not_supported">現在のモデルは推論モードをサポートしていません</string>
     <string name="label_reasoning_params_on_json">推論オン時のパラメータ（JSON）</string>

@@ -4,13 +4,13 @@
     <string name="vendor_volc">豆包语音</string>
 
     <!-- Volc configuration -->
-    <string name="label_volc_streaming">使用流式识别（WebSocket）</string>
-    <string name="label_volc_file_standard">使用文件识别普通版（提交/查询）</string>
+    <string name="label_volc_streaming">流式识别</string>
+    <string name="label_volc_file_standard">使用文件识别普通版</string>
     <string name="label_volc_model_v2">使用豆包语音识别 2.0 模型</string>
     <string name="label_volc_ddc">启用语义顺滑（实验性）</string>
     <string name="label_volc_vad">启用 VAD 分句（实验性）</string>
     <string name="label_volc_nonstream">启用二遍识别（实验性）</string>
-    <string name="label_volc_language">识别语言（用于二遍识别）</string>
+    <string name="label_volc_language">识别语言</string>
 
     <!-- Volc modes hint -->
     <string name="volc_modes_hint">模式说明：\n

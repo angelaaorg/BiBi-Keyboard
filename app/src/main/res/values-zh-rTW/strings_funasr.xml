@@ -41,12 +41,12 @@
     <string name="fn_lang_sl">斯洛文尼亞語</string>
     <string name="fn_lang_sv">瑞典語</string>
     <string name="label_fn_threads">執行緒數（1-8）</string>
-    <string name="label_fn_use_itn">啟用 ITN（數字/標點規範化）</string>
+    <string name="label_fn_use_itn">啟用 ITN（數字智慧識別）</string>
     <string name="label_fn_user_prompt">User Prompt（提示詞）</string>
     <string name="fn_user_prompt_hint">較長的 Prompt 可能會拖慢處理速度。</string>
-    <string name="label_fn_preload">首次顯示時預載入模型</string>
-    <string name="label_fn_keep_alive">模型保留時長</string>
-    <string name="btn_fn_download_model">一鍵下載 FunASR Nano 模型</string>
+    <string name="label_fn_preload">積極載入模型</string>
+    <string name="label_fn_keep_alive">模型卸載策略</string>
+    <string name="btn_fn_download_model">一鍵下載模型</string>
     <string name="btn_fn_import_model">從本機匯入模型</string>
     <string name="btn_fn_clear_model">清除已下載模型</string>
     <string name="fn_download_status_downloading">下載中… %1$d%%</string>

@@ -17,6 +17,7 @@
     <string name="btn_manual_check">手動確認</string>
     <string name="btn_cancel">閉じる</string>
     <string name="btn_view_changelog">履歴</string>
+    <string name="update_feedback_title">アップデート</string>
 
     <string name="download_source_title">ダウンロードソースを選択</string>
     <string name="download_source_github_official">GitHub（公式）</string>

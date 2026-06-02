@@ -1,7 +1,7 @@
 <resources>
     <!-- 共通 sherpa-onnx 句読点モデル（ct-transformer zh+en） -->
-    <string name="label_punct_model_shared">共通句読点モデル（FireRedASR V2 / Paraformer 用）</string>
-    <string name="btn_punct_download_model">句読点モデルをダウンロード（60MB 共通）</string>
+    <string name="label_punct_model_shared">共通句読点モデル（60MB、一部の音声認識モデルで使用）</string>
+    <string name="btn_punct_download_model">句読点モデルをダウンロード</string>
     <string name="btn_punct_import_model">句読点モデルをインポート</string>
     <string name="btn_punct_clear_model">句読点モデルを削除</string>
 

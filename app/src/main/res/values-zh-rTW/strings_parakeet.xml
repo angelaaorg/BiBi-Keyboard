@@ -7,9 +7,9 @@
     <string name="pk_model_06b_v3_int8">0.6B V3 Int8 European（456MB）</string>
     <string name="pk_model_06b_v2_int8">0.6B V2 Int8 English（451MB）</string>
     <string name="label_pk_threads">執行緒數（1-8）</string>
-    <string name="label_pk_preload">首次顯示時預載入模型</string>
-    <string name="label_pk_keep_alive">模型保留時長</string>
-    <string name="btn_pk_download_model">一鍵下載 Parakeet 模型</string>
+    <string name="label_pk_preload">積極載入模型</string>
+    <string name="label_pk_keep_alive">模型卸載策略</string>
+    <string name="btn_pk_download_model">一鍵下載模型</string>
     <string name="btn_pk_import_model">從本機匯入模型</string>
     <string name="btn_pk_clear_model">清除已下載 Parakeet 模型</string>
     <string name="pk_download_status_downloading">下載中… %1$d%%</string>

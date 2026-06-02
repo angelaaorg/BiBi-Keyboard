@@ -11,8 +11,8 @@
     <string name="hint_webdav_url">WebDAV URL（如：https://dav.example.com）</string>
     <string name="hint_webdav_username">用户名（可选）</string>
     <string name="hint_webdav_password">密码（可选）</string>
-    <string name="btn_webdav_upload">上传到 WebDAV</string>
-    <string name="btn_webdav_download">从 WebDAV 恢复</string>
+    <string name="btn_webdav_upload">上传</string>
+    <string name="btn_webdav_download">恢复</string>
 
     <string name="toast_webdav_upload_success">已上传到 WebDAV</string>
     <string name="toast_webdav_upload_failed">上传失败：%1$s</string>

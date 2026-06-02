@@ -6,12 +6,12 @@
     <string name="label_qw_model_variant">Model version</string>
     <string name="qw_model_qwen3_06b_int8">Qwen3-ASR 0.6B Int8 (806MB)</string>
     <string name="label_qw_threads">Threads (1-8)</string>
-    <string name="label_qw_preload">Load model on first show</string>
-    <string name="label_qw_use_itn">Enable rule-based ITN</string>
+    <string name="label_qw_preload">Aggressive model loading</string>
+    <string name="label_qw_use_itn">Enable ITN (smart number recognition)</string>
     <string name="feature_qw_use_itn_off_desc">Outputs spoken-form text, such as \"one thousand two hundred thirty-four\".</string>
     <string name="feature_qw_use_itn_on_desc">Applies local rule-based inverse text normalization to convert supported Chinese spoken-form numbers, dates, and times into written form.</string>
-    <string name="label_qw_keep_alive">Model keep-alive duration</string>
-    <string name="btn_qw_download_model">One-click download Qwen3-ASR model</string>
+    <string name="label_qw_keep_alive">Model unload policy</string>
+    <string name="btn_qw_download_model">One-click download model</string>
     <string name="btn_qw_import_model">Import model from local file</string>
     <string name="btn_qw_clear_model">Clear downloaded Qwen3-ASR model</string>
     <string name="qw_download_status_downloading">Downloading… %1$d%%</string>
