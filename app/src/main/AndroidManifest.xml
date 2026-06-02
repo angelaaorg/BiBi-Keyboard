@@ -60,67 +60,11 @@
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
-        
-        <!-- 直接子设置页（无中间层） -->
-
+        <!-- 外部兼容跳转页 -->
         <activity
-            android:name=".ui.settings.search.SettingsSearchActivity"
-            android:exported="false"
-            android:windowSoftInputMode="stateVisible|adjustResize" />
-
-        <activity
-            android:name=".ui.settings.input.InputSettingsActivity"
-            android:exported="false"
-            android:windowSoftInputMode="adjustResize" />
-
-        <activity
-            android:name=".ui.settings.asr.AsrSettingsActivity"
-            android:exported="false"
-            android:windowSoftInputMode="adjustResize" />
-
-        <activity-alias
             android:name=".ui.settings.asr.AsrRecognitionSettingsActivity"
             android:exported="true"
-            android:targetActivity=".ui.settings.asr.AsrSettingsActivity"
             android:windowSoftInputMode="adjustResize" />
-
-        <activity
-            android:name=".ui.settings.ai.AiPostSettingsActivity"
-            android:exported="false"
-            android:windowSoftInputMode="adjustResize" />
-
-        <activity
-            android:name=".ui.settings.other.OtherSettingsActivity"
-            android:exported="false"
-            android:windowSoftInputMode="adjustResize" />
-
-        <activity
-            android:name=".ui.settings.floating.FloatingSettingsActivity"
-            android:exported="false"
-            android:windowSoftInputMode="adjustResize" />
-
-        <activity
-            android:name=".ui.settings.backup.BackupSettingsActivity"
-            android:exported="false"
-            android:windowSoftInputMode="adjustResize" />
-
-        <activity
-            android:name=".ui.history.AsrHistoryActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".ui.history.ApiLogActivity"
-            android:exported="false" />
-
-        <!-- 关于页面 -->
-        <activity
-            android:name=".ui.about.AboutActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".ui.permission.PermissionActivity"
-            android:exported="false"
-            android:theme="@style/Theme.ASRKeyboard.Transparent" />
 
         <service
             android:name=".ui.ime.ImePickerTileService"

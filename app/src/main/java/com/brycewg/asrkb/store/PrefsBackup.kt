@@ -47,6 +47,8 @@ internal object PrefsBackup {
         o.put(KEY_IME_SWITCH_TARGET_ID, imeSwitchTargetId)
         o.put(KEY_HIDE_RECENT_TASK_CARD, hideRecentTaskCard)
         o.put(KEY_APP_LANGUAGE_TAG, appLanguageTag)
+        o.put(KEY_SETTINGS_UI_MODE, settingsUiMode)
+        o.put(KEY_SETTINGS_THEME_MODE, settingsThemeMode)
         o.put(KEY_AUTO_UPDATE_CHECK_ENABLED, autoUpdateCheckEnabled)
         o.put(KEY_FLOATING_SWITCHER_ENABLED, floatingSwitcherEnabled)
         o.put(KEY_FLOATING_SWITCHER_ALPHA, floatingSwitcherAlpha)
@@ -319,6 +321,8 @@ internal object PrefsBackup {
             optBool(KEY_FCITX5_RETURN_ON_SWITCHER)?.let { fcitx5ReturnOnImeSwitch = it }
             optBool(KEY_HIDE_RECENT_TASK_CARD)?.let { hideRecentTaskCard = it }
             optString(KEY_APP_LANGUAGE_TAG)?.let { appLanguageTag = it }
+            optString(KEY_SETTINGS_UI_MODE)?.let { settingsUiMode = it }
+            optString(KEY_SETTINGS_THEME_MODE)?.let { settingsThemeMode = it }
             optBool(KEY_AUTO_UPDATE_CHECK_ENABLED)?.let { autoUpdateCheckEnabled = it }
             optBool(KEY_POSTPROC_ENABLED)?.let { postProcessEnabled = it }
             optBool(KEY_POSTPROC_TYPEWRITER_ENABLED)?.let { postprocTypewriterEnabled = it }

@@ -248,6 +248,43 @@ class Prefs(context: Context) {
         get() = sp.getString(KEY_APP_LANGUAGE_TAG, "") ?: ""
         set(value) = sp.edit { putString(KEY_APP_LANGUAGE_TAG, value) }
 
+    // 设置页 UI 模式（默认 Miuix）
+    var settingsUiMode: String
+        get() = if (sp.getString(KEY_SETTINGS_UI_MODE, DEFAULT_SETTINGS_UI_MODE) == SETTINGS_UI_MODE_MATERIAL) {
+            SETTINGS_UI_MODE_MATERIAL
+        } else {
+            DEFAULT_SETTINGS_UI_MODE
+        }
+        set(value) = sp.edit {
+            putString(
+                KEY_SETTINGS_UI_MODE,
+                if (value == SETTINGS_UI_MODE_MATERIAL) {
+                    SETTINGS_UI_MODE_MATERIAL
+                } else {
+                    DEFAULT_SETTINGS_UI_MODE
+                }
+            )
+        }
+
+    // 设置页主题模式（默认跟随系统）
+    var settingsThemeMode: String
+        get() = when (sp.getString(KEY_SETTINGS_THEME_MODE, SETTINGS_THEME_MODE_SYSTEM)) {
+            SETTINGS_THEME_MODE_LIGHT -> SETTINGS_THEME_MODE_LIGHT
+            SETTINGS_THEME_MODE_DARK -> SETTINGS_THEME_MODE_DARK
+            else -> SETTINGS_THEME_MODE_SYSTEM
+        }
+        set(value) = sp.edit {
+            putString(
+                KEY_SETTINGS_THEME_MODE,
+                when (value) {
+                    SETTINGS_THEME_MODE_LIGHT,
+                    SETTINGS_THEME_MODE_DARK -> value
+
+                    else -> SETTINGS_THEME_MODE_SYSTEM
+                }
+            )
+        }
+
     // 自动检查更新开关（用于“每天首次进入设置页自动检查”）
     var autoUpdateCheckEnabled: Boolean
         get() = sp.getBoolean(KEY_AUTO_UPDATE_CHECK_ENABLED, true)
@@ -788,7 +825,7 @@ class Prefs(context: Context) {
 
     // ElevenLabs：流式识别开关
     var elevenStreamingEnabled: Boolean
-        get() = sp.getBoolean(KEY_ELEVEN_STREAMING_ENABLED, false)
+        get() = sp.getBoolean(KEY_ELEVEN_STREAMING_ENABLED, true)
         set(value) = sp.edit { putBoolean(KEY_ELEVEN_STREAMING_ENABLED, value) }
 
     // OpenAI 语音转文字（ASR）配置
@@ -816,9 +853,9 @@ class Prefs(context: Context) {
             updateActiveOpenAiAsrProvider { it.copy(model = value) }
         }
 
-    // OpenAI：Realtime WebSocket 流式识别开关（默认关闭）
+    // OpenAI：Realtime WebSocket 流式识别开关（默认开启）
     private var oaAsrStreamingEnabledLegacy: Boolean
-        get() = sp.getBoolean(KEY_OA_ASR_STREAMING_ENABLED, false)
+        get() = sp.getBoolean(KEY_OA_ASR_STREAMING_ENABLED, true)
         set(value) = sp.edit { putBoolean(KEY_OA_ASR_STREAMING_ENABLED, value) }
 
     var oaAsrStreamingEnabled: Boolean
@@ -896,9 +933,9 @@ class Prefs(context: Context) {
     // Soniox 语音识别
     var sonioxApiKey: String by stringPref(KEY_SONIOX_API_KEY, "")
 
-    // Soniox：流式识别开关（默认关闭）
+    // Soniox：流式识别开关（默认开启）
     var sonioxStreamingEnabled: Boolean
-        get() = sp.getBoolean(KEY_SONIOX_STREAMING_ENABLED, false)
+        get() = sp.getBoolean(KEY_SONIOX_STREAMING_ENABLED, true)
         set(value) = sp.edit { putBoolean(KEY_SONIOX_STREAMING_ENABLED, value) }
 
     // Soniox：识别语言提示（language_hints）；空字符串表示不设置（多语言自动）
@@ -1480,6 +1517,11 @@ class Prefs(context: Context) {
 
     companion object {
         private const val TAG = "Prefs"
+        const val SETTINGS_UI_MODE_MATERIAL = "material"
+        const val DEFAULT_SETTINGS_UI_MODE = "miuix"
+        const val SETTINGS_THEME_MODE_SYSTEM = "system"
+        const val SETTINGS_THEME_MODE_LIGHT = "light"
+        const val SETTINGS_THEME_MODE_DARK = "dark"
 
         // 输入/点击触觉反馈等级（兼容旧开关）
         const val HAPTIC_FEEDBACK_LEVEL_OFF = 0

@@ -8,65 +8,48 @@ package com.brycewg.asrkb.ui
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Typeface
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.provider.Settings
-import android.text.SpannableString
-import android.text.Spanned
-import android.text.style.ForegroundColorSpan
-import android.text.style.StyleSpan
 import android.util.Log
-import android.view.LayoutInflater
 import android.view.View
 import android.view.inputmethod.InputMethodManager
-import android.widget.Button
-import android.widget.TextView
-import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
+import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.core.content.ContextCompat
-import androidx.core.content.FileProvider
-import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.brycewg.asrkb.R
-import com.brycewg.asrkb.UiColorTokens
-import com.brycewg.asrkb.UiColors
-import com.brycewg.asrkb.analytics.AnalyticsManager
 import com.brycewg.asrkb.store.Prefs
-import com.brycewg.asrkb.ui.about.AboutActivity
-import com.brycewg.asrkb.ui.settings.ai.AiPostSettingsActivity
-import com.brycewg.asrkb.ui.settings.asr.AsrSettingsActivity
-import com.brycewg.asrkb.ui.settings.backup.BackupSettingsActivity
-import com.brycewg.asrkb.ui.settings.floating.FloatingSettingsActivity
-import com.brycewg.asrkb.ui.settings.input.InputSettingsActivity
-import com.brycewg.asrkb.ui.settings.other.OtherSettingsActivity
-import com.brycewg.asrkb.ui.settings.search.SettingsSearchActivity
-import com.brycewg.asrkb.ui.setup.OnboardingActionExecutor
-import com.brycewg.asrkb.ui.setup.OnboardingGuideActivity
+import com.brycewg.asrkb.ui.settings.compose.components.ProPromoDialogHost
+import com.brycewg.asrkb.ui.settings.compose.components.ProPromoDialogUiState
+import com.brycewg.asrkb.ui.settings.compose.components.SettingsMessageDialog
+import com.brycewg.asrkb.ui.settings.compose.components.SettingsMessageDialogState
+import com.brycewg.asrkb.ui.settings.compose.components.SettingsTestInputSheet
+import com.brycewg.asrkb.ui.settings.compose.components.SettingsUpdateHost
+import com.brycewg.asrkb.ui.settings.compose.components.SettingsUpdateUiState
+import com.brycewg.asrkb.ui.settings.compose.core.BibiSettingsRoute
+import com.brycewg.asrkb.ui.settings.compose.core.BibiSettingsTheme
+import com.brycewg.asrkb.ui.settings.compose.core.SettingsActionController
+import com.brycewg.asrkb.ui.settings.compose.screens.SettingsRootScreen
+import com.brycewg.asrkb.ui.settings.compose.state.SettingsEntryEffectsCoordinator
+import com.brycewg.asrkb.ui.settings.compose.state.SettingsHostViewModel
+import com.brycewg.asrkb.ui.settings.compose.state.SettingsImePickerController
+import com.brycewg.asrkb.ui.settings.compose.state.SettingsUpdateCoordinator
 import com.brycewg.asrkb.ui.setup.SetupState
 import com.brycewg.asrkb.ui.setup.SetupStateMachine
-import com.brycewg.asrkb.ui.update.ApkDownloadService
-import com.brycewg.asrkb.ui.update.UpdateChecker
 import com.brycewg.asrkb.util.HapticFeedbackHelper
-import com.google.android.material.bottomsheet.BottomSheetDialog
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.android.material.textfield.TextInputEditText
-import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 /**
  * 主设置页面
  *
  * 提供：
  * - 一键设置流程（基于状态机）
- * - 更新检查（通过 UpdateChecker）
+ * - 更新检查（通过 SettingsUpdateCoordinator）
  * - 设置导入/导出
  * - 子设置页导航
  * - 测试输入体验
@@ -76,38 +59,19 @@ class SettingsActivity : BaseActivity() {
         private const val TAG = "SettingsActivity"
         const val EXTRA_AUTO_SHOW_IME_PICKER = "extra_auto_show_ime_picker"
         const val EXTRA_SHOW_IME_PICKER = "extra_show_ime_picker"
-        private const val DOCS_URL = "https://bibidocs.brycewg.com"
+        const val EXTRA_INITIAL_ROUTE = "extra_initial_settings_route"
     }
 
     // 一键设置状态机
     private lateinit var setupStateMachine: SetupStateMachine
 
-    // 更新检查器（可按渠道禁用）
-    private var updateChecker: UpdateChecker? = null
-    private val updatesEnabled: Boolean by lazy {
-        try {
-            resources.getBoolean(R.bool.enable_update_checker)
-        } catch (_: Throwable) {
-            true
-        }
-    }
-
-    // 无障碍服务状态（用于检测服务刚刚被启用）
-    private var wasAccessibilityEnabled = false
-
     private lateinit var prefs: Prefs
+    private lateinit var imePickerController: SettingsImePickerController
+    private lateinit var entryEffectsCoordinator: SettingsEntryEffectsCoordinator
+    private lateinit var updateCoordinator: SettingsUpdateCoordinator
 
     // Handler 用于延迟任务
     private val handler = Handler(Looper.getMainLooper())
-
-    // IME 选择器相关状态（用于"外部切换"模式）
-    private var autoCloseAfterImePicker = false
-    private var imePickerShown = false
-    private var imePickerLostFocusOnce = false
-    private var autoShownImePicker = false
-
-    // IME 选择器请求（用于快捷设置磁贴）
-    private var qsTileImePickerRequested = false
 
     // 一键设置轮询任务（用于等待用户选择输入法）
     private var setupPollingRunnable: Runnable? = null
@@ -116,67 +80,118 @@ class SettingsActivity : BaseActivity() {
     private var setupImePickerShown = false
     private var setupImePickerLostFocusOnce = false
 
+    // 设置页手动触发的 IME 选择器前台状态
+    private var settingsImePickerShown = false
+    private var settingsImePickerLostFocusOnce = false
+
+    private val requestSetupMicPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) {
+            handler.postDelayed({ advanceSetupIfInProgress() }, 200)
+        }
+
+    private val testInputSheetVisible = mutableStateOf(false)
+    private val systemActionDialogState = mutableStateOf<SettingsMessageDialogState?>(null)
+    private val proPromoDialogState = mutableStateOf<ProPromoDialogUiState>(ProPromoDialogUiState.Hidden)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_settings)
-
-        // 应用 Window Insets 以适配 Android 15 边缘到边缘显示
-        findViewById<android.view.View>(android.R.id.content).let { rootView ->
-            WindowInsetsHelper.applySystemBarsInsets(rootView)
-        }
 
         prefs = Prefs(this)
 
         // 初始化状态机和工具类
-        setupStateMachine = SetupStateMachine(this)
-        if (updatesEnabled) updateChecker = UpdateChecker(this)
+        setupStateMachine = SetupStateMachine(this, ::showSetupStateMessage)
+        imePickerController = SettingsImePickerController(
+            activity = this,
+            handler = handler,
+            autoShowExtra = EXTRA_AUTO_SHOW_IME_PICKER,
+            showExtra = EXTRA_SHOW_IME_PICKER
+        )
+        entryEffectsCoordinator = SettingsEntryEffectsCoordinator(
+            activity = this,
+            postDelayed = { delayMillis, action -> handler.postDelayed(action, delayMillis) },
+            showSystemMessage = ::showSystemActionDialog,
+            showProPromoIfNeeded = ::showProPromoIfNeededFromCompose
+        )
+        updateCoordinator = SettingsUpdateCoordinator(this)
 
-        // 记录初始无障碍服务状态
-        wasAccessibilityEnabled = isAccessibilityServiceEnabled()
+        val actionController = SettingsActionController(this)
+        val initialRoute = consumeInitialRouteExtra(intent)
+        setContent {
+            val viewModel: SettingsHostViewModel = viewModel()
+            val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-        // 设置按钮点击事件
-        setupButtonListeners()
+            LaunchedEffect(initialRoute) {
+                initialRoute?.let { route -> viewModel.openRoute(route) }
+            }
 
-        // 显示识别字数统计
-        updateAsrTotalChars()
+            BibiSettingsTheme(
+                uiMode = uiState.uiMode,
+                themeMode = uiState.themeMode
+            ) {
+                SettingsRootScreen(
+                    uiState = uiState,
+                    hasUpdateAvailable = updateCoordinator.uiState.value is SettingsUpdateUiState.UpdateAvailable,
+                    onSelectTab = viewModel::selectHomeTab,
+                    onPushRoute = viewModel::push,
+                    onOpenRoute = viewModel::openRoute,
+                    onPopRoute = viewModel::pop,
+                    onSetUiMode = viewModel::setUiMode,
+                    onSetThemeMode = viewModel::setThemeMode,
+                    actions = actionController
+                )
+                SettingsTestInputSheet(
+                    show = testInputSheetVisible.value,
+                    uiMode = uiState.uiMode,
+                    onDismiss = { testInputSheetVisible.value = false }
+                )
+                SettingsUpdateHost(
+                    state = updateCoordinator.uiState.value,
+                    uiMode = uiState.uiMode,
+                    onDismiss = updateCoordinator::dismiss,
+                    onDownload = updateCoordinator::showDownloadSources,
+                    onOpenReleasePage = updateCoordinator::openReleasePage,
+                    onOpenChangelog = updateCoordinator::openChangelogHistory,
+                    onManualCheck = updateCoordinator::openManualReleasePage,
+                    onSelectDownloadSource = updateCoordinator::startDownload
+                )
+                SettingsMessageDialog(
+                    state = systemActionDialogState.value,
+                    uiMode = uiState.uiMode,
+                    onDismiss = { systemActionDialogState.value = null }
+                )
+                ProPromoDialogHost(
+                    state = proPromoDialogState.value,
+                    uiMode = uiState.uiMode,
+                    onStateChange = { proPromoDialogState.value = it }
+                )
+            }
+        }
 
-        consumeShowImePickerExtraIfPresent(intent)
+        imePickerController.consumeShowImePickerExtraIfPresent(intent)
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        consumeShowImePickerExtraIfPresent(intent)
-        handleShowImePickerFromTile(hasWindowFocus())
+        imePickerController.consumeShowImePickerExtraIfPresent(intent)
+        imePickerController.handleShowImePickerFromTile(hasWindowFocus())
+    }
+
+    private fun consumeInitialRouteExtra(intent: Intent?): BibiSettingsRoute? {
+        val route = BibiSettingsRoute.fromId(intent?.getStringExtra(EXTRA_INITIAL_ROUTE))
+            ?: return null
+        intent?.removeExtra(EXTRA_INITIAL_ROUTE)
+        return route
     }
 
     override fun onResume() {
         super.onResume()
 
-        // 授权返回后：若已下载APK且具备安装权限，自动继续安装
-        if (updatesEnabled) {
-            maybeResumePendingApkInstall()
-        }
-
-        // 检查无障碍服务是否刚刚被启用，给予用户反馈
-        checkAccessibilityServiceJustEnabled()
-
-        // 每日首次进入设置页时自动检查是否有新版本
-        if (updatesEnabled) {
-            maybeAutoCheckUpdatesDaily()
-        }
-
-        // 更新识别字数统计
-        updateAsrTotalChars()
+        updateCoordinator.onResume()
+        entryEffectsCoordinator.onResume()
 
         // 若处于一键设置流程中，返回后继续推进
         advanceSetupIfInProgress()
-
-        // 首次进入时自动展示新手引导页（仅一次）
-        maybeAutoShowOnboardingGuideOnFirstOpen()
-
-        // 版本升级后显示 Pro 版宣传弹窗（仅显示一次，且不与其他引导弹窗冲突）
-        maybeShowProPromoOnUpgrade()
 
         // 匿名数据采集选择已整合进新手引导页，此处不再自动弹窗
     }
@@ -187,55 +202,14 @@ class SettingsActivity : BaseActivity() {
         stopSetupPolling()
     }
 
-    /**
-     * 授予“未知来源应用安装”权限后，自动继续安装已下载的APK
-     */
-    private fun maybeResumePendingApkInstall() {
-        try {
-            // 仅当系统允许从本应用安装且存在待安装APK路径时尝试
-            if (!packageManager.canRequestPackageInstalls()) return
-
-            val prefs = Prefs(this)
-            val path = prefs.pendingApkPath
-            if (path.isBlank()) return
-
-            val apkFile = File(path)
-            if (!apkFile.exists()) {
-                // 文件不存在，清理状态
-                prefs.pendingApkPath = ""
-                return
-            }
-
-            // 构造安装意图并触发系统安装器
-            val uri = FileProvider.getUriForFile(this, "$packageName.fileprovider", apkFile)
-            val intent = Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(uri, "application/vnd.android.package-archive")
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
-
-            // 避免重复弹出：在启动安装前即清空标记
-            prefs.pendingApkPath = ""
-            startActivity(intent)
-            Log.d(TAG, "Resumed pending APK install: ${apkFile.path}")
-        } catch (t: Throwable) {
-            Log.e(TAG, "Failed to resume pending APK install", t)
-        }
-    }
-
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
 
-        // 处理"外部切换"模式：通过焦点变化判断 IME 选择器是否关闭
-        handleExternalImeSwitchMode(hasFocus)
-
-        // 处理自动弹出 IME 选择器（由 Intent Extra 触发）
-        handleAutoShowImePicker(hasFocus)
-
-        // 处理快捷设置磁贴触发的 IME 选择器（进入设置页后弹出，关闭后自动退出前台）
-        handleShowImePickerFromTile(hasFocus)
+        imePickerController.onWindowFocusChanged(hasFocus)
 
         // 处理一键设置流程中的 IME 选择器焦点变化
         handleSetupImePickerFocus(hasFocus)
+        handleSettingsImePickerFocus(hasFocus)
     }
 
     override fun onRequestPermissionsResult(
@@ -253,94 +227,66 @@ class SettingsActivity : BaseActivity() {
         }
     }
 
-    /**
-     * 设置所有按钮的点击监听器
-     */
-    private fun setupButtonListeners() {
-        // 一键设置
-        findViewById<Button>(R.id.btnOneClickSetup)?.setOnClickListener { v ->
-            hapticTapIfEnabled(v)
-            startOneClickSetup()
-        }
+    fun startOneClickSetupFromCompose() {
+        startOneClickSetup()
+    }
 
-        // 快速指南
-        findViewById<Button>(R.id.btnShowGuide)?.setOnClickListener { v ->
-            hapticTapIfEnabled(v)
-            openOnboardingGuide()
-        }
+    fun checkForUpdatesFromCompose() {
+        updateCoordinator.checkForUpdates()
+    }
 
-        // 手动检查更新入口
-        findViewById<Button>(R.id.btnCheckUpdate)?.let { btn ->
-            if (updatesEnabled) {
-                btn.setOnClickListener { v ->
-                    hapticTapIfEnabled(v)
-                    checkForUpdates()
-                }
-            } else {
-                btn.visibility = android.view.View.GONE
-            }
-        }
+    fun showTestInputFromCompose() {
+        testInputSheetVisible.value = true
+    }
 
-        // 测试输入
-        findViewById<Button>(R.id.btnTestInput)?.setOnClickListener { v ->
-            hapticTapIfEnabled(v)
-            showTestInputBottomSheet()
-        }
-
-        // 关于
-        findViewById<Button>(R.id.btnAbout)?.setOnClickListener { v ->
-            hapticTapIfEnabled(v)
-            startActivity(Intent(this, AboutActivity::class.java))
-        }
-
-        // 子设置页导航
-        findViewById<Button>(R.id.btnOpenSettingsSearch)?.setOnClickListener { v ->
-            hapticTapIfEnabled(v)
-            startActivity(Intent(this, SettingsSearchActivity::class.java))
-        }
-        findViewById<Button>(R.id.btnOpenInputSettings)?.setOnClickListener { v ->
-            hapticTapIfEnabled(v)
-            startActivity(Intent(this, InputSettingsActivity::class.java))
-        }
-        findViewById<Button>(R.id.btnOpenAsrSettings)?.setOnClickListener { v ->
-            hapticTapIfEnabled(v)
-            startActivity(Intent(this, AsrSettingsActivity::class.java))
-        }
-        findViewById<Button>(R.id.btnOpenAiSettings)?.setOnClickListener { v ->
-            hapticTapIfEnabled(v)
-            startActivity(Intent(this, AiPostSettingsActivity::class.java))
-        }
-        findViewById<Button>(R.id.btnOpenOtherSettings)?.setOnClickListener { v ->
-            hapticTapIfEnabled(v)
-            startActivity(Intent(this, OtherSettingsActivity::class.java))
-        }
-        findViewById<Button>(R.id.btnOpenFloatingSettings)?.setOnClickListener { v ->
-            hapticTapIfEnabled(v)
-            startActivity(Intent(this, FloatingSettingsActivity::class.java))
-        }
-
-        // 配置备份页入口
-        findViewById<Button>(R.id.btnExportSettings)?.setOnClickListener { v ->
-            hapticTapIfEnabled(v)
-            startActivity(Intent(this, BackupSettingsActivity::class.java))
-        }
-
-        // 识别历史页入口
-        findViewById<Button>(R.id.btnOpenAsrHistory)?.setOnClickListener { v ->
-            hapticTapIfEnabled(v)
-            try {
-                startActivity(
-                    Intent(this, com.brycewg.asrkb.ui.history.AsrHistoryActivity::class.java)
+    fun showImePickerFromCompose() {
+        try {
+            val imm = getSystemService(InputMethodManager::class.java)
+            if (imm == null) {
+                showSystemActionDialog(
+                    titleRes = R.string.settings_ime_picker_title,
+                    messageRes = R.string.settings_ime_picker_open_failed_message
                 )
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to open AsrHistoryActivity", e)
-                Toast.makeText(
-                    this,
-                    getString(R.string.toast_debug_failed),
-                    Toast.LENGTH_SHORT
-                ).show()
+                return
             }
+            settingsImePickerShown = true
+            settingsImePickerLostFocusOnce = false
+            imm.showInputMethodPicker()
+        } catch (e: Throwable) {
+            Log.e(TAG, "Failed to show IME picker from settings", e)
+            settingsImePickerShown = false
+            settingsImePickerLostFocusOnce = false
+            showSystemActionDialog(
+                titleRes = R.string.settings_ime_picker_title,
+                messageRes = R.string.settings_ime_picker_open_failed_message
+            )
         }
+    }
+
+    fun showProPromoFromCompose(markAsShown: Boolean = false) {
+        if (markAsShown) {
+            ProPromoDialog.markShown(this)
+        }
+        proPromoDialogState.value = ProPromoDialogUiState.Promo
+    }
+
+    fun showProPromoIfNeededFromCompose(): Boolean {
+        if (!ProPromoDialog.shouldShow(this)) return false
+        showProPromoFromCompose(markAsShown = true)
+        return true
+    }
+
+    fun hapticTapFromCompose() {
+        hapticTapIfEnabled(null)
+    }
+
+    fun updatesEnabledFromCompose(): Boolean = updateCoordinator.updatesEnabled
+
+    fun showSystemActionDialogFromCompose(
+        titleRes: Int,
+        messageRes: Int
+    ) {
+        showSystemActionDialog(titleRes = titleRes, messageRes = messageRes)
     }
 
     // ==================== 一键设置相关 ====================
@@ -396,7 +342,9 @@ class SettingsActivity : BaseActivity() {
                 // 权限请求阶段，某些权限需要通过 Activity 的回调处理
                 if (didExecute) {
                     val state = setupStateMachine.getCurrentPermissionState()
-                    if (state?.askedNotif == true && !state.askedA11y) {
+                    if (state?.askedMic == true && !hasRecordAudioPermission()) {
+                        requestSetupMicPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                    } else if (state?.askedNotif == true && !state.askedA11y) {
                         // Android 13+ 通知权限请求
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                             if (ContextCompat.checkSelfPermission(
@@ -425,6 +373,9 @@ class SettingsActivity : BaseActivity() {
             }
         }
     }
+
+    private fun hasRecordAudioPermission(): Boolean =
+        ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
 
     /**
      * 如果正在一键设置流程中，继续推进
@@ -472,11 +423,10 @@ class SettingsActivity : BaseActivity() {
                         Log.d(TAG, "Setup aborted during polling")
                         stopSetupPolling()
                         if (setupImePickerShown && !hasWindowFocus()) {
-                            Toast.makeText(
-                                this@SettingsActivity,
-                                getString(R.string.toast_setup_choose_keyboard),
-                                Toast.LENGTH_SHORT
-                            ).show()
+                            showSystemActionDialog(
+                                titleRes = R.string.settings_ime_picker_title,
+                                messageRes = R.string.toast_setup_choose_keyboard
+                            )
                         } else {
                             Log.d(TAG, "Skip IME choose toast: picker not foreground")
                         }
@@ -545,1087 +495,51 @@ class SettingsActivity : BaseActivity() {
         }
     }
 
-    // ==================== 更新检查相关 ====================
+    private fun handleSettingsImePickerFocus(hasFocus: Boolean) {
+        if (!settingsImePickerShown) return
 
-    /**
-     * 检查更新（主动触发，显示进度对话框）
-     */
-    private fun checkForUpdates() {
-        if (!updatesEnabled) return
-        Log.d(TAG, "User initiated update check")
-
-        // 清理旧的安装包
-        cleanOldApkFiles()
-
-        val progressDialog = MaterialAlertDialogBuilder(this)
-            .setMessage(R.string.update_checking)
-            .setCancelable(false)
-            .create()
-        progressDialog.show()
-
-        lifecycleScope.launch {
-            try {
-                val checker = updateChecker ?: return@launch
-                val result = withContext(Dispatchers.IO) { checker.checkGitHubRelease() }
-                progressDialog.dismiss()
-
-                if (result.hasUpdate) {
-                    Log.d(TAG, "Update available: ${result.latestVersion}")
-                    showUpdateDialog(result)
-                } else {
-                    Log.d(TAG, "No update available")
-                    showCurrentVersionInfoDialog(result)
-                }
-            } catch (e: Exception) {
-                progressDialog.dismiss()
-                Log.e(TAG, "Update check failed", e)
-                showUpdateCheckFailedDialog(e)
-            }
-        }
-    }
-
-    /**
-     * 每天首次进入设置页时，静默检查更新
-     *
-     * 不显示"正在检查"或"已是最新版本"提示，仅在有更新时弹窗
-     */
-    private fun maybeAutoCheckUpdatesDaily() {
-        try {
-            val prefs = Prefs(this)
-            if (!prefs.autoUpdateCheckEnabled) {
-                return
-            }
-            val today = SimpleDateFormat("yyyyMMdd", Locale.getDefault()).format(Date())
-
-            if (prefs.lastUpdateCheckDate == today) {
-                Log.d(TAG, "Already checked update today, skipping auto check")
-                return
-            }
-
-            // 记录为今日已检查，避免同日重复触发
-            prefs.lastUpdateCheckDate = today
-            Log.d(TAG, "Starting daily auto update check")
-        } catch (e: Exception) {
-            // 读取或写入失败则不自动检查
-            Log.e(TAG, "Failed to check/update last update check date", e)
+        if (!hasFocus) {
+            settingsImePickerLostFocusOnce = true
+            Log.d(TAG, "Settings IME picker shown, activity lost focus")
             return
         }
 
-        val checker = updateChecker ?: return
-        lifecycleScope.launch {
-            try {
-                val result = withContext(Dispatchers.IO) { checker.checkGitHubRelease() }
-
-                if (result.hasUpdate) {
-                    Log.d(TAG, "Auto check found update: ${result.latestVersion}")
-                    showUpdateDialog(result)
-                } else {
-                    Log.d(TAG, "Auto check: no update available")
-                }
-            } catch (e: Exception) {
-                // 静默检查失败，不弹窗提示
-                Log.d(TAG, "Auto update check failed (silent): ${e.message}")
+        if (settingsImePickerLostFocusOnce) {
+            val messageRes = if (setupStateMachine.isOurImeCurrentForUi()) {
+                R.string.settings_ime_picker_selected_message
+            } else {
+                R.string.settings_ime_picker_closed_message
             }
+            showSystemActionDialog(
+                titleRes = R.string.settings_ime_picker_title,
+                messageRes = messageRes
+            )
+            settingsImePickerShown = false
+            settingsImePickerLostFocusOnce = false
         }
     }
 
-    /**
-     * 显示更新对话框
-     */
-    private fun showUpdateDialog(result: UpdateChecker.UpdateCheckResult) {
-        // OSS 版本显示标准更新对话框（提供 APK 下载）
-        val messageBuilder = StringBuilder()
-        messageBuilder.append(
-            getString(
-                R.string.update_dialog_message,
-                result.currentVersion,
-                result.latestVersion
-            )
+    private fun showSystemActionDialog(
+        titleRes: Int,
+        messageRes: Int
+    ) {
+        systemActionDialogState.value = SettingsMessageDialogState(
+            title = getString(titleRes),
+            message = getString(messageRes),
+            confirmText = getString(android.R.string.ok)
         )
-
-        // 添加重要提示（如果有）
-        result.importantNotice?.let { notice ->
-            messageBuilder.append("\n\n")
-            // 使用占位符，稍后替换为带样式的文本
-            messageBuilder.append("{{IMPORTANT_NOTICE_START}}")
-            messageBuilder.append(notice)
-            messageBuilder.append("{{IMPORTANT_NOTICE_END}}")
-        }
-
-        // 添加更新时间（如果有）
-        result.updateTime?.let { updateTime ->
-            messageBuilder.append("\n\n")
-            val formattedTime = formatUpdateTime(updateTime)
-            messageBuilder.append(getString(R.string.update_timestamp_label, formattedTime))
-        }
-
-        // 添加发布说明
-        result.releaseNotes?.let { notes ->
-            messageBuilder.append("\n\n")
-            messageBuilder.append(getString(R.string.update_release_notes_label, notes))
-        }
-
-        // 创建带样式的文本（如果有重要提示）
-        val messageText = if (result.importantNotice != null) {
-            createStyledMessage(
-                messageBuilder.toString(),
-                result.importantNotice,
-                result.noticeLevel
-            )
-        } else {
-            messageBuilder.toString()
-        }
-
-        val fullMessage = android.text.SpannableStringBuilder().apply {
-            append(messageText)
-            append("\n\n")
-            val start = length
-            append(getString(R.string.btn_view_release_page))
-            val end = length
-            setSpan(
-                object : android.text.style.ClickableSpan() {
-                    override fun onClick(widget: android.view.View) {
-                        try {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(result.downloadUrl))
-                            startActivity(intent)
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Failed to open release page", e)
-                            Toast.makeText(
-                                this@SettingsActivity,
-                                getString(R.string.error_open_browser),
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
-                    }
-                },
-                start,
-                end,
-                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-            )
-            // 加粗并着色以示为操作项（使用默认链接样式即可，避免直接取主题色）
-            setSpan(StyleSpan(Typeface.BOLD), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-            setSpan(
-                android.text.style.UnderlineSpan(),
-                start,
-                end,
-                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-            )
-        }
-
-        val dialog = MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.update_dialog_title)
-            .setMessage(fullMessage)
-            .setPositiveButton(R.string.btn_download) { _, _ ->
-                showDownloadSourceDialog(result.downloadUrl, result.latestVersion)
-            }
-            .setNeutralButton(R.string.btn_view_changelog) { _, _ ->
-                openChangelogHistory()
-            }
-            .setNegativeButton(R.string.btn_cancel, null)
-            .create()
-
-        dialog.setOnShowListener {
-            // 使消息内的"查看 Release 页"可点击
-            val msgView = dialog.findViewById<TextView>(android.R.id.message)
-            msgView?.movementMethod = android.text.method.LinkMovementMethod.getInstance()
-        }
-        dialog.show()
     }
 
-    /**
-     * 显示当前版本信息对话框（无更新时）
-     */
-    private fun showCurrentVersionInfoDialog(result: UpdateChecker.UpdateCheckResult) {
-        val messageBuilder = StringBuilder()
-        messageBuilder.append(
-            getString(
-                R.string.current_version_message,
-                result.currentVersion
-            )
+    private fun showSetupStateMessage(message: String) {
+        systemActionDialogState.value = SettingsMessageDialogState(
+            title = getString(R.string.btn_one_click_setup),
+            message = message,
+            confirmText = getString(android.R.string.ok)
         )
-
-        // 添加重要提示（如果有）
-        result.importantNotice?.let { notice ->
-            messageBuilder.append("\n\n")
-            // 使用占位符，稍后替换为带样式的文本
-            messageBuilder.append("{{IMPORTANT_NOTICE_START}}")
-            messageBuilder.append(notice)
-            messageBuilder.append("{{IMPORTANT_NOTICE_END}}")
-        }
-
-        // 添加更新时间（如果有）
-        result.updateTime?.let { updateTime ->
-            messageBuilder.append("\n\n")
-            val formattedTime = formatUpdateTime(updateTime)
-            messageBuilder.append(getString(R.string.update_timestamp_label, formattedTime))
-        }
-
-        // 添加发布说明
-        result.releaseNotes?.let { notes ->
-            messageBuilder.append("\n\n")
-            messageBuilder.append(getString(R.string.update_release_notes_label, notes))
-        }
-
-        // 创建带样式的文本（如果有重要提示）
-        val messageText = if (result.importantNotice != null) {
-            createStyledMessage(
-                messageBuilder.toString(),
-                result.importantNotice,
-                result.noticeLevel
-            )
-        } else {
-            messageBuilder.toString()
-        }
-
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.current_version_info_title)
-            .setMessage(messageText)
-            .setPositiveButton(android.R.string.ok, null)
-            .setNeutralButton(R.string.btn_view_changelog) { _, _ ->
-                openChangelogHistory()
-            }
-            .setNegativeButton(R.string.btn_view_release_page) { _, _ ->
-                // 跳转到 GitHub Release 页面
-                try {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(result.downloadUrl))
-                    startActivity(intent)
-                } catch (e: Exception) {
-                    Log.e(TAG, "Failed to open release page", e)
-                    Toast.makeText(
-                        this,
-                        getString(R.string.error_open_browser),
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            }
-            .show()
-    }
-
-    /**
-     * 创建带颜色样式的消息文本
-     *
-     * @param message 原始消息文本
-     * @param notice 重要提示内容
-     * @param level 提示级别
-     * @return 带样式的 SpannableString
-     */
-    private fun createStyledMessage(
-        message: String,
-        notice: String,
-        level: UpdateChecker.NoticeLevel
-    ): SpannableString {
-        val spannable = SpannableString(
-            message.replace("{{IMPORTANT_NOTICE_START}}", "")
-                .replace("{{IMPORTANT_NOTICE_END}}", "")
-        )
-
-        // 查找重要提示在文本中的位置
-        val noticeStart = spannable.indexOf(notice)
-        if (noticeStart == -1) return spannable
-
-        val noticeEnd = noticeStart + notice.length
-
-        // 根据级别选择颜色（统一使用 UiColors 获取 Monet 动态颜色）
-        val color = when (level) {
-            UpdateChecker.NoticeLevel.INFO -> {
-                // 使用 tertiary 颜色（Monet 第三色）
-                UiColors.get(this, UiColorTokens.tertiary)
-            }
-            UpdateChecker.NoticeLevel.WARNING -> {
-                // 使用 secondary 颜色（Monet 第二色）
-                UiColors.secondary(this)
-            }
-            UpdateChecker.NoticeLevel.CRITICAL -> {
-                // 使用 error 颜色
-                UiColors.error(this)
-            }
-        }
-
-        // 应用颜色和加粗样式
-        spannable.setSpan(
-            ForegroundColorSpan(color),
-            noticeStart,
-            noticeEnd,
-            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-        )
-        spannable.setSpan(
-            StyleSpan(Typeface.BOLD),
-            noticeStart,
-            noticeEnd,
-            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-        )
-
-        return spannable
-    }
-
-    /**
-     * 显示更新检查失败对话框
-     */
-    private fun showUpdateCheckFailedDialog(error: Exception) {
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.update_check_failed)
-            .setMessage(error.message ?: "Unknown error")
-            .setPositiveButton(R.string.btn_manual_check) { _, _ ->
-                try {
-                    val intent = Intent(
-                        Intent.ACTION_VIEW,
-                        Uri.parse("https://github.com/BryceWG/BiBi-Keyboard/releases")
-                    )
-                    startActivity(intent)
-                } catch (e: Exception) {
-                    Log.e(TAG, "Failed to open browser", e)
-                    Toast.makeText(
-                        this,
-                        getString(R.string.error_open_browser),
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            }
-            .setNegativeButton(R.string.btn_cancel, null)
-            .show()
-    }
-
-    /**
-     * 打开更新历史页面
-     */
-    private fun openChangelogHistory() {
-        try {
-            val intent = Intent(
-                Intent.ACTION_VIEW,
-                Uri.parse("https://bibi.brycewg.com/changelog.html")
-            )
-            startActivity(intent)
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to open changelog page", e)
-            Toast.makeText(
-                this,
-                getString(R.string.error_open_browser),
-                Toast.LENGTH_SHORT
-            ).show()
-        }
-    }
-
-    /**
-     * 显示下载源选择对话框
-     */
-    private fun showDownloadSourceDialog(originalUrl: String, version: String) {
-        if (!updatesEnabled) return
-        // 根据 release 页面构造当前 ABI 的 APK 候选直链，新旧命名按顺序兜底。
-        val directApkUrls = buildDirectApkUrls(originalUrl, version)
-
-        val downloadOptions = DownloadSourceConfig.buildOptions(this, directApkUrls)
-
-        DownloadSourceDialog.show(
-            context = this,
-            titleRes = R.string.download_source_title,
-            options = downloadOptions
-        ) { option ->
-            try {
-                // 启动下载服务
-                ApkDownloadService.startDownload(this, option.fallbackUrls, version)
-                Toast.makeText(
-                    this,
-                    getString(R.string.apk_download_started),
-                    Toast.LENGTH_SHORT
-                ).show()
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to start download", e)
-                Toast.makeText(
-                    this,
-                    getString(R.string.apk_download_start_failed),
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
-        }
     }
 
     private fun hapticTapIfEnabled(view: View?) {
         HapticFeedbackHelper.performTap(this, prefs, view)
     }
 
-    /**
-     * 格式化更新时间
-     *
-     * 尝试解析 ISO 8601 格式并转换为本地时间，失败则返回原始字符串
-     */
-    private fun formatUpdateTime(updateTime: String): String = try {
-        val utcFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.getDefault())
-        utcFormat.timeZone = java.util.TimeZone.getTimeZone("UTC")
-        val date = utcFormat.parse(updateTime)
-
-        val localFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
-        if (date != null) localFormat.format(date) else updateTime
-    } catch (e: Exception) {
-        Log.w(TAG, "Failed to parse update time: $updateTime", e)
-        updateTime
-    }
-
-    /**
-     * 构造 APK 候选直链
-     *
-     * 输入: https://github.com/{owner}/{repo}/releases/tag/{tag}
-     * 输出: https://github.com/BryceWG/BiBi-Keyboard/releases/download/v{version}/{apkName}
-     */
-    private fun buildDirectApkUrls(originalUrl: String, version: String): List<String> {
-        val baseEnd = originalUrl.indexOf("/releases/tag/")
-        val base = if (baseEnd > 0) {
-            originalUrl.substring(0, baseEnd)
-        } else {
-            "https://github.com/BryceWG/BiBi-Keyboard"
-        }
-        val tag = "v$version"
-        return buildUpdateApkNames(version).map { apkName ->
-            "$base/releases/download/$tag/$apkName"
-        }
-    }
-
-    /**
-     * 构造当前设备 ABI 对应的新旧 APK 文件名候选。
-     */
-    private fun buildUpdateApkNames(version: String): List<String> {
-        val abi = selectUpdateApkAbi()
-        return if (abi == "armeabi-v7a") {
-            listOf(
-                "lexisharp-keyboard-$version-armeabi-v7a-release.apk",
-                "app-release-$version-armeabi-v7a.apk"
-            )
-        } else {
-            listOf(
-                "lexisharp-keyboard-$version-release.apk",
-                "app-release-$version-arm64-v8a.apk"
-            )
-        }
-    }
-
-    /**
-     * 选择与当前设备兼容的开源版更新 APK ABI。
-     */
-    private fun selectUpdateApkAbi(): String {
-        val supportedAbis = Build.SUPPORTED_ABIS.toList()
-        return when {
-            "arm64-v8a" in supportedAbis -> "arm64-v8a"
-            "armeabi-v7a" in supportedAbis -> "armeabi-v7a"
-            else -> "arm64-v8a"
-        }
-    }
-
-    /**
-     * 清理旧的 APK 安装包
-     */
-    private fun cleanOldApkFiles() {
-        if (!updatesEnabled) return
-        try {
-            ApkDownloadService.cleanOldApks(this)
-            Log.d(TAG, "Old APK files cleaned")
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to clean old APK files", e)
-        }
-    }
-
-    // ==================== 其他辅助功能 ====================
-
-    /**
-     * 打开新手引导页（支持左右滑动）。
-     */
-    private fun openOnboardingGuide() {
-        startActivity(Intent(this, OnboardingGuideActivity::class.java))
-    }
-
-    /**
-     * 首次进入设置页时自动展示新手引导页（仅一次）。
-     */
-    private fun maybeAutoShowOnboardingGuideOnFirstOpen() {
-        try {
-            val prefs = Prefs(this)
-            if (!prefs.hasShownOnboardingGuideV2Once) {
-                // 进入即标记，避免因中途返回导致重复弹出
-                prefs.hasShownOnboardingGuideV2Once = true
-                openOnboardingGuide()
-            }
-        } catch (t: Throwable) {
-            Log.w(TAG, "Failed to maybe auto show onboarding guide", t)
-        }
-    }
-
-    /**
-     * 显示快速指南对话框
-     */
-    private fun showQuickGuide(minCloseDelayMs: Long = 0L) {
-        val view = LayoutInflater.from(this).inflate(R.layout.dialog_guide, null, false)
-        val dialog = MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.title_quick_guide)
-            .setView(view)
-            .setPositiveButton(R.string.btn_close, null)
-            .create()
-
-        // 设置"查看完整文档"按钮点击事件
-        view.findViewById<Button>(R.id.btnViewFullDocs)?.setOnClickListener {
-            openFullDocumentation()
-        }
-
-        var countdownJob: kotlinx.coroutines.Job? = null
-
-        dialog.setOnShowListener {
-            val positive = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
-            if (minCloseDelayMs > 0L) {
-                dialog.setCancelable(false)
-                dialog.setCanceledOnTouchOutside(false)
-                positive.isEnabled = false
-
-                val totalSeconds = (minCloseDelayMs / 1000L).toInt().coerceAtLeast(1)
-                countdownJob = lifecycleScope.launch(Dispatchers.Main) {
-                    var remain = totalSeconds
-                    while (remain > 0 && dialog.isShowing) {
-                        positive.text = getString(R.string.btn_close_with_seconds, remain)
-                        kotlinx.coroutines.delay(1000)
-                        remain -= 1
-                    }
-                    positive.text = getString(R.string.btn_close)
-                    positive.isEnabled = true
-                    dialog.setCancelable(true)
-                    dialog.setCanceledOnTouchOutside(true)
-                }
-            }
-        }
-
-        dialog.setOnDismissListener {
-            try {
-                countdownJob?.cancel()
-            } catch (t: Throwable) {
-                Log.w(TAG, "Failed to cancel countdown job", t)
-            }
-        }
-
-        dialog.show()
-    }
-
-    private fun maybeAutoShowQuickGuideOnFirstOpen() {
-        try {
-            val prefs = Prefs(this)
-            if (!prefs.hasShownQuickGuideOnce) {
-                // 记录为已展示，避免重复弹出
-                prefs.hasShownQuickGuideOnce = true
-                // 使用指南关闭后，自动显示模型选择引导
-                showQuickGuideWithModelGuide(minCloseDelayMs = 5000L)
-            } else {
-                // 如果已经显示过使用指南，直接检查是否需要显示模型选择引导
-                maybeAutoShowModelGuideOnFirstOpen()
-            }
-        } catch (t: Throwable) {
-            Log.w(TAG, "Failed to maybe auto show quick guide", t)
-        }
-    }
-
-    /**
-     * 显示使用指南，关闭后自动显示模型选择引导
-     */
-    private fun showQuickGuideWithModelGuide(minCloseDelayMs: Long = 0L) {
-        val view = LayoutInflater.from(this).inflate(R.layout.dialog_guide, null, false)
-        val dialog = MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.title_quick_guide)
-            .setView(view)
-            .setPositiveButton(R.string.btn_close, null)
-            .setCancelable(false)
-            .create()
-
-        // 设置"查看完整文档"按钮点击事件
-        view.findViewById<Button>(R.id.btnViewFullDocs)?.setOnClickListener {
-            openFullDocumentation()
-        }
-
-        var countdownJob: kotlinx.coroutines.Job? = null
-
-        dialog.setOnShowListener {
-            val positive = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
-            dialog.setCanceledOnTouchOutside(false)
-            if (minCloseDelayMs > 0L) {
-                positive.isEnabled = false
-
-                val totalSeconds = (minCloseDelayMs / 1000L).toInt().coerceAtLeast(1)
-                countdownJob = lifecycleScope.launch(Dispatchers.Main) {
-                    var remain = totalSeconds
-                    while (remain > 0 && dialog.isShowing) {
-                        positive.text = getString(R.string.btn_close_with_seconds, remain)
-                        kotlinx.coroutines.delay(1000)
-                        remain -= 1
-                    }
-                    positive.text = getString(R.string.btn_close)
-                    positive.isEnabled = true
-                    // 倒计时结束后仍然不允许点击空白区域关闭
-                }
-            }
-        }
-
-        dialog.setOnDismissListener {
-            try {
-                countdownJob?.cancel()
-            } catch (t: Throwable) {
-                Log.w(TAG, "Failed to cancel countdown job", t)
-            }
-            // 使用指南关闭后，延迟 300ms 再显示模型选择引导
-            handler.postDelayed({
-                maybeAutoShowModelGuideOnFirstOpen()
-            }, 300L)
-        }
-
-        dialog.show()
-    }
-
-    /**
-     * 首次启动时自动显示模型选择引导
-     */
-    private fun maybeAutoShowModelGuideOnFirstOpen() {
-        try {
-            val prefs = Prefs(this)
-            if (!prefs.hasShownModelGuideOnce) {
-                // 记录为已展示，避免重复弹出
-                prefs.hasShownModelGuideOnce = true
-                showModelSelectionGuide()
-            }
-        } catch (t: Throwable) {
-            Log.w(TAG, "Failed to maybe auto show model guide", t)
-        }
-    }
-
-    /**
-     * 版本升级后显示 Pro 版宣传弹窗（仅显示一次）
-     *
-     * 使用延迟以避免与首次使用引导弹窗冲突：
-     * - 如果是首次使用（未显示过引导），跳过本次
-     * - 否则延迟 500ms 后检查并显示
-     */
-    private fun maybeShowProPromoOnUpgrade() {
-        try {
-            val prefs = Prefs(this)
-            // 如果首次使用引导或模型选择引导还未展示过，跳过（避免弹窗堆叠）
-            if (!prefs.hasShownQuickGuideOnce || !prefs.hasShownModelGuideOnce) {
-                return
-            }
-            // 延迟显示以避免与其他操作冲突
-            handler.postDelayed({
-                try {
-                    ProPromoDialog.showIfNeeded(this)
-                } catch (t: Throwable) {
-                    Log.w(TAG, "Failed to show Pro promo dialog", t)
-                }
-            }, 500L)
-        } catch (t: Throwable) {
-            Log.w(TAG, "Failed to check Pro promo", t)
-        }
-    }
-
-    /**
-     * 版本升级后首次进入设置时显示匿名数据采集同意弹窗（仅显示一次）。
-     */
-    private fun maybeShowDataCollectionConsentOnUpgrade() {
-        try {
-            val prefs = Prefs(this)
-
-            // 一次性迁移：重置同意弹窗状态以重新采集设备信息（修复打包问题后）
-            if (!prefs.analyticsConsentResetV1Done) {
-                prefs.analyticsConsentResetV1Done = true
-                prefs.dataCollectionConsentShown = false
-            }
-
-            if (prefs.dataCollectionConsentShown) return
-            if (!prefs.hasShownQuickGuideOnce || !prefs.hasShownModelGuideOnce) return
-
-            handler.postDelayed({
-                try {
-                    showDataCollectionConsentDialog()
-                } catch (t: Throwable) {
-                    Log.w(TAG, "Failed to show data collection consent dialog", t)
-                }
-            }, 700L)
-        } catch (t: Throwable) {
-            Log.w(TAG, "Failed to maybe show data collection consent", t)
-        }
-    }
-
-    private fun showDataCollectionConsentDialog() {
-        val prefs = Prefs(this)
-        val dialog = MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.title_data_collection_consent)
-            .setMessage(R.string.msg_data_collection_consent)
-            .setPositiveButton(R.string.btn_agree) { d, _ ->
-                prefs.dataCollectionConsentShown = true
-                prefs.dataCollectionEnabled = true
-                try {
-                    AnalyticsManager.init(this)
-                } catch (t: Throwable) {
-                    Log.w(TAG, "Failed to init analytics after consent", t)
-                }
-                try {
-                    AnalyticsManager.sendConsentChoice(this, true)
-                } catch (t: Throwable) {
-                    Log.w(TAG, "Failed to send consent choice (agree)", t)
-                }
-                d.dismiss()
-            }
-            .setNegativeButton(R.string.btn_disagree) { d, _ ->
-                prefs.dataCollectionConsentShown = true
-                prefs.dataCollectionEnabled = false
-                try {
-                    AnalyticsManager.sendConsentChoice(this, false)
-                } catch (t: Throwable) {
-                    Log.w(TAG, "Failed to send consent choice (disagree)", t)
-                }
-                d.dismiss()
-            }
-            .setCancelable(false)
-            .create()
-
-        dialog.setCanceledOnTouchOutside(false)
-        dialog.show()
-    }
-
-    /**
-     * 显示模型选择引导对话框
-     */
-    private fun showModelSelectionGuide() {
-        val dialogView = layoutInflater.inflate(R.layout.dialog_model_selection, null, false)
-        val cardSfFree = dialogView.findViewById<com.google.android.material.card.MaterialCardView>(
-            R.id.cardSiliconFlowFree
-        )
-        val cardLocal = dialogView.findViewById<com.google.android.material.card.MaterialCardView>(
-            R.id.cardLocalModel
-        )
-        val cardOnline = dialogView.findViewById<com.google.android.material.card.MaterialCardView>(
-            R.id.cardOnlineModel
-        )
-        val actionExecutor = OnboardingActionExecutor(this)
-
-        // 设置初始选中状态（硅基流动免费服务为默认）
-        cardSfFree.isChecked = true
-        cardLocal.isChecked = false
-        cardOnline.isChecked = false
-
-        // 点击卡片切换选中状态（单选逻辑）
-        cardSfFree.setOnClickListener {
-            cardSfFree.isChecked = true
-            cardLocal.isChecked = false
-            cardOnline.isChecked = false
-        }
-        cardLocal.setOnClickListener {
-            cardSfFree.isChecked = false
-            cardLocal.isChecked = true
-            cardOnline.isChecked = false
-        }
-        cardOnline.setOnClickListener {
-            cardSfFree.isChecked = false
-            cardLocal.isChecked = false
-            cardOnline.isChecked = true
-        }
-
-        val dialog = MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.model_guide_title)
-            .setView(dialogView)
-            .setNegativeButton(R.string.btn_skip_guide) { d, _ -> d.dismiss() }
-            .setPositiveButton(R.string.btn_confirm, null)
-            .setCancelable(false)
-            .create()
-
-        dialog.setCanceledOnTouchOutside(false)
-        dialog.setOnShowListener {
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.setOnClickListener {
-                // 根据选择执行不同的操作
-                when {
-                    cardSfFree.isChecked -> {
-                        // 选择硅基流动免费服务：设置 vendor 和启用免费服务
-                        actionExecutor.applySiliconFlowFree()
-                        dialog.dismiss()
-                    }
-                    cardLocal.isChecked -> {
-                        // 选择本地模型：先切换 vendor，然后显示镜像源选择
-                        dialog.dismiss()
-                        actionExecutor.applyLocalModel()
-                    }
-                    cardOnline.isChecked -> {
-                        // 选择在线模型：禁用免费服务，显示配置指南对话框
-                        dialog.dismiss()
-                        actionExecutor.applyOnlineCustom()
-                    }
-                    else -> {
-                        // 未选择任何选项，提示用户
-                        Toast.makeText(
-                            this,
-                            getString(R.string.model_guide_select_prompt),
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                }
-            }
-        }
-
-        dialog.show()
-    }
-
-    /**
-     * 显示在线模型配置指南
-     */
-    private fun showOnlineModelConfigGuide() {
-        val docUrl = getString(R.string.model_guide_config_doc_url)
-
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.model_guide_option_online)
-            .setMessage(R.string.model_guide_online_dialog_message)
-            .setPositiveButton(R.string.btn_get_api_key_guide) { _, _ ->
-                try {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(docUrl))
-                    startActivity(intent)
-                } catch (e: Exception) {
-                    Log.e(TAG, "Failed to open documentation", e)
-                    Toast.makeText(
-                        this,
-                        getString(R.string.external_aidl_guide_open_failed),
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            }
-            .setNegativeButton(R.string.btn_cancel, null)
-            .show()
-    }
-
-    /**
-     * 显示模型下载镜像源选择对话框（从模型选择引导进入）
-     */
-    private fun showModelDownloadSourceDialog() {
-        val variant = "small-full"
-        val urlOfficial = "https://github.com/BryceWG/BiBi-Keyboard/releases/download/models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17.zip"
-
-        val downloadOptions = DownloadSourceConfig.buildOptions(this, urlOfficial)
-
-        DownloadSourceDialog.show(
-            context = this,
-            titleRes = R.string.download_source_title,
-            options = downloadOptions,
-            cancelable = false
-        ) { option ->
-            try {
-                com.brycewg.asrkb.ui.settings.asr.ModelDownloadService.startDownload(
-                    this,
-                    option.url,
-                    variant
-                )
-                Toast.makeText(
-                    this,
-                    getString(R.string.model_guide_downloading),
-                    Toast.LENGTH_SHORT
-                ).show()
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to start model download", e)
-                Toast.makeText(
-                    this,
-                    getString(R.string.sv_download_status_failed),
-                    Toast.LENGTH_LONG
-                ).show()
-            }
-        }
-    }
-
-    /**
-     * 显示测试输入底部浮层
-     */
-    private fun showTestInputBottomSheet() {
-        val dialog = BottomSheetDialog(this)
-        val view = layoutInflater.inflate(R.layout.dialog_test_input, null, false)
-        dialog.setContentView(view)
-
-        val edit = view.findViewById<TextInputEditText>(R.id.etBottomTestInput)
-        dialog.setOnShowListener {
-            edit?.post {
-                edit.requestFocusFromTouch()
-                val imm = getSystemService(InputMethodManager::class.java)
-                val shown = imm?.showSoftInput(edit, InputMethodManager.SHOW_IMPLICIT) == true
-                if (!shown) {
-                    edit.postDelayed(
-                        { imm?.showSoftInput(edit, InputMethodManager.SHOW_IMPLICIT) },
-                        120
-                    )
-                }
-            }
-        }
-
-        dialog.show()
-    }
-
-    /**
-     * 更新识别字数统计显示
-     */
-    private fun updateAsrTotalChars() {
-        try {
-            val tvAsrTotalChars = findViewById<TextView>(R.id.tvAsrTotalChars)
-            val prefs = Prefs(this)
-            tvAsrTotalChars?.text = getString(R.string.label_asr_total_chars, prefs.totalAsrChars)
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to update ASR total chars display", e)
-        }
-    }
-
-    /**
-     * 检查无障碍服务是否刚刚被启用，给予用户反馈
-     */
-    private fun checkAccessibilityServiceJustEnabled() {
-        val isNowEnabled = isAccessibilityServiceEnabled()
-
-        if (!wasAccessibilityEnabled && isNowEnabled) {
-            Log.d(TAG, "Accessibility service just enabled")
-            Toast.makeText(
-                this,
-                getString(R.string.toast_accessibility_enabled),
-                Toast.LENGTH_SHORT
-            ).show()
-        }
-
-        wasAccessibilityEnabled = isNowEnabled
-    }
-
-    /**
-     * 检查无障碍服务是否已启用
-     */
-    private fun isAccessibilityServiceEnabled(): Boolean {
-        val expectedComponentName =
-            "$packageName/com.brycewg.asrkb.ui.AsrAccessibilityService"
-        val enabledServicesSetting = try {
-            Settings.Secure.getString(
-                contentResolver,
-                Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
-            )
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to get accessibility services", e)
-            return false
-        }
-
-        Log.d(TAG, "Expected accessibility service: $expectedComponentName")
-        Log.d(TAG, "Enabled accessibility services: $enabledServicesSetting")
-
-        val result = enabledServicesSetting?.contains(expectedComponentName) == true
-        Log.d(TAG, "Accessibility service enabled: $result")
-        return result
-    }
-
-    /**
-     * 处理"外部切换"模式的 IME 选择器逻辑
-     *
-     * 当从浮动球或其他外部入口进入设置页并自动弹出 IME 选择器时，
-     * 利用窗口焦点变化来检测选择器是否关闭，关闭后自动退出设置页。
-     *
-     * 焦点变化信号：
-     * 1. 选择器弹出时，本页失去焦点 (hasFocus=false)
-     * 2. 选择器关闭后，本页重新获得焦点 (hasFocus=true)
-     * 3. 检测到"失去焦点→恢复焦点"的完整循环后，延迟 250ms 关闭设置页
-     */
-    private fun handleExternalImeSwitchMode(hasFocus: Boolean) {
-        if (!autoCloseAfterImePicker || !imePickerShown) {
-            return
-        }
-
-        if (!hasFocus) {
-            // 系统输入法选择器置前，导致本页失去焦点
-            imePickerLostFocusOnce = true
-            Log.d(TAG, "IME picker shown, activity lost focus")
-        } else if (imePickerLostFocusOnce) {
-            // 选择器关闭，本页重新获得焦点 -> 可安全收尾
-            Log.d(TAG, "IME picker closed, activity regained focus, finishing")
-            handler.postDelayed({
-                if (!isFinishing && !isDestroyed) {
-                    finish()
-                    try {
-                        if (android.os.Build.VERSION.SDK_INT >=
-                            android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE
-                        ) {
-                            // Android 14+ 使用新的过渡覆盖 API，替代已废弃的 overridePendingTransition
-                            overrideActivityTransition(
-                                android.app.Activity.OVERRIDE_TRANSITION_CLOSE,
-                                0,
-                                0
-                            )
-                        } else {
-                            @Suppress("DEPRECATION")
-                            overridePendingTransition(0, 0)
-                        }
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Failed to override pending transition", e)
-                    }
-                }
-            }, 250L)
-
-            // 只触发一次
-            imePickerShown = false
-            imePickerLostFocusOnce = false
-        }
-    }
-
-    /**
-     * 处理自动弹出 IME 选择器（由 Intent Extra 触发）
-     *
-     * 用于从浮动球等外部入口快速切换输入法，进入设置页后自动弹出选择器
-     */
-    private fun handleAutoShowImePicker(hasFocus: Boolean) {
-        if (!hasFocus) return
-        if (autoShownImePicker) return
-        if (intent?.getBooleanExtra(EXTRA_AUTO_SHOW_IME_PICKER, false) != true) return
-
-        autoShownImePicker = true
-        autoCloseAfterImePicker = true
-
-        Log.d(TAG, "Auto-showing IME picker from intent extra")
-
-        // 延迟到窗口获得焦点后调用，稳定性更好
-        handler.post {
-            try {
-                val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
-                imm.showInputMethodPicker()
-                // 标记：已弹出选择器
-                imePickerShown = true
-                imePickerLostFocusOnce = false
-                Log.d(TAG, "IME picker shown successfully")
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to show IME picker", e)
-            }
-        }
-    }
-
-    /**
-     * 处理快捷设置磁贴触发的 IME 选择器（由 Intent Extra 触发）
-     *
-     * 行为：进入设置页后弹出输入法选择器，选择器关闭后自动退出前台设置页。
-     */
-    private fun handleShowImePickerFromTile(hasFocus: Boolean) {
-        if (!hasFocus) return
-        if (!qsTileImePickerRequested) return
-
-        qsTileImePickerRequested = false
-
-        handler.post {
-            val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
-            autoCloseAfterImePicker = true
-            imePickerShown = true
-            imePickerLostFocusOnce = false
-            imm.showInputMethodPicker()
-        }
-    }
-
-    private fun consumeShowImePickerExtraIfPresent(intent: Intent?) {
-        if (intent?.getBooleanExtra(EXTRA_SHOW_IME_PICKER, false) != true) return
-        intent.removeExtra(EXTRA_SHOW_IME_PICKER)
-        qsTileImePickerRequested = true
-    }
-
-    /**
-     * 打开完整使用文档网站
-     */
-    private fun openFullDocumentation() {
-        try {
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(DOCS_URL))
-            startActivity(intent)
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to open documentation URL", e)
-            Toast.makeText(
-                this,
-                getString(R.string.external_aidl_guide_open_failed),
-                Toast.LENGTH_SHORT
-            ).show()
-        }
-    }
 }
