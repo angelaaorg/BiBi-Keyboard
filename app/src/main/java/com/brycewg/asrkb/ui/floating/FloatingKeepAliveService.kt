@@ -20,7 +20,8 @@ import com.brycewg.asrkb.R
 import com.brycewg.asrkb.store.Prefs
 import com.brycewg.asrkb.store.debug.DebugLogManager
 import com.brycewg.asrkb.ui.AsrVendorUi
-import com.brycewg.asrkb.ui.settings.floating.FloatingSettingsActivity
+import com.brycewg.asrkb.ui.SettingsActivity
+import com.brycewg.asrkb.ui.settings.compose.core.BibiSettingsRoute
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.UUID
@@ -231,8 +232,9 @@ class FloatingKeepAliveService : Service() {
     }
 
     private fun buildKeepAliveNotification(): android.app.Notification {
-        val openIntent = Intent(this, FloatingSettingsActivity::class.java).apply {
+        val openIntent = Intent(this, SettingsActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            putExtra(SettingsActivity.EXTRA_INITIAL_ROUTE, BibiSettingsRoute.Floating.id)
         }
         val pendingIntent = PendingIntent.getActivity(
             this,

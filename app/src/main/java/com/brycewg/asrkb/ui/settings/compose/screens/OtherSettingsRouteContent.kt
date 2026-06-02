@@ -1,0 +1,236 @@
+/**
+ * Compose 其他设置页路由内容。
+ *
+ * 归属模块：ui/settings/compose/screens
+ */
+@file:Suppress("FunctionName")
+
+package com.brycewg.asrkb.ui.settings.compose.screens
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import com.brycewg.asrkb.R
+import com.brycewg.asrkb.ui.settings.compose.components.SettingsLazyColumn
+import com.brycewg.asrkb.ui.settings.compose.core.BibiUiMode
+import com.brycewg.asrkb.ui.settings.compose.core.SettingsLayoutMetrics
+import com.brycewg.asrkb.ui.settings.other.OtherSettingsViewModel
+
+@Composable
+internal fun OtherSettingsRouteContent(
+    uiMode: BibiUiMode,
+    innerPadding: PaddingValues,
+    scrollModifier: Modifier,
+    uiState: OtherSettingsUiState,
+    punctuation: PunctuationFields,
+    speechState: OtherSettingsViewModel.SpeechPresetsState,
+    syncState: OtherSettingsViewModel.SyncClipboardState,
+    focusNameAfterAdd: Boolean,
+    onFocusNameHandled: () -> Unit,
+    onKeepAliveToggle: (Boolean) -> Unit,
+    onPrivilegedKeepAliveToggle: (Boolean) -> Unit,
+    onRequestBatteryWhitelist: () -> Unit,
+    onDisableAsrHistoryToggle: (Boolean) -> Unit,
+    onDisableUsageStatsToggle: (Boolean) -> Unit,
+    onDataCollectionToggle: (Boolean) -> Unit,
+    onPunct1Change: (String) -> Unit,
+    onPunct2Change: (String) -> Unit,
+    onPunct3Change: (String) -> Unit,
+    onPunct4Change: (String) -> Unit,
+    onSpeechPresetPicker: () -> Unit,
+    onUpdateSpeechPresetName: (String) -> Unit,
+    onUpdateSpeechPresetContent: (String) -> Unit,
+    onAddSpeechPreset: () -> Unit,
+    onDeleteSpeechPreset: () -> Unit,
+    onSyncClipboardEnabledChange: (Boolean) -> Unit,
+    onSyncClipboardServerChange: (String) -> Unit,
+    onSyncClipboardUsernameChange: (String) -> Unit,
+    onSyncClipboardPasswordChange: (String) -> Unit,
+    onSyncClipboardAutoPullChange: (Boolean) -> Unit,
+    onSyncClipboardIntervalChange: (Int) -> Unit,
+    onTestClipboardSync: () -> Unit,
+    onOpenSyncClipboardProject: () -> Unit
+) {
+    SettingsLazyColumn(
+        uiMode = uiMode,
+        modifier = Modifier.fillMaxSize(),
+        miuixScrollModifier = scrollModifier,
+        contentPadding = SettingsLayoutMetrics.pageContentPadding(innerPadding),
+        verticalArrangement = Arrangement.spacedBy(SettingsLayoutMetrics.SectionSpacing)
+    ) {
+        item("keep_alive") {
+            OtherSection(uiMode = uiMode, titleRes = R.string.section_general) {
+                OtherExplainedSwitch(
+                    id = "floating_keep_alive",
+                    titleRes = R.string.label_floating_keep_alive_foreground,
+                    checked = uiState.keepAliveEnabled,
+                    onToggle = onKeepAliveToggle,
+                    index = 0,
+                    count = 2
+                )
+                OtherExplainedSwitch(
+                    id = "floating_keep_alive_privileged",
+                    titleRes = R.string.label_floating_keep_alive_privileged,
+                    checked = uiState.privilegedKeepAliveEnabled,
+                    onToggle = onPrivilegedKeepAliveToggle,
+                    index = 1,
+                    count = 2
+                )
+                OtherButton(
+                    text = stringResource(R.string.label_request_battery_whitelist),
+                    uiMode = uiMode,
+                    onClick = onRequestBatteryWhitelist
+                )
+            }
+        }
+
+        item("privacy") {
+            OtherPrivacySection(
+                uiMode = uiMode,
+                uiState = uiState,
+                onDisableAsrHistoryToggle = onDisableAsrHistoryToggle,
+                onDisableUsageStatsToggle = onDisableUsageStatsToggle,
+                onDataCollectionToggle = onDataCollectionToggle
+            )
+        }
+
+        item("punctuation") {
+            OtherPunctuationSection(
+                uiMode = uiMode,
+                punctuation = punctuation,
+                onPunct1Change = onPunct1Change,
+                onPunct2Change = onPunct2Change,
+                onPunct3Change = onPunct3Change,
+                onPunct4Change = onPunct4Change
+            )
+        }
+
+        item("speech_presets") {
+            SpeechPresetSection(
+                uiMode = uiMode,
+                state = speechState,
+                focusNameAfterAdd = focusNameAfterAdd,
+                onFocusNameHandled = onFocusNameHandled,
+                onSelectorTap = onSpeechPresetPicker,
+                onUpdateName = onUpdateSpeechPresetName,
+                onUpdateContent = onUpdateSpeechPresetContent,
+                onAddPreset = onAddSpeechPreset,
+                onDeletePreset = onDeleteSpeechPreset
+            )
+        }
+
+        item("sync_clipboard") {
+            SyncClipboardSection(
+                uiMode = uiMode,
+                state = syncState,
+                onEnabledChange = onSyncClipboardEnabledChange,
+                onServerChange = onSyncClipboardServerChange,
+                onUsernameChange = onSyncClipboardUsernameChange,
+                onPasswordChange = onSyncClipboardPasswordChange,
+                onAutoPullChange = onSyncClipboardAutoPullChange,
+                onIntervalChange = onSyncClipboardIntervalChange,
+                onTestPull = onTestClipboardSync,
+                onOpenProject = onOpenSyncClipboardProject
+            )
+        }
+    }
+}
+
+@Composable
+private fun OtherPrivacySection(
+    uiMode: BibiUiMode,
+    uiState: OtherSettingsUiState,
+    onDisableAsrHistoryToggle: (Boolean) -> Unit,
+    onDisableUsageStatsToggle: (Boolean) -> Unit,
+    onDataCollectionToggle: (Boolean) -> Unit
+) {
+    OtherSection(uiMode = uiMode, titleRes = R.string.section_data_retention) {
+        OtherExplainedSwitch(
+            id = "disable_asr_history",
+            titleRes = R.string.label_disable_asr_history,
+            checked = uiState.disableAsrHistory,
+            onToggle = onDisableAsrHistoryToggle,
+            index = 0,
+            count = 3
+        )
+        OtherExplainedSwitch(
+            id = "disable_usage_stats",
+            titleRes = R.string.label_disable_usage_stats,
+            checked = uiState.disableUsageStats,
+            onToggle = onDisableUsageStatsToggle,
+            index = 1,
+            count = 3
+        )
+        OtherExplainedSwitch(
+            id = "data_collection",
+            titleRes = R.string.label_data_collection,
+            checked = uiState.dataCollectionEnabled,
+            onToggle = onDataCollectionToggle,
+            index = 2,
+            count = 3
+        )
+    }
+}
+
+@Composable
+private fun OtherPunctuationSection(
+    uiMode: BibiUiMode,
+    punctuation: PunctuationFields,
+    onPunct1Change: (String) -> Unit,
+    onPunct2Change: (String) -> Unit,
+    onPunct3Change: (String) -> Unit,
+    onPunct4Change: (String) -> Unit
+) {
+    val compactFieldPadding = PaddingValues(
+        horizontal = 0.dp,
+        vertical = SettingsLayoutMetrics.TextFieldLooseVerticalPadding
+    )
+    OtherSection(uiMode = uiMode, titleRes = R.string.custom_punct_section_title) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = SettingsLayoutMetrics.TextFieldHorizontalPadding),
+            horizontalArrangement = Arrangement.spacedBy(SettingsLayoutMetrics.ActionButtonSpacing)
+        ) {
+            OtherTextField(
+                value = punctuation.punct1,
+                onValueChange = onPunct1Change,
+                label = stringResource(R.string.label_custom_punct_1),
+                uiMode = uiMode,
+                modifier = Modifier.weight(1f),
+                contentPadding = compactFieldPadding
+            )
+            OtherTextField(
+                value = punctuation.punct2,
+                onValueChange = onPunct2Change,
+                label = stringResource(R.string.label_custom_punct_2),
+                uiMode = uiMode,
+                modifier = Modifier.weight(1f),
+                contentPadding = compactFieldPadding
+            )
+            OtherTextField(
+                value = punctuation.punct3,
+                onValueChange = onPunct3Change,
+                label = stringResource(R.string.label_custom_punct_3),
+                uiMode = uiMode,
+                modifier = Modifier.weight(1f),
+                contentPadding = compactFieldPadding
+            )
+            OtherTextField(
+                value = punctuation.punct4,
+                onValueChange = onPunct4Change,
+                label = stringResource(R.string.label_custom_punct_4),
+                uiMode = uiMode,
+                modifier = Modifier.weight(1f),
+                contentPadding = compactFieldPadding
+            )
+        }
+    }
+}
