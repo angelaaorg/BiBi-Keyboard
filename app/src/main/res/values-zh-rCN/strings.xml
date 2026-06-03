@@ -154,6 +154,8 @@
   <!-- 输入相关 -->
   <!-- ============================================== -->
   <string name="label_trim_trailing_punct">去除句末标点与 emoji</string>
+  <string name="label_trim_trailing_punct_threshold">去除阈值</string>
+  <string name="trim_trailing_punct_threshold_value">%1$d 字词以内</string>
   <string name="label_mic_haptic">按键与悬浮球振动反馈</string>
   <string name="label_mic_tap_toggle">键盘录音使用点按启停</string>
   <string name="label_test_input">体验输入</string>
@@ -286,7 +288,7 @@
   <!-- ============================================== -->
   <!-- 去除句末标点 -->
   <string name="feature_trim_trailing_punct_off_desc">识别结果保留所有内容。</string>
-  <string name="feature_trim_trailing_punct_on_desc">识别结果将自动去除句末标点和 emoji，输出更清爽。</string>
+  <string name="feature_trim_trailing_punct_on_desc">短识别结果将自动去除句末标点和 emoji，超过阈值的长文本保留句末标点和 emoji。</string>
 
   <!-- 按键振动 -->
   <string name="feature_mic_haptic_off_desc">按下按键或操作悬浮球时没有振动反馈。</string>

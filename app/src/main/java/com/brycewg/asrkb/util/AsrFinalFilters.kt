@@ -11,13 +11,18 @@ import com.brycewg.asrkb.store.Prefs
 object AsrFinalFilters {
     private const val TAG = "AsrFinalFilters"
 
+    fun shouldTrimTrailingPunctAndEmoji(prefs: Prefs, text: String): Boolean {
+        if (!prefs.trimFinalTrailingPunct) return false
+        return TextSanitizer.countEffectiveChars(text) <= prefs.trimFinalTrailingPunctThreshold
+    }
+
     /**
      * 执行基础过滤：去除句末标点/emoji，并处理预置替换
      */
     fun applySimple(context: Context, prefs: Prefs, input: String): String {
         var out = input
         try {
-            if (prefs.trimFinalTrailingPunct) {
+            if (shouldTrimTrailingPunctAndEmoji(prefs, input)) {
                 out = TextSanitizer.trimTrailingPunctAndEmoji(out)
             }
         } catch (t: Throwable) {
@@ -61,9 +66,16 @@ object AsrFinalFilters {
                 llmMs = 0
             )
         }
+        val shouldTrimTrailing = try {
+            shouldTrimTrailingPunctAndEmoji(prefs, input)
+        } catch (t: Throwable) {
+            Log.w(TAG, "trim threshold calculation failed", t)
+            false
+        }
+
         // 预修剪
         val base = try {
-            if (prefs.trimFinalTrailingPunct) {
+            if (shouldTrimTrailing) {
                 TextSanitizer.trimTrailingPunctAndEmoji(
                     input
                 )
@@ -157,7 +169,7 @@ object AsrFinalFilters {
 
         // 后修剪
         processed = try {
-            if (prefs.trimFinalTrailingPunct) {
+            if (shouldTrimTrailing) {
                 TextSanitizer.trimTrailingPunctAndEmoji(
                     processed
                 )

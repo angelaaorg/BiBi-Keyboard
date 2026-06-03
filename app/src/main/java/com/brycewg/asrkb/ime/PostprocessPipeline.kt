@@ -6,6 +6,7 @@ import android.view.inputmethod.InputConnection
 import com.brycewg.asrkb.asr.LlmPostProcessor
 import com.brycewg.asrkb.store.AsrHistoryStore
 import com.brycewg.asrkb.store.Prefs
+import com.brycewg.asrkb.util.AsrFinalFilters
 import com.brycewg.asrkb.util.TextSanitizer
 import com.brycewg.asrkb.util.TypewriterTextAnimator
 import kotlinx.coroutines.CoroutineScope
@@ -37,7 +38,7 @@ internal class PostprocessPipeline(
         onPostprocFailed: () -> Unit
     ): Result? {
         val rawText = try {
-            if (prefs.trimFinalTrailingPunct) {
+            if (AsrFinalFilters.shouldTrimTrailingPunctAndEmoji(prefs, text)) {
                 TextSanitizer.trimTrailingPunctAndEmoji(
                     text
                 )
@@ -83,7 +84,7 @@ internal class PostprocessPipeline(
         }
 
         val res: LlmPostProcessor.LlmProcessResult = try {
-            com.brycewg.asrkb.util.AsrFinalFilters.applyWithAi(
+            AsrFinalFilters.applyWithAi(
                 context,
                 prefs,
                 text,
@@ -94,7 +95,7 @@ internal class PostprocessPipeline(
             Log.e(logTag, "applyWithAi failed", t)
             // 统一回退到 applySimple，确保语音预设仍然生效
             val fallback = try {
-                com.brycewg.asrkb.util.AsrFinalFilters.applySimple(context, prefs, text)
+                AsrFinalFilters.applySimple(context, prefs, text)
             } catch (_: Throwable) {
                 rawText
             }
@@ -120,7 +121,7 @@ internal class PostprocessPipeline(
         val finalText = if (res.text.isBlank()) {
             // 若 AI 返回空文本，回退到简单后处理（包含正则/繁体），而非仅使用预修剪文本
             try {
-                com.brycewg.asrkb.util.AsrFinalFilters.applySimple(context, prefs, text)
+                AsrFinalFilters.applySimple(context, prefs, text)
             } catch (t: Throwable) {
                 Log.w(logTag, "applySimple fallback after blank AI result failed", t)
                 rawText

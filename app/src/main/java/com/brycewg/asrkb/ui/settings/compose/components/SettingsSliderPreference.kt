@@ -53,7 +53,7 @@ internal fun SettingsSliderPreference(
                     onValueChange = onValueChange,
                     onValueChangeFinished = onValueChangeFinished,
                     valueRange = valueRange,
-                    steps = steps,
+                    steps = if (showKeyPoints) steps else 0,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = SettingsLayoutMetrics.SliderHorizontalPadding)

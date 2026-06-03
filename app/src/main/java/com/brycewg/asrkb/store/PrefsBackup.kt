@@ -26,6 +26,7 @@ internal object PrefsBackup {
         o.put(KEY_APP_KEY, appKey)
         o.put(KEY_ACCESS_KEY, accessKey)
         o.put(KEY_TRIM_FINAL_TRAILING_PUNCT, trimFinalTrailingPunct)
+        o.put(KEY_TRIM_FINAL_TRAILING_PUNCT_THRESHOLD, trimFinalTrailingPunctThreshold)
         o.put(KEY_HAPTIC_FEEDBACK_LEVEL, hapticFeedbackLevel)
         o.put(KEY_MIC_HAPTIC_ENABLED, micHapticEnabled)
         o.put(KEY_MIC_TAP_TOGGLE_ENABLED, micTapToggleEnabled)
@@ -298,6 +299,7 @@ internal object PrefsBackup {
             optString(KEY_APP_KEY)?.let { appKey = it }
             optString(KEY_ACCESS_KEY)?.let { accessKey = it }
             optBool(KEY_TRIM_FINAL_TRAILING_PUNCT)?.let { trimFinalTrailingPunct = it }
+            optInt(KEY_TRIM_FINAL_TRAILING_PUNCT_THRESHOLD)?.let { trimFinalTrailingPunctThreshold = it }
             val importedHapticLevel = optInt(KEY_HAPTIC_FEEDBACK_LEVEL)
             if (importedHapticLevel != null) {
                 hapticFeedbackLevel = importedHapticLevel

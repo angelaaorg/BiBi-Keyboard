@@ -14,6 +14,7 @@ package com.brycewg.asrkb.store
 internal const val KEY_APP_KEY = "app_key"
 internal const val KEY_ACCESS_KEY = "access_key"
 internal const val KEY_TRIM_FINAL_TRAILING_PUNCT = "trim_final_trailing_punct"
+internal const val KEY_TRIM_FINAL_TRAILING_PUNCT_THRESHOLD = "trim_final_trailing_punct_threshold"
 internal const val KEY_HAPTIC_FEEDBACK_LEVEL = "haptic_feedback_level"
 internal const val KEY_MIC_HAPTIC_ENABLED = "mic_haptic_enabled"
 internal const val KEY_MIC_TAP_TOGGLE_ENABLED = "mic_tap_toggle_enabled"

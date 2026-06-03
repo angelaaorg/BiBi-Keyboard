@@ -6,6 +6,8 @@ import android.view.inputmethod.InputConnection
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.asr.LlmPostProcessor
 import com.brycewg.asrkb.store.Prefs
+import com.brycewg.asrkb.util.AsrFinalFilters
+import com.brycewg.asrkb.util.TextSanitizer
 
 internal class AiEditUseCase(
     private val context: Context,
@@ -81,8 +83,8 @@ internal class AiEditUseCase(
 
         uiListenerProvider()?.onStatusMessage(context.getString(R.string.status_ai_editing))
 
-        val instruction = if (prefs.trimFinalTrailingPunct) {
-            com.brycewg.asrkb.util.TextSanitizer.trimTrailingPunctAndEmoji(text)
+        val instruction = if (AsrFinalFilters.shouldTrimTrailingPunctAndEmoji(prefs, text)) {
+            TextSanitizer.trimTrailingPunctAndEmoji(text)
         } else {
             text
         }

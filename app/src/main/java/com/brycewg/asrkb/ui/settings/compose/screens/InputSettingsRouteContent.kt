@@ -62,6 +62,8 @@ internal fun InputSettingsRouteContent(
     val languageOptions = context.languageOptions().mapIndexed { index, label ->
         DropdownOption(languageTagForIndex(index), label)
     }
+    val behaviorItemCount = if (uiState.trimTrailingPunct) 8 else 7
+    val behaviorTrimThresholdOffset = if (uiState.trimTrailingPunct) 1 else 0
 
     SettingsLazyColumn(
         uiMode = uiMode,
@@ -90,8 +92,35 @@ internal fun InputSettingsRouteContent(
                         ) { prefs.trimFinalTrailingPunct = it }
                     },
                     index = 0,
-                    count = 7
+                    count = behaviorItemCount
                 )
+                if (uiState.trimTrailingPunct) {
+                    InputSliderPreference(
+                        titleRes = R.string.label_trim_trailing_punct_threshold,
+                        valueLabel = stringResource(
+                            R.string.trim_trailing_punct_threshold_value,
+                            uiState.trimTrailingPunctThreshold
+                        ),
+                        value = uiState.trimTrailingPunctThreshold.toFloat(),
+                        valueRange = 1f..100f,
+                        steps = 98,
+                        uiMode = uiMode,
+                        showKeyPoints = false,
+                        index = 1,
+                        count = behaviorItemCount,
+                        onValueChange = { value ->
+                            val next = value.roundToStep(step = 1).toInt().coerceIn(1, 100)
+                            if (next != uiState.trimTrailingPunctThreshold) {
+                                onUiStateChange(uiState.copy(trimTrailingPunctThreshold = next))
+                            }
+                        },
+                        onValueChangeFinished = {
+                            prefs.trimFinalTrailingPunctThreshold = uiState.trimTrailingPunctThreshold
+                            actions.hapticTap()
+                            onRefreshState()
+                        }
+                    )
+                }
                 InputExplainedSwitch(
                     id = "mic_tap_toggle",
                     titleRes = R.string.label_mic_tap_toggle,
@@ -109,8 +138,8 @@ internal fun InputSettingsRouteContent(
                             null
                         ) { prefs.micTapToggleEnabled = it }
                     },
-                    index = 1,
-                    count = 7
+                    index = 1 + behaviorTrimThresholdOffset,
+                    count = behaviorItemCount
                 )
                 InputExplainedSwitch(
                     id = "auto_start_recording_on_show",
@@ -129,8 +158,8 @@ internal fun InputSettingsRouteContent(
                             null
                         ) { prefs.autoStartRecordingOnShow = it }
                     },
-                    index = 2,
-                    count = 7
+                    index = 2 + behaviorTrimThresholdOffset,
+                    count = behaviorItemCount
                 )
                 InputExplainedSwitch(
                     id = "hide_recent_task_card",
@@ -149,8 +178,8 @@ internal fun InputSettingsRouteContent(
                             { applyExcludeFromRecents(context, it) }
                         ) { prefs.hideRecentTaskCard = it }
                     },
-                    index = 3,
-                    count = 7
+                    index = 3 + behaviorTrimThresholdOffset,
+                    count = behaviorItemCount
                 )
                 InputExplainedSwitch(
                     id = "fcitx5_return_on_switcher",
@@ -169,8 +198,8 @@ internal fun InputSettingsRouteContent(
                             null
                         ) { prefs.fcitx5ReturnOnImeSwitch = it }
                     },
-                    index = 4,
-                    count = 7
+                    index = 4 + behaviorTrimThresholdOffset,
+                    count = behaviorItemCount
                 )
                 InputExplainedSwitch(
                     id = "return_prev_ime_on_hide",
@@ -189,8 +218,8 @@ internal fun InputSettingsRouteContent(
                             null
                         ) { prefs.returnPrevImeOnHide = it }
                     },
-                    index = 5,
-                    count = 7
+                    index = 5 + behaviorTrimThresholdOffset,
+                    count = behaviorItemCount
                 )
                 SettingsPreference(
                     entry = SettingsEntry.Dropdown(
@@ -206,8 +235,8 @@ internal fun InputSettingsRouteContent(
                             onRefreshState()
                         }
                     ),
-                    index = 6,
-                    count = 7
+                    index = 6 + behaviorTrimThresholdOffset,
+                    count = behaviorItemCount
                 )
             }
         }

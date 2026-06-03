@@ -93,6 +93,10 @@ class Prefs(context: Context) {
         get() = sp.getBoolean(KEY_TRIM_FINAL_TRAILING_PUNCT, true)
         set(value) = sp.edit { putBoolean(KEY_TRIM_FINAL_TRAILING_PUNCT, value) }
 
+    var trimFinalTrailingPunctThreshold: Int
+        get() = sp.getInt(KEY_TRIM_FINAL_TRAILING_PUNCT_THRESHOLD, 100).coerceIn(1, 100)
+        set(value) = sp.edit { putInt(KEY_TRIM_FINAL_TRAILING_PUNCT_THRESHOLD, value.coerceIn(1, 100)) }
+
     // 移除：键盘内“切换输入法”按钮显示开关（按钮始终显示）
 
     // 输入/点击触觉反馈强度

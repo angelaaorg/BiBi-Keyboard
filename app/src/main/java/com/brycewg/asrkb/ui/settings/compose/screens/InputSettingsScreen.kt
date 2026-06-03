@@ -260,6 +260,7 @@ internal fun InputSettingsUiState.withHapticFeedbackLevel(
 
 internal data class InputSettingsUiState(
     val trimTrailingPunct: Boolean,
+    val trimTrailingPunctThreshold: Int,
     val micTapToggle: Boolean,
     val autoStartRecordingOnShow: Boolean,
     val fcitx5ReturnOnSwitcher: Boolean,
@@ -284,6 +285,7 @@ internal data class InputSettingsUiState(
     companion object {
         fun fromPrefs(context: Context, prefs: Prefs): InputSettingsUiState = InputSettingsUiState(
             trimTrailingPunct = prefs.trimFinalTrailingPunct,
+            trimTrailingPunctThreshold = prefs.trimFinalTrailingPunctThreshold,
             micTapToggle = prefs.micTapToggleEnabled,
             autoStartRecordingOnShow = prefs.autoStartRecordingOnShow,
             fcitx5ReturnOnSwitcher = prefs.fcitx5ReturnOnImeSwitch,
