@@ -10,6 +10,7 @@ package com.brycewg.asrkb.ui.settings.compose.screens
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -19,6 +20,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.ui.settings.compose.components.SettingsLazyColumn
+import com.brycewg.asrkb.ui.settings.compose.components.SettingsMaterialItemSurface
 import com.brycewg.asrkb.ui.settings.compose.core.BibiUiMode
 import com.brycewg.asrkb.ui.settings.compose.core.SettingsLayoutMetrics
 import com.brycewg.asrkb.ui.settings.other.OtherSettingsViewModel
@@ -193,18 +195,14 @@ private fun OtherPunctuationSection(
         vertical = SettingsLayoutMetrics.TextFieldLooseVerticalPadding
     )
     OtherSection(uiMode = uiMode, titleRes = R.string.custom_punct_section_title) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = SettingsLayoutMetrics.TextFieldHorizontalPadding),
-            horizontalArrangement = Arrangement.spacedBy(SettingsLayoutMetrics.ActionButtonSpacing)
-        ) {
+        val fields: @Composable RowScope.() -> Unit = {
             OtherTextField(
                 value = punctuation.punct1,
                 onValueChange = onPunct1Change,
                 label = stringResource(R.string.label_custom_punct_1),
                 uiMode = uiMode,
                 modifier = Modifier.weight(1f),
+                materialContainer = false,
                 contentPadding = compactFieldPadding
             )
             OtherTextField(
@@ -213,6 +211,7 @@ private fun OtherPunctuationSection(
                 label = stringResource(R.string.label_custom_punct_2),
                 uiMode = uiMode,
                 modifier = Modifier.weight(1f),
+                materialContainer = false,
                 contentPadding = compactFieldPadding
             )
             OtherTextField(
@@ -221,6 +220,7 @@ private fun OtherPunctuationSection(
                 label = stringResource(R.string.label_custom_punct_3),
                 uiMode = uiMode,
                 modifier = Modifier.weight(1f),
+                materialContainer = false,
                 contentPadding = compactFieldPadding
             )
             OtherTextField(
@@ -229,8 +229,25 @@ private fun OtherPunctuationSection(
                 label = stringResource(R.string.label_custom_punct_4),
                 uiMode = uiMode,
                 modifier = Modifier.weight(1f),
+                materialContainer = false,
                 contentPadding = compactFieldPadding
             )
+        }
+        val row: @Composable () -> Unit = {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = SettingsLayoutMetrics.TextFieldHorizontalPadding),
+                horizontalArrangement = Arrangement.spacedBy(SettingsLayoutMetrics.ActionButtonSpacing),
+                content = fields
+            )
+        }
+        when (uiMode) {
+            BibiUiMode.Material -> SettingsMaterialItemSurface {
+                row()
+            }
+
+            BibiUiMode.Miuix -> row()
         }
     }
 }

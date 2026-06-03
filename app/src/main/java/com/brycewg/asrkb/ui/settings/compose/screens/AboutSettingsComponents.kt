@@ -60,6 +60,10 @@ internal fun AboutScaffold(
 internal fun AboutSection(
     uiMode: BibiUiMode,
     titleRes: Int? = null,
+    contentPadding: PaddingValues = PaddingValues(
+        top = SettingsLayoutMetrics.AboutSectionContentTopPadding,
+        bottom = SettingsLayoutMetrics.AboutSectionContentBottomPadding
+    ),
     content: @Composable ColumnScope.() -> Unit
 ) {
     SettingsSectionContainer(
@@ -67,10 +71,7 @@ internal fun AboutSection(
         titleRes = titleRes
     ) {
         Column(
-            modifier = Modifier.padding(
-                top = SettingsLayoutMetrics.AboutSectionContentTopPadding,
-                bottom = SettingsLayoutMetrics.AboutSectionContentBottomPadding
-            ),
+            modifier = Modifier.padding(contentPadding),
             content = content
         )
     }

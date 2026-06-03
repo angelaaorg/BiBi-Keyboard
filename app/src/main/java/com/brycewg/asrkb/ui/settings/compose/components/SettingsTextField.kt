@@ -10,6 +10,8 @@ package com.brycewg.asrkb.ui.settings.compose.components
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -36,11 +38,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.ui.settings.compose.core.BibiUiMode
@@ -74,6 +78,7 @@ internal fun SettingsTextField(
     visualTransformation: VisualTransformation? = null,
     index: Int = 0,
     count: Int = 1,
+    materialContainer: Boolean = true,
     contentPadding: PaddingValues = PaddingValues(
         horizontal = SettingsLayoutMetrics.TextFieldHorizontalPadding,
         vertical = SettingsLayoutMetrics.TextFieldVerticalPadding
@@ -114,7 +119,14 @@ internal fun SettingsTextField(
     val miuixHelper = helper ?: placeholder
     val bringIntoViewRequester = remember { BringIntoViewRequester() }
     val coroutineScope = rememberCoroutineScope()
-    val fieldModifier = modifier
+    val layoutDirection = LocalLayoutDirection.current
+    val effectiveContentPadding = contentPadding.withTextFieldEdgePadding(
+        layoutDirection = layoutDirection,
+        index = index,
+        count = count,
+        horizontalEdges = materialContainer
+    )
+    val containerModifier = modifier
         .fillMaxWidth()
         .bringIntoViewRequester(bringIntoViewRequester)
         .onFocusChanged { focusState ->
@@ -125,62 +137,63 @@ internal fun SettingsTextField(
                 }
             }
         }
-        .padding(contentPadding)
+    val fieldModifier = containerModifier.padding(effectiveContentPadding)
 
     when (uiMode) {
-        BibiUiMode.Material -> SettingsMaterialItemSurface(
-            index = index,
-            count = count,
-            modifier = modifier
-                .fillMaxWidth()
-                .bringIntoViewRequester(bringIntoViewRequester)
-                .onFocusChanged { focusState ->
-                    if (focusState.isFocused) {
-                        coroutineScope.launch {
-                            delay(250)
-                            bringIntoViewRequester.bringIntoView()
-                        }
-                    }
-                }
-        ) {
+        BibiUiMode.Material -> {
             val containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(
                 SettingsLayoutMetrics.MaterialSectionElevation
             )
-            OutlinedTextField(
-                value = value,
-                onValueChange = onValueChange,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(contentPadding),
-                enabled = enabled,
-                label = { Text(label) },
-                placeholder = placeholder?.let { { Text(it) } },
-                supportingText = helper?.let { { Text(it) } },
-                singleLine = singleLine,
-                minLines = minLines,
-                maxLines = maxLines,
-                shape = RoundedCornerShape(SettingsLayoutMetrics.TextFieldCorner),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = containerColor,
-                    unfocusedContainerColor = containerColor,
-                    disabledContainerColor = containerColor
-                ),
-                visualTransformation = resolvedVisualTransformation,
-                keyboardOptions = resolvedKeyboardOptions,
-                keyboardActions = keyboardActions,
-                trailingIcon = if (showPasswordToggle) {
-                    {
-                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                            Icon(
-                                imageVector = passwordToggleIcon,
-                                contentDescription = passwordToggleLabel
-                            )
+            val content: @Composable () -> Unit = {
+                OutlinedTextField(
+                    value = value,
+                    onValueChange = onValueChange,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(effectiveContentPadding),
+                    enabled = enabled,
+                    label = { Text(label) },
+                    placeholder = placeholder?.let { { Text(it) } },
+                    supportingText = helper?.let { { Text(it) } },
+                    singleLine = singleLine,
+                    minLines = minLines,
+                    maxLines = maxLines,
+                    shape = RoundedCornerShape(SettingsLayoutMetrics.TextFieldCorner),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = containerColor,
+                        unfocusedContainerColor = containerColor,
+                        disabledContainerColor = containerColor
+                    ),
+                    visualTransformation = resolvedVisualTransformation,
+                    keyboardOptions = resolvedKeyboardOptions,
+                    keyboardActions = keyboardActions,
+                    trailingIcon = if (showPasswordToggle) {
+                        {
+                            IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                Icon(
+                                    imageVector = passwordToggleIcon,
+                                    contentDescription = passwordToggleLabel
+                                )
+                            }
                         }
+                    } else {
+                        null
                     }
-                } else {
-                    null
+                )
+            }
+            if (materialContainer) {
+                SettingsMaterialItemSurface(
+                    index = index,
+                    count = count,
+                    modifier = containerModifier
+                ) {
+                    content()
                 }
-            )
+            } else {
+                Column(modifier = containerModifier) {
+                    content()
+                }
+            }
         }
 
         BibiUiMode.Miuix -> Column(
@@ -224,4 +237,24 @@ internal fun SettingsTextField(
             }
         }
     }
+}
+
+private fun PaddingValues.withTextFieldEdgePadding(
+    layoutDirection: LayoutDirection,
+    index: Int,
+    count: Int,
+    horizontalEdges: Boolean
+): PaddingValues {
+    val safeCount = count.coerceAtLeast(1)
+    val edgePadding = SettingsLayoutMetrics.TextFieldEdgePadding
+    val start = calculateStartPadding(layoutDirection)
+    val end = calculateEndPadding(layoutDirection)
+    val top = calculateTopPadding()
+    val bottom = calculateBottomPadding()
+    return PaddingValues(
+        start = if (horizontalEdges) maxOf(start, edgePadding) else start,
+        top = if (index <= 0) maxOf(top, edgePadding) else top,
+        end = if (horizontalEdges) maxOf(end, edgePadding) else end,
+        bottom = if (index >= safeCount - 1) maxOf(bottom, edgePadding) else bottom
+    )
 }

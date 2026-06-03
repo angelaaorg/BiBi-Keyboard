@@ -112,6 +112,7 @@ internal fun OtherTextField(
     maxLines: Int = if (singleLine) 1 else 6,
     index: Int = 0,
     count: Int = 1,
+    materialContainer: Boolean = true,
     contentPadding: PaddingValues = PaddingValues(
         horizontal = SettingsLayoutMetrics.TextFieldHorizontalPadding,
         vertical = SettingsLayoutMetrics.TextFieldLooseVerticalPadding
@@ -133,6 +134,7 @@ internal fun OtherTextField(
         visualTransformation = if (password) null else visualTransformation,
         index = index,
         count = count,
+        materialContainer = materialContainer,
         contentPadding = contentPadding
     )
 }

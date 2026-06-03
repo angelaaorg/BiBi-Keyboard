@@ -34,13 +34,14 @@ internal object SettingsLayoutMetrics {
     val TextFieldHorizontalPadding = 20.dp
     val TextFieldVerticalPadding = 6.dp
     val TextFieldLooseVerticalPadding = 8.dp
+    val TextFieldEdgePadding = TextFieldHorizontalPadding
     val ActionButtonCorner = 16.dp
     val ActionButtonMinHeight = 40.dp
     val ActionButtonInsideHorizontalPadding = 16.dp
     val ActionButtonInsideVerticalPadding = 13.dp
     val ActionButtonRowHorizontalPadding = 20.dp
-    val ActionButtonRowTopPadding = 22.dp
-    val ActionButtonRowBottomPadding = 14.dp
+    val ActionButtonRowTopPadding = 12.dp
+    val ActionButtonRowBottomPadding = 8.dp
     val ActionButtonSpacing = 8.dp
     val ActionButtonIconSize = 18.dp
     val ActionButtonIconSpacing = 8.dp
@@ -101,7 +102,7 @@ internal object SettingsLayoutMetrics {
     val BackupSectionContentPadding = 16.dp
     val BackupSectionContentSpacing = 12.dp
     val AboutSectionContentTopPadding = 20.dp
-    val AboutSectionContentBottomPadding = 8.dp
+    val AboutSectionContentBottomPadding = AboutSectionContentTopPadding
     val BottomBarElevation = 3.dp
     val TopBarElevation = BottomBarElevation
     val BottomBarTopCorner = 28.dp
