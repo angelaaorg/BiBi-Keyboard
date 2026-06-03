@@ -356,6 +356,7 @@ private fun ApiLogList(
         }
     }
 }
+
 @Composable
 private fun ApiLogCard(
     record: ApiLogStore.ApiLogRecord,
@@ -525,12 +526,12 @@ private fun ClearApiLogDialog(
         BibiUiMode.Material -> {
             val alpha by animateFloatAsState(
                 targetValue = if (show) 1f else 0f,
-                animationSpec = tween(ApiLogDialogExitMillis),
+                animationSpec = tween(API_LOG_DIALOG_EXIT_MILLIS),
                 label = "ClearApiLogDialogAlpha"
             )
             LaunchedEffect(show) {
                 if (!show) {
-                    delay(ApiLogDialogExitMillis.toLong())
+                    delay(API_LOG_DIALOG_EXIT_MILLIS.toLong())
                     afterDismiss?.invoke()
                 }
             }
@@ -611,12 +612,12 @@ private fun MaterialDetailsDialog(
 
     val alpha by animateFloatAsState(
         targetValue = if (show) 1f else 0f,
-        animationSpec = tween(ApiLogDialogExitMillis),
+        animationSpec = tween(API_LOG_DIALOG_EXIT_MILLIS),
         label = "ApiLogDetailsDialogAlpha"
     )
     LaunchedEffect(show) {
         if (!show) {
-            delay(ApiLogDialogExitMillis.toLong())
+            delay(API_LOG_DIALOG_EXIT_MILLIS.toLong())
             afterDismiss?.invoke()
         }
     }
@@ -700,7 +701,7 @@ private fun MiuixDetailsDialog(
     }
 }
 
-private const val ApiLogDialogExitMillis = 180
+private const val API_LOG_DIALOG_EXIT_MILLIS = 180
 
 @Composable
 private fun DetailsContent(

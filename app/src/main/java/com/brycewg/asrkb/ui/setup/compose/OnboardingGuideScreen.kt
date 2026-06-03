@@ -50,8 +50,8 @@ import top.yukonga.miuix.kmp.basic.Text as MiuixText
 import top.yukonga.miuix.kmp.basic.TextButton as MiuixTextButton
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-private const val PageCount = 4
-private const val LastPageIndex = PageCount - 1
+private const val PAGE_COUNT = 4
+private const val LAST_PAGE_INDEX = PAGE_COUNT - 1
 
 @Composable
 internal fun OnboardingGuideScreen(
@@ -70,7 +70,7 @@ internal fun OnboardingGuideScreen(
     onOpenDocs: () -> Unit,
     onOpenPro: () -> Unit
 ) {
-    val pagerState = rememberPagerState(pageCount = { PageCount })
+    val pagerState = rememberPagerState(pageCount = { PAGE_COUNT })
     val scope = rememberCoroutineScope()
     OnboardingScaffold(
         uiMode = uiMode,
@@ -83,7 +83,7 @@ internal fun OnboardingGuideScreen(
             }
         },
         onNext = {
-            if (pagerState.currentPage >= LastPageIndex) {
+            if (pagerState.currentPage >= LAST_PAGE_INDEX) {
                 onNextFromLastPage()
             } else {
                 scope.launch {
@@ -201,13 +201,13 @@ private fun OnboardingBottomBar(
     ) {
         OnboardingProgressIndicator(
             uiMode = uiMode,
-            progress = (currentPage + 1) / PageCount.toFloat(),
+            progress = (currentPage + 1) / PAGE_COUNT.toFloat(),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 10.dp)
         )
         PageIndicator(
-            text = stringResource(R.string.onboarding_page_indicator, currentPage + 1, PageCount),
+            text = stringResource(R.string.onboarding_page_indicator, currentPage + 1, PAGE_COUNT),
             uiMode = uiMode
         )
         Row(
@@ -218,7 +218,7 @@ private fun OnboardingBottomBar(
             OnboardingTextAction(
                 text = stringResource(R.string.onboarding_btn_skip),
                 uiMode = uiMode,
-                visible = currentPage < LastPageIndex,
+                visible = currentPage < LAST_PAGE_INDEX,
                 onClick = onSkip,
                 modifier = Modifier.weight(1f)
             )
@@ -231,7 +231,7 @@ private fun OnboardingBottomBar(
             )
             OnboardingPrimaryAction(
                 text = stringResource(
-                    if (currentPage >= LastPageIndex) {
+                    if (currentPage >= LAST_PAGE_INDEX) {
                         R.string.onboarding_btn_finish
                     } else {
                         R.string.onboarding_btn_next
@@ -337,7 +337,7 @@ private fun OnboardingPrimaryAction(
 }
 
 private suspend fun PagerState.animateToOnboardingPage(targetPage: Int) {
-    val distance = abs(targetPage - currentPage).coerceAtLeast(SettingsMotion.PagerMinimumDistancePages)
+    val distance = abs(targetPage - currentPage).coerceAtLeast(SettingsMotion.PAGER_MINIMUM_DISTANCE_PAGES)
     val pageSize = layoutInfo.pageSize + layoutInfo.pageSpacing
     val currentDistanceInPages = targetPage - currentPage - currentPageOffsetFraction
     animateScrollBy(

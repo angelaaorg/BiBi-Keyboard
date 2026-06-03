@@ -80,18 +80,18 @@ internal fun SettingsHighlightContainer(
     LaunchedEffect(entryId, highlightTargetId) {
         active = highlightTargetId == entryId
         if (active) {
-            delay(HighlightDurationMillis)
+            delay(HIGHLIGHT_DURATION_MILLIS)
             active = false
         }
     }
 
     val highlightColor = when (uiMode) {
-        BibiUiMode.Material -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = HighlightAlpha)
-        BibiUiMode.Miuix -> MiuixTheme.colorScheme.primary.copy(alpha = HighlightAlpha)
+        BibiUiMode.Material -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = HIGHLIGHT_ALPHA)
+        BibiUiMode.Miuix -> MiuixTheme.colorScheme.primary.copy(alpha = HIGHLIGHT_ALPHA)
     }
     val color by animateColorAsState(
         targetValue = if (active) highlightColor else androidx.compose.ui.graphics.Color.Transparent,
-        animationSpec = tween(durationMillis = HighlightFadeMillis),
+        animationSpec = tween(durationMillis = HIGHLIGHT_FADE_MILLIS),
         label = "SettingsSearchHighlight"
     )
     Column(
@@ -106,6 +106,6 @@ internal fun SettingsHighlightContainer(
     }
 }
 
-private const val HighlightDurationMillis = 1800L
-private const val HighlightFadeMillis = 260
-private const val HighlightAlpha = 0.38f
+private const val HIGHLIGHT_DURATION_MILLIS = 1800L
+private const val HIGHLIGHT_FADE_MILLIS = 260
+private const val HIGHLIGHT_ALPHA = 0.38f

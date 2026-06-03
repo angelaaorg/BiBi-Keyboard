@@ -15,11 +15,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import com.brycewg.asrkb.ui.settings.compose.core.SettingsMotion
+import kotlin.math.abs
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
-import kotlin.math.abs
 
 internal class SettingsHomePagerState(
     val pagerState: PagerState,
@@ -41,7 +41,7 @@ internal class SettingsHomePagerState(
         isNavigating = true
 
         val distance = abs(targetPage - pagerState.currentPage)
-            .coerceAtLeast(SettingsMotion.PagerMinimumDistancePages)
+            .coerceAtLeast(SettingsMotion.PAGER_MINIMUM_DISTANCE_PAGES)
         val layoutInfo = pagerState.layoutInfo
         val pageSize = layoutInfo.pageSize + layoutInfo.pageSpacing
         val currentDistanceInPages =

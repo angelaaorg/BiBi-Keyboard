@@ -182,7 +182,7 @@ private fun MaterialEntryHeadline(entry: SettingsEntry) {
     val color = if (entry.enabled) {
         MaterialTheme.colorScheme.onSurface
     } else {
-        MaterialTheme.colorScheme.onSurface.copy(alpha = DisabledContentAlpha)
+        MaterialTheme.colorScheme.onSurface.copy(alpha = DISABLED_CONTENT_ALPHA)
     }
     Text(
         text = stringResource(entry.titleRes),
@@ -196,7 +196,7 @@ private fun MaterialEntrySupporting(entry: SettingsEntry, text: String) {
     val color = if (entry.enabled) {
         MaterialTheme.colorScheme.onSurfaceVariant
     } else {
-        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = DisabledContentAlpha)
+        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = DISABLED_CONTENT_ALPHA)
     }
     Text(
         text = text,
@@ -206,8 +206,7 @@ private fun MaterialEntrySupporting(entry: SettingsEntry, text: String) {
 }
 
 @Composable
-private fun settingsEntrySummary(entry: SettingsEntry): String? =
-    entry.summary ?: entry.summaryRes?.let { stringResource(it) }
+private fun settingsEntrySummary(entry: SettingsEntry): String? = entry.summary ?: entry.summaryRes?.let { stringResource(it) }
 
 @Composable
 private fun MaterialEntryIcon(entry: SettingsEntry) {
@@ -215,7 +214,7 @@ private fun MaterialEntryIcon(entry: SettingsEntry) {
     val color = if (entry.enabled) {
         MaterialTheme.colorScheme.onSurfaceVariant
     } else {
-        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = DisabledContentAlpha)
+        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = DISABLED_CONTENT_ALPHA)
     }
     Icon(
         imageVector = icon,
@@ -302,4 +301,4 @@ private fun MaterialExpressiveSwitch(
     )
 }
 
-private const val DisabledContentAlpha = 0.38f
+private const val DISABLED_CONTENT_ALPHA = 0.38f

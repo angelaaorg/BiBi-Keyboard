@@ -244,10 +244,9 @@ private data class BackupOperationResult(
     val message: String
 )
 
-private fun buildBackupFileName(): String =
-    "asr_keyboard_settings_" +
-        SimpleDateFormat("yyyyMMdd_HHmm", Locale.getDefault()).format(Date()) +
-        ".json"
+private fun buildBackupFileName(): String = "asr_keyboard_settings_" +
+    SimpleDateFormat("yyyyMMdd_HHmm", Locale.getDefault()).format(Date()) +
+    ".json"
 
 private suspend fun exportSettings(
     context: Context,

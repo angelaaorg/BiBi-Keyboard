@@ -7,8 +7,8 @@
 
 package com.brycewg.asrkb.ui.settings.compose.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -45,7 +45,6 @@ import com.brycewg.asrkb.ui.settings.compose.core.SettingsLayoutMetrics
 import com.brycewg.asrkb.ui.settings.compose.model.SettingsEntry
 import kotlin.math.roundToInt
 import top.yukonga.miuix.kmp.basic.Card as MiuixCard
-import top.yukonga.miuix.kmp.basic.Text as MiuixText
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
@@ -275,5 +274,4 @@ internal fun FloatingSubsectionGap() {
     Spacer(Modifier.height(SettingsLayoutMetrics.SectionSpacing - SettingsLayoutMetrics.MaterialSectionItemSpacing))
 }
 
-internal fun Float.roundFloatingToStep(step: Int): Float =
-    (this / step.toFloat()).roundToInt().coerceAtLeast(0) * step.toFloat()
+internal fun Float.roundFloatingToStep(step: Int): Float = (this / step.toFloat()).roundToInt().coerceAtLeast(0) * step.toFloat()

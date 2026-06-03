@@ -51,8 +51,7 @@ internal fun apiLogMeta(context: Context, record: ApiLogStore.ApiLogRecord): Str
     )
 }
 
-internal fun apiLogTime(record: ApiLogStore.ApiLogRecord): String =
-    SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date(record.timestamp))
+internal fun apiLogTime(record: ApiLogStore.ApiLogRecord): String = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date(record.timestamp))
 
 fun formatApiLogDetail(context: Context, record: ApiLogStore.ApiLogRecord): String {
     val fmt = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())

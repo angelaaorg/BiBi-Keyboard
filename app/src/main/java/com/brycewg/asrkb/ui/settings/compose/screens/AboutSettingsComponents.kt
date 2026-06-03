@@ -64,7 +64,7 @@ internal fun AboutSection(
 ) {
     SettingsSectionContainer(
         uiMode = uiMode,
-        titleRes = titleRes,
+        titleRes = titleRes
     ) {
         Column(
             modifier = Modifier.padding(
@@ -87,7 +87,7 @@ internal fun AboutAppIntro(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(end = 20.dp),
+            .padding(end = 20.dp)
     ) {
         Column(modifier = Modifier.weight(1f)) {
             AboutText(appName, uiMode, strong = true)

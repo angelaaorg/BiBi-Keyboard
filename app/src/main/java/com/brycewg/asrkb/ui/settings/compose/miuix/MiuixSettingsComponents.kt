@@ -7,8 +7,8 @@
 
 package com.brycewg.asrkb.ui.settings.compose.miuix
 
-import androidx.compose.runtime.Composable
 import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -71,5 +71,4 @@ private fun SettingsEntryIcon(icon: androidx.compose.ui.graphics.vector.ImageVec
 }
 
 @Composable
-private fun settingsEntrySummary(entry: SettingsEntry): String? =
-    entry.summary ?: entry.summaryRes?.let { stringResource(it) }
+private fun settingsEntrySummary(entry: SettingsEntry): String? = entry.summary ?: entry.summaryRes?.let { stringResource(it) }

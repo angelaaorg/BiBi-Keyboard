@@ -11,7 +11,6 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,6 +35,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Article
 import androidx.compose.material.icons.rounded.Clear
@@ -68,10 +68,10 @@ import com.brycewg.asrkb.store.AsrHistoryStore
 import com.brycewg.asrkb.ui.settings.compose.components.MaterialSettingsAlertDialog
 import com.brycewg.asrkb.ui.settings.compose.components.MaterialSettingsDialogAction
 import com.brycewg.asrkb.ui.settings.compose.components.MaterialSettingsDialogButtonRow
+import com.brycewg.asrkb.ui.settings.compose.components.SettingsAssistChip
 import com.brycewg.asrkb.ui.settings.compose.components.SettingsDetailScaffold
 import com.brycewg.asrkb.ui.settings.compose.components.SettingsDialogAction
 import com.brycewg.asrkb.ui.settings.compose.components.SettingsDialogActionRow
-import com.brycewg.asrkb.ui.settings.compose.components.SettingsAssistChip
 import com.brycewg.asrkb.ui.settings.compose.components.SettingsFilterChip
 import com.brycewg.asrkb.ui.settings.compose.components.SettingsSearchField
 import com.brycewg.asrkb.ui.settings.compose.core.BibiUiMode
@@ -915,5 +915,4 @@ private fun FilterOptionChip(
     )
 }
 
-private fun toggleId(ids: Set<String>, id: String): Set<String> =
-    if (id in ids) ids - id else ids + id
+private fun toggleId(ids: Set<String>, id: String): Set<String> = if (id in ids) ids - id else ids + id

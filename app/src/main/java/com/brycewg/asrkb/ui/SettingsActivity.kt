@@ -374,8 +374,7 @@ class SettingsActivity : BaseActivity() {
         }
     }
 
-    private fun hasRecordAudioPermission(): Boolean =
-        ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+    private fun hasRecordAudioPermission(): Boolean = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
 
     /**
      * 如果正在一键设置流程中，继续推进
@@ -541,5 +540,4 @@ class SettingsActivity : BaseActivity() {
     private fun hapticTapIfEnabled(view: View?) {
         HapticFeedbackHelper.performTap(this, prefs, view)
     }
-
 }

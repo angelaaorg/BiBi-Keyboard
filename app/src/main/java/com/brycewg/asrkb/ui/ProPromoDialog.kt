@@ -58,18 +58,17 @@ object ProPromoDialog {
 
     fun openTelegram(context: Context): Int? = openUrl(context, TELEGRAM_URL)
 
-    private fun openUrl(context: Context, url: String): Int? =
-        try {
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-            context.startActivity(intent)
-            null
-        } catch (e: ActivityNotFoundException) {
-            Log.e(TAG, "No browser found to open URL: $url", e)
-            R.string.error_open_browser
-        } catch (e: Throwable) {
-            Log.e(TAG, "Failed to open URL: $url", e)
-            R.string.error_open_browser
-        }
+    private fun openUrl(context: Context, url: String): Int? = try {
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+        context.startActivity(intent)
+        null
+    } catch (e: ActivityNotFoundException) {
+        Log.e(TAG, "No browser found to open URL: $url", e)
+        R.string.error_open_browser
+    } catch (e: Throwable) {
+        Log.e(TAG, "Failed to open URL: $url", e)
+        R.string.error_open_browser
+    }
 
     /**
      * 复制邮箱到剪贴板

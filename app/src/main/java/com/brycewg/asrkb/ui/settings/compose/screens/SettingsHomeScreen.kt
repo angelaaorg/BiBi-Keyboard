@@ -16,7 +16,6 @@ import android.provider.Settings
 import android.view.inputmethod.InputMethodManager
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Help
@@ -53,7 +52,6 @@ import com.brycewg.asrkb.ui.settings.compose.core.BibiSettingsRoute
 import com.brycewg.asrkb.ui.settings.compose.core.BibiUiMode
 import com.brycewg.asrkb.ui.settings.compose.core.SettingsActionController
 import com.brycewg.asrkb.ui.settings.compose.core.SettingsLayoutMetrics
-import com.brycewg.asrkb.ui.settings.compose.core.SettingsMotion
 import com.brycewg.asrkb.ui.settings.compose.model.DropdownOption
 import com.brycewg.asrkb.ui.settings.compose.model.SettingsEntry
 import com.brycewg.asrkb.ui.settings.compose.model.SettingsSection
@@ -339,24 +337,21 @@ private fun systemSections(
     )
 )
 
-private fun enabledSummary(context: Context, enabled: Boolean): String =
-    context.getString(if (enabled) R.string.home_summary_enabled else R.string.home_summary_disabled)
+private fun enabledSummary(context: Context, enabled: Boolean): String = context.getString(if (enabled) R.string.home_summary_enabled else R.string.home_summary_disabled)
 
-private fun inputControlSummary(context: Context, prefs: Prefs): String =
-    context.getString(
-        if (prefs.micTapToggleEnabled) {
-            R.string.home_summary_input_tap_control
-        } else {
-            R.string.home_summary_input_hold_control
-        }
-    )
+private fun inputControlSummary(context: Context, prefs: Prefs): String = context.getString(
+    if (prefs.micTapToggleEnabled) {
+        R.string.home_summary_input_tap_control
+    } else {
+        R.string.home_summary_input_hold_control
+    }
+)
 
-private fun asrSummary(context: Context, prefs: Prefs): String =
-    context.getString(
-        R.string.home_summary_asr_format,
-        enabledSummary(context, prefs.autoStopOnSilenceEnabled),
-        AsrVendorUi.name(context, prefs.asrVendor)
-    )
+private fun asrSummary(context: Context, prefs: Prefs): String = context.getString(
+    R.string.home_summary_asr_format,
+    enabledSummary(context, prefs.autoStopOnSilenceEnabled),
+    AsrVendorUi.name(context, prefs.asrVendor)
+)
 
 private fun aiSummary(context: Context, prefs: Prefs): String {
     val vendor = prefs.llmVendor
@@ -404,21 +399,18 @@ private fun oneClickSetupSummary(context: Context, prefs: Prefs): String {
     }
 }
 
-private fun hasRecentApiLogErrors(): Boolean =
-    ApiLogStore.listAll()
-        .take(10)
-        .any { !it.success && !it.canceled }
+private fun hasRecentApiLogErrors(): Boolean = ApiLogStore.listAll()
+    .take(10)
+    .any { !it.success && !it.canceled }
 
-private fun hasMicrophonePermission(context: Context): Boolean =
-    ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+private fun hasMicrophonePermission(context: Context): Boolean = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
 
-private fun hasNotificationPermission(context: Context): Boolean =
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
-            PackageManager.PERMISSION_GRANTED
-    } else {
-        true
-    }
+private fun hasNotificationPermission(context: Context): Boolean = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+    ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
+        PackageManager.PERMISSION_GRANTED
+} else {
+    true
+}
 
 private fun isOurImeEnabled(context: Context): Boolean {
     val imm = try {

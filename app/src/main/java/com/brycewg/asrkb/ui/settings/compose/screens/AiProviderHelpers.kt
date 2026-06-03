@@ -69,11 +69,9 @@ internal fun applyAiBuiltinModelsSelection(
     )
 }
 
-internal fun customProviderModels(provider: Prefs.LlmProvider?): List<String> =
-    provider?.models.orEmpty().map { it.trim() }.filter { it.isNotBlank() }
+internal fun customProviderModels(provider: Prefs.LlmProvider?): List<String> = provider?.models.orEmpty().map { it.trim() }.filter { it.isNotBlank() }
 
-internal fun nextSelectedModel(currentModel: String, selectedModels: List<String>): String =
-    currentModel.takeIf { it.isNotBlank() && selectedModels.contains(it) } ?: selectedModels.first()
+internal fun nextSelectedModel(currentModel: String, selectedModels: List<String>): String = currentModel.takeIf { it.isNotBlank() && selectedModels.contains(it) } ?: selectedModels.first()
 
 internal fun formatTemperature(value: Float): String = String.format(Locale.US, "%.1f", value)
 

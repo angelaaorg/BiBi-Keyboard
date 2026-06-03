@@ -85,7 +85,7 @@ internal fun SettingsMessageDialog(
             onDismiss = {
                 dismiss {}
                 scope.launch {
-                    kotlinx.coroutines.delay(SettingsDialogExitMillis)
+                    kotlinx.coroutines.delay(SETTINGS_DIALOG_EXIT_MILLIS)
                     afterDismiss?.invoke()
                     onDismiss()
                 }
@@ -93,7 +93,7 @@ internal fun SettingsMessageDialog(
             onDismissAfter = { action ->
                 dismiss(action)
                 scope.launch {
-                    kotlinx.coroutines.delay(SettingsDialogExitMillis)
+                    kotlinx.coroutines.delay(SETTINGS_DIALOG_EXIT_MILLIS)
                     afterDismiss?.invoke()
                     onDismiss()
                 }
@@ -140,7 +140,7 @@ internal fun SettingsLongTextDialog(
         show = false
         if (uiMode == BibiUiMode.Material) {
             scope.launch {
-                kotlinx.coroutines.delay(SettingsDialogExitMillis)
+                kotlinx.coroutines.delay(SETTINGS_DIALOG_EXIT_MILLIS)
                 onDismiss()
             }
         }
@@ -170,7 +170,7 @@ private fun MaterialMessageDialog(
 ) {
     val alpha by animateFloatAsState(
         targetValue = if (show) 1f else 0f,
-        animationSpec = tween(SettingsDialogExitMillis.toInt()),
+        animationSpec = tween(SETTINGS_DIALOG_EXIT_MILLIS.toInt()),
         label = "MaterialMessageDialogAlpha"
     )
     MaterialSettingsAlertDialog(
@@ -209,7 +209,7 @@ private fun MaterialLongTextDialog(
 ) {
     val alpha by animateFloatAsState(
         targetValue = if (show) 1f else 0f,
-        animationSpec = tween(SettingsDialogExitMillis.toInt()),
+        animationSpec = tween(SETTINGS_DIALOG_EXIT_MILLIS.toInt()),
         label = "MaterialLongTextDialogAlpha"
     )
     MaterialSettingsAlertDialog(
@@ -424,4 +424,4 @@ private fun progressCancelAction(
     )
 }
 
-private const val SettingsDialogExitMillis = 180L
+private const val SETTINGS_DIALOG_EXIT_MILLIS = 180L

@@ -156,12 +156,12 @@ private fun ProPromoDialogPane(
         BibiUiMode.Material -> {
             val alpha by animateFloatAsState(
                 targetValue = if (show) 1f else 0f,
-                animationSpec = tween(ProDialogExitMillis),
+                animationSpec = tween(PRO_DIALOG_EXIT_MILLIS),
                 label = "ProPromoDialogAlpha"
             )
             LaunchedEffect(show) {
                 if (!show) {
-                    delay(ProDialogExitMillis.toLong())
+                    delay(PRO_DIALOG_EXIT_MILLIS.toLong())
                     onDismissFinished()
                 }
             }
@@ -196,4 +196,4 @@ private fun ProPromoDialogPane(
     }
 }
 
-private const val ProDialogExitMillis = 180
+private const val PRO_DIALOG_EXIT_MILLIS = 180

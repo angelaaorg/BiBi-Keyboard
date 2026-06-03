@@ -61,9 +61,7 @@ fun OtherSettingsScreen(
         factory = remember(prefs) {
             object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
-                override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                    return OtherSettingsViewModel(prefs) as T
-                }
+                override fun <T : ViewModel> create(modelClass: Class<T>): T = OtherSettingsViewModel(prefs) as T
             }
         }
     )

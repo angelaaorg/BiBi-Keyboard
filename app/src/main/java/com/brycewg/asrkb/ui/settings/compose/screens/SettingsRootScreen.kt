@@ -203,7 +203,6 @@ private fun SettingsRouteContent(
             uiMode = uiState.uiMode,
             onBack = { onPopRoute() }
         )
-
     }
 }
 
@@ -215,8 +214,8 @@ private data class SettingsRouteTransitionState(
 private fun AnimatedContentTransitionScope<SettingsRouteTransitionState>.settingsRouteTransitionSpec(): ContentTransform {
     if (targetState.depth == initialState.depth) {
         return (
-            fadeIn(animationSpec = tween(SettingsMotion.RouteReplaceFadeInMillis)) togetherWith
-                fadeOut(animationSpec = tween(SettingsMotion.RouteReplaceFadeOutMillis))
+            fadeIn(animationSpec = tween(SettingsMotion.ROUTE_REPLACE_FADE_IN_MILLIS)) togetherWith
+                fadeOut(animationSpec = tween(SettingsMotion.ROUTE_REPLACE_FADE_OUT_MILLIS))
             ).using(SizeTransform(clip = false) { _, _ -> snap() })
     }
 
@@ -227,14 +226,14 @@ private fun AnimatedContentTransitionScope<SettingsRouteTransitionState>.setting
         if (forward) {
             fullWidth
         } else {
-            -fullWidth / SettingsMotion.RouteBackgroundOffsetDivisor
+            -fullWidth / SettingsMotion.ROUTE_BACKGROUND_OFFSET_DIVISOR
         }
     }
     val exitTransition = slideOutHorizontally(
         animationSpec = SettingsMotion.routeExitSpatialSpec()
     ) { fullWidth ->
         if (forward) {
-            -fullWidth / SettingsMotion.RouteBackgroundOffsetDivisor
+            -fullWidth / SettingsMotion.ROUTE_BACKGROUND_OFFSET_DIVISOR
         } else {
             fullWidth
         }
@@ -243,9 +242,9 @@ private fun AnimatedContentTransitionScope<SettingsRouteTransitionState>.setting
         targetContentEnter = enterTransition,
         initialContentExit = exitTransition,
         targetContentZIndex = if (forward) {
-            SettingsMotion.RouteForegroundZIndex
+            SettingsMotion.ROUTE_FOREGROUND_Z_INDEX
         } else {
-            SettingsMotion.RouteBackgroundZIndex
+            SettingsMotion.ROUTE_BACKGROUND_Z_INDEX
         },
         sizeTransform = SizeTransform(clip = false) { _, _ -> snap() }
     )

@@ -22,10 +22,10 @@ import com.brycewg.asrkb.ime.ExtensionButtonAction
 import com.brycewg.asrkb.store.Prefs
 import com.brycewg.asrkb.ui.settings.compose.components.SettingsChoiceGroup
 import com.brycewg.asrkb.ui.settings.compose.components.SettingsChoiceItem
-import com.brycewg.asrkb.ui.settings.compose.components.SettingsFeatureExplainerDialog
-import com.brycewg.asrkb.ui.settings.compose.components.SettingsFeatureExplainerDialogState
 import com.brycewg.asrkb.ui.settings.compose.components.SettingsChoiceSheet
 import com.brycewg.asrkb.ui.settings.compose.components.SettingsChoiceSheetState
+import com.brycewg.asrkb.ui.settings.compose.components.SettingsFeatureExplainerDialog
+import com.brycewg.asrkb.ui.settings.compose.components.SettingsFeatureExplainerDialogState
 import com.brycewg.asrkb.ui.settings.compose.components.SettingsMessageDialog
 import com.brycewg.asrkb.ui.settings.compose.components.SettingsMessageDialogState
 import com.brycewg.asrkb.ui.settings.compose.components.SettingsMultiChoiceSheet

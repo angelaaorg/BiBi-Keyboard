@@ -380,7 +380,7 @@ fun FloatingSettingsScreen(
                                 offDescRes = R.string.feature_floating_write_compat_off_desc,
                                 onDescRes = R.string.feature_floating_write_compat_on_desc,
                                 preferenceKey = "floating_write_compat_explained"
-                        ) { prefs.floatingWriteTextCompatEnabled = it }
+                            ) { prefs.floatingWriteTextCompatEnabled = it }
                         },
                         index = 0,
                         count = 2
@@ -410,7 +410,7 @@ fun FloatingSettingsScreen(
                                 offDescRes = R.string.feature_floating_write_paste_off_desc,
                                 onDescRes = R.string.feature_floating_write_paste_on_desc,
                                 preferenceKey = "floating_write_paste_explained"
-                        ) { prefs.floatingWriteTextPasteEnabled = it }
+                            ) { prefs.floatingWriteTextPasteEnabled = it }
                         },
                         index = 0,
                         count = 2

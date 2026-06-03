@@ -3,6 +3,8 @@
  *
  * 归属模块：ui/settings/compose/components
  */
+@file:Suppress("FunctionName")
+
 package com.brycewg.asrkb.ui.settings.compose.components
 
 import androidx.compose.foundation.layout.widthIn

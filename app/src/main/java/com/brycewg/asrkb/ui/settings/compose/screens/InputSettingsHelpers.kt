@@ -108,13 +108,11 @@ internal fun applyExcludeFromRecents(context: Context, enabled: Boolean) {
     activityManager?.appTasks?.forEach { it.setExcludeFromRecents(enabled) }
 }
 
-internal fun needsBluetoothConnectPermission(context: Context): Boolean =
-    Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-        ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) !=
-        PackageManager.PERMISSION_GRANTED
+internal fun needsBluetoothConnectPermission(context: Context): Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+    ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) !=
+    PackageManager.PERMISSION_GRANTED
 
-internal fun Float.roundToStep(step: Int): Float =
-    (this / step.toFloat()).roundToInt().coerceAtLeast(0) * step.toFloat()
+internal fun Float.roundToStep(step: Int): Float = (this / step.toFloat()).roundToInt().coerceAtLeast(0) * step.toFloat()
 
 internal fun Context.openExternalAidlReleaseUrl(url: String): Boolean {
     try {

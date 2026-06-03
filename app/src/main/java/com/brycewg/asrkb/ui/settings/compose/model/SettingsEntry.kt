@@ -10,7 +10,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 
 sealed interface SettingsEntry {
     val id: String
+
     @get:StringRes val titleRes: Int
+
     @get:StringRes val summaryRes: Int?
     val summary: String?
     val icon: ImageVector?

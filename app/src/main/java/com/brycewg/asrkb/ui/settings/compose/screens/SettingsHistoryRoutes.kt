@@ -188,13 +188,11 @@ internal fun SettingsApiLogRoute(
     )
 }
 
-private fun copyToClipboard(context: Context, label: String, text: String): Boolean {
-    return try {
-        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        clipboard.setPrimaryClip(ClipData.newPlainText(label, text))
-        true
-    } catch (e: Exception) {
-        Log.e(TAG, "copyToClipboard failed", e)
-        false
-    }
+private fun copyToClipboard(context: Context, label: String, text: String): Boolean = try {
+    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+    clipboard.setPrimaryClip(ClipData.newPlainText(label, text))
+    true
+} catch (e: Exception) {
+    Log.e(TAG, "copyToClipboard failed", e)
+    false
 }
