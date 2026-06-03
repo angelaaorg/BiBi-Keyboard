@@ -960,6 +960,17 @@ class AsrSessionManager(
             } else {
                 null
             }
+            AsrVendor.MiMo -> if (prefs.hasMiMoKeys()) {
+                MiMoFileAsrEngine(
+                    context,
+                    serviceScope,
+                    prefs,
+                    engineListener,
+                    onRequestDuration = requestDurationCallback
+                )
+            } else {
+                null
+            }
             AsrVendor.DashScope -> if (prefs.hasDashKeys()) {
                 if (prefs.isDashStreamingModelSelected()) {
                     DashscopeStreamAsrEngine(context, serviceScope, prefs, engineListener)

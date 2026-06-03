@@ -611,12 +611,13 @@ class ExternalSpeechService : Service() {
             AsrVendor.FireRedAsr -> false
             AsrVendor.ElevenLabs -> prefs.elevenStreamingEnabled
             AsrVendor.OpenAI -> prefs.oaAsrStreamingEnabled
-            // 其他云厂商（Gemini/SiliconFlow/OpenRouter/StepAudio/Zhipu）仅非流式
+            // 其他云厂商（Gemini/SiliconFlow/OpenRouter/StepAudio/Zhipu/MiMo）仅非流式
             AsrVendor.Gemini,
             AsrVendor.SiliconFlow,
             AsrVendor.OpenRouter,
             AsrVendor.StepAudio,
-            AsrVendor.Zhipu -> false
+            AsrVendor.Zhipu,
+            AsrVendor.MiMo -> false
         }
 
         private fun buildEngine(
@@ -666,6 +667,13 @@ class ExternalSpeechService : Service() {
                     )
                 }
                 AsrVendor.OpenRouter -> OpenRouterFileAsrEngine(
+                    context,
+                    scope,
+                    prefs,
+                    this,
+                    onRequestDuration = ::onRequestDuration
+                )
+                AsrVendor.MiMo -> MiMoFileAsrEngine(
                     context,
                     scope,
                     prefs,
@@ -894,6 +902,19 @@ class ExternalSpeechService : Service() {
                     prefs,
                     this,
                     com.brycewg.asrkb.asr.OpenRouterFileAsrEngine(
+                        context,
+                        scope,
+                        prefs,
+                        this,
+                        onRequestDuration = ::onRequestDuration
+                    )
+                )
+                AsrVendor.MiMo -> com.brycewg.asrkb.asr.GenericPushFileAsrAdapter(
+                    context,
+                    scope,
+                    prefs,
+                    this,
+                    com.brycewg.asrkb.asr.MiMoFileAsrEngine(
                         context,
                         scope,
                         prefs,

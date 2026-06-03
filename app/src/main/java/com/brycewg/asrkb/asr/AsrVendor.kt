@@ -16,7 +16,8 @@ enum class AsrVendor(val id: String) {
     Qwen3Asr("qwen3_asr"),
     Parakeet("parakeet"),
     FireRedAsr("firered_asr"),
-    Paraformer("paraformer");
+    Paraformer("paraformer"),
+    MiMo("mimo");
 
     companion object {
         fun fromId(id: String?): AsrVendor = when (id?.lowercase()) {
@@ -35,6 +36,7 @@ enum class AsrVendor(val id: String) {
             Parakeet.id, "nemo_parakeet" -> Parakeet
             FireRedAsr.id, "telespeech" -> FireRedAsr
             Paraformer.id -> Paraformer
+            MiMo.id, "mimo_asr" -> MiMo
             "zipformer" -> Paraformer
             "funasr" -> FunAsrNano
             else -> Volc

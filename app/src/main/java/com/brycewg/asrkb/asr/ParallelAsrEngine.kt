@@ -848,6 +848,14 @@ class ParallelAsrEngine(
                 onRequestDuration = onRequestDuration
             )
                 .let { wrapPushFileEngine(engineListener, it) }
+            AsrVendor.MiMo -> MiMoFileAsrEngine(
+                context,
+                scope,
+                prefs,
+                engineListener,
+                onRequestDuration = onRequestDuration
+            )
+                .let { wrapPushFileEngine(engineListener, it) }
             AsrVendor.Soniox -> if (prefs.sonioxStreamingEnabled) {
                 SonioxStreamAsrEngine(context, scope, prefs, engineListener, externalPcmMode = true)
             } else {

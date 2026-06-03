@@ -319,6 +319,17 @@ class AsrSessionManager(
             } else {
                 null
             }
+            AsrVendor.MiMo -> if (prefs.hasMiMoKeys()) {
+                MiMoFileAsrEngine(
+                    context,
+                    scope,
+                    prefs,
+                    engineListener,
+                    requestDurationCallback
+                )
+            } else {
+                null
+            }
 
             AsrVendor.DashScope -> if (prefs.hasDashKeys()) {
                 if (prefs.isDashStreamingModelSelected()) {
@@ -563,6 +574,7 @@ class AsrSessionManager(
                 else -> null
             }
             AsrVendor.OpenRouter -> if (current is OpenRouterFileAsrEngine) current else null
+            AsrVendor.MiMo -> if (current is MiMoFileAsrEngine) current else null
             AsrVendor.DashScope -> when (current) {
                 is DashscopeFileAsrEngine -> if (!prefs.isDashStreamingModelSelected()) current else null
                 is DashscopeStreamAsrEngine -> if (prefs.isDashStreamingModelSelected()) current else null

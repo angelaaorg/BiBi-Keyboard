@@ -222,6 +222,7 @@ class AsrRecognitionService : RecognitionService() {
                 OpenAiFileAsrEngine(engineContext, scope, prefs, listener)
             }
             AsrVendor.OpenRouter -> OpenRouterFileAsrEngine(engineContext, scope, prefs, listener)
+            AsrVendor.MiMo -> MiMoFileAsrEngine(engineContext, scope, prefs, listener)
             AsrVendor.DashScope -> if (streamingPref) {
                 DashscopeStreamAsrEngine(engineContext, scope, prefs, listener)
             } else {
@@ -303,7 +304,8 @@ class AsrRecognitionService : RecognitionService() {
         AsrVendor.SiliconFlow,
         AsrVendor.OpenRouter,
         AsrVendor.StepAudio,
-        AsrVendor.Zhipu -> false
+        AsrVendor.Zhipu,
+        AsrVendor.MiMo -> false
     }
 
     /**

@@ -50,6 +50,14 @@ internal class AsrOnlineSettingsFields(
     var openRouterModel by mutableStateOf(
         prefs.openRouterAsrModel.ifBlank { Prefs.DEFAULT_OPENROUTER_ASR_MODEL }
     )
+    var mimoApiKey by mutableStateOf(prefs.mimoAsrApiKey)
+    var mimoEndpoint by mutableStateOf(
+        prefs.mimoAsrEndpoint.ifBlank { Prefs.DEFAULT_MIMO_ASR_ENDPOINT }
+    )
+    var mimoEndpointPreset by mutableStateOf(prefs.mimoAsrEndpointPreset)
+    var mimoLanguage by mutableStateOf(prefs.mimoAsrLanguage)
+    var mimoPrompt by mutableStateOf(prefs.mimoAsrPrompt)
+    var mimoModel by mutableStateOf(prefs.mimoAsrModel)
     var openAiProviders by mutableStateOf(prefs.getOpenAiAsrProviders())
     var openAiActiveProviderId by mutableStateOf(prefs.activeOpenAiAsrProviderId)
     var openAiProfileName by mutableStateOf(prefs.getActiveOpenAiAsrProvider()?.name.orEmpty())
@@ -99,6 +107,12 @@ internal class AsrOnlineSettingsFields(
         openRouterModel = prefs.openRouterAsrModel.ifBlank {
             Prefs.DEFAULT_OPENROUTER_ASR_MODEL
         }
+        mimoApiKey = prefs.mimoAsrApiKey
+        mimoEndpoint = prefs.mimoAsrEndpoint.ifBlank { Prefs.DEFAULT_MIMO_ASR_ENDPOINT }
+        mimoEndpointPreset = prefs.mimoAsrEndpointPreset
+        mimoLanguage = prefs.mimoAsrLanguage
+        mimoPrompt = prefs.mimoAsrPrompt
+        mimoModel = prefs.mimoAsrModel
         refreshOpenAiFromPrefs()
         sonioxApiKey = prefs.sonioxApiKey
         sonioxStreaming = prefs.sonioxStreamingEnabled
@@ -261,6 +275,49 @@ internal class AsrOnlineSettingsFields(
             openRouterModel = value
             prefs.openRouterAsrModel = value
         },
+        mimoApiKey = mimoApiKey,
+        onMimoApiKeyChange = { value ->
+            mimoApiKey = value
+            prefs.mimoAsrApiKey = value
+        },
+        mimoEndpoint = mimoEndpoint,
+        onMimoEndpointChange = { value ->
+            mimoEndpoint = value
+            prefs.mimoAsrEndpoint = value
+        },
+        mimoEndpointPreset = mimoEndpointPreset,
+        onMimoEndpointPresetChange = { value ->
+            mimoEndpointPreset = value
+            prefs.mimoAsrEndpointPreset = value
+            val presetUrl = Prefs.MIMO_ENDPOINT_PRESETS[value]
+            if (presetUrl != null) {
+                mimoEndpoint = presetUrl
+                prefs.mimoAsrEndpoint = presetUrl
+            } else if (value == Prefs.MIMO_ENDPOINT_PRESET_AUTO) {
+                // 自动匹配：根据 key 前缀决定 URL，UI 保留空值让引擎运行时解析
+                mimoEndpoint = ""
+                prefs.mimoAsrEndpoint = ""
+            } else {
+                mimoEndpoint = ""
+                prefs.mimoAsrEndpoint = ""
+            }
+        },
+        mimoLanguage = mimoLanguage,
+        onMimoLanguageChange = { value ->
+            mimoLanguage = value
+            prefs.mimoAsrLanguage = value
+        },
+        mimoPrompt = mimoPrompt,
+        onMimoPromptChange = { value ->
+            mimoPrompt = value
+            prefs.mimoAsrPrompt = value
+        },
+        mimoModel = mimoModel,
+        onMimoModelChange = { value ->
+            mimoModel = value
+            prefs.mimoAsrModel = value
+        },
+        mimoPromptEnabled = !mimoModel.endsWith("-asr") && mimoModel.isNotBlank(),
         openAiProviders = openAiProviders,
         openAiActiveProviderId = openAiActiveProviderId,
         onOpenAiProviderSelected = { providerId ->

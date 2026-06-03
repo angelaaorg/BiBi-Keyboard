@@ -61,6 +61,17 @@ internal object PrefsAsrVendorFields {
             VendorField(KEY_GEM_MODEL, required = true, default = Prefs.DEFAULT_GEM_MODEL),
             VendorField(KEY_GEM_PROMPT, default = "")
         ),
+        AsrVendor.MiMo to listOf(
+            VendorField(KEY_MIMO_ASR_API_KEY, required = true),
+            VendorField(
+                KEY_MIMO_ASR_ENDPOINT,
+                required = true,
+                default = Prefs.DEFAULT_MIMO_ASR_ENDPOINT
+            ),
+            VendorField(KEY_MIMO_ASR_MODEL, default = ""),
+            VendorField(KEY_MIMO_ASR_LANGUAGE, default = ""),
+            VendorField(KEY_MIMO_ASR_PROMPT, default = "请将以下音频准确转写为文字")
+        ),
         AsrVendor.Soniox to listOf(
             VendorField(KEY_SONIOX_API_KEY, required = true)
         ),

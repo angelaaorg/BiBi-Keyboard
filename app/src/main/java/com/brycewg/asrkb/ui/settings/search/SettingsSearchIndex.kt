@@ -267,6 +267,7 @@ object SettingsSearchIndex {
         AsrVendor.OpenRouter -> R.string.vendor_openrouter
         AsrVendor.DashScope -> R.string.vendor_dashscope
         AsrVendor.Gemini -> R.string.vendor_gemini
+        AsrVendor.MiMo -> R.string.vendor_mimo
         AsrVendor.Soniox -> R.string.vendor_soniox
         AsrVendor.StepAudio -> R.string.vendor_stepaudio
         AsrVendor.Zhipu -> R.string.vendor_zhipu
