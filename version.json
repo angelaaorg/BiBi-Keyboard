@@ -1,11 +1,11 @@
 {
-  "version": "3.16.1",
-  "version_code": 155,
-  "download_url": "https://github.com/BryceWG/BiBi-Keyboard/releases/tag/v3.16.1",
-  "release_notes": "### 新增功能\n\n- **[Pro]输入框上下文**: 在主键盘中使用时，LLM 后处理可获取输入法输入框现有文本作为上下文参考，提升改写的连贯性\n- **API 日志页本地 ASR 记录**: API 调用日志页新增本地 ASR 调用记录支持\n\n### 改进优化\n\n- **空音频过滤默认关闭**: 将 VAD 空音频自动取消与静音片段过滤功能默认关闭，用户可根据需求启用\n- **空音频跳过提示优化**: 优化空音频跳过时的错误提示文案，区分不同跳过原因\n- **音频过滤器重写**: 重写音频过滤器为基于分块的逐段分析与修剪，提升静音检测准确性\n- **本地模型加载优化**: 将启动录音时同步加载本地模型的功能覆盖到外部联动场景\n\n### 问题修复\n\n- **滑动锁定触摸事件处理**: 修复麦克风按钮在滑动锁定模式下触摸事件的响应处理",
-  "release_notes_en": "### New Features\n\n- **[Pro] Input Field Context**: When using the main keyboard, LLM post-processing can now use the existing text in the input field as context, improving rewrite coherence\n- **API Log Page Local ASR Records**: Added local ASR call logging support to the API Log page\n\n### Improvements\n\n- **Empty Audio Filtering Disabled by Default**: Changed VAD empty audio auto-cancel and silent segment filtering to be disabled by default; users can enable it as needed\n- **Empty Audio Skip Message Optimization**: Improved error messages for empty audio skips to differentiate between skip reasons\n- **Audio Filter Rewrite**: Rewrote the audio filter with chunk-based analysis and trimming for improved silence detection accuracy\n- **Local Model Loading Optimization**: Extended preload-on-recording logic to cover external linkage scenarios\n\n### Bug Fixes\n\n- **Swipe Lock Touch Event Handling**: Fixed touch event handling for the microphone button when in swipe-locked mode",
+  "version": "3.16.2",
+  "version_code": 156,
+  "download_url": "https://github.com/BryceWG/BiBi-Keyboard/releases/tag/v3.16.2",
+  "release_notes": "版本 3.16.2 已发布",
+  "release_notes_en": "Version 3.16.2 released",
   "important_notice": "0. 3.13.0版本迎来大量重构，已经过初步测试，如果您有疑虑可以暂不更新\n1. 已支持通过同文输入法与说点啥进行联动，具体操作步骤见https://github.com/BryceWG/trime-bibi-keyboard/releases\n2. BiBi Keyboard Pro版本已上架，欢迎在3.8.6后版本-关于页面中了解详情。\n3. 官方网站和使用文档均已上线,网址分别为: bibi.brycewg.com bibidocs.brycewg.com",
   "notice_level": "info",
   "min_supported_version": "2.6.5",
-  "update_time": "2026-05-23T15:58:13Z"
+  "update_time": "2026-06-03T15:30:42Z"
 }
