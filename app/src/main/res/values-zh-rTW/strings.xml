@@ -115,6 +115,7 @@
   <!-- 語音預設 -->
   <!-- ============================================== -->
   <string name="label_speech_preset_section">語音預置資訊</string>
+  <string name="label_speech_preset_select">目前預置資訊</string>
   <string name="speech_preset_empty_placeholder">尚未新增預置資訊</string>
   <string name="speech_preset_untitled">未命名預置資訊</string>
   <string name="hint_speech_preset_name">預置資訊名稱</string>

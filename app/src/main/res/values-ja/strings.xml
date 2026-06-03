@@ -116,6 +116,7 @@
   <!-- 语音预设 -->
   <!-- ============================================== -->
   <string name="label_speech_preset_section">音声プリセット</string>
+  <string name="label_speech_preset_select">現在のプリセット</string>
   <string name="speech_preset_empty_placeholder">まだプリセットがありません</string>
   <string name="speech_preset_untitled">無題のプリセット</string>
   <string name="hint_speech_preset_name">プリセット名</string>

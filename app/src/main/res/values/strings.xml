@@ -117,6 +117,7 @@
   <!-- Speech Presets -->
   <!-- ============================================== -->
   <string name="label_speech_preset_section">Speech Presets</string>
+  <string name="label_speech_preset_select">Current preset</string>
   <string name="speech_preset_empty_placeholder">No presets yet</string>
   <string name="speech_preset_untitled">Untitled preset</string>
   <string name="hint_speech_preset_name">Preset name</string>

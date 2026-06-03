@@ -110,6 +110,8 @@ internal fun OtherTextField(
     singleLine: Boolean = true,
     minLines: Int = 1,
     maxLines: Int = if (singleLine) 1 else 6,
+    index: Int = 0,
+    count: Int = 1,
     contentPadding: PaddingValues = PaddingValues(
         horizontal = SettingsLayoutMetrics.TextFieldHorizontalPadding,
         vertical = SettingsLayoutMetrics.TextFieldLooseVerticalPadding
@@ -129,6 +131,8 @@ internal fun OtherTextField(
         maxLines = maxLines,
         keyboardType = keyboardType,
         visualTransformation = if (password) null else visualTransformation,
+        index = index,
+        count = count,
         contentPadding = contentPadding
     )
 }
@@ -145,6 +149,28 @@ internal fun OtherClickableValue(
         uiMode = uiMode,
         enabled = enabled,
         onClick = onClick
+    )
+}
+
+@Composable
+internal fun OtherValuePreference(
+    titleRes: Int,
+    value: String,
+    enabled: Boolean,
+    index: Int = 0,
+    count: Int = 1,
+    onClick: () -> Unit
+) {
+    SettingsPreference(
+        entry = SettingsEntry.Action(
+            id = "other_value_$titleRes",
+            titleRes = titleRes,
+            summary = value,
+            enabled = enabled,
+            onClick = onClick
+        ),
+        index = index,
+        count = count
     )
 }
 
@@ -231,12 +257,16 @@ internal fun SpeechPresetSection(
         }
     }
     OtherSection(uiMode = uiMode, titleRes = R.string.label_speech_preset_section) {
-        OtherClickableValue(
-            text = selectedSpeechPresetLabel(context, state),
-            uiMode = uiMode,
+        var itemIndex = 0
+        val itemCount = 3
+        OtherValuePreference(
+            titleRes = R.string.label_speech_preset_select,
+            value = selectedSpeechPresetLabel(context, state),
             enabled = state.presets.isNotEmpty(),
+            index = itemIndex++,
+            count = itemCount,
             onClick = {
-                if (state.presets.isEmpty()) return@OtherClickableValue
+                if (state.presets.isEmpty()) return@OtherValuePreference
                 onSelectorTap()
             }
         )
@@ -247,7 +277,9 @@ internal fun SpeechPresetSection(
             uiMode = uiMode,
             enabled = state.isEnabled,
             modifier = Modifier.focusRequester(nameFocusRequester),
-            singleLine = true
+            singleLine = true,
+            index = itemIndex++,
+            count = itemCount
         )
         OtherTextField(
             value = state.currentPreset?.content.orEmpty(),
@@ -257,7 +289,9 @@ internal fun SpeechPresetSection(
             enabled = state.isEnabled,
             singleLine = false,
             minLines = 3,
-            maxLines = 6
+            maxLines = 6,
+            index = itemIndex,
+            count = itemCount
         )
         OtherButtonRow(uiMode = uiMode) {
             OtherButton(
