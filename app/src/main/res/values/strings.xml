@@ -182,6 +182,7 @@
   <string name="ext_btn_undo">Undo</string>
   <string name="ext_btn_hide">Hide keyboard</string>
   <string name="ext_btn_silence_autostop">Auto-stop on silence</string>
+  <string name="ext_btn_mic_tap_toggle">Recording mode</string>
   <string name="status_copied">Copied</string>
   <string name="status_pasted">Pasted</string>
   <string name="status_nothing_to_undo">Nothing to undo</string>
@@ -269,6 +270,8 @@
   <string name="toast_accessibility_enabled">Accessibility service enabled. Auto-insert is now available.</string>
   <string name="toast_silence_autostop_on">Auto-stop on silence enabled</string>
   <string name="toast_silence_autostop_off">Auto-stop on silence disabled</string>
+  <string name="toast_mic_tap_mode_on">Switched to tap-to-start</string>
+  <string name="toast_mic_tap_mode_off">Switched to hold-to-talk</string>
 
   <!-- ============================================== -->
   <!-- Feature Explainer Dialog -->

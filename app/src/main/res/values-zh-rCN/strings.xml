@@ -180,6 +180,7 @@
   <string name="ext_btn_undo">撤销</string>
   <string name="ext_btn_hide">收起键盘</string>
   <string name="ext_btn_silence_autostop">录音判停</string>
+  <string name="ext_btn_mic_tap_toggle">录音模式切换</string>
   <string name="status_copied">已复制</string>
   <string name="status_pasted">已粘贴</string>
   <string name="status_nothing_to_undo">无可撤销的操作</string>
@@ -267,6 +268,8 @@
   <string name="toast_accessibility_enabled">无障碍服务已启用，现在可以自动插入文本了</string>
   <string name="toast_silence_autostop_on">已开启录音判停</string>
   <string name="toast_silence_autostop_off">已关闭录音判停</string>
+  <string name="toast_mic_tap_mode_on">已切换为点按启停</string>
+  <string name="toast_mic_tap_mode_off">已切换为长按说话</string>
 
   <!-- ============================================== -->
   <!-- 功能说明弹窗 -->

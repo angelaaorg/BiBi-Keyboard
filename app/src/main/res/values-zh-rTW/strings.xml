@@ -180,6 +180,7 @@
   <string name="ext_btn_undo">復原</string>
   <string name="ext_btn_hide">隱藏鍵盤</string>
   <string name="ext_btn_silence_autostop">錄音判停</string>
+  <string name="ext_btn_mic_tap_toggle">錄音模式切換</string>
   <string name="status_copied">已複製</string>
   <string name="status_pasted">已貼上</string>
   <string name="status_nothing_to_undo">無可復原的操作</string>
@@ -267,6 +268,8 @@
   <string name="toast_accessibility_enabled">無障礙服務已啟用，現在可以自動插入文字了</string>
   <string name="toast_silence_autostop_on">已開啟錄音判停</string>
   <string name="toast_silence_autostop_off">已關閉錄音判停</string>
+  <string name="toast_mic_tap_mode_on">已切換為點按啟停</string>
+  <string name="toast_mic_tap_mode_off">已切換為長按說話</string>
 
   <!-- ============================================== -->
   <!-- 功能說明彈窗 -->

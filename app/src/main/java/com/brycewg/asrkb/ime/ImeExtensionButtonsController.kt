@@ -40,6 +40,7 @@ internal class ImeExtensionButtonsController(
         setupExtensionButton(views.btnExt4, prefs.extBtn4)
         updateSelectExtButtonsUi()
         updateSilenceAutoStopExtButtonsUi()
+        updateMicTapToggleExtButtonsUi()
     }
 
     private fun setupExtensionButton(btn: ImageButton?, action: ExtensionButtonAction) {
@@ -51,6 +52,7 @@ internal class ImeExtensionButtonsController(
         // 清理旧监听，避免切换功能后残留触摸/点击逻辑导致误触发
         btn.setOnClickListener(null)
         btn.setOnTouchListener(null)
+        btn.isSelected = false
 
         // 根据动作类型设置行为
         when (action) {
@@ -122,6 +124,11 @@ internal class ImeExtensionButtonsController(
         ) {
             updateSilenceAutoStopExtButtonsUi()
         }
+        if (action == ExtensionButtonAction.MIC_TAP_TOGGLE &&
+            result == KeyboardActionHandler.ExtensionButtonActionResult.SUCCESS
+        ) {
+            updateMicTapToggleExtButtonsUi()
+        }
     }
 
     private fun setupCursorButtonRepeat(btn: ImageButton, action: ExtensionButtonAction) {
@@ -167,6 +174,24 @@ internal class ImeExtensionButtonsController(
             if (action == ExtensionButtonAction.SILENCE_AUTOSTOP_TOGGLE) {
                 btn?.setImageResource(
                     if (enabled) R.drawable.hand_palm_fill else R.drawable.hand_palm
+                )
+                btn?.isSelected = enabled
+            }
+        }
+
+        updateBtn(views.btnExt1, prefs.extBtn1)
+        updateBtn(views.btnExt2, prefs.extBtn2)
+        updateBtn(views.btnExt3, prefs.extBtn3)
+        updateBtn(views.btnExt4, prefs.extBtn4)
+    }
+
+    private fun updateMicTapToggleExtButtonsUi() {
+        val enabled = prefs.micTapToggleEnabled
+
+        fun updateBtn(btn: ImageButton?, action: ExtensionButtonAction) {
+            if (action == ExtensionButtonAction.MIC_TAP_TOGGLE) {
+                btn?.setImageResource(
+                    if (enabled) R.drawable.hand_pointing else R.drawable.hand_pointing_fill
                 )
                 btn?.isSelected = enabled
             }

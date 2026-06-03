@@ -79,6 +79,15 @@ enum class ExtensionButtonAction(val id: String, val titleResId: Int, val iconRe
     ),
 
     /**
+     * 麦克风录音模式切换（长按说话 / 点按启停）
+     */
+    MIC_TAP_TOGGLE(
+        id = "mic_tap_toggle",
+        titleResId = R.string.ext_btn_mic_tap_toggle,
+        iconResId = R.drawable.hand_pointing_fill
+    ),
+
+    /**
      * 光标左移一位（长按连发）
      */
     CURSOR_LEFT(
