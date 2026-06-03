@@ -52,6 +52,9 @@
     <string name="about_phosphor_title">phosphor-icons/homepage</string>
     <string name="about_phosphor_desc">アプリケーション全体で使用されるほぼすべてのアイコンを提供します</string>
 
+    <string name="about_miuix_title">compose-miuix-ui/miuix</string>
+    <string name="about_miuix_desc">設定画面の体験を支える Miuix スタイルの Compose UI コンポーネント、アイコン、Preference コンポーネントを提供します</string>
+
     <string name="about_wavelineview_desc">録音波形アニメーションの実装方案を提供し、オーディオ可視化効果をよりスムーズで美しくします。</string>
 
     <string name="about_tenvad_title">TEN-framework/ten-vad</string>

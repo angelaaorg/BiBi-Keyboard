@@ -259,6 +259,7 @@ Thanks to the following open-source projects for their technical support:
 - [TEN-VAD](https://github.com/TEN-framework/ten-vad) - Provides the current VAD model support
 - [SyncClipboard](https://github.com/Jeric-X/SyncClipboard) - Provides clipboard synchronization backend service (not running locally, requires server)
 - [Phosphor](https://github.com/phosphor-icons/homepage) - Provides almost all icons used in the software
+- [miuix](https://github.com/compose-miuix-ui/miuix) - Provides Miuix-style Compose UI components, icons, and preference components
 - [WaveLineView](https://github.com/Jay-Goo/WaveLineView) - Provides beautiful wave animation implementation for audio visualization, making recording experience more fluid and visually appealing
 - Thanks to the author NURKE(南㲺) of the "Completion Project" icon pack for designing the new application icon for this project
 

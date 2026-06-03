@@ -152,6 +152,7 @@ fun AboutSettingsScreen(
                     AboutAcknowledgement(R.string.about_sherpa_onnx_title, R.string.about_sherpa_onnx_desc, uiMode)
                     AboutAcknowledgement(R.string.about_syncclipboard_title, R.string.about_syncclipboard_desc, uiMode)
                     AboutAcknowledgement(R.string.about_phosphor_title, R.string.about_phosphor_desc, uiMode)
+                    AboutAcknowledgement(R.string.about_miuix_title, R.string.about_miuix_desc, uiMode)
                     AboutAcknowledgement(R.string.about_wavelineview_title, R.string.about_wavelineview_desc, uiMode)
                     AboutAcknowledgement(R.string.about_tenvad_title, R.string.about_tenvad_desc, uiMode)
                     SettingsPreference(

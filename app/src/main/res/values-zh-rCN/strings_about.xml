@@ -51,6 +51,9 @@
     <string name="about_phosphor_title">phosphor-icons/homepage</string>
     <string name="about_phosphor_desc">提供了软件内几乎所有的图标资源</string>
 
+    <string name="about_miuix_title">compose-miuix-ui/miuix</string>
+    <string name="about_miuix_desc">提供了 Miuix 风格的 Compose UI 组件、图标与偏好设置组件，支持设置页体验</string>
+
     <string name="about_wavelineview_title">Jay-Goo/WaveLineView</string>
     <string name="about_wavelineview_desc">提供了录音波形动画的实现方案，使音频可视化效果更加流畅美观</string>
 

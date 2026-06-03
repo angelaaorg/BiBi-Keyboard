@@ -51,6 +51,9 @@
     <string name="about_phosphor_title">phosphor-icons/homepage</string>
     <string name="about_phosphor_desc">提供了軟體內幾乎所有的圖示資源</string>
 
+    <string name="about_miuix_title">compose-miuix-ui/miuix</string>
+    <string name="about_miuix_desc">提供了 Miuix 風格的 Compose UI 元件、圖示與偏好設定元件，支援設定頁體驗</string>
+
     <string name="about_wavelineview_desc">提供了錄音波形動畫的實現方案，使音頻可視化效果更加流暢美觀</string>
 
     <string name="about_tenvad_title">TEN-framework/ten-vad</string>
