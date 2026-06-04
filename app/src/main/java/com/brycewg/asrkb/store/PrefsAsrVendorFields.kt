@@ -65,10 +65,9 @@ internal object PrefsAsrVendorFields {
             VendorField(KEY_MIMO_ASR_API_KEY, required = true),
             VendorField(
                 KEY_MIMO_ASR_ENDPOINT,
-                required = true,
                 default = Prefs.DEFAULT_MIMO_ASR_ENDPOINT
             ),
-            VendorField(KEY_MIMO_ASR_ENDPOINT_PRESET, default = Prefs.MIMO_ENDPOINT_PRESET_AUTO),
+            VendorField(KEY_MIMO_ASR_ENDPOINT_PRESET, default = Prefs.MIMO_ENDPOINT_PRESET_PAYGO),
             VendorField(KEY_MIMO_ASR_MODEL, default = ""),
             VendorField(KEY_MIMO_ASR_LANGUAGE, default = Prefs.DEFAULT_MIMO_ASR_LANGUAGE),
             VendorField(KEY_MIMO_ASR_PROMPT, default = "请将以下音频准确转写为文字")

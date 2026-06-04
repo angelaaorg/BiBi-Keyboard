@@ -10,7 +10,6 @@
     <string name="mimo_endpoint_ams">Token Plan (Europe)</string>
     <string name="mimo_endpoint_paygo">Pay-as-you-go</string>
     <string name="mimo_endpoint_custom">Custom</string>
-    <string name="mimo_endpoint_auto">Auto-match official endpoint</string>
     <string name="label_mimo_asr_language">Language</string>
     <string name="mimo_lang_auto">Auto detect</string>
     <string name="mimo_lang_zh">Chinese</string>

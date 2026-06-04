@@ -80,11 +80,7 @@ class MiMoFileAsrEngine(
     override suspend fun recognizeEncoded(audio: UploadAudioData) {
         try {
             val apiKey = prefs.mimoAsrApiKey.trim()
-            val endpoint = if (prefs.mimoAsrEndpointPreset == Prefs.MIMO_ENDPOINT_PRESET_AUTO || prefs.mimoAsrEndpoint.isBlank()) {
-                Prefs.resolveMimoEndpoint(apiKey)
-            } else {
-                prefs.mimoAsrEndpoint
-            }
+            val endpoint = prefs.getEffectiveMimoAsrEndpoint()
             val model = prefs.mimoAsrModel.ifBlank { MODEL_ASR }
             val language = prefs.mimoAsrLanguage.ifBlank { "auto" }
             val isAuModel = isAudioUnderstandingModel(model)

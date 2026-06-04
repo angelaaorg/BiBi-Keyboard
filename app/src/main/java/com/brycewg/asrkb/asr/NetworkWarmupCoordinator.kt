@@ -296,14 +296,7 @@ internal object NetworkWarmupCoordinator {
 
         AsrVendor.MiMo -> buildTarget(
             kind = WarmupKind.ASR,
-            url = if (
-                prefs.mimoAsrEndpointPreset == Prefs.MIMO_ENDPOINT_PRESET_AUTO ||
-                prefs.mimoAsrEndpoint.isBlank()
-            ) {
-                Prefs.resolveMimoEndpoint(prefs.mimoAsrApiKey.trim())
-            } else {
-                prefs.mimoAsrEndpoint
-            }
+            url = prefs.getEffectiveMimoAsrEndpoint()
         )
 
         AsrVendor.SenseVoice,

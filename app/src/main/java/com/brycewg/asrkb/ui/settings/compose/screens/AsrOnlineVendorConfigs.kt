@@ -376,7 +376,10 @@ internal fun CurrentAsrVendorConfig(
             AsrDropdownPreference(
                 titleRes = R.string.label_mimo_asr_endpoint_preset,
                 options = listOf(
-                    DropdownOption(Prefs.MIMO_ENDPOINT_PRESET_AUTO, context.getString(R.string.mimo_endpoint_auto)),
+                    DropdownOption(Prefs.MIMO_ENDPOINT_PRESET_CN, context.getString(R.string.mimo_endpoint_cn)),
+                    DropdownOption(Prefs.MIMO_ENDPOINT_PRESET_SGP, context.getString(R.string.mimo_endpoint_sgp)),
+                    DropdownOption(Prefs.MIMO_ENDPOINT_PRESET_AMS, context.getString(R.string.mimo_endpoint_ams)),
+                    DropdownOption(Prefs.MIMO_ENDPOINT_PRESET_PAYGO, context.getString(R.string.mimo_endpoint_paygo)),
                     DropdownOption(Prefs.MIMO_ENDPOINT_PRESET_CUSTOM, context.getString(R.string.mimo_endpoint_custom))
                 ),
                 selectedOptionId = mimoEndpointPreset,
@@ -441,7 +444,7 @@ internal fun CurrentAsrVendorConfig(
                 titleRes = R.string.btn_get_api_key_guide,
                 index = itemIndex,
                 count = itemCount,
-                onClick = { onOpenGuide(mimoGuideUrl(mimoEndpointPreset, mimoApiKey)) }
+                onClick = { onOpenGuide(mimoGuideUrl(mimoEndpointPreset)) }
             )
         }
 
@@ -727,10 +730,9 @@ private fun mimoPrimaryItemCount(
     promptVisible: Boolean
 ): Int = 5 + (if (customEndpointVisible) 1 else 0) + (if (promptVisible) 1 else 0)
 
-private fun mimoGuideUrl(endpointPreset: String, apiKey: String): String = if (
+private fun mimoGuideUrl(endpointPreset: String): String = if (
     endpointPreset == Prefs.MIMO_ENDPOINT_PRESET_PAYGO ||
-    endpointPreset == Prefs.MIMO_ENDPOINT_PRESET_CUSTOM ||
-    (endpointPreset == Prefs.MIMO_ENDPOINT_PRESET_AUTO && apiKey.trim().startsWith("sk-"))
+    endpointPreset == Prefs.MIMO_ENDPOINT_PRESET_CUSTOM
 ) {
     MIMO_PAYGO_GUIDE_URL
 } else {

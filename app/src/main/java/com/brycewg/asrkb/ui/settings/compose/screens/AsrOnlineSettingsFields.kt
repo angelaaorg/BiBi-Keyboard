@@ -52,7 +52,7 @@ internal class AsrOnlineSettingsFields(
     )
     var mimoApiKey by mutableStateOf(prefs.mimoAsrApiKey)
     var mimoEndpoint by mutableStateOf(
-        prefs.mimoAsrEndpoint.ifBlank { Prefs.DEFAULT_MIMO_ASR_ENDPOINT }
+        prefs.getEffectiveMimoAsrEndpoint()
     )
     var mimoEndpointPreset by mutableStateOf(prefs.mimoAsrEndpointPreset)
     var mimoLanguage by mutableStateOf(normalizeMimoLanguage(prefs.mimoAsrLanguage))
@@ -108,7 +108,7 @@ internal class AsrOnlineSettingsFields(
             Prefs.DEFAULT_OPENROUTER_ASR_MODEL
         }
         mimoApiKey = prefs.mimoAsrApiKey
-        mimoEndpoint = prefs.mimoAsrEndpoint.ifBlank { Prefs.DEFAULT_MIMO_ASR_ENDPOINT }
+        mimoEndpoint = prefs.getEffectiveMimoAsrEndpoint()
         mimoEndpointPreset = prefs.mimoAsrEndpointPreset
         mimoLanguage = normalizeMimoLanguage(prefs.mimoAsrLanguage)
         mimoPrompt = prefs.mimoAsrPrompt
@@ -290,13 +290,9 @@ internal class AsrOnlineSettingsFields(
             mimoEndpointPreset = value
             prefs.mimoAsrEndpointPreset = value
             val presetUrl = Prefs.MIMO_ENDPOINT_PRESETS[value]
-            if (presetUrl != null) {
+            if (value != Prefs.MIMO_ENDPOINT_PRESET_CUSTOM && presetUrl != null) {
                 mimoEndpoint = presetUrl
                 prefs.mimoAsrEndpoint = presetUrl
-            } else if (value == Prefs.MIMO_ENDPOINT_PRESET_AUTO) {
-                // 自动匹配：根据 key 前缀决定 URL，UI 保留空值让引擎运行时解析
-                mimoEndpoint = ""
-                prefs.mimoAsrEndpoint = ""
             } else {
                 mimoEndpoint = ""
                 prefs.mimoAsrEndpoint = ""

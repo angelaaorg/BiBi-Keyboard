@@ -10,7 +10,6 @@
     <string name="mimo_endpoint_ams">Token Plan（ヨーロッパ）</string>
     <string name="mimo_endpoint_paygo">従量課金</string>
     <string name="mimo_endpoint_custom">カスタム</string>
-    <string name="mimo_endpoint_auto">公式Endpointを自動判定</string>
     <string name="label_mimo_asr_language">言語</string>
     <string name="mimo_lang_auto">自動検出</string>
     <string name="mimo_lang_zh">中国語</string>
