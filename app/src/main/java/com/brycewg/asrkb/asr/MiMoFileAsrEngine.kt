@@ -53,12 +53,14 @@ class MiMoFileAsrEngine(
         .callTimeout(90, TimeUnit.SECONDS)
         .build()
 
-    // MiMo input_audio 当前不支持压缩后的 M4A/AAC/OGG，保持 WAV 上传。
+    // MiMo v2.5-asr 与 v2.5 均保持 WAV 上传；v2.5 的压缩 M4A 会被后端拒绝。
     override val uploadAudioEncodingSpec: UploadAudioEncodingSpec? = null
 
     /** 当前是否使用音频理解模型（mimo-v2.5 而非 mimo-v2.5-asr） */
     private fun isAudioUnderstandingModel(model: String): Boolean = model.equals(MODEL_AUDIO_UNDERSTANDING, ignoreCase = true) ||
         (model.startsWith("mimo-v2.5") && !model.endsWith("-asr"))
+
+    private fun currentModel(): String = prefs.mimoAsrModel.ifBlank { MODEL_ASR }
 
     override fun ensureReady(): Boolean {
         if (!super.ensureReady()) return false
@@ -70,12 +72,7 @@ class MiMoFileAsrEngine(
     }
 
     override suspend fun recognize(pcm: ByteArray) {
-        val spec = if (prefs.uploadAudioCompressionEnabled) uploadAudioEncodingSpec else null
-        val audio = if (spec != null) {
-            encodePcmForUpload(context, pcm, sampleRate, spec)
-        } else {
-            pcmToWavUploadAudio(pcm)
-        }
+        val audio = pcmToWavUploadAudio(pcm)
         recognizeEncoded(audio)
     }
 
@@ -83,11 +80,18 @@ class MiMoFileAsrEngine(
         try {
             val apiKey = prefs.mimoAsrApiKey.trim()
             val endpoint = prefs.getEffectiveMimoAsrEndpoint()
-            val model = prefs.mimoAsrModel.ifBlank { MODEL_ASR }
+            val model = currentModel()
             val language = prefs.mimoAsrLanguage.ifBlank { "auto" }
             val isAuModel = isAudioUnderstandingModel(model)
             val prompt = prefs.mimoAsrPrompt.ifBlank { DEFAULT_SYSTEM_PROMPT }
-            val body = buildRequestBody(audio, model, language, prompt, isAuModel)
+            val body = buildRequestBody(
+                audio = audio,
+                model = model,
+                language = language,
+                prompt = prompt,
+                isAuModel = isAuModel,
+                disableThinking = prefs.mimoAsrDisableThinking
+            )
             val reqStructure = if (isAuModel) {
                 "json object keys=model, messages(system+user with input_audio+text), max_completion_tokens"
             } else {
@@ -150,7 +154,8 @@ class MiMoFileAsrEngine(
         model: String,
         language: String,
         prompt: String = "",
-        isAuModel: Boolean = false
+        isAuModel: Boolean = false,
+        disableThinking: Boolean = false
     ): String {
         val b64 = Base64.encodeToString(audio.bytes, Base64.NO_WRAP)
         val dataUrl = "data:${audio.mimeType};base64,$b64"
@@ -192,6 +197,14 @@ class MiMoFileAsrEngine(
         }
         if (isAuModel) {
             body.put("max_completion_tokens", AUDIO_UNDERSTANDING_MAX_TOKENS)
+            if (disableThinking) {
+                body.put(
+                    "thinking",
+                    JSONObject().apply {
+                        put("type", "disabled")
+                    }
+                )
+            }
         }
         if (!isAuModel) {
             body.put(

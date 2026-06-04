@@ -58,6 +58,7 @@ internal class AsrOnlineSettingsFields(
     var mimoLanguage by mutableStateOf(normalizeMimoLanguage(prefs.mimoAsrLanguage))
     var mimoPrompt by mutableStateOf(prefs.mimoAsrPrompt)
     var mimoModel by mutableStateOf(prefs.mimoAsrModel)
+    var mimoDisableThinking by mutableStateOf(prefs.mimoAsrDisableThinking)
     var openAiProviders by mutableStateOf(prefs.getOpenAiAsrProviders())
     var openAiActiveProviderId by mutableStateOf(prefs.activeOpenAiAsrProviderId)
     var openAiProfileName by mutableStateOf(prefs.getActiveOpenAiAsrProvider()?.name.orEmpty())
@@ -113,6 +114,7 @@ internal class AsrOnlineSettingsFields(
         mimoLanguage = normalizeMimoLanguage(prefs.mimoAsrLanguage)
         mimoPrompt = prefs.mimoAsrPrompt
         mimoModel = prefs.mimoAsrModel
+        mimoDisableThinking = prefs.mimoAsrDisableThinking
         refreshOpenAiFromPrefs()
         sonioxApiKey = prefs.sonioxApiKey
         sonioxStreaming = prefs.sonioxStreamingEnabled
@@ -315,6 +317,12 @@ internal class AsrOnlineSettingsFields(
             prefs.mimoAsrModel = value
         },
         mimoPromptEnabled = shouldShowMimoPrompt(mimoModel),
+        mimoDisableThinking = mimoDisableThinking,
+        onMimoDisableThinkingChange = { checked ->
+            hapticTap()
+            mimoDisableThinking = checked
+            prefs.mimoAsrDisableThinking = checked
+        },
         openAiProviders = openAiProviders,
         openAiActiveProviderId = openAiActiveProviderId,
         onOpenAiProviderSelected = { providerId ->

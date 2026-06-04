@@ -929,6 +929,9 @@ class Prefs(context: Context) {
 
     var mimoAsrLanguage: String by stringPref(KEY_MIMO_ASR_LANGUAGE, DEFAULT_MIMO_ASR_LANGUAGE)
     var mimoAsrPrompt: String by stringPref(KEY_MIMO_ASR_PROMPT, "请将以下音频准确转写为文字")
+    var mimoAsrDisableThinking: Boolean
+        get() = sp.getBoolean(KEY_MIMO_ASR_DISABLE_THINKING, false)
+        set(value) = sp.edit { putBoolean(KEY_MIMO_ASR_DISABLE_THINKING, value) }
 
     fun getEffectiveMimoAsrEndpoint(): String {
         val preset = mimoAsrEndpointPreset

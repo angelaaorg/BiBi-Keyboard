@@ -5,6 +5,7 @@
     <string name="label_mimo_asr_endpoint_preset">Endpoint</string>
     <string name="label_mimo_asr_model">模型</string>
     <string name="label_mimo_asr_prompt">System Prompt（僅 v2.5 支援）</string>
+    <string name="label_mimo_disable_thinking">停用推理</string>
     <string name="mimo_endpoint_cn">Token Plan（中國大陸）</string>
     <string name="mimo_endpoint_sgp">Token Plan（新加坡）</string>
     <string name="mimo_endpoint_ams">Token Plan（歐洲）</string>

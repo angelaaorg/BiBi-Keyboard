@@ -112,6 +112,8 @@ internal object PrefsBackup {
         o.put(KEY_STEPAUDIO_USE_ITN, stepAudioUseItn)
         // Gemini 设置
         o.put(KEY_GEMINI_DISABLE_THINKING, geminiDisableThinking)
+        // MiMo 设置
+        o.put(KEY_MIMO_ASR_DISABLE_THINKING, mimoAsrDisableThinking)
         // ElevenLabs streaming toggle
         o.put(KEY_ELEVEN_STREAMING_ENABLED, elevenStreamingEnabled)
         // 多 LLM 配置
@@ -422,6 +424,8 @@ internal object PrefsBackup {
             optBool(KEY_ELEVEN_STREAMING_ENABLED)?.let { elevenStreamingEnabled = it }
             // Gemini 设置
             optBool(KEY_GEMINI_DISABLE_THINKING)?.let { geminiDisableThinking = it }
+            // MiMo 设置
+            optBool(KEY_MIMO_ASR_DISABLE_THINKING)?.let { mimoAsrDisableThinking = it }
             // 多 LLM 配置（优先于旧字段，仅当存在时覆盖）
             optString(KEY_LLM_PROVIDERS)?.let { llmProvidersJson = it }
             optString(KEY_LLM_ACTIVE_ID)?.let { activeLlmId = it }

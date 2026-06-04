@@ -226,6 +226,8 @@ internal fun AsrSettingsRouteContent(
                         mimoModel = onlineState.mimoModel,
                         onMimoModelChange = onlineState.onMimoModelChange,
                         mimoPromptEnabled = onlineState.mimoPromptEnabled,
+                        mimoDisableThinking = onlineState.mimoDisableThinking,
+                        onMimoDisableThinkingChange = onlineState.onMimoDisableThinkingChange,
                         openAiProviders = onlineState.openAiProviders,
                         openAiActiveProviderId = onlineState.openAiActiveProviderId,
                         onOpenAiProviderSelected = onlineState.onOpenAiProviderSelected,

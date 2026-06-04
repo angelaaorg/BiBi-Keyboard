@@ -81,6 +81,8 @@ internal fun CurrentAsrVendorConfig(
     mimoModel: String,
     onMimoModelChange: (String) -> Unit,
     mimoPromptEnabled: Boolean,
+    mimoDisableThinking: Boolean,
+    onMimoDisableThinkingChange: (Boolean) -> Unit,
     openAiProviders: List<Prefs.OpenAiAsrProvider>,
     openAiActiveProviderId: String,
     onOpenAiProviderSelected: (String) -> Unit,
@@ -428,6 +430,14 @@ internal fun CurrentAsrVendorConfig(
                 onSelectedOptionChange = onMimoLanguageChange
             )
             if (mimoPromptEnabled) {
+                AsrSwitchPreference(
+                    id = "mimo_disable_thinking",
+                    titleRes = R.string.label_mimo_disable_thinking,
+                    checked = mimoDisableThinking,
+                    index = itemIndex++,
+                    count = itemCount,
+                    onCheckedChange = onMimoDisableThinkingChange
+                )
                 AsrTextField(
                     uiMode = uiMode,
                     value = mimoPrompt,
@@ -728,7 +738,7 @@ private fun openAiAsrPrimaryItemCount(
 private fun mimoPrimaryItemCount(
     customEndpointVisible: Boolean,
     promptVisible: Boolean
-): Int = 5 + (if (customEndpointVisible) 1 else 0) + (if (promptVisible) 1 else 0)
+): Int = 5 + (if (customEndpointVisible) 1 else 0) + (if (promptVisible) 2 else 0)
 
 private fun mimoGuideUrl(endpointPreset: String): String = if (
     endpointPreset == Prefs.MIMO_ENDPOINT_PRESET_PAYGO ||

@@ -92,6 +92,8 @@ internal data class AsrOnlineSettingsRouteState(
     val mimoModel: String,
     val onMimoModelChange: (String) -> Unit,
     val mimoPromptEnabled: Boolean,
+    val mimoDisableThinking: Boolean,
+    val onMimoDisableThinkingChange: (Boolean) -> Unit,
     val openAiProviders: List<Prefs.OpenAiAsrProvider>,
     val openAiActiveProviderId: String,
     val onOpenAiProviderSelected: (String) -> Unit,
