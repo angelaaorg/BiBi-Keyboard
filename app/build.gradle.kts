@@ -156,6 +156,7 @@ dependencies {
 
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
+    testImplementation("junit:junit:4.13.2")
 
     // Shizuku：用于在已授权时执行部分 shell 级操作（增强后台保活）
     implementation("dev.rikka.shizuku:api:13.1.5")
