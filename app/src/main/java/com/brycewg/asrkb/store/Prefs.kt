@@ -912,6 +912,24 @@ class Prefs(context: Context) {
         DEFAULT_OPENROUTER_ASR_MODEL
     )
 
+    // 小米 MiMo ASR（走 Chat Completions 端点）
+    var mimoAsrApiKey: String by stringPref(KEY_MIMO_ASR_API_KEY, "")
+
+    var mimoAsrEndpoint: String by stringPref(
+        KEY_MIMO_ASR_ENDPOINT,
+        DEFAULT_MIMO_ASR_ENDPOINT
+    )
+
+    var mimoAsrEndpointPreset: String by stringPref(
+        KEY_MIMO_ASR_ENDPOINT_PRESET,
+        MIMO_ENDPOINT_PRESET_AUTO
+    )
+
+    var mimoAsrModel: String by stringPref(KEY_MIMO_ASR_MODEL, "")
+
+    var mimoAsrLanguage: String by stringPref(KEY_MIMO_ASR_LANGUAGE, DEFAULT_MIMO_ASR_LANGUAGE)
+    var mimoAsrPrompt: String by stringPref(KEY_MIMO_ASR_PROMPT, "请将以下音频准确转写为文字")
+
     // Google Gemini 语音理解（通过提示词转写）
     var gemEndpoint: String by stringPref(KEY_GEM_ENDPOINT, DEFAULT_GEM_ENDPOINT)
 
@@ -1288,6 +1306,7 @@ class Prefs(context: Context) {
     fun hasOpenAiKeys(): Boolean = hasVendorKeys(AsrVendor.OpenAI)
     fun hasOpenRouterKeys(): Boolean = hasVendorKeys(AsrVendor.OpenRouter)
     fun hasGeminiKeys(): Boolean = hasVendorKeys(AsrVendor.Gemini)
+    fun hasMiMoKeys(): Boolean = hasVendorKeys(AsrVendor.MiMo)
     fun hasSonioxKeys(): Boolean = hasVendorKeys(AsrVendor.Soniox)
     fun hasStepAudioKeys(): Boolean = hasVendorKeys(AsrVendor.StepAudio)
     fun hasZhipuKeys(): Boolean = hasVendorKeys(AsrVendor.Zhipu)
@@ -1561,6 +1580,28 @@ class Prefs(context: Context) {
         // OpenRouter Audio Transcriptions 默认值
         const val DEFAULT_OPENROUTER_ASR_ENDPOINT = "https://openrouter.ai/api/v1/audio/transcriptions"
         const val DEFAULT_OPENROUTER_ASR_MODEL = "qwen/qwen3-asr-flash-2026-02-10"
+
+        // MiMo ASR 默认值
+        const val DEFAULT_MIMO_ASR_ENDPOINT = "https://token-plan-sgp.xiaomimimo.com/v1/chat/completions"
+        const val DEFAULT_MIMO_ASR_LANGUAGE = "auto"
+
+        // MiMo 端点预设
+        const val MIMO_ENDPOINT_PRESET_AUTO = "auto"
+        const val MIMO_ENDPOINT_PRESET_PAYGO = "paygo"
+        const val MIMO_ENDPOINT_PRESET_CUSTOM = "custom"
+
+        val MIMO_ENDPOINT_PRESETS: Map<String, String> = mapOf(
+            MIMO_ENDPOINT_PRESET_PAYGO to "https://api.xiaomimimo.com/v1/chat/completions",
+            MIMO_ENDPOINT_PRESET_CUSTOM to ""
+        )
+
+        /** 根据 API Key 前缀自动匹配端点 */
+        fun resolveMimoEndpoint(apiKey: String): String = when {
+            apiKey.startsWith("tp-c") -> "https://token-plan-cn.xiaomimimo.com/v1/chat/completions"
+            apiKey.startsWith("tp-s") -> "https://token-plan-sgp.xiaomimimo.com/v1/chat/completions"
+            apiKey.startsWith("sk-") -> "https://api.xiaomimimo.com/v1/chat/completions"
+            else -> DEFAULT_MIMO_ASR_ENDPOINT
+        }
 
         // DashScope 默认
         const val DEFAULT_DASH_MODEL = "qwen3-asr-flash"

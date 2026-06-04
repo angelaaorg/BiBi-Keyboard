@@ -17,6 +17,7 @@ object AsrVendorUi {
         AsrVendor.OpenRouter,
         AsrVendor.DashScope,
         AsrVendor.Gemini,
+        AsrVendor.MiMo,
         AsrVendor.Soniox,
         AsrVendor.StepAudio,
         AsrVendor.Zhipu,
@@ -37,6 +38,7 @@ object AsrVendorUi {
         AsrVendor.OpenRouter -> context.getString(R.string.vendor_openrouter)
         AsrVendor.DashScope -> context.getString(R.string.vendor_dashscope)
         AsrVendor.Gemini -> context.getString(R.string.vendor_gemini)
+        AsrVendor.MiMo -> context.getString(R.string.vendor_mimo)
         AsrVendor.Soniox -> context.getString(R.string.vendor_soniox)
         AsrVendor.StepAudio -> context.getString(R.string.vendor_stepaudio)
         AsrVendor.Zhipu -> context.getString(R.string.vendor_zhipu)
@@ -86,6 +88,12 @@ object AsrVendorUi {
             AsrVendorTag.Accurate
         )
         AsrVendor.Gemini -> listOf(
+            AsrVendorTag.Online,
+            AsrVendorTag.NonStreaming,
+            AsrVendorTag.Accurate,
+            AsrVendorTag.Custom
+        )
+        AsrVendor.MiMo -> listOf(
             AsrVendorTag.Online,
             AsrVendorTag.NonStreaming,
             AsrVendorTag.Accurate,

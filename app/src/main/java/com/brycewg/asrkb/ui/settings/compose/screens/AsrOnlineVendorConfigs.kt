@@ -68,6 +68,19 @@ internal fun CurrentAsrVendorConfig(
     onOpenRouterApiKeyChange: (String) -> Unit,
     openRouterModel: String,
     onOpenRouterModelChange: (String) -> Unit,
+    mimoApiKey: String,
+    onMimoApiKeyChange: (String) -> Unit,
+    mimoEndpoint: String,
+    onMimoEndpointChange: (String) -> Unit,
+    mimoEndpointPreset: String,
+    onMimoEndpointPresetChange: (String) -> Unit,
+    mimoLanguage: String,
+    onMimoLanguageChange: (String) -> Unit,
+    mimoPrompt: String,
+    onMimoPromptChange: (String) -> Unit,
+    mimoModel: String,
+    onMimoModelChange: (String) -> Unit,
+    mimoPromptEnabled: Boolean,
     openAiProviders: List<Prefs.OpenAiAsrProvider>,
     openAiActiveProviderId: String,
     onOpenAiProviderSelected: (String) -> Unit,
@@ -353,6 +366,85 @@ internal fun CurrentAsrVendorConfig(
             )
         }
 
+        AsrVendor.MiMo -> {
+            var itemIndex = primaryIndexOffset
+            val showCustomEndpoint = mimoEndpointPreset == Prefs.MIMO_ENDPOINT_PRESET_CUSTOM
+            val itemCount = primaryGroupCount ?: mimoPrimaryItemCount(
+                customEndpointVisible = showCustomEndpoint,
+                promptVisible = mimoPromptEnabled
+            )
+            AsrDropdownPreference(
+                titleRes = R.string.label_mimo_asr_endpoint_preset,
+                options = listOf(
+                    DropdownOption(Prefs.MIMO_ENDPOINT_PRESET_AUTO, context.getString(R.string.mimo_endpoint_auto)),
+                    DropdownOption(Prefs.MIMO_ENDPOINT_PRESET_CUSTOM, context.getString(R.string.mimo_endpoint_custom))
+                ),
+                selectedOptionId = mimoEndpointPreset,
+                index = itemIndex++,
+                count = itemCount,
+                onSelectedOptionChange = onMimoEndpointPresetChange
+            )
+            if (mimoEndpointPreset == Prefs.MIMO_ENDPOINT_PRESET_CUSTOM) {
+                AsrTextField(
+                    uiMode = uiMode,
+                    value = mimoEndpoint,
+                    onValueChange = onMimoEndpointChange,
+                    label = stringResource(R.string.label_mimo_asr_endpoint),
+                    index = itemIndex++,
+                    count = itemCount
+                )
+            }
+            AsrDropdownPreference(
+                titleRes = R.string.label_mimo_asr_model,
+                options = listOf(
+                    DropdownOption("mimo-v2.5-asr", context.getString(R.string.mimo_model_asr)),
+                    DropdownOption("mimo-v2.5", context.getString(R.string.mimo_model_au))
+                ),
+                selectedOptionId = mimoModel.ifBlank { "mimo-v2.5-asr" },
+                index = itemIndex++,
+                count = itemCount,
+                onSelectedOptionChange = onMimoModelChange
+            )
+            AsrTextField(
+                uiMode = uiMode,
+                value = mimoApiKey,
+                onValueChange = onMimoApiKeyChange,
+                label = stringResource(R.string.label_mimo_asr_api_key),
+                password = true,
+                index = itemIndex++,
+                count = itemCount
+            )
+            AsrDropdownPreference(
+                titleRes = R.string.label_mimo_asr_language,
+                options = mimoLanguageOptions(context).map { option ->
+                    DropdownOption(option.value, option.label)
+                },
+                selectedOptionId = mimoLanguage,
+                index = itemIndex++,
+                count = itemCount,
+                onSelectedOptionChange = onMimoLanguageChange
+            )
+            if (mimoPromptEnabled) {
+                AsrTextField(
+                    uiMode = uiMode,
+                    value = mimoPrompt,
+                    onValueChange = onMimoPromptChange,
+                    label = stringResource(R.string.label_mimo_asr_prompt),
+                    singleLine = false,
+                    minLines = 2,
+                    index = itemIndex++,
+                    count = itemCount
+                )
+            }
+            AsrActionPreference(
+                id = "mimo_get_key_guide",
+                titleRes = R.string.btn_get_api_key_guide,
+                index = itemIndex,
+                count = itemCount,
+                onClick = { onOpenGuide(mimoGuideUrl(mimoEndpointPreset, mimoApiKey)) }
+            )
+        }
+
         AsrVendor.OpenAI -> {
             OpenAiAsrConfig(
                 uiMode = uiMode,
@@ -606,7 +698,9 @@ private fun SonioxAsrConfig(
 internal fun currentOnlineAsrPrimaryItemCount(
     selectedVendor: AsrVendor,
     openAiProviders: List<Prefs.OpenAiAsrProvider>,
-    openAiUsePrompt: Boolean
+    openAiUsePrompt: Boolean,
+    mimoCustomEndpointVisible: Boolean = false,
+    mimoPromptVisible: Boolean = false
 ): Int = when (selectedVendor) {
     AsrVendor.SiliconFlow -> 1
     AsrVendor.ElevenLabs -> 4
@@ -614,6 +708,10 @@ internal fun currentOnlineAsrPrimaryItemCount(
     AsrVendor.Zhipu -> 2
     AsrVendor.Gemini -> 6
     AsrVendor.OpenRouter -> 4
+    AsrVendor.MiMo -> mimoPrimaryItemCount(
+        customEndpointVisible = mimoCustomEndpointVisible,
+        promptVisible = mimoPromptVisible
+    )
     AsrVendor.OpenAI -> openAiAsrPrimaryItemCount(openAiProviders, openAiUsePrompt)
     AsrVendor.Soniox -> 5
     else -> 0
@@ -623,6 +721,24 @@ private fun openAiAsrPrimaryItemCount(
     profiles: List<Prefs.OpenAiAsrProvider>,
     usePrompt: Boolean
 ): Int = (if (profiles.isNotEmpty()) 1 else 0) + 8 + (if (usePrompt) 1 else 0)
+
+private fun mimoPrimaryItemCount(
+    customEndpointVisible: Boolean,
+    promptVisible: Boolean
+): Int = 5 + (if (customEndpointVisible) 1 else 0) + (if (promptVisible) 1 else 0)
+
+private fun mimoGuideUrl(endpointPreset: String, apiKey: String): String = if (
+    endpointPreset == Prefs.MIMO_ENDPOINT_PRESET_PAYGO ||
+    endpointPreset == Prefs.MIMO_ENDPOINT_PRESET_CUSTOM ||
+    (endpointPreset == Prefs.MIMO_ENDPOINT_PRESET_AUTO && apiKey.trim().startsWith("sk-"))
+) {
+    MIMO_PAYGO_GUIDE_URL
+} else {
+    MIMO_TP_GUIDE_URL
+}
+
+internal const val MIMO_TP_GUIDE_URL = "https://platform.xiaomimimo.com/console/plan-manage"
+internal const val MIMO_PAYGO_GUIDE_URL = "https://platform.xiaomimimo.com/console/api-keys"
 
 internal fun elevenLanguageOptions(context: Context): List<OnlineVendorChoice> = listOf(
     OnlineVendorChoice("", context.getString(R.string.eleven_lang_auto)),
@@ -643,6 +759,12 @@ internal fun elevenLanguageLabel(context: Context, code: String): String {
     return elevenLanguageOptions(context).firstOrNull { it.value == normalized }?.label
         ?: context.getString(R.string.eleven_lang_auto)
 }
+
+internal fun mimoLanguageOptions(context: Context): List<OnlineVendorChoice> = listOf(
+    OnlineVendorChoice("auto", context.getString(R.string.mimo_lang_auto)),
+    OnlineVendorChoice("zh", context.getString(R.string.mimo_lang_zh)),
+    OnlineVendorChoice("en", context.getString(R.string.mimo_lang_en))
+)
 
 internal fun stepAudioLanguageOptions(context: Context): List<OnlineVendorChoice> = listOf(
     OnlineVendorChoice("zh", context.getString(R.string.stepaudio_lang_zh)),

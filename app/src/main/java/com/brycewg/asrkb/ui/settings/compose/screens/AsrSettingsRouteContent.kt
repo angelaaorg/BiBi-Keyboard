@@ -213,6 +213,19 @@ internal fun AsrSettingsRouteContent(
                         onOpenRouterApiKeyChange = onlineState.onOpenRouterApiKeyChange,
                         openRouterModel = onlineState.openRouterModel,
                         onOpenRouterModelChange = onlineState.onOpenRouterModelChange,
+                        mimoApiKey = onlineState.mimoApiKey,
+                        onMimoApiKeyChange = onlineState.onMimoApiKeyChange,
+                        mimoEndpoint = onlineState.mimoEndpoint,
+                        onMimoEndpointChange = onlineState.onMimoEndpointChange,
+                        mimoEndpointPreset = onlineState.mimoEndpointPreset,
+                        onMimoEndpointPresetChange = onlineState.onMimoEndpointPresetChange,
+                        mimoLanguage = onlineState.mimoLanguage,
+                        onMimoLanguageChange = onlineState.onMimoLanguageChange,
+                        mimoPrompt = onlineState.mimoPrompt,
+                        onMimoPromptChange = onlineState.onMimoPromptChange,
+                        mimoModel = onlineState.mimoModel,
+                        onMimoModelChange = onlineState.onMimoModelChange,
+                        mimoPromptEnabled = onlineState.mimoPromptEnabled,
                         openAiProviders = onlineState.openAiProviders,
                         openAiActiveProviderId = onlineState.openAiActiveProviderId,
                         onOpenAiProviderSelected = onlineState.onOpenAiProviderSelected,
@@ -309,11 +322,14 @@ private fun currentAsrVendorPrimaryItemCount(
     AsrVendor.Zhipu,
     AsrVendor.Gemini,
     AsrVendor.OpenRouter,
+    AsrVendor.MiMo,
     AsrVendor.OpenAI,
     AsrVendor.Soniox -> currentOnlineAsrPrimaryItemCount(
         selectedVendor = selectedVendor,
         openAiProviders = onlineState.openAiProviders,
-        openAiUsePrompt = onlineState.openAiUsePrompt
+        openAiUsePrompt = onlineState.openAiUsePrompt,
+        mimoCustomEndpointVisible = onlineState.mimoEndpointPreset == Prefs.MIMO_ENDPOINT_PRESET_CUSTOM,
+        mimoPromptVisible = onlineState.mimoPromptEnabled
     )
 
     else -> localAsrPrimaryItemCount(selectedVendor)

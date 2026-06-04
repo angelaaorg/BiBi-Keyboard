@@ -186,6 +186,7 @@ internal object NetworkWarmupCoordinator {
         AsrVendor.Soniox -> prefs.hasSonioxKeys()
         AsrVendor.StepAudio -> prefs.hasStepAudioKeys()
         AsrVendor.Zhipu -> prefs.hasZhipuKeys()
+        AsrVendor.MiMo -> prefs.hasMiMoKeys()
         AsrVendor.SenseVoice,
         AsrVendor.FunAsrNano,
         AsrVendor.Qwen3Asr,
@@ -291,6 +292,18 @@ internal object NetworkWarmupCoordinator {
         AsrVendor.StepAudio -> buildTarget(
             kind = WarmupKind.ASR,
             url = Prefs.STEPAUDIO_ASR_ENDPOINT
+        )
+
+        AsrVendor.MiMo -> buildTarget(
+            kind = WarmupKind.ASR,
+            url = if (
+                prefs.mimoAsrEndpointPreset == Prefs.MIMO_ENDPOINT_PRESET_AUTO ||
+                prefs.mimoAsrEndpoint.isBlank()
+            ) {
+                Prefs.resolveMimoEndpoint(prefs.mimoAsrApiKey.trim())
+            } else {
+                prefs.mimoAsrEndpoint
+            }
         )
 
         AsrVendor.SenseVoice,

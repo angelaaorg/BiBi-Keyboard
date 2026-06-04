@@ -74,6 +74,7 @@ internal fun AsrTextField(
     password: Boolean = false,
     singleLine: Boolean = true,
     minLines: Int = 1,
+    enabled: Boolean = true,
     keyboardType: KeyboardType = KeyboardType.Text,
     index: Int = 0,
     count: Int = 1
@@ -87,6 +88,7 @@ internal fun AsrTextField(
         password = password,
         singleLine = singleLine,
         minLines = minLines,
+        enabled = enabled,
         keyboardType = keyboardType,
         index = index,
         count = count

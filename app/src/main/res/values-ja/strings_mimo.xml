@@ -1,0 +1,20 @@
+<resources>
+    <string name="vendor_mimo">小米 MiMo</string>
+    <string name="label_mimo_asr_api_key">MiMo APIキー</string>
+    <string name="label_mimo_asr_endpoint">MiMo Endpoint</string>
+    <string name="label_mimo_asr_endpoint_preset">Endpoint</string>
+    <string name="label_mimo_asr_model">モデル</string>
+    <string name="label_mimo_asr_prompt">System Prompt（v2.5のみ）</string>
+    <string name="mimo_endpoint_cn">Token Plan（中国大陸）</string>
+    <string name="mimo_endpoint_sgp">Token Plan（シンガポール）</string>
+    <string name="mimo_endpoint_ams">Token Plan（ヨーロッパ）</string>
+    <string name="mimo_endpoint_paygo">従量課金</string>
+    <string name="mimo_endpoint_custom">カスタム</string>
+    <string name="mimo_endpoint_auto">公式Endpointを自動判定</string>
+    <string name="label_mimo_asr_language">言語</string>
+    <string name="mimo_lang_auto">自動検出</string>
+    <string name="mimo_lang_zh">中国語</string>
+    <string name="mimo_lang_en">英語</string>
+    <string name="mimo_model_asr">mimo-v2.5-asr</string>
+    <string name="mimo_model_au">mimo-v2.5</string>
+</resources>
