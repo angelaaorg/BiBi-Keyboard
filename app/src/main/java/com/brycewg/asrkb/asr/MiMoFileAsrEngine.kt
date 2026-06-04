@@ -42,6 +42,8 @@ class MiMoFileAsrEngine(
 
         /** 默认提示词：用于音频理解模型的系统指令 */
         private const val DEFAULT_SYSTEM_PROMPT = "你是一个语音识别助手。请将用户输入的音频准确转写为文字，直接输出转写结果，不要添加任何额外说明。"
+        private const val DEFAULT_AUDIO_UNDERSTANDING_USER_TEXT = "请将这段音频准确转写为文字，直接输出转写结果。"
+        private const val AUDIO_UNDERSTANDING_MAX_TOKENS = 4096
     }
 
     override val maxRecordDurationMillis: Int = 20 * 60 * 1000
@@ -87,7 +89,7 @@ class MiMoFileAsrEngine(
             val prompt = prefs.mimoAsrPrompt.ifBlank { DEFAULT_SYSTEM_PROMPT }
             val body = buildRequestBody(audio, model, language, prompt, isAuModel)
             val reqStructure = if (isAuModel) {
-                "json object keys=model, messages(system+user with input_audio+text)"
+                "json object keys=model, messages(system+user with input_audio+text), max_completion_tokens"
             } else {
                 "json object keys=model, messages, asr_options"
             }
@@ -156,13 +158,22 @@ class MiMoFileAsrEngine(
         val inputAudio = JSONObject().apply {
             put("data", dataUrl)
         }
-        val contentPart = JSONObject().apply {
+        val audioPart = JSONObject().apply {
             put("type", "input_audio")
             put("input_audio", inputAudio)
         }
+        val content = JSONArray().put(audioPart)
+        if (isAuModel) {
+            content.put(
+                JSONObject().apply {
+                    put("type", "text")
+                    put("text", DEFAULT_AUDIO_UNDERSTANDING_USER_TEXT)
+                }
+            )
+        }
         val userMsg = JSONObject().apply {
             put("role", "user")
-            put("content", JSONArray().put(contentPart))
+            put("content", content)
         }
         val messages = JSONArray().apply {
             if (isAuModel && prompt.isNotBlank()) {
@@ -178,6 +189,9 @@ class MiMoFileAsrEngine(
         val body = JSONObject().apply {
             put("model", model)
             put("messages", messages)
+        }
+        if (isAuModel) {
+            body.put("max_completion_tokens", AUDIO_UNDERSTANDING_MAX_TOKENS)
         }
         if (!isAuModel) {
             body.put(
@@ -218,8 +232,14 @@ class MiMoFileAsrEngine(
             if (choices != null && choices.length() > 0) {
                 choices.getJSONObject(0)
                     .optJSONObject("message")
-                    ?.optString("content", "")
-                    ?.trim() ?: ""
+                    ?.let { message ->
+                        val content = message.optString("content", "").trim()
+                        if (content.isNotBlank() || !isAuModel) {
+                            content
+                        } else {
+                            message.optString("reasoning_content", "").trim()
+                        }
+                    } ?: ""
             } else {
                 ""
             }
