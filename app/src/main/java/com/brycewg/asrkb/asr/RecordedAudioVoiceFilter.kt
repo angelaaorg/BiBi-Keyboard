@@ -53,6 +53,66 @@ object RecordedAudioVoiceFilter {
         val outputDurationMs: Long
     )
 
+    data class SilenceAnalysis(
+        val silentPercent: Int
+    )
+
+    fun analyzeSilence(
+        context: Context,
+        prefs: Prefs,
+        pcm: ByteArray,
+        sampleRate: Int,
+        chunkMillis: Int
+    ): SilenceAnalysis? {
+        if (pcm.isEmpty() || sampleRate <= 0) return null
+
+        val detector = try {
+            VadDetector(
+                context = context,
+                sampleRate = sampleRate,
+                windowMs = prefs.autoStopSilenceWindowMs,
+                sensitivityLevel = FILTER_VAD_SENSITIVITY
+            )
+        } catch (t: Throwable) {
+            Log.w(TAG, "Failed to create VAD analyzer", t)
+            return null
+        }
+        if (!detector.isAvailable()) {
+            detector.release()
+            Log.w(TAG, "VAD analyzer is unavailable")
+            return null
+        }
+
+        return try {
+            val marks = buildChunkMarks(
+                detector = detector,
+                pcm = pcm,
+                sampleRate = sampleRate,
+                chunkMillis = chunkMillis.coerceAtLeast(20)
+            )
+            if (marks.isEmpty()) return null
+
+            val contentDurationMs = marks
+                .filter { it.shouldKeepAsContent() }
+                .sumOf { it.durationMs }
+                .toLong()
+            val totalDurationMs = marks.sumOf { it.durationMs }.toLong().coerceAtLeast(1L)
+            val nonContentDurationMs = (totalDurationMs - contentDurationMs).coerceAtLeast(0L)
+            SilenceAnalysis(
+                silentPercent = (nonContentDurationMs * 100L / totalDurationMs).toInt().coerceIn(0, 100)
+            )
+        } catch (t: Throwable) {
+            Log.w(TAG, "VAD silence analysis failed", t)
+            null
+        } finally {
+            try {
+                detector.release()
+            } catch (t: Throwable) {
+                Log.w(TAG, "Failed to release VAD analyzer", t)
+            }
+        }
+    }
+
     fun processIfEnabled(
         context: Context,
         prefs: Prefs,
@@ -139,30 +199,7 @@ object RecordedAudioVoiceFilter {
         filterSilent: Boolean,
         originalDurationMs: Long
     ): Result {
-        val chunkBytes = (((sampleRate * chunkMillis) / 1000) * BYTES_PER_SAMPLE)
-            .coerceAtLeast(BYTES_PER_SAMPLE)
-        val marks = ArrayList<ChunkMark>()
-        var offset = 0
-        while (offset < pcm.size) {
-            val len = minOf(chunkBytes, pcm.size - offset)
-            val chunk = pcm.copyOfRange(offset, offset + len)
-            val frameMs = durationMs(len, sampleRate).toInt().coerceAtLeast(1)
-            val isSpeech = detector.analyzeFrame(chunk, chunk.size).isSpeech
-            val energy = measureEnergy(chunk, chunk.size)
-            marks.add(
-                ChunkMark(
-                    offset = offset,
-                    length = len,
-                    durationMs = frameMs,
-                    isSpeech = isSpeech,
-                    maxAbs = energy.maxAbs,
-                    sumSquares = energy.sumSquares,
-                    sampleCount = energy.sampleCount
-                )
-            )
-
-            offset += len
-        }
+        val marks = buildChunkMarks(detector, pcm, sampleRate, chunkMillis)
 
         val hasContent = marks.any { it.shouldKeepAsContent() }
         val shouldDrop = cancelEmpty && shouldDropAsEmptyAudio(marks)
@@ -196,6 +233,39 @@ object RecordedAudioVoiceFilter {
             originalDurationMs = originalDurationMs,
             outputDurationMs = outputDurationMs
         )
+    }
+
+    private fun buildChunkMarks(
+        detector: VadDetector,
+        pcm: ByteArray,
+        sampleRate: Int,
+        chunkMillis: Int
+    ): List<ChunkMark> {
+        val chunkBytes = (((sampleRate * chunkMillis) / 1000) * BYTES_PER_SAMPLE)
+            .coerceAtLeast(BYTES_PER_SAMPLE)
+        val marks = ArrayList<ChunkMark>()
+        var offset = 0
+        while (offset < pcm.size) {
+            val len = minOf(chunkBytes, pcm.size - offset)
+            val chunk = pcm.copyOfRange(offset, offset + len)
+            val frameMs = durationMs(len, sampleRate).toInt().coerceAtLeast(1)
+            val isSpeech = detector.analyzeFrame(chunk, chunk.size).isSpeech
+            val energy = measureEnergy(chunk, chunk.size)
+            marks.add(
+                ChunkMark(
+                    offset = offset,
+                    length = len,
+                    durationMs = frameMs,
+                    isSpeech = isSpeech,
+                    maxAbs = energy.maxAbs,
+                    sumSquares = energy.sumSquares,
+                    sampleCount = energy.sampleCount
+                )
+            )
+
+            offset += len
+        }
+        return marks
     }
 
     private data class Energy(val maxAbs: Int, val sumSquares: Double, val sampleCount: Int)

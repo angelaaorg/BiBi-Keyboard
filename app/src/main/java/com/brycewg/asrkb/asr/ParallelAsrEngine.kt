@@ -35,7 +35,8 @@ class ParallelAsrEngine(
     private val onPrimaryRequestDuration: ((Long) -> Unit)? = null,
     private val externalPcmInput: Boolean = false
 ) : StreamingAsrEngine,
-    ExternalPcmConsumer {
+    ExternalPcmConsumer,
+    CancelableAsrEngine {
 
     companion object {
         private const val TAG = "ParallelAsrEngine"
@@ -189,6 +190,48 @@ class ParallelAsrEngine(
         }
 
         schedulePrimaryTimeoutIfNeeded()
+    }
+
+    override fun cancel() {
+        stopRequested.set(true)
+        running.set(false)
+        terminalDelivered.set(true)
+        try {
+            audioJob?.cancel()
+        } catch (t: Throwable) {
+            Log.w(TAG, "cancel audio job failed", t)
+        } finally {
+            audioJob = null
+        }
+        try {
+            primaryTimeoutJob?.cancel()
+        } catch (t: Throwable) {
+            Log.w(TAG, "cancel primary timeout failed", t)
+        } finally {
+            primaryTimeoutJob = null
+        }
+        synchronized(deferredPcmLock) {
+            deferredPcmBuffer.reset()
+        }
+        cancelOrStopEngine(primaryEngine, "primary")
+        cancelOrStopEngine(backupEngine, "backup")
+        primaryEngine = null
+        backupEngine = null
+        primaryConsumer = null
+        backupConsumer = null
+    }
+
+    private fun cancelOrStopEngine(engine: StreamingAsrEngine?, label: String) {
+        try {
+            val cancelable = engine as? CancelableAsrEngine
+            if (cancelable != null) {
+                cancelable.cancel()
+            } else {
+                engine?.stop()
+            }
+        } catch (t: Throwable) {
+            Log.w(TAG, "$label cancel failed", t)
+        }
     }
 
     override fun appendPcm(pcm: ByteArray, sampleRate: Int, channels: Int) {

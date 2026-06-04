@@ -12,6 +12,15 @@ interface ExternalPcmConsumer {
 }
 
 /**
+ * 可取消的 ASR 引擎。
+ *
+ * 用于页面销毁、用户清理等场景，仅释放资源，不把已缓存的 PCM 当成完整录音提交识别。
+ */
+interface CancelableAsrEngine {
+    fun cancel()
+}
+
+/**
  * 统一的“批量 PCM 识别”接口。
  *
  * 适用于各供应商的非流式（文件）引擎：

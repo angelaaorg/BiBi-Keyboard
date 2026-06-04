@@ -89,6 +89,7 @@ class SettingsHostViewModel(application: Application) : AndroidViewModel(applica
 
     private fun BibiSettingsRoute.homeTabIndex(): Int = when (this) {
         BibiSettingsRoute.Input,
+        BibiSettingsRoute.RecordingTest,
         BibiSettingsRoute.Floating -> 0
 
         BibiSettingsRoute.Asr,

@@ -28,7 +28,8 @@ class GenericPushFileAsrAdapter(
     private val recognizer: PcmBatchRecognizer,
     private val applyVoiceFilter: Boolean = true
 ) : StreamingAsrEngine,
-    ExternalPcmConsumer {
+    ExternalPcmConsumer,
+    CancelableAsrEngine {
 
     companion object {
         private const val TAG = "PushFileAdapter"
@@ -36,6 +37,7 @@ class GenericPushFileAsrAdapter(
 
     private val running = AtomicBoolean(false)
     private val bos = ByteArrayOutputStream()
+    private var recognitionJob: kotlinx.coroutines.Job? = null
 
     override val isRunning: Boolean
         get() = running.get()
@@ -63,7 +65,7 @@ class GenericPushFileAsrAdapter(
             ) {}
             return
         }
-        scope.launch(Dispatchers.IO) {
+        recognitionJob = scope.launch(Dispatchers.IO) {
             try {
                 val processed = if (applyVoiceFilter) {
                     RecordedAudioVoiceFilter.processIfEnabled(
@@ -106,6 +108,18 @@ class GenericPushFileAsrAdapter(
                     )
                 } catch (_: Throwable) { }
             }
+        }
+    }
+
+    override fun cancel() {
+        running.set(false)
+        bos.reset()
+        try {
+            recognitionJob?.cancel()
+        } catch (t: Throwable) {
+            Log.w(TAG, "cancel recognition job failed", t)
+        } finally {
+            recognitionJob = null
         }
     }
 

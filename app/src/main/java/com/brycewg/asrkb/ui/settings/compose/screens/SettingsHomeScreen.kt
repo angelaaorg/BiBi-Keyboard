@@ -187,6 +187,15 @@ private fun inputSections(
                 onClick = actions::showTestInput
             ),
             SettingsEntry.Action(
+                id = "recording_test",
+                titleRes = R.string.title_recording_test,
+                icon = Icons.Rounded.Mic,
+                onClick = {
+                    actions.hapticTap()
+                    onPushRoute(BibiSettingsRoute.RecordingTest)
+                }
+            ),
+            SettingsEntry.Action(
                 id = "input_settings",
                 titleRes = R.string.title_input_settings,
                 summary = inputControlSummary(context, prefs),
