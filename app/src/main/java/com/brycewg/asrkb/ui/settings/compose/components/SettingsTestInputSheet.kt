@@ -96,6 +96,7 @@ private fun TestInputTextField(
         onValueChange = { text = it },
         label = label,
         modifier = fieldModifier,
+        singleLine = false,
         minLines = 3,
         maxLines = 8,
         keyboardOptions = keyboardOptions,
