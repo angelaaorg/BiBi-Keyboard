@@ -260,7 +260,7 @@ class AsrRecognitionService : RecognitionService() {
                     FireRedAsrFileAsrEngine(engineContext, scope, prefs, listener)
                 }
             }
-            AsrVendor.Paraformer -> ParaformerStreamAsrEngine(engineContext, scope, prefs, listener)
+            AsrVendor.XAsr -> XAsrStreamAsrEngine(engineContext, scope, prefs, listener)
         }
     }
 
@@ -294,7 +294,7 @@ class AsrRecognitionService : RecognitionService() {
         AsrVendor.Soniox -> prefs.sonioxStreamingEnabled
         AsrVendor.ElevenLabs -> prefs.elevenStreamingEnabled
         AsrVendor.OpenAI -> prefs.oaAsrStreamingEnabled
-        AsrVendor.Paraformer -> true
+        AsrVendor.XAsr -> true
         AsrVendor.SenseVoice,
         AsrVendor.FunAsrNano,
         AsrVendor.Qwen3Asr,

@@ -658,11 +658,11 @@ internal class FloatingAsrInteractionController(
                                 Log.e(tag, "Failed to unload FireRedASR", e)
                             }
                         }
-                        if (old == AsrVendor.Paraformer && v != AsrVendor.Paraformer) {
+                        if (old == AsrVendor.XAsr && v != AsrVendor.XAsr) {
                             try {
-                                com.brycewg.asrkb.asr.unloadParaformerRecognizer()
+                                com.brycewg.asrkb.asr.unloadXAsrRecognizer()
                             } catch (e: Throwable) {
-                                Log.e(tag, "Failed to unload Paraformer", e)
+                                Log.e(tag, "Failed to unload X-ASR", e)
                             }
                         }
 
@@ -702,11 +702,11 @@ internal class FloatingAsrInteractionController(
                                 Log.e(tag, "Failed to preload FireRedASR", e)
                             }
                         }
-                        if (v == AsrVendor.Paraformer && prefs.pfPreloadEnabled) {
+                        if (v == AsrVendor.XAsr && prefs.xAsrPreloadEnabled) {
                             try {
-                                com.brycewg.asrkb.asr.preloadParaformerIfConfigured(context, prefs)
+                                com.brycewg.asrkb.asr.preloadXAsrIfConfigured(context, prefs)
                             } catch (e: Throwable) {
-                                Log.e(tag, "Failed to preload Paraformer", e)
+                                Log.e(tag, "Failed to preload X-ASR", e)
                             }
                         }
                     }

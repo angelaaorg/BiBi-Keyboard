@@ -22,6 +22,6 @@
 
     <string name="notif_punct_title">句読点モデル（60MB,共通）</string>
 
-    <!-- FireRedASR V2/Paraformer 選択・呼び出し時に句読点モデルがない場合の通知 -->
-    <string name="toast_punct_model_missing">ローカルの句読点モデルが見つかりません。FireRedASR V2/Paraformer の認識結果に句読点が付かない場合があります。ASR 設定から共通の句読点モデルをダウンロードできます。</string>
+    <!-- FireRedASR V2 選択・呼び出し時に句読点モデルがない場合の通知 -->
+    <string name="toast_punct_model_missing">ローカルの句読点モデルが見つかりません。FireRedASR V2 の認識結果に句読点が付かない場合があります。ASR 設定から共通の句読点モデルをダウンロードできます。</string>
 </resources>

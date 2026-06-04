@@ -910,10 +910,10 @@ class AsrKeyboardService :
                     ) {
                         com.brycewg.asrkb.asr.unloadFireRedAsrRecognizer()
                     }
-                    if (old == com.brycewg.asrkb.asr.AsrVendor.Paraformer &&
-                        vendor != com.brycewg.asrkb.asr.AsrVendor.Paraformer
+                    if (old == com.brycewg.asrkb.asr.AsrVendor.XAsr &&
+                        vendor != com.brycewg.asrkb.asr.AsrVendor.XAsr
                     ) {
-                        com.brycewg.asrkb.asr.unloadParaformerRecognizer()
+                        com.brycewg.asrkb.asr.unloadXAsrRecognizer()
                     }
                 } catch (t: Throwable) {
                     android.util.Log.e("AsrKeyboardService", "Failed to unload local recognizer", t)
@@ -957,8 +957,8 @@ class AsrKeyboardService :
                                 prefs
                             )
                         }
-                        com.brycewg.asrkb.asr.AsrVendor.Paraformer -> if (prefs.pfPreloadEnabled) {
-                            com.brycewg.asrkb.asr.preloadParaformerIfConfigured(
+                        com.brycewg.asrkb.asr.AsrVendor.XAsr -> if (prefs.xAsrPreloadEnabled) {
+                            com.brycewg.asrkb.asr.preloadXAsrIfConfigured(
                                 this,
                                 prefs
                             )
@@ -1001,7 +1001,7 @@ class AsrKeyboardService :
             AsrVendor.Qwen3Asr -> p.qwPreloadEnabled
             AsrVendor.Parakeet -> p.pkPreloadEnabled
             AsrVendor.FireRedAsr -> p.frPreloadEnabled
-            AsrVendor.Paraformer -> p.pfPreloadEnabled
+            AsrVendor.XAsr -> p.xAsrPreloadEnabled
             else -> false
         }
         if (!enabled) return

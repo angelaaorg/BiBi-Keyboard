@@ -1100,8 +1100,8 @@ class AsrSessionManager(
                     )
                 }
             }
-            AsrVendor.Paraformer -> {
-                ParaformerStreamAsrEngine(context, serviceScope, prefs, engineListener)
+            AsrVendor.XAsr -> {
+                XAsrStreamAsrEngine(context, serviceScope, prefs, engineListener)
             }
         }
     }

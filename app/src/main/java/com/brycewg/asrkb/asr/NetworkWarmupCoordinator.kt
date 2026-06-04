@@ -192,7 +192,7 @@ internal object NetworkWarmupCoordinator {
         AsrVendor.Qwen3Asr,
         AsrVendor.Parakeet,
         AsrVendor.FireRedAsr,
-        AsrVendor.Paraformer -> false
+        AsrVendor.XAsr -> false
     }
 
     private fun resolveAsrTargetForVendor(vendor: AsrVendor, prefs: Prefs): WarmupTarget? = when (vendor) {
@@ -311,7 +311,7 @@ internal object NetworkWarmupCoordinator {
         AsrVendor.Qwen3Asr,
         AsrVendor.Parakeet,
         AsrVendor.FireRedAsr,
-        AsrVendor.Paraformer -> null
+        AsrVendor.XAsr -> null
     }
 
     private fun resolveLlmTarget(prefs: Prefs): WarmupTarget? {

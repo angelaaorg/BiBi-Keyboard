@@ -602,8 +602,8 @@ class ExternalSpeechService : Service() {
             AsrVendor.Volc -> prefs.volcStreamingEnabled
             AsrVendor.DashScope -> prefs.isDashStreamingModelSelected()
             AsrVendor.Soniox -> prefs.sonioxStreamingEnabled
-            // 本地 sherpa-onnx：Paraformer 仅流式；其它本地模型仅非流式
-            AsrVendor.Paraformer -> true
+            // 本地 sherpa-onnx：X-ASR 仅流式；其它本地模型仅非流式
+            AsrVendor.XAsr -> true
             AsrVendor.SenseVoice,
             AsrVendor.FunAsrNano,
             AsrVendor.Qwen3Asr,
@@ -758,7 +758,7 @@ class ExternalSpeechService : Service() {
                     this,
                     onRequestDuration = ::onRequestDuration
                 )
-                AsrVendor.Paraformer -> ParaformerStreamAsrEngine(context, scope, prefs, this)
+                AsrVendor.XAsr -> XAsrStreamAsrEngine(context, scope, prefs, this)
             }
         }
 
@@ -974,8 +974,8 @@ class ExternalSpeechService : Service() {
                         onRequestDuration = ::onRequestDuration
                     )
                 )
-                // 本地：Paraformer 固定流式
-                AsrVendor.Paraformer -> com.brycewg.asrkb.asr.ParaformerStreamAsrEngine(
+                // 本地：X-ASR 固定流式
+                AsrVendor.XAsr -> com.brycewg.asrkb.asr.XAsrStreamAsrEngine(
                     context,
                     scope,
                     prefs,

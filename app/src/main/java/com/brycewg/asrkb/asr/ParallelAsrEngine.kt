@@ -546,7 +546,7 @@ class ParallelAsrEngine(
         AsrVendor.Soniox -> prefs.sonioxStreamingEnabled
         AsrVendor.ElevenLabs -> prefs.elevenStreamingEnabled
         AsrVendor.OpenAI -> prefs.oaAsrStreamingEnabled
-        AsrVendor.Paraformer -> true
+        AsrVendor.XAsr -> true
         else -> false
     }
 
@@ -944,7 +944,7 @@ class ParallelAsrEngine(
                 )
                     .let { wrapPushFileEngine(engineListener, it) }
             }
-            AsrVendor.Paraformer -> ParaformerStreamAsrEngine(
+            AsrVendor.XAsr -> XAsrStreamAsrEngine(
                 context,
                 scope,
                 prefs,

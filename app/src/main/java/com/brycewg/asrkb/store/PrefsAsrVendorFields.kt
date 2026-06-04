@@ -94,8 +94,8 @@ internal object PrefsAsrVendorFields {
         AsrVendor.Parakeet to emptyList(),
         // 本地 FireRedASR（sherpa-onnx）无需鉴权
         AsrVendor.FireRedAsr to emptyList(),
-        // 本地 Paraformer（sherpa-onnx）无需鉴权
-        AsrVendor.Paraformer to emptyList()
+        // 本地 X-ASR（sherpa-onnx）无需鉴权
+        AsrVendor.XAsr to emptyList()
     )
 }
 

@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import android.util.Log
 import androidx.core.content.edit
 import com.brycewg.asrkb.asr.AsrVendor
+import com.brycewg.asrkb.asr.LEGACY_X_ASR_VENDOR_ID
 import com.brycewg.asrkb.store.debug.DebugLogManager
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
@@ -52,6 +53,9 @@ internal object PrefsInitTasks {
         normalizeFireRedVariantIfNeeded(sp)
         cleanupLegacyTelespeechModelsIfNeeded(appContext, sp)
         normalizeBackupAsrTimeoutSensitivityIfNeeded(sp)
+        migrateLegacyLocalStreamingVendorToXAsrIfNeeded(sp)
+        migrateLegacyXAsrPrefsIfNeeded(sp)
+        normalizeXAsrVariantIfNeeded(sp)
         migrateFunAsrFromSenseVoiceIfNeeded(sp)
         ensureFunAsrItnDefaultIfMissing(sp)
         normalizeFunAsrVariantIfNeeded(sp)
@@ -210,6 +214,99 @@ internal object PrefsInitTasks {
             sp.edit { putInt(KEY_BACKUP_ASR_TIMEOUT_SENSITIVITY, normalized) }
         } catch (t: Throwable) {
             Log.w(TAG, "Failed to normalize backup ASR timeout sensitivity", t)
+        }
+    }
+
+    private fun migrateLegacyLocalStreamingVendorToXAsrIfNeeded(sp: SharedPreferences) {
+        try {
+            val currentVendor = sp.getString(KEY_ASR_VENDOR, null)
+            val backupVendor = sp.getString(KEY_BACKUP_ASR_VENDOR, null)
+            if (
+                currentVendor != LEGACY_X_ASR_VENDOR_ID &&
+                backupVendor != LEGACY_X_ASR_VENDOR_ID
+            ) {
+                return
+            }
+
+            sp.edit {
+                if (currentVendor == LEGACY_X_ASR_VENDOR_ID) {
+                    putString(KEY_ASR_VENDOR, AsrVendor.XAsr.id)
+                }
+                if (backupVendor == LEGACY_X_ASR_VENDOR_ID) {
+                    putString(KEY_BACKUP_ASR_VENDOR, AsrVendor.XAsr.id)
+                }
+            }
+        } catch (t: Throwable) {
+            Log.w(TAG, "Failed to migrate legacy local streaming vendor to X-ASR", t)
+        }
+    }
+
+    private fun migrateLegacyXAsrPrefsIfNeeded(sp: SharedPreferences) {
+        try {
+            val hasLegacyPrefs =
+                sp.contains(LEGACY_KEY_X_ASR_MODEL_VARIANT) ||
+                    sp.contains(LEGACY_KEY_X_ASR_NUM_THREADS) ||
+                    sp.contains(LEGACY_KEY_X_ASR_KEEP_ALIVE_MINUTES) ||
+                    sp.contains(LEGACY_KEY_X_ASR_PRELOAD_ENABLED) ||
+                    sp.contains(LEGACY_KEY_X_ASR_USE_ITN)
+            if (!hasLegacyPrefs) return
+
+            sp.edit {
+                if (!sp.contains(KEY_X_ASR_MODEL_VARIANT) &&
+                    sp.contains(LEGACY_KEY_X_ASR_MODEL_VARIANT)
+                ) {
+                    putString(
+                        KEY_X_ASR_MODEL_VARIANT,
+                        sp.getString(LEGACY_KEY_X_ASR_MODEL_VARIANT, "x-asr-480ms")
+                    )
+                }
+                if (!sp.contains(KEY_X_ASR_NUM_THREADS) &&
+                    sp.contains(LEGACY_KEY_X_ASR_NUM_THREADS)
+                ) {
+                    putInt(
+                        KEY_X_ASR_NUM_THREADS,
+                        sp.getInt(LEGACY_KEY_X_ASR_NUM_THREADS, 2).coerceIn(1, 8)
+                    )
+                }
+                if (!sp.contains(KEY_X_ASR_KEEP_ALIVE_MINUTES) &&
+                    sp.contains(LEGACY_KEY_X_ASR_KEEP_ALIVE_MINUTES)
+                ) {
+                    putInt(
+                        KEY_X_ASR_KEEP_ALIVE_MINUTES,
+                        sp.getInt(LEGACY_KEY_X_ASR_KEEP_ALIVE_MINUTES, -1)
+                    )
+                }
+                if (!sp.contains(KEY_X_ASR_PRELOAD_ENABLED) &&
+                    sp.contains(LEGACY_KEY_X_ASR_PRELOAD_ENABLED)
+                ) {
+                    putBoolean(
+                        KEY_X_ASR_PRELOAD_ENABLED,
+                        sp.getBoolean(LEGACY_KEY_X_ASR_PRELOAD_ENABLED, true)
+                    )
+                }
+                if (!sp.contains(KEY_X_ASR_USE_ITN) &&
+                    sp.contains(LEGACY_KEY_X_ASR_USE_ITN)
+                ) {
+                    putBoolean(KEY_X_ASR_USE_ITN, sp.getBoolean(LEGACY_KEY_X_ASR_USE_ITN, true))
+                }
+                remove(LEGACY_KEY_X_ASR_MODEL_VARIANT)
+                remove(LEGACY_KEY_X_ASR_NUM_THREADS)
+                remove(LEGACY_KEY_X_ASR_KEEP_ALIVE_MINUTES)
+                remove(LEGACY_KEY_X_ASR_PRELOAD_ENABLED)
+                remove(LEGACY_KEY_X_ASR_USE_ITN)
+            }
+        } catch (t: Throwable) {
+            Log.w(TAG, "Failed to migrate legacy X-ASR prefs", t)
+        }
+    }
+
+    private fun normalizeXAsrVariantIfNeeded(sp: SharedPreferences) {
+        try {
+            val variant = sp.getString(KEY_X_ASR_MODEL_VARIANT, "x-asr-480ms") ?: "x-asr-480ms"
+            if (variant == "x-asr-480ms") return
+            sp.edit { putString(KEY_X_ASR_MODEL_VARIANT, "x-asr-480ms") }
+        } catch (t: Throwable) {
+            Log.w(TAG, "Failed to normalize X-ASR variant", t)
         }
     }
 

@@ -13,7 +13,7 @@ internal const val LOCAL_MODEL_READY_WAIT_MAX_MS = 60_000L
 
 /**
  * 统一的本地 ASR 预加载入口：根据供应商调用对应实现。
- * - 目前支持 SenseVoice / FunASR Nano / Qwen3-ASR / Parakeet / FireRedASR / Paraformer
+ * - 目前支持 SenseVoice / FunASR Nano / Qwen3-ASR / Parakeet / FireRedASR / X-ASR
  */
 fun preloadLocalAsrIfConfigured(
     context: Context,
@@ -65,7 +65,7 @@ fun preloadLocalAsrIfConfigured(
                 suppressToastOnStart,
                 forImmediateUse
             )
-            AsrVendor.Paraformer -> preloadParaformerIfConfigured(
+            AsrVendor.XAsr -> preloadXAsrIfConfigured(
                 context,
                 prefs,
                 onLoadStart,
@@ -120,7 +120,7 @@ fun isLocalAsrPrepared(prefs: Prefs): Boolean = try {
         AsrVendor.Qwen3Asr -> isQwen3AsrPrepared()
         AsrVendor.Parakeet -> isParakeetPrepared()
         AsrVendor.FireRedAsr -> isFireRedAsrPrepared()
-        AsrVendor.Paraformer -> isParaformerPrepared()
+        AsrVendor.XAsr -> isXAsrPrepared()
         else -> false
     }
 } catch (t: Throwable) {
@@ -138,7 +138,7 @@ fun isLocalAsrVendor(vendor: AsrVendor): Boolean = when (vendor) {
     AsrVendor.Qwen3Asr,
     AsrVendor.Parakeet,
     AsrVendor.FireRedAsr,
-    AsrVendor.Paraformer -> true
+    AsrVendor.XAsr -> true
     else -> false
 }
 
@@ -168,8 +168,8 @@ fun isLocalAsrReady(prefs: Prefs): Boolean = try {
             val manager = FireRedAsrOnnxManager.getInstance()
             manager.isPrepared() && !manager.isPreparing()
         }
-        AsrVendor.Paraformer -> {
-            val manager = ParaformerOnnxManager.getInstance()
+        AsrVendor.XAsr -> {
+            val manager = XAsrOnnxManager.getInstance()
             manager.isPrepared() && !manager.isPreparing()
         }
         else -> false

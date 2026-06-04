@@ -316,7 +316,7 @@ class FloatingAsrService : Service() {
             AsrVendor.Qwen3Asr -> prefs.qwPreloadEnabled
             AsrVendor.Parakeet -> prefs.pkPreloadEnabled
             AsrVendor.FireRedAsr -> prefs.frPreloadEnabled
-            AsrVendor.Paraformer -> prefs.pfPreloadEnabled
+            AsrVendor.XAsr -> prefs.xAsrPreloadEnabled
             else -> false
         }
         if (!enabled) return

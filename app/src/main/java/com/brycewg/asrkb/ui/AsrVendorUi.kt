@@ -26,7 +26,7 @@ object AsrVendorUi {
         AsrVendor.Qwen3Asr,
         AsrVendor.Parakeet,
         AsrVendor.FireRedAsr,
-        AsrVendor.Paraformer
+        AsrVendor.XAsr
     )
 
     /** 指定 vendor 的多语言显示名 */
@@ -47,7 +47,7 @@ object AsrVendorUi {
         AsrVendor.Qwen3Asr -> context.getString(R.string.vendor_qwen3_asr)
         AsrVendor.Parakeet -> context.getString(R.string.vendor_parakeet)
         AsrVendor.FireRedAsr -> context.getString(R.string.vendor_firered_asr)
-        AsrVendor.Paraformer -> context.getString(R.string.vendor_paraformer)
+        AsrVendor.XAsr -> context.getString(R.string.vendor_x_asr)
     }
 
     /** 指定 vendor 的标签（用于选择器展示；可后续按需调整） */
@@ -141,9 +141,10 @@ object AsrVendorUi {
             AsrVendorTag.NonStreaming,
             AsrVendorTag.PseudoStreaming
         )
-        AsrVendor.Paraformer -> listOf(
+        AsrVendor.XAsr -> listOf(
             AsrVendorTag.Local,
-            AsrVendorTag.Streaming
+            AsrVendorTag.Streaming,
+            AsrVendorTag.Accurate
         )
     }
 

@@ -22,6 +22,6 @@
 
     <string name="notif_punct_title">Punctuation model (60MB, shared)</string>
 
-    <!-- Toast when punctuation model is missing for FireRedASR V2/Paraformer -->
-    <string name="toast_punct_model_missing">No local punctuation model detected. FireRedASR V2/Paraformer results may lack punctuation. You can download the shared punctuation model in ASR settings.</string>
+    <!-- Toast when punctuation model is missing for FireRedASR V2 -->
+    <string name="toast_punct_model_missing">No local punctuation model detected. FireRedASR V2 results may lack punctuation. You can download the shared punctuation model in ASR settings.</string>
 </resources>

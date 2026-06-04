@@ -99,14 +99,13 @@ internal fun CurrentLocalAsrVendorConfig(
             primaryGroupCount = primaryGroupCount
         )
 
-        AsrVendor.Paraformer -> ParaformerConfig(
+        AsrVendor.XAsr -> XAsrConfig(
             uiMode = uiMode,
             uiState = uiState,
             localModelState = localModelState,
             viewModel = viewModel,
             hapticTap = hapticTap,
             onOpenGuide = onOpenGuide,
-            onOpenPunctuationGuide = onOpenPunctuationGuide,
             primaryIndexOffset = primaryIndexOffset,
             primaryGroupCount = primaryGroupCount
         )
@@ -562,85 +561,82 @@ private fun FireRedAsrConfig(
 }
 
 @Composable
-private fun ParaformerConfig(
+private fun XAsrConfig(
     uiMode: BibiUiMode,
     uiState: AsrSettingsUiState,
     localModelState: AsrLocalModelRouteState,
     viewModel: AsrSettingsViewModel,
     hapticTap: () -> Unit,
     onOpenGuide: () -> Unit,
-    onOpenPunctuationGuide: () -> Unit,
     primaryIndexOffset: Int = 0,
     primaryGroupCount: Int? = null
 ) {
     var itemIndex = primaryIndexOffset
-    val itemCount = primaryGroupCount ?: localAsrPrimaryItemCount(AsrVendor.Paraformer)
+    val itemCount = primaryGroupCount ?: localAsrPrimaryItemCount(AsrVendor.XAsr)
     LocalModelVariantPreference(
         uiMode = uiMode,
-        spec = ParaformerModelSpec,
+        spec = XAsrModelSpec,
         uiState = uiState,
         localModelState = localModelState,
         index = itemIndex++,
         count = itemCount,
         onVariantChange = {
             hapticTap()
-            viewModel.updatePfModelVariant(it)
+            viewModel.updateXAsrModelVariant(it)
             localModelState.onRefresh()
         }
     )
     AsrSliderPreference(
-        titleRes = R.string.label_pf_threads,
-        valueLabel = uiState.pfNumThreads.toString(),
-        value = uiState.pfNumThreads.toFloat(),
+        titleRes = R.string.label_x_asr_threads,
+        valueLabel = uiState.xAsrNumThreads.toString(),
+        value = uiState.xAsrNumThreads.toFloat(),
         valueRange = 1f..8f,
         steps = 6,
         uiMode = uiMode,
         index = itemIndex++,
         count = itemCount,
-        onValueChange = { viewModel.updatePfNumThreads(it.toInt()) },
+        onValueChange = { viewModel.updateXAsrNumThreads(it.toInt()) },
         onValueChangeFinished = hapticTap
     )
     AsrSwitchPreference(
-        id = "pf_preload",
-        titleRes = R.string.label_pf_preload,
-        checked = uiState.pfPreloadEnabled,
+        id = "x_asr_preload",
+        titleRes = R.string.label_x_asr_preload,
+        checked = uiState.xAsrPreloadEnabled,
         index = itemIndex++,
         count = itemCount,
         onCheckedChange = {
             hapticTap()
-            viewModel.updatePfPreload(it)
+            viewModel.updateXAsrPreload(it)
         }
     )
     AsrSwitchPreference(
-        id = "pf_use_itn",
-        titleRes = R.string.label_pf_use_itn,
-        checked = uiState.pfUseItn,
+        id = "x_asr_use_itn",
+        titleRes = R.string.label_x_asr_use_itn,
+        checked = uiState.xAsrUseItn,
         index = itemIndex++,
         count = itemCount,
         onCheckedChange = {
             hapticTap()
-            viewModel.updatePfUseItn(it)
+            viewModel.updateXAsrUseItn(it)
         }
     )
     KeepAlivePreference(
-        titleRes = R.string.label_pf_keep_alive,
-        selectedMinutes = uiState.pfKeepAliveMinutes,
+        titleRes = R.string.label_x_asr_keep_alive,
+        selectedMinutes = uiState.xAsrKeepAliveMinutes,
         index = itemIndex,
         count = itemCount,
         onSelected = {
             hapticTap()
-            viewModel.updatePfKeepAlive(it)
+            viewModel.updateXAsrKeepAlive(it)
         }
     )
-    AsrBodyText(uiMode = uiMode, textRes = R.string.pf_model_info)
     LocalModelOperations(
         uiMode = uiMode,
-        spec = ParaformerModelSpec,
+        spec = XAsrModelSpec,
         uiState = uiState,
         localModelState = localModelState,
         onOpenGuide = onOpenGuide
     )
-    PunctuationModelManager(uiMode, uiState, localModelState, onOpenPunctuationGuide)
 }
 
 @Composable
@@ -808,7 +804,7 @@ internal fun localAsrPrimaryItemCount(selectedVendor: AsrVendor): Int = when (se
     AsrVendor.Qwen3Asr -> 5
     AsrVendor.Parakeet -> 4
     AsrVendor.FireRedAsr -> 6
-    AsrVendor.Paraformer -> 5
+    AsrVendor.XAsr -> 5
     else -> 0
 }
 

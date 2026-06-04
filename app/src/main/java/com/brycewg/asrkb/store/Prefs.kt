@@ -1232,31 +1232,51 @@ class Prefs(context: Context) {
         get() = sp.getBoolean(KEY_FR_PSEUDO_STREAM_ENABLED, false)
         set(value) = sp.edit { putBoolean(KEY_FR_PSEUDO_STREAM_ENABLED, value) }
 
-    // Paraformer（本地 ASR）
-    var pfModelVariant: String
-        get() = sp.getString(KEY_PF_MODEL_VARIANT, "bilingual-int8") ?: "bilingual-int8"
+    // X-ASR（本地 ASR）
+    var xAsrModelVariant: String
+        get() = sp.getString(KEY_X_ASR_MODEL_VARIANT, null)
+            ?: sp.getString(LEGACY_KEY_X_ASR_MODEL_VARIANT, null)
+            ?: "x-asr-480ms"
         set(
         value
         ) = sp.edit {
-            putString(KEY_PF_MODEL_VARIANT, value.trim().ifBlank { "bilingual-int8" })
+            putString(KEY_X_ASR_MODEL_VARIANT, value.trim().ifBlank { "x-asr-480ms" })
         }
 
-    var pfNumThreads: Int
-        get() = sp.getInt(KEY_PF_NUM_THREADS, 2).coerceIn(1, 8)
-        set(value) = sp.edit { putInt(KEY_PF_NUM_THREADS, value.coerceIn(1, 8)) }
+    var xAsrNumThreads: Int
+        get() = (
+            if (sp.contains(KEY_X_ASR_NUM_THREADS)) {
+                sp.getInt(KEY_X_ASR_NUM_THREADS, 2)
+            } else {
+                sp.getInt(LEGACY_KEY_X_ASR_NUM_THREADS, 2)
+            }
+            ).coerceIn(1, 8)
+        set(value) = sp.edit { putInt(KEY_X_ASR_NUM_THREADS, value.coerceIn(1, 8)) }
 
-    var pfKeepAliveMinutes: Int
-        get() = sp.getInt(KEY_PF_KEEP_ALIVE_MINUTES, -1)
-        set(value) = sp.edit { putInt(KEY_PF_KEEP_ALIVE_MINUTES, value) }
+    var xAsrKeepAliveMinutes: Int
+        get() = if (sp.contains(KEY_X_ASR_KEEP_ALIVE_MINUTES)) {
+            sp.getInt(KEY_X_ASR_KEEP_ALIVE_MINUTES, -1)
+        } else {
+            sp.getInt(LEGACY_KEY_X_ASR_KEEP_ALIVE_MINUTES, -1)
+        }
+        set(value) = sp.edit { putInt(KEY_X_ASR_KEEP_ALIVE_MINUTES, value) }
 
-    var pfPreloadEnabled: Boolean
-        get() = sp.getBoolean(KEY_PF_PRELOAD_ENABLED, true)
-        set(value) = sp.edit { putBoolean(KEY_PF_PRELOAD_ENABLED, value) }
+    var xAsrPreloadEnabled: Boolean
+        get() = if (sp.contains(KEY_X_ASR_PRELOAD_ENABLED)) {
+            sp.getBoolean(KEY_X_ASR_PRELOAD_ENABLED, true)
+        } else {
+            sp.getBoolean(LEGACY_KEY_X_ASR_PRELOAD_ENABLED, true)
+        }
+        set(value) = sp.edit { putBoolean(KEY_X_ASR_PRELOAD_ENABLED, value) }
 
-    // Paraformer: ITN 开关（反向文本规范化）
-    var pfUseItn: Boolean
-        get() = sp.getBoolean(KEY_PF_USE_ITN, true)
-        set(value) = sp.edit { putBoolean(KEY_PF_USE_ITN, value) }
+    // X-ASR: ITN 开关（反向文本规范化）
+    var xAsrUseItn: Boolean
+        get() = if (sp.contains(KEY_X_ASR_USE_ITN)) {
+            sp.getBoolean(KEY_X_ASR_USE_ITN, true)
+        } else {
+            sp.getBoolean(LEGACY_KEY_X_ASR_USE_ITN, true)
+        }
+        set(value) = sp.edit { putBoolean(KEY_X_ASR_USE_ITN, value) }
 
     // Zipformer 模型清理标记（移除 Zipformer 支持后仅执行一次）
     var zipformerCleanupDone: Boolean

@@ -15,10 +15,10 @@ import com.brycewg.asrkb.asr.normalizeParakeetVariant
 import com.brycewg.asrkb.asr.normalizeQwen3AsrVariant
 import com.brycewg.asrkb.asr.unloadFireRedAsrRecognizer
 import com.brycewg.asrkb.asr.unloadFunAsrNanoRecognizer
-import com.brycewg.asrkb.asr.unloadParaformerRecognizer
 import com.brycewg.asrkb.asr.unloadParakeetRecognizer
 import com.brycewg.asrkb.asr.unloadQwen3AsrRecognizer
 import com.brycewg.asrkb.asr.unloadSenseVoiceRecognizer
+import com.brycewg.asrkb.asr.unloadXAsrRecognizer
 import com.brycewg.asrkb.store.Prefs
 import com.brycewg.asrkb.ui.settings.asr.AsrSettingsUiState
 import com.brycewg.asrkb.ui.settings.asr.AsrSettingsViewModel
@@ -244,43 +244,35 @@ internal val FireRedAsrModelSpec = AsrLocalModelSpec(
     }
 )
 
-internal val ParaformerModelSpec = AsrLocalModelSpec(
-    key = "paraformer",
-    vendor = AsrVendor.Paraformer,
-    modelType = "paraformer",
-    importModelType = null,
-    variantLabelRes = R.string.label_pf_model_variant,
-    downloadButtonRes = R.string.btn_pf_download_model,
-    importButtonRes = R.string.btn_pf_import_model,
-    clearButtonRes = R.string.btn_pf_clear_model,
-    doneStatusRes = R.string.pf_download_status_done,
-    failedStatusRes = R.string.pf_download_status_failed,
-    downloadStartedRes = R.string.pf_download_started_in_bg,
-    importStartedRes = R.string.pf_import_started_in_bg,
-    clearTitleRes = R.string.pf_clear_confirm_title,
-    clearMessageRes = R.string.pf_clear_confirm_message,
-    clearDoneRes = R.string.pf_clear_done,
-    clearFailedRes = R.string.pf_clear_failed,
+internal val XAsrModelSpec = AsrLocalModelSpec(
+    key = "x_asr",
+    vendor = AsrVendor.XAsr,
+    modelType = "x_asr",
+    importModelType = "x_asr",
+    variantLabelRes = R.string.label_x_asr_model_variant,
+    downloadButtonRes = R.string.btn_x_asr_download_model,
+    importButtonRes = R.string.btn_x_asr_import_model,
+    clearButtonRes = R.string.btn_x_asr_clear_model,
+    doneStatusRes = R.string.x_asr_download_status_done,
+    failedStatusRes = R.string.x_asr_download_status_failed,
+    downloadStartedRes = R.string.x_asr_download_started_in_bg,
+    importStartedRes = R.string.x_asr_import_started_in_bg,
+    clearTitleRes = R.string.x_asr_clear_confirm_title,
+    clearMessageRes = R.string.x_asr_clear_confirm_message,
+    clearDoneRes = R.string.x_asr_clear_done,
+    clearFailedRes = R.string.x_asr_clear_failed,
     variants = listOf(
-        AsrLocalChoice("bilingual-int8", R.string.pf_variant_bilingual_int8),
-        AsrLocalChoice("bilingual-fp32", R.string.pf_variant_bilingual_fp32),
-        AsrLocalChoice("trilingual-int8", R.string.pf_variant_trilingual_int8),
-        AsrLocalChoice("trilingual-fp32", R.string.pf_variant_trilingual_fp32)
+        AsrLocalChoice("x-asr-480ms", R.string.x_asr_variant_480ms)
     ),
-    currentVariant = { it.pfModelVariant },
-    downloadUrl = { variant ->
-        if (variant.startsWith("trilingual")) {
-            "https://github.com/BryceWG/BiBi-Keyboard/releases/download/models/sherpa-onnx-streaming-paraformer-trilingual-zh-cantonese-en.zip"
-        } else {
-            "https://github.com/BryceWG/BiBi-Keyboard/releases/download/models/sherpa-onnx-streaming-paraformer-bilingual-zh-en.zip"
-        }
+    currentVariant = { "x-asr-480ms" },
+    downloadUrl = {
+        "https://github.com/BryceWG/BiBi-Keyboard/releases/download/models/sherpa-onnx-streaming-x-asr-480ms-zh-en.zip"
     },
-    isReady = { viewModel, context -> viewModel.checkPfModelDownloaded(context) },
-    clearInstalled = { context, prefs ->
+    isReady = { viewModel, context -> viewModel.checkXAsrModelDownloaded(context) },
+    clearInstalled = { context, _ ->
         val base = context.getExternalFilesDir(null) ?: context.filesDir
-        val group = if (prefs.pfModelVariant.startsWith("trilingual")) "trilingual" else "bilingual"
-        File(File(base, "paraformer"), group).deleteIfExists()
-        unloadParaformerRecognizer()
+        File(base, "x_asr").deleteIfExists()
+        unloadXAsrRecognizer()
         true
     }
 )
@@ -319,7 +311,7 @@ internal val AllAsrLocalModelSpecs = listOf(
     Qwen3AsrModelSpec,
     ParakeetModelSpec,
     FireRedAsrModelSpec,
-    ParaformerModelSpec,
+    XAsrModelSpec,
     PunctuationModelSpec
 )
 

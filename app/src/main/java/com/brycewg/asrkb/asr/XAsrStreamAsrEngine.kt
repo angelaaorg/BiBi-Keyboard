@@ -1,3 +1,4 @@
+// X-ASR local streaming engine and sherpa-onnx reflection adapter.
 package com.brycewg.asrkb.asr
 
 import android.Manifest
@@ -27,12 +28,12 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 /**
- * 基于 sherpa-onnx OnlineRecognizer 的本地 Paraformer 流式识别引擎。
+ * 基于 sherpa-onnx OnlineRecognizer 的本地 X-ASR 流式识别引擎。
  * - 反射调用 sherpa-onnx Kotlin API，避免编译期强耦合。
  * - 录音分片（默认200ms），送入在线流；每次分片后尽可能 decode，并节流发送 partial。
  * - 停止时写入尾部静音 + inputFinished + 完整 decode 输出最终结果。
  */
-class ParaformerStreamAsrEngine(
+class XAsrStreamAsrEngine(
     private val context: Context,
     private val scope: CoroutineScope,
     private val prefs: Prefs,
@@ -42,7 +43,7 @@ class ParaformerStreamAsrEngine(
     ExternalPcmConsumer {
 
     companion object {
-        private const val TAG = "ParaformerStreamAsrEngine"
+        private const val TAG = "XAsrStreamAsrEngine"
         private const val FRAME_MS = 200
     }
 
@@ -53,9 +54,8 @@ class ParaformerStreamAsrEngine(
 
     @Volatile private var useItnForSession: Boolean = false
 
-    @Volatile private var punctuationThreadsForSession: Int = 1
     private var audioJob: Job? = null
-    private val mgr = ParaformerOnnxManager.getInstance()
+    private val mgr = XAsrOnnxManager.getInstance()
 
     @Volatile private var currentStream: Any? = null
     private val streamMutex = Mutex()
@@ -89,7 +89,7 @@ class ParaformerStreamAsrEngine(
         loggedAudioBytes.set(0)
         streamLog = LocalAsrCallLogger.startInference(
             prefs = prefs,
-            vendor = AsrVendor.Paraformer,
+            vendor = AsrVendor.XAsr,
             source = if (externalPcmMode) "external_pcm_stream" else "streaming",
             audioBytes = 0,
             sampleRate = sampleRate
@@ -116,25 +116,11 @@ class ParaformerStreamAsrEngine(
         }
 
         useItnForSession = try {
-            prefs.pfUseItn
+            prefs.xAsrUseItn
         } catch (t: Throwable) {
-            Log.w(TAG, "Failed to read pfUseItn", t)
+            Log.w(TAG, "Failed to read xAsrUseItn", t)
             false
         }
-        punctuationThreadsForSession = try {
-            prefs.pfNumThreads
-        } catch (t: Throwable) {
-            Log.w(TAG, "Failed to read pfNumThreads", t)
-            1
-        }.coerceAtLeast(1)
-
-        // 若通用标点模型未安装，给出一次性提示（不阻断识别）
-        try {
-            SherpaPunctuationManager.maybeWarnModelMissing(context)
-        } catch (t: Throwable) {
-            Log.w(TAG, "Failed to warn punctuation model missing", t)
-        }
-
         running.set(true)
         lastEmitUptimeMs = 0L
         lastEmittedText = null
@@ -143,66 +129,31 @@ class ParaformerStreamAsrEngine(
         if (!externalPcmMode) startCapture()
         scope.launch(Dispatchers.Default) {
             val base = context.getExternalFilesDir(null) ?: context.filesDir
-            val root = java.io.File(base, "paraformer")
-            val isTri = prefs.pfModelVariant.startsWith("trilingual")
-            val group = if (isTri) {
-                java.io.File(
-                    root,
-                    "trilingual"
-                )
-            } else {
-                java.io.File(root, "bilingual")
-            }
-            val dir = findPfModelDir(group)
-            if (dir == null) {
-                val msg = context.getString(R.string.error_paraformer_model_missing)
+            val files = findXAsrModelFiles(java.io.File(base, "x_asr"))
+            if (files == null) {
+                val msg = context.getString(R.string.error_x_asr_model_missing)
                 failStreamLog(msg)
                 listener.onError(msg)
                 running.set(false)
                 return@launch
             }
 
-            val tokensPath = java.io.File(dir, "tokens.txt").absolutePath
-            val int8 = prefs.pfModelVariant.contains("int8")
-            val enc = if (int8) {
-                java.io.File(
-                    dir,
-                    "encoder.int8.onnx"
-                )
-            } else {
-                java.io.File(dir, "encoder.onnx")
-            }
-            val dec = if (int8) {
-                java.io.File(
-                    dir,
-                    "decoder.int8.onnx"
-                )
-            } else {
-                java.io.File(dir, "decoder.onnx")
-            }
-            if (!enc.exists() || !dec.exists()) {
-                val msg = context.getString(R.string.error_paraformer_model_missing)
-                failStreamLog(msg)
-                listener.onError(msg)
-                running.set(false)
-                return@launch
-            }
-
-            val keepMinutes = prefs.pfKeepAliveMinutes
+            val keepMinutes = prefs.xAsrKeepAliveMinutes
             val keepMs = if (keepMinutes <= 0) 0L else keepMinutes.toLong() * 60_000L
             val alwaysKeep = keepMinutes < 0
 
             val ok = mgr.prepare(
-                tokens = tokensPath,
-                encoder = enc.absolutePath,
-                decoder = dec.absolutePath,
-                numThreads = prefs.pfNumThreads,
+                tokens = files.tokens.absolutePath,
+                encoder = files.encoder.absolutePath,
+                decoder = files.decoder.absolutePath,
+                joiner = files.joiner.absolutePath,
+                numThreads = prefs.xAsrNumThreads,
                 keepAliveMs = keepMs,
                 alwaysKeep = alwaysKeep,
                 onLoadStart = {
                     loadLog = LocalAsrCallLogger.startLoad(
                         prefs = prefs,
-                        vendor = AsrVendor.Paraformer,
+                        vendor = AsrVendor.XAsr,
                         source = "streaming_load"
                     )
                     notifyLoadUi(true)
@@ -214,10 +165,10 @@ class ParaformerStreamAsrEngine(
                 }
             )
             if (!ok) {
-                Log.w(TAG, "Paraformer prepare() failed")
+                Log.w(TAG, "X-ASR prepare() failed")
                 loadLog?.failure("prepare returned false")
                 loadLog = null
-                failStreamLog("Paraformer prepare returned false")
+                failStreamLog("X-ASR prepare returned false")
                 running.set(false)
                 return@launch
             }
@@ -379,7 +330,7 @@ class ParaformerStreamAsrEngine(
             }
 
             try {
-                Log.d(TAG, "Starting audio capture for Paraformer with chunk=${chunkMillis}ms")
+                Log.d(TAG, "Starting audio capture for X-ASR with chunk=${chunkMillis}ms")
                 audioManager.startCapture().collect { audioChunk ->
                     if (!running.get() && currentStream == null) return@collect
                     if (audioChunk.isNotEmpty()) {
@@ -510,8 +461,7 @@ class ParaformerStreamAsrEngine(
         // 节流发送 partial
         val now = SystemClock.uptimeMillis()
         if (!partial.isNullOrBlank() && running.get() && !closing.get()) {
-            val trimmed = partial!!.trim()
-            val normalized = if (useItnForSession) ChineseItn.normalize(trimmed) else trimmed
+            val normalized = formatXAsrText(partial, useItnForSession)
             val needEmit = (now - lastEmitUptimeMs) >= FRAME_MS && normalized != lastEmittedText
             if (needEmit) {
                 try {
@@ -554,21 +504,8 @@ class ParaformerStreamAsrEngine(
             }
             currentStream = null
         }
-        var out = text?.trim().orEmpty()
+        val out = formatXAsrText(text.orEmpty(), useItnForSession)
         if (out.isEmpty()) return out
-        if (useItnForSession) {
-            out = ChineseItn.normalize(out)
-        }
-        out = try {
-            SherpaPunctuationManager.getInstance().addOfflinePunctuation(
-                context = context,
-                text = out,
-                numThreads = punctuationThreadsForSession
-            )
-        } catch (t: Throwable) {
-            Log.e(TAG, "Failed to apply offline punctuation", t)
-            out
-        }
         return out
     }
 
@@ -634,39 +571,117 @@ class ParaformerStreamAsrEngine(
 }
 
 /**
- * 查找 Paraformer 模型目录：在 root 下寻找包含 tokens.txt 且存在 encoder/decoder(onxx/int8.onnx) 的目录。
+ * 查找 X-ASR 480ms 模型目录：tokens.txt、encoder-480ms、decoder-480ms、joiner-480ms 必须同目录。
  */
-fun findPfModelDir(root: java.io.File?): java.io.File? {
-    if (root == null || !root.exists()) return null
-    fun validDir(d: java.io.File): Boolean {
-        if (!d.exists() || !d.isDirectory) return false
-        val tokens = java.io.File(d, "tokens.txt")
-        if (!tokens.exists()) return false
-        val e1 = java.io.File(d, "encoder.onnx")
-        val d1 = java.io.File(d, "decoder.onnx")
-        val e2 = java.io.File(d, "encoder.int8.onnx")
-        val d2 = java.io.File(d, "decoder.int8.onnx")
-        return (e1.exists() && d1.exists()) || (e2.exists() && d2.exists())
+fun findXAsrModelDir(root: java.io.File?): java.io.File? = findXAsrModelFiles(root)?.dir
+
+internal data class XAsrModelFiles(
+    val dir: java.io.File,
+    val tokens: java.io.File,
+    val encoder: java.io.File,
+    val decoder: java.io.File,
+    val joiner: java.io.File
+)
+
+internal fun findXAsrModelFiles(root: java.io.File?): XAsrModelFiles? {
+    if (root == null || !root.exists() || !root.isDirectory) return null
+
+    fun filesIn(dir: java.io.File): XAsrModelFiles? {
+        val files = XAsrModelFiles(
+            dir = dir,
+            tokens = java.io.File(dir, "tokens.txt"),
+            encoder = java.io.File(dir, "encoder-480ms.onnx"),
+            decoder = java.io.File(dir, "decoder-480ms.onnx"),
+            joiner = java.io.File(dir, "joiner-480ms.onnx")
+        )
+        return if (
+            files.tokens.exists() &&
+            files.encoder.exists() &&
+            files.decoder.exists() &&
+            files.joiner.exists()
+        ) {
+            files
+        } else {
+            null
+        }
     }
-    if (validDir(root)) return root
+
+    filesIn(root)?.let { return it }
     val subs = root.listFiles() ?: return null
-    subs.forEach { f -> if (f.isDirectory && validDir(f)) return f }
+    subs.forEach { child ->
+        if (child.isDirectory && child.name != "__MACOSX" && !child.name.startsWith(".")) {
+            findXAsrModelFiles(child)?.let { return it }
+        }
+    }
     return null
 }
 
 /**
- * 释放 Paraformer 识别器（供设置页或切换供应商时手工卸载）
+ * 释放 X-ASR 识别器（供设置页或切换供应商时手工卸载）
  */
-fun unloadParaformerRecognizer() {
+fun unloadXAsrRecognizer() {
     LocalModelLoadCoordinator.cancel()
-    ParaformerOnnxManager.getInstance().unload()
+    XAsrOnnxManager.getInstance().unload()
 }
 
-// 判断是否已有缓存的本地 Paraformer 识别器（已加载或正在加载中）
-fun isParaformerPrepared(): Boolean {
-    val manager = ParaformerOnnxManager.getInstance()
+// 判断是否已有缓存的本地 X-ASR 识别器（已加载或正在加载中）
+fun isXAsrPrepared(): Boolean {
+    val manager = XAsrOnnxManager.getInstance()
     return manager.isPrepared() || manager.isPreparing()
 }
+
+private const val X_ASR_CJK_PUNCT = "，。！？；：、（）《》〈〉【】「」『』“”‘’"
+private const val X_ASR_ASCII_PUNCT_NO_LEADING_SPACE = ",.!?;:%)]}"
+
+private fun formatXAsrText(text: String, useItn: Boolean): String {
+    var out = normalizeXAsrCjkSpacing(text.trim())
+    if (useItn && out.isNotEmpty()) {
+        out = normalizeXAsrCjkSpacing(ChineseItn.normalize(out))
+    }
+    return out
+}
+
+private fun normalizeXAsrCjkSpacing(text: String): String {
+    if (text.isEmpty()) return text
+    val chars = text.toCharArray()
+    val out = StringBuilder(text.length)
+    var i = 0
+    while (i < chars.size) {
+        val ch = chars[i]
+        if (ch.isWhitespace()) {
+            val prev = out.lastOrNull()
+            var j = i + 1
+            while (j < chars.size && chars[j].isWhitespace()) {
+                j++
+            }
+            val next = chars.getOrNull(j)
+            val dropCjkSpace = prev != null &&
+                next != null &&
+                isXAsrCjkOrPunct(prev) &&
+                isXAsrCjkOrPunct(next)
+            val dropBeforeAsciiPunct = next != null &&
+                X_ASR_ASCII_PUNCT_NO_LEADING_SPACE.indexOf(next) >= 0
+            if (!dropCjkSpace && !dropBeforeAsciiPunct) {
+                var k = i
+                while (k < j) {
+                    out.append(chars[k])
+                    k++
+                }
+            }
+            i = j
+            continue
+        }
+        out.append(ch)
+        i++
+    }
+    return out.toString()
+}
+
+private fun isXAsrCjkOrPunct(ch: Char): Boolean = isXAsrCjk(ch) || X_ASR_CJK_PUNCT.indexOf(ch) >= 0
+
+private fun isXAsrCjk(ch: Char): Boolean = ch in '\u3400'..'\u4DBF' ||
+    ch in '\u4E00'..'\u9FFF' ||
+    ch in '\uF900'..'\uFAFF'
 
 // ===== 反射式在线识别管理器 =====
 
@@ -774,13 +789,13 @@ private class ReflectiveOnlineRecognizer(private val instance: Any, private val 
     }
 }
 
-class ParaformerOnnxManager private constructor() {
+class XAsrOnnxManager private constructor() {
     companion object {
-        private const val TAG = "ParaformerOnnxManager"
+        private const val TAG = "XAsrOnnxManager"
 
-        @Volatile private var instance: ParaformerOnnxManager? = null
-        fun getInstance(): ParaformerOnnxManager = instance ?: synchronized(this) {
-            instance ?: ParaformerOnnxManager().also { instance = it }
+        @Volatile private var instance: XAsrOnnxManager? = null
+        fun getInstance(): XAsrOnnxManager = instance ?: synchronized(this) {
+            instance ?: XAsrOnnxManager().also { instance = it }
         }
     }
 
@@ -800,7 +815,7 @@ class ParaformerOnnxManager private constructor() {
 
     @Volatile private var clsOnlineModelConfig: Class<*>? = null
 
-    @Volatile private var clsOnlineParaformerModelConfig: Class<*>? = null
+    @Volatile private var clsOnlineTransducerModelConfig: Class<*>? = null
 
     @Volatile private var clsFeatureConfig: Class<*>? = null
 
@@ -864,8 +879,8 @@ class ParaformerOnnxManager private constructor() {
             clsOnlineRecognizerConfig =
                 Class.forName("com.k2fsa.sherpa.onnx.OnlineRecognizerConfig")
             clsOnlineModelConfig = Class.forName("com.k2fsa.sherpa.onnx.OnlineModelConfig")
-            clsOnlineParaformerModelConfig =
-                Class.forName("com.k2fsa.sherpa.onnx.OnlineParaformerModelConfig")
+            clsOnlineTransducerModelConfig =
+                Class.forName("com.k2fsa.sherpa.onnx.OnlineTransducerModelConfig")
             clsFeatureConfig = Class.forName("com.k2fsa.sherpa.onnx.FeatureConfig")
             Log.d(TAG, "Initialized reflection classes for online recognizer")
         }
@@ -877,8 +892,10 @@ class ParaformerOnnxManager private constructor() {
         val tokens: String,
         val encoder: String,
         val decoder: String,
+        val joiner: String,
         val numThreads: Int,
         val provider: String = "cpu",
+        val modelType: String = "zipformer2",
         val sampleRate: Int = 16000,
         val featureDim: Int = 80,
         val debug: Boolean = false
@@ -887,8 +904,10 @@ class ParaformerOnnxManager private constructor() {
             tokens,
             encoder,
             decoder,
+            joiner,
             numThreads,
             provider,
+            modelType,
             sampleRate,
             featureDim,
             debug
@@ -899,22 +918,26 @@ class ParaformerOnnxManager private constructor() {
         tokens: String,
         encoder: String,
         decoder: String,
+        joiner: String,
         numThreads: Int,
         provider: String,
+        modelType: String,
         debug: Boolean
     ): Any {
-        val para = clsOnlineParaformerModelConfig!!.getDeclaredConstructor(
+        val transducer = clsOnlineTransducerModelConfig!!.getDeclaredConstructor(
+            String::class.java,
             String::class.java,
             String::class.java
         )
-            .newInstance(encoder, decoder)
+            .newInstance(encoder, decoder, joiner)
         val model = clsOnlineModelConfig!!.getDeclaredConstructor().newInstance()
-        // OnlineModelConfig: tokens/numThreads/provider/debug/paraformer
+        // Android sherpa-onnx exposes Python from_transducer(...) through OnlineModelConfig.transducer.
         trySetField(model, "tokens", tokens)
         trySetField(model, "numThreads", numThreads)
         trySetField(model, "provider", provider)
+        trySetField(model, "modelType", modelType)
         trySetField(model, "debug", debug)
-        trySetField(model, "paraformer", para)
+        trySetField(model, "transducer", transducer)
         return model
     }
 
@@ -931,8 +954,10 @@ class ParaformerOnnxManager private constructor() {
                 config.tokens,
                 config.encoder,
                 config.decoder,
+                config.joiner,
                 config.numThreads,
                 config.provider,
+                config.modelType,
                 config.debug
             )
         val feat = buildFeatureConfig(config.sampleRate, config.featureDim)
@@ -941,7 +966,7 @@ class ParaformerOnnxManager private constructor() {
         trySetField(rec, "modelConfig", model)
         trySetField(rec, "featConfig", feat)
         trySetField(rec, "decodingMethod", "greedy_search")
-        trySetField(rec, "enableEndpoint", true)
+        trySetField(rec, "enableEndpoint", false)
         trySetField(rec, "maxActivePaths", 4)
         return rec
     }
@@ -958,6 +983,7 @@ class ParaformerOnnxManager private constructor() {
         tokens: String,
         encoder: String,
         decoder: String,
+        joiner: String,
         numThreads: Int,
         keepAliveMs: Long,
         alwaysKeep: Boolean,
@@ -969,7 +995,7 @@ class ParaformerOnnxManager private constructor() {
             unloadJob?.cancel()
             unloadJob = null
             initClasses()
-            val config = RecognizerConfig(tokens, encoder, decoder, numThreads)
+            val config = RecognizerConfig(tokens, encoder, decoder, joiner, numThreads)
 
             val cached = cachedRecognizer
             val sameConfig = cachedConfig == config
@@ -1015,13 +1041,15 @@ class ParaformerOnnxManager private constructor() {
                 scheduleAutoUnload(keepAliveMs, alwaysKeep)
                 true
             } catch (t: CancellationException) {
-                if (newRecognizer != null) {
-                    synchronized(runtimeLock) { newRecognizer!!.release() }
+                val toRelease = newRecognizer
+                if (toRelease != null) {
+                    synchronized(runtimeLock) { toRelease.release() }
                 }
                 throw t
             } catch (t: Throwable) {
-                if (newRecognizer != null) {
-                    synchronized(runtimeLock) { newRecognizer!!.release() }
+                val toRelease = newRecognizer
+                if (toRelease != null) {
+                    synchronized(runtimeLock) { toRelease.release() }
                 }
                 throw t
             } finally {
@@ -1125,8 +1153,8 @@ class ParaformerOnnxManager private constructor() {
     }
 }
 
-// 预加载：根据当前配置尝试构建本地 Paraformer 在线识别器，降低首次点击等待
-fun preloadParaformerIfConfigured(
+// 预加载：根据当前配置尝试构建本地 X-ASR 在线识别器，降低首次点击等待
+fun preloadXAsrIfConfigured(
     context: android.content.Context,
     prefs: com.brycewg.asrkb.store.Prefs,
     onLoadStart: (() -> Unit)? = null,
@@ -1135,11 +1163,11 @@ fun preloadParaformerIfConfigured(
     forImmediateUse: Boolean = false
 ) {
     try {
-        val manager = ParaformerOnnxManager.getInstance()
+        val manager = XAsrOnnxManager.getInstance()
         if (!manager.isOnnxAvailable()) {
             LocalAsrCallLogger.recordLoadFailure(
                 prefs,
-                AsrVendor.Paraformer,
+                AsrVendor.XAsr,
                 "preload",
                 context.getString(com.brycewg.asrkb.R.string.error_local_asr_not_ready)
             )
@@ -1147,76 +1175,54 @@ fun preloadParaformerIfConfigured(
         }
 
         val base = context.getExternalFilesDir(null) ?: context.filesDir
-        val root = java.io.File(base, "paraformer")
-        val isTri = prefs.pfModelVariant.startsWith("trilingual")
-        val group = if (isTri) java.io.File(root, "trilingual") else java.io.File(root, "bilingual")
-        val dir = findPfModelDir(group)
-        if (dir == null) {
+        val files = findXAsrModelFiles(java.io.File(base, "x_asr"))
+        if (files == null) {
             LocalAsrCallLogger.recordLoadFailure(
                 prefs,
-                AsrVendor.Paraformer,
+                AsrVendor.XAsr,
                 "preload",
-                context.getString(com.brycewg.asrkb.R.string.error_paraformer_model_missing)
-            )
-            return
-        }
-        val tokensPath = java.io.File(dir, "tokens.txt").absolutePath
-        val int8 = prefs.pfModelVariant.contains("int8")
-        val enc = if (int8) {
-            java.io.File(
-                dir,
-                "encoder.int8.onnx"
-            )
-        } else {
-            java.io.File(dir, "encoder.onnx")
-        }
-        val dec = if (int8) {
-            java.io.File(
-                dir,
-                "decoder.int8.onnx"
-            )
-        } else {
-            java.io.File(dir, "decoder.onnx")
-        }
-        if (!enc.exists() || !dec.exists()) {
-            LocalAsrCallLogger.recordLoadFailure(
-                prefs,
-                AsrVendor.Paraformer,
-                "preload",
-                context.getString(com.brycewg.asrkb.R.string.error_paraformer_model_missing)
+                context.getString(com.brycewg.asrkb.R.string.error_x_asr_model_missing)
             )
             return
         }
 
-        val keepMinutes = prefs.pfKeepAliveMinutes
+        val keepMinutes = prefs.xAsrKeepAliveMinutes
         val keepMs = if (keepMinutes <= 0) 0L else keepMinutes.toLong() * 60_000L
         val alwaysKeep = keepMinutes < 0
 
-        val numThreads = prefs.pfNumThreads
-        val key = "paraformer|tokens=$tokensPath|encoder=${enc.absolutePath}|decoder=${dec.absolutePath}|threads=$numThreads"
+        val numThreads = prefs.xAsrNumThreads
+        val key = listOf(
+            "x_asr",
+            "tokens=${files.tokens.absolutePath}",
+            "encoder=${files.encoder.absolutePath}",
+            "decoder=${files.decoder.absolutePath}",
+            "joiner=${files.joiner.absolutePath}",
+            "threads=$numThreads"
+        ).joinToString("|")
 
         val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
         LocalModelLoadCoordinator.request(key) {
             var loadLog: LocalAsrCallLogger.Session? = null
             val t0 = android.os.SystemClock.uptimeMillis()
             val ok = manager.prepare(
-                tokens = tokensPath,
-                encoder = enc.absolutePath,
-                decoder = dec.absolutePath,
+                tokens = files.tokens.absolutePath,
+                encoder = files.encoder.absolutePath,
+                decoder = files.decoder.absolutePath,
+                joiner = files.joiner.absolutePath,
                 numThreads = numThreads,
                 keepAliveMs = keepMs,
                 alwaysKeep = alwaysKeep,
                 onLoadStart = {
                     loadLog = LocalAsrCallLogger.startLoad(
                         prefs = prefs,
-                        vendor = AsrVendor.Paraformer,
+                        vendor = AsrVendor.XAsr,
                         source = "preload"
                     )
                     if (!suppressToastOnStart) {
                         mainHandler.post {
                             android.widget.Toast.makeText(
                                 context,
-                                context.getString(com.brycewg.asrkb.R.string.pf_loading_model),
+                                context.getString(com.brycewg.asrkb.R.string.x_asr_loading_model),
                                 android.widget.Toast.LENGTH_SHORT
                             ).show()
                         }
@@ -1233,16 +1239,6 @@ fun preloadParaformerIfConfigured(
                 loadLog?.failure("prepare returned false")
                 loadLog = null
             }
-            if (ok) {
-                try {
-                    SherpaPunctuationManager.getInstance().ensureOfflineLoaded(
-                        context = context,
-                        numThreads = numThreads
-                    )
-                } catch (t: Throwable) {
-                    Log.w("ParaformerPreload", "Failed to preload punctuation model with Paraformer", t)
-                }
-            }
             if (ok && !forImmediateUse) {
                 val dt = (android.os.SystemClock.uptimeMillis() - t0).coerceAtLeast(0)
                 mainHandler.post {
@@ -1256,6 +1252,6 @@ fun preloadParaformerIfConfigured(
             }
         }
     } catch (t: Throwable) {
-        Log.e("ParaformerPreload", "preloadParaformerIfConfigured failed", t)
+        Log.e("X-ASRPreload", "preloadXAsrIfConfigured failed", t)
     }
 }

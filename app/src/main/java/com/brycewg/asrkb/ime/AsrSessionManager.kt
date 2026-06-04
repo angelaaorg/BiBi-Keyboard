@@ -457,8 +457,8 @@ class AsrSessionManager(
                     )
                 }
             }
-            AsrVendor.Paraformer -> {
-                ParaformerStreamAsrEngine(context, scope, prefs, engineListener)
+            AsrVendor.XAsr -> {
+                XAsrStreamAsrEngine(context, scope, prefs, engineListener)
             }
         }
         return engine?.let {
@@ -614,8 +614,8 @@ class AsrSessionManager(
                 is FireRedAsrFileAsrEngine -> if (!prefs.frPseudoStreamEnabled) current else null
                 else -> null
             }
-            AsrVendor.Paraformer -> when (current) {
-                is ParaformerStreamAsrEngine -> current
+            AsrVendor.XAsr -> when (current) {
+                is XAsrStreamAsrEngine -> current
                 else -> null
             }
         }

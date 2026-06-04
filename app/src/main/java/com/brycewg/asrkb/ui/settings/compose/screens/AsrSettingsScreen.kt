@@ -164,7 +164,7 @@ fun AsrSettingsScreen(
         uiState.qwModelVariant,
         uiState.pkModelVariant,
         uiState.frModelVariant,
-        uiState.pfModelVariant
+        uiState.xAsrModelVariant
     ) {
         refreshLocalModelReady()
     }

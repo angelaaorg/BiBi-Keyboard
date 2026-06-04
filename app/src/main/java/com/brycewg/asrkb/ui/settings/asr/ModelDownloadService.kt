@@ -57,11 +57,11 @@ class ModelDownloadService : Service() {
         private const val EXTRA_URI = "uri"
         private const val EXTRA_VARIANT = "variant"
         private const val EXTRA_KEY = "key"
-        private const val EXTRA_MODEL_TYPE = "modelType" // sensevoice | funasr_nano | qwen3_asr | parakeet | paraformer | firered_asr | punctuation
+        private const val EXTRA_MODEL_TYPE = "modelType" // sensevoice | funasr_nano | qwen3_asr | parakeet | x_asr | firered_asr | punctuation
 
         private fun buildDownloadKey(variant: String, modelType: String): DownloadKey {
             val sourceId = when (modelType) {
-                "paraformer" -> "download_paraformer"
+                "x_asr" -> "download_x_asr"
                 "firered_asr" -> "download_firered_asr"
                 "punctuation" -> "download_punctuation"
                 "funasr_nano" -> "download_funasr_nano"
@@ -257,7 +257,7 @@ class ModelDownloadService : Service() {
             verifyAndInstallModel(modelDir, variant, modelType)
 
             val doneText = when (modelType) {
-                "paraformer" -> getString(R.string.pf_download_status_done)
+                "x_asr" -> getString(R.string.x_asr_download_status_done)
                 "firered_asr" -> getString(R.string.fr_download_status_done)
                 "punctuation" -> getString(R.string.punct_download_status_done)
                 "funasr_nano" -> getString(R.string.fn_download_status_done)
@@ -271,7 +271,7 @@ class ModelDownloadService : Service() {
             val onlyZipMsg = getString(R.string.error_only_zip_supported)
             val failText = when {
                 t.message == onlyZipMsg -> onlyZipMsg
-                modelType == "paraformer" -> getString(R.string.pf_download_status_failed)
+                modelType == "x_asr" -> getString(R.string.x_asr_download_status_failed)
                 modelType == "firered_asr" -> getString(R.string.fr_download_status_failed)
                 modelType == "punctuation" -> getString(R.string.punct_download_status_failed)
                 modelType == "funasr_nano" -> getString(R.string.fn_download_status_failed)
@@ -341,14 +341,14 @@ class ModelDownloadService : Service() {
                 detectedVariant = typeAndVariant.second
 
                 // 更新通知处理器（类型与变体），以便文案准确：
-                // Paraformer 包含双量化，保持用户当前变体文案；SenseVoice 精确展示
                 notificationHandler.updateModelType(modelType)
                 val shouldUpdateVariant = when (modelType) {
                     "sensevoice" -> true
                     "funasr_nano" -> true
                     "qwen3_asr" -> true
                     "parakeet" -> true
-                    else -> false // paraformer 保持用户选择
+                    "x_asr" -> true
+                    else -> false
                 }
                 if (shouldUpdateVariant) notificationHandler.updateVariant(detectedVariant)
 
@@ -366,8 +366,7 @@ class ModelDownloadService : Service() {
                         "parakeet" -> prefs.pkModelVariant = detectedVariant
                         // FireRedASR：离线 CTC，int8/full 二选一，直接同步用户选择
                         "firered_asr" -> prefs.frModelVariant = detectedVariant
-                        // Paraformer：单包含 int8+fp32，两者均可用，不覆盖用户当前偏好
-                        "paraformer" -> { /* no-op */ }
+                        "x_asr" -> prefs.xAsrModelVariant = detectedVariant
                     }
                 } catch (e: Throwable) {
                     Log.w(
@@ -393,6 +392,7 @@ class ModelDownloadService : Service() {
                 "funasr_nano" -> getString(R.string.fn_import_success, modelInfo)
                 "qwen3_asr" -> getString(R.string.qw_import_success, modelInfo)
                 "parakeet" -> getString(R.string.pk_import_success, modelInfo)
+                "x_asr" -> getString(R.string.x_asr_import_success, modelInfo)
                 else -> getString(R.string.sv_import_success, modelInfo)
             }
             notificationHandler.notifySuccess(successMessage)
@@ -404,6 +404,7 @@ class ModelDownloadService : Service() {
                 "funasr_nano" -> getString(R.string.fn_import_failed, errorMessage)
                 "qwen3_asr" -> getString(R.string.qw_import_failed, errorMessage)
                 "parakeet" -> getString(R.string.pk_import_failed, errorMessage)
+                "x_asr" -> getString(R.string.x_asr_import_failed, errorMessage)
                 else -> getString(R.string.sv_import_failed, errorMessage)
             }
             notificationHandler.notifyFailed(failMessage)
@@ -478,7 +479,7 @@ class ModelDownloadService : Service() {
     private fun detectModelTypeFromFileName(name: String): String? {
         val n = name.lowercase()
         return when {
-            n.contains("paraformer") -> "paraformer"
+            n.contains("x-asr") || n.contains("x_asr") -> "x_asr"
             n.contains("fire-red-asr2") ||
                 n.contains("fire_red_asr2") ||
                 n.contains("firered_asr") ||
@@ -519,11 +520,8 @@ class ModelDownloadService : Service() {
             "sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8" -> "parakeet" to "0.6b-v3-int8"
             "sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8" -> "parakeet" to "0.6b-v2-int8"
 
-            // Paraformer（主包名不含量化，默认按 int8 归类）
-            "sherpa-onnx-streaming-paraformer-bilingual-zh-en" -> "paraformer" to "bilingual-int8"
-            "sherpa-onnx-streaming-paraformer-trilingual-zh-cantonese-en" ->
-                "paraformer" to
-                    "trilingual-int8"
+            "sherpa-onnx-streaming-x-asr-480ms-zh-en",
+            "sherpa-onnx-streaming-x_asr-480ms-zh_en" -> "x_asr" to "x-asr-480ms"
 
             // FireRedASR V2
             "sherpa-onnx-fire-red-asr2-ctc-zh_en-int8-2026-02-25" ->
@@ -568,14 +566,7 @@ class ModelDownloadService : Service() {
             "Parakeet $versionName"
         }
         "firered_asr" -> "FireRedASR CTC (int8)"
-        "paraformer" -> {
-            val versionName = when (variant) {
-                "bilingual" -> "双语版"
-                "trilingual" -> "三语版"
-                else -> variant
-            }
-            "Paraformer $versionName"
-        }
+        "x_asr" -> "X-ASR 480ms"
         "punctuation" -> {
             // 目前仅一套中英通用标点模型
             "Punctuation zh+en ($variant)"
@@ -660,7 +651,7 @@ class ModelDownloadService : Service() {
         // 输出目录
         val base = getExternalFilesDir(null) ?: filesDir
         val outRoot = when (modelType) {
-            "paraformer" -> File(base, "paraformer")
+            "x_asr" -> File(base, "x_asr")
             "firered_asr" -> File(base, "firered_asr")
             "punctuation" -> File(base, "punctuation_tmp")
             "funasr_nano" -> File(base, "funasr_nano")
@@ -710,22 +701,28 @@ class ModelDownloadService : Service() {
             "qwen3_asr" -> findQwen3AsrModelDir(tmpDir)
             // Parakeet 使用 Nemo transducer 文件组：encoder/decoder/joiner + tokens
             "parakeet" -> findParakeetModelDir(tmpDir)
+            "x_asr" -> com.brycewg.asrkb.asr.findXAsrModelDir(tmpDir)
             else -> findModelDir(tmpDir)
         } ?: throw IllegalStateException("model dir not found")
 
-        // SenseVoice / Paraformer / FireRedASR / Parakeet 依赖 tokens.txt；FunASR Nano 与 Qwen3-ASR 不依赖。
+        // SenseVoice / X-ASR / FireRedASR / Parakeet 依赖 tokens.txt；FunASR Nano 与 Qwen3-ASR 不依赖。
         if (modelType != "funasr_nano" && modelType != "qwen3_asr") {
             val tokens = File(modelDir, "tokens.txt")
             if (!tokens.exists()) throw IllegalStateException("tokens.txt missing")
         }
 
-        if (modelType == "paraformer") {
-            val encInt8 = File(modelDir, "encoder.int8.onnx")
-            val decInt8 = File(modelDir, "decoder.int8.onnx")
-            val encF32 = File(modelDir, "encoder.onnx")
-            val decF32 = File(modelDir, "decoder.onnx")
-            if (!((encInt8.exists() && decInt8.exists()) || (encF32.exists() && decF32.exists()))) {
-                throw IllegalStateException("paraformer files missing after extract")
+        if (modelType == "x_asr") {
+            val files = com.brycewg.asrkb.asr.findXAsrModelFiles(modelDir)
+            if (files == null) {
+                throw IllegalStateException("x_asr files missing after extract")
+            }
+            val minOnnxBytes = 512L * 1024L
+            if (files.encoder.length() < minOnnxBytes ||
+                files.decoder.length() < minOnnxBytes ||
+                files.joiner.length() < minOnnxBytes ||
+                files.tokens.length() < 1024L
+            ) {
+                throw IllegalStateException("x_asr files look truncated after extract")
             }
         } else if (modelType == "firered_asr") {
             val hasCtc = File(modelDir, "model.int8.onnx").exists() ||
@@ -820,10 +817,9 @@ class ModelDownloadService : Service() {
         // 确定最终输出目录
         val base = getExternalFilesDir(null) ?: filesDir
         val outFinal = when (modelType) {
-            "paraformer" -> {
-                val outRoot = File(base, "paraformer")
-                val group = if (variant.startsWith("trilingual")) "trilingual" else "bilingual"
-                File(outRoot, group)
+            "x_asr" -> {
+                val outRoot = File(base, "x_asr")
+                File(outRoot, "x-asr-480ms")
             }
             "firered_asr" -> {
                 val outRoot = File(base, "firered_asr")
@@ -1292,7 +1288,7 @@ class NotificationHandler(
      */
     fun notifyDownloadProgress(progress: Int, cancelIntent: PendingIntent) {
         val text = when (modelType) {
-            "paraformer" -> context.getString(R.string.pf_download_status_downloading, progress)
+            "x_asr" -> context.getString(R.string.x_asr_download_status_downloading, progress)
             "firered_asr" -> context.getString(R.string.fr_download_status_downloading, progress)
             "punctuation" -> context.getString(R.string.punct_download_status_downloading, progress)
             "funasr_nano" -> context.getString(R.string.fn_download_status_downloading, progress)
@@ -1316,8 +1312,8 @@ class NotificationHandler(
      */
     fun notifyExtractProgress(progress: Int, cancelIntent: PendingIntent) {
         val text = when (modelType) {
-            "paraformer" -> context.getString(
-                R.string.pf_download_status_extracting_progress,
+            "x_asr" -> context.getString(
+                R.string.x_asr_download_status_extracting_progress,
                 progress
             )
             "firered_asr" -> context.getString(
@@ -1358,8 +1354,8 @@ class NotificationHandler(
      */
     fun notifyExtractProgressImmediate(progress: Int, cancelIntent: PendingIntent) {
         val text = when (modelType) {
-            "paraformer" -> context.getString(
-                R.string.pf_download_status_extracting_progress,
+            "x_asr" -> context.getString(
+                R.string.x_asr_download_status_extracting_progress,
                 progress
             )
             "firered_asr" -> context.getString(
@@ -1427,7 +1423,7 @@ class NotificationHandler(
     }
 
     fun getFailedText(): String = when (modelType) {
-        "paraformer" -> context.getString(R.string.pf_download_status_failed)
+        "x_asr" -> context.getString(R.string.x_asr_download_status_failed)
         "firered_asr" -> context.getString(R.string.fr_download_status_failed)
         "punctuation" -> context.getString(R.string.punct_download_status_failed)
         "funasr_nano" -> context.getString(R.string.fn_download_status_failed)
@@ -1506,13 +1502,7 @@ class NotificationHandler(
     }
 
     private fun getTitleForVariant(): String = when (modelType) {
-        "paraformer" -> {
-            if (variant.startsWith("trilingual")) {
-                context.getString(R.string.notif_pf_title_trilingual)
-            } else {
-                context.getString(R.string.notif_pf_title_bilingual)
-            }
-        }
+        "x_asr" -> context.getString(R.string.notif_x_asr_title_480ms)
         "firered_asr" -> context.getString(R.string.notif_fr_title_ctc_int8)
         "punctuation" -> context.getString(R.string.notif_punct_title)
         "funasr_nano" -> {

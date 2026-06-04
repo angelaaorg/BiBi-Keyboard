@@ -104,12 +104,12 @@ class AsrSettingsViewModel : ViewModel() {
             frPreloadEnabled = prefs.frPreloadEnabled,
             frUseItn = prefs.frUseItn,
             frPseudoStreamEnabled = prefs.frPseudoStreamEnabled,
-            // Paraformer settings
-            pfModelVariant = prefs.pfModelVariant,
-            pfNumThreads = prefs.pfNumThreads,
-            pfKeepAliveMinutes = prefs.pfKeepAliveMinutes,
-            pfPreloadEnabled = prefs.pfPreloadEnabled,
-            pfUseItn = prefs.pfUseItn
+            // X-ASR settings
+            xAsrModelVariant = prefs.xAsrModelVariant,
+            xAsrNumThreads = prefs.xAsrNumThreads,
+            xAsrKeepAliveMinutes = prefs.xAsrKeepAliveMinutes,
+            xAsrPreloadEnabled = prefs.xAsrPreloadEnabled,
+            xAsrUseItn = prefs.xAsrUseItn
         )
     }
 
@@ -160,18 +160,18 @@ class AsrSettingsViewModel : ViewModel() {
                 Log.e(TAG, "Failed to unload FireRedASR recognizer", e)
             }
         }
-        if (oldVendor == AsrVendor.Paraformer && vendor != AsrVendor.Paraformer) {
+        if (oldVendor == AsrVendor.XAsr && vendor != AsrVendor.XAsr) {
             try {
-                com.brycewg.asrkb.asr.unloadParaformerRecognizer()
+                com.brycewg.asrkb.asr.unloadXAsrRecognizer()
             } catch (
                 e: Throwable
             ) {
-                Log.e(TAG, "Failed to unload Paraformer recognizer", e)
+                Log.e(TAG, "Failed to unload X-ASR recognizer", e)
             }
         }
 
-        // 当切换到本地模型（FireRedASR / Paraformer）时，如未安装标点模型则提示一次
-        if (vendor == AsrVendor.FireRedAsr || vendor == AsrVendor.Paraformer) {
+        // FireRedASR 仍依赖通用标点模型，切换时如未安装则提示一次。
+        if (vendor == AsrVendor.FireRedAsr) {
             try {
                 com.brycewg.asrkb.asr.SherpaPunctuationManager.maybeWarnModelMissing(appContext)
             } catch (t: Throwable) {
@@ -240,15 +240,15 @@ class AsrSettingsViewModel : ViewModel() {
             }
         }
 
-        if (vendor == AsrVendor.Paraformer && prefs.pfPreloadEnabled) {
+        if (vendor == AsrVendor.XAsr && prefs.xAsrPreloadEnabled) {
             viewModelScope.launch(Dispatchers.Default) {
                 try {
-                    com.brycewg.asrkb.asr.preloadParaformerIfConfigured(
+                    com.brycewg.asrkb.asr.preloadXAsrIfConfigured(
                         appContext,
                         prefs
                     )
                 } catch (e: Throwable) {
-                    Log.e(TAG, "Failed to preload Paraformer model", e)
+                    Log.e(TAG, "Failed to preload X-ASR model", e)
                 }
             }
         }
@@ -396,22 +396,22 @@ class AsrSettingsViewModel : ViewModel() {
             } catch (e: Throwable) {
                 Log.e(TAG, "Failed to unload FireRedASR recognizer after ITN change", e)
             }
-            triggerTsPreloadIfEnabledAndActive("ts ITN change")
+            triggerFireRedAsrPreloadIfEnabledAndActive("ITN change")
         }
     }
 
-    fun updatePfUseItn(enabled: Boolean) {
-        if (prefs.pfUseItn != enabled) {
-            prefs.pfUseItn = enabled
-            _uiState.value = _uiState.value.copy(pfUseItn = enabled)
+    fun updateXAsrUseItn(enabled: Boolean) {
+        if (prefs.xAsrUseItn != enabled) {
+            prefs.xAsrUseItn = enabled
+            _uiState.value = _uiState.value.copy(xAsrUseItn = enabled)
             try {
-                com.brycewg.asrkb.asr.unloadParaformerRecognizer()
+                com.brycewg.asrkb.asr.unloadXAsrRecognizer()
             } catch (
                 e: Throwable
             ) {
-                Log.e(TAG, "Failed to unload Paraformer recognizer after ITN change", e)
+                Log.e(TAG, "Failed to unload X-ASR recognizer after ITN change", e)
             }
-            triggerPfPreloadIfEnabledAndActive("pf ITN change")
+            triggerXAsrPreloadIfEnabledAndActive("ITN change")
         }
     }
 
@@ -527,7 +527,7 @@ class AsrSettingsViewModel : ViewModel() {
         ) {
             Log.e(TAG, "Failed to unload FireRedASR recognizer after variant change", e)
         }
-        triggerTsPreloadIfEnabledAndActive("variant change")
+        triggerFireRedAsrPreloadIfEnabledAndActive("variant change")
     }
 
     fun updateFrKeepAlive(minutes: Int) {
@@ -546,7 +546,7 @@ class AsrSettingsViewModel : ViewModel() {
         ) {
             Log.e(TAG, "Failed to unload FireRedASR recognizer after threads change", e)
         }
-        triggerTsPreloadIfEnabledAndActive("threads change")
+        triggerFireRedAsrPreloadIfEnabledAndActive("threads change")
     }
 
     fun updateFrPreload(enabled: Boolean) {
@@ -685,30 +685,30 @@ class AsrSettingsViewModel : ViewModel() {
         }
     }
 
-    // ----- Paraformer -----
-    fun updatePfModelVariant(variant: String) {
-        prefs.pfModelVariant = variant
-        _uiState.value = _uiState.value.copy(pfModelVariant = variant)
+    // ----- X-ASR -----
+    fun updateXAsrModelVariant(variant: String) {
+        prefs.xAsrModelVariant = variant
+        _uiState.value = _uiState.value.copy(xAsrModelVariant = variant)
         try {
-            com.brycewg.asrkb.asr.unloadParaformerRecognizer()
+            com.brycewg.asrkb.asr.unloadXAsrRecognizer()
         } catch (_: Throwable) { }
-        triggerPfPreloadIfEnabledAndActive("variant change")
+        triggerXAsrPreloadIfEnabledAndActive("variant change")
     }
 
-    fun updatePfKeepAlive(minutes: Int) {
-        prefs.pfKeepAliveMinutes = minutes
-        _uiState.value = _uiState.value.copy(pfKeepAliveMinutes = minutes)
+    fun updateXAsrKeepAlive(minutes: Int) {
+        prefs.xAsrKeepAliveMinutes = minutes
+        _uiState.value = _uiState.value.copy(xAsrKeepAliveMinutes = minutes)
     }
 
-    fun updatePfNumThreads(v: Int) {
+    fun updateXAsrNumThreads(v: Int) {
         val vv = v.coerceIn(1, 8)
-        prefs.pfNumThreads = vv
-        _uiState.value = _uiState.value.copy(pfNumThreads = vv)
+        prefs.xAsrNumThreads = vv
+        _uiState.value = _uiState.value.copy(xAsrNumThreads = vv)
         // 线程数变化后卸载已缓存识别器，必要时重新预加载
         try {
-            com.brycewg.asrkb.asr.unloadParaformerRecognizer()
+            com.brycewg.asrkb.asr.unloadXAsrRecognizer()
         } catch (_: Throwable) { }
-        triggerPfPreloadIfEnabledAndActive("threads change")
+        triggerXAsrPreloadIfEnabledAndActive("threads change")
     }
 
     // 统一预加载触发
@@ -760,7 +760,7 @@ class AsrSettingsViewModel : ViewModel() {
         }
     }
 
-    private fun triggerTsPreloadIfEnabledAndActive(reason: String) {
+    private fun triggerFireRedAsrPreloadIfEnabledAndActive(reason: String) {
         if (prefs.frPreloadEnabled && prefs.asrVendor == AsrVendor.FireRedAsr) {
             viewModelScope.launch(Dispatchers.Default) {
                 try {
@@ -772,57 +772,39 @@ class AsrSettingsViewModel : ViewModel() {
         }
     }
 
-    private fun triggerPfPreloadIfEnabledAndActive(reason: String) {
-        if (prefs.pfPreloadEnabled && prefs.asrVendor == AsrVendor.Paraformer) {
+    private fun triggerXAsrPreloadIfEnabledAndActive(reason: String) {
+        if (prefs.xAsrPreloadEnabled && prefs.asrVendor == AsrVendor.XAsr) {
             viewModelScope.launch(Dispatchers.Default) {
                 try {
-                    com.brycewg.asrkb.asr.preloadParaformerIfConfigured(appContext, prefs)
+                    com.brycewg.asrkb.asr.preloadXAsrIfConfigured(appContext, prefs)
                 } catch (t: Throwable) {
-                    Log.e(TAG, "Failed to preload Paraformer after $reason", t)
+                    Log.e(TAG, "Failed to preload X-ASR after $reason", t)
                 }
             }
         }
     }
 
-    fun updatePfPreload(enabled: Boolean) {
-        prefs.pfPreloadEnabled = enabled
-        _uiState.value = _uiState.value.copy(pfPreloadEnabled = enabled)
+    fun updateXAsrPreload(enabled: Boolean) {
+        prefs.xAsrPreloadEnabled = enabled
+        _uiState.value = _uiState.value.copy(xAsrPreloadEnabled = enabled)
 
-        if (enabled && prefs.asrVendor == AsrVendor.Paraformer) {
+        if (enabled && prefs.asrVendor == AsrVendor.XAsr) {
             viewModelScope.launch(Dispatchers.Default) {
                 try {
-                    com.brycewg.asrkb.asr.preloadParaformerIfConfigured(
+                    com.brycewg.asrkb.asr.preloadXAsrIfConfigured(
                         appContext,
                         prefs
                     )
                 } catch (e: Throwable) {
-                    Log.e(TAG, "Failed to preload Paraformer model", e)
+                    Log.e(TAG, "Failed to preload X-ASR model", e)
                 }
             }
         }
     }
 
-    fun checkPfModelDownloaded(context: Context): Boolean {
+    fun checkXAsrModelDownloaded(context: Context): Boolean {
         val base = context.getExternalFilesDir(null) ?: context.filesDir
-        val root = File(base, "paraformer")
-        val group = if (prefs.pfModelVariant.startsWith(
-                "trilingual"
-            )
-        ) {
-            File(root, "trilingual")
-        } else {
-            File(root, "bilingual")
-        }
-        val dir = com.brycewg.asrkb.asr.findPfModelDir(group)
-        return dir != null &&
-            File(dir, "tokens.txt").exists() &&
-            (
-                (File(dir, "encoder.onnx").exists() && File(dir, "decoder.onnx").exists()) ||
-                    (
-                        File(dir, "encoder.int8.onnx").exists() &&
-                            File(dir, "decoder.int8.onnx").exists()
-                        )
-                )
+        return com.brycewg.asrkb.asr.findXAsrModelFiles(File(base, "x_asr")) != null
     }
 
     fun checkSvModelDownloaded(context: Context): Boolean {
@@ -993,12 +975,12 @@ data class AsrSettingsUiState(
     val frPreloadEnabled: Boolean = false,
     val frUseItn: Boolean = true,
     val frPseudoStreamEnabled: Boolean = false,
-    // Paraformer settings
-    val pfModelVariant: String = "bilingual-int8",
-    val pfNumThreads: Int = 2,
-    val pfKeepAliveMinutes: Int = -1,
-    val pfPreloadEnabled: Boolean = false,
-    val pfUseItn: Boolean = false
+    // X-ASR settings
+    val xAsrModelVariant: String = "x-asr-480ms",
+    val xAsrNumThreads: Int = 2,
+    val xAsrKeepAliveMinutes: Int = -1,
+    val xAsrPreloadEnabled: Boolean = true,
+    val xAsrUseItn: Boolean = false
 ) {
     // Computed visibility properties based on selected vendor
     val isVolcVisible: Boolean get() = selectedVendor == AsrVendor.Volc
@@ -1015,5 +997,5 @@ data class AsrSettingsUiState(
     val isQwen3AsrVisible: Boolean get() = selectedVendor == AsrVendor.Qwen3Asr
     val isParakeetVisible: Boolean get() = selectedVendor == AsrVendor.Parakeet
     val isFireRedAsrVisible: Boolean get() = selectedVendor == AsrVendor.FireRedAsr
-    val isParaformerVisible: Boolean get() = selectedVendor == AsrVendor.Paraformer
+    val isXAsrVisible: Boolean get() = selectedVendor == AsrVendor.XAsr
 }

@@ -1,4 +1,7 @@
+// ASR vendor identifiers and compatibility aliases.
 package com.brycewg.asrkb.asr
+
+internal const val LEGACY_X_ASR_VENDOR_ID = "paraformer"
 
 enum class AsrVendor(val id: String) {
     Volc("volc"),
@@ -16,7 +19,7 @@ enum class AsrVendor(val id: String) {
     Qwen3Asr("qwen3_asr"),
     Parakeet("parakeet"),
     FireRedAsr("firered_asr"),
-    Paraformer("paraformer"),
+    XAsr("x_asr"),
     MiMo("mimo");
 
     companion object {
@@ -35,9 +38,8 @@ enum class AsrVendor(val id: String) {
             Qwen3Asr.id, "qwen_asr", "qwen3asr" -> Qwen3Asr
             Parakeet.id, "nemo_parakeet" -> Parakeet
             FireRedAsr.id, "telespeech" -> FireRedAsr
-            Paraformer.id -> Paraformer
+            XAsr.id, "x-asr", LEGACY_X_ASR_VENDOR_ID -> XAsr
             MiMo.id, "mimo_asr" -> MiMo
-            "zipformer" -> Paraformer
             "funasr" -> FunAsrNano
             else -> Volc
         }

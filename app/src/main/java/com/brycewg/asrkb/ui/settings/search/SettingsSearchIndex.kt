@@ -276,7 +276,7 @@ object SettingsSearchIndex {
         AsrVendor.Qwen3Asr -> R.string.vendor_qwen3_asr
         AsrVendor.Parakeet -> R.string.vendor_parakeet
         AsrVendor.FireRedAsr -> R.string.vendor_firered_asr
-        AsrVendor.Paraformer -> R.string.vendor_paraformer
+        AsrVendor.XAsr -> R.string.vendor_x_asr
     }
 
     private fun SettingsSearchEntry.uniqueKey(): String = buildString {

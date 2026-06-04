@@ -42,7 +42,7 @@ internal fun isAsrVendorConfigured(context: Context, prefs: Prefs, vendor: AsrVe
         AsrVendor.Qwen3Asr -> hasQwen3AsrModelInstalled(context, prefs)
         AsrVendor.Parakeet -> hasParakeetModelInstalled(context, prefs)
         AsrVendor.FireRedAsr -> hasFireRedAsrModelInstalled(context, prefs)
-        AsrVendor.Paraformer -> hasParaformerModelInstalled(context, prefs)
+        AsrVendor.XAsr -> hasXAsrModelInstalled(context)
         AsrVendor.SiliconFlow -> prefs.hasSfKeys()
         else -> prefs.hasVendorKeys(vendor)
     }
@@ -115,27 +115,9 @@ private fun hasParakeetModelInstalled(context: Context, prefs: Prefs): Boolean {
         File(modelDir, "joiner.int8.onnx").exists()
 }
 
-private fun hasParaformerModelInstalled(context: Context, prefs: Prefs): Boolean {
+private fun hasXAsrModelInstalled(context: Context): Boolean {
     val base = context.getExternalFilesDir(null) ?: context.filesDir
-    val root = File(base, "paraformer")
-    val group = if (prefs.pfModelVariant.startsWith("trilingual")) {
-        File(root, "trilingual")
-    } else {
-        File(root, "bilingual")
-    }
-    val modelDir = findPfModelDir(group)
-    return modelDir != null &&
-        File(modelDir, "tokens.txt").exists() &&
-        (
-            (
-                File(modelDir, "encoder.onnx").exists() &&
-                    File(modelDir, "decoder.onnx").exists()
-                ) ||
-                (
-                    File(modelDir, "encoder.int8.onnx").exists() &&
-                        File(modelDir, "decoder.int8.onnx").exists()
-                    )
-            )
+    return findXAsrModelFiles(File(base, "x_asr")) != null
 }
 
 private const val TAG = "AsrVendorAvailability"

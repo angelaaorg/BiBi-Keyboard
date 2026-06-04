@@ -26,8 +26,8 @@ object AsrTimeoutCalculator {
     }
 
     private fun profileFor(vendor: AsrVendor?): TimeoutProfile = when (vendor) {
-        // Paraformer 为本地流式，其余三个为设备侧整段推理，分别使用独立超时范围。
-        AsrVendor.Paraformer -> TimeoutProfile(minTimeoutMs = 10_000L, maxTimeoutMs = 40_000L)
+        // X-ASR 为本地流式，其余三个为设备侧整段推理，分别使用独立超时范围。
+        AsrVendor.XAsr -> TimeoutProfile(minTimeoutMs = 10_000L, maxTimeoutMs = 40_000L)
         AsrVendor.SenseVoice -> TimeoutProfile(minTimeoutMs = 10_000L, maxTimeoutMs = 40_000L)
         AsrVendor.FireRedAsr -> TimeoutProfile(minTimeoutMs = 15_000L, maxTimeoutMs = 70_000L)
         AsrVendor.FunAsrNano -> TimeoutProfile(minTimeoutMs = 15_000L, maxTimeoutMs = 90_000L)

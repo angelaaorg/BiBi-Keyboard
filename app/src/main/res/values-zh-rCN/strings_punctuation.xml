@@ -22,6 +22,6 @@
 
     <string name="notif_punct_title">标点模型（60MB,通用）</string>
 
-    <!-- FireRedASR V2/Paraformer 选中或调用时缺少标点模型的提示 -->
-    <string name="toast_punct_model_missing">未检测到本地标点模型，FireRedASR V2/Paraformer 识别结果可能缺少句读符号。你可以在 ASR 设置中下载通用标点模型。</string>
+    <!-- FireRedASR V2 选中或调用时缺少标点模型的提示 -->
+    <string name="toast_punct_model_missing">未检测到本地标点模型，FireRedASR V2 识别结果可能缺少句读符号。你可以在 ASR 设置中下载通用标点模型。</string>
 </resources>

@@ -209,12 +209,12 @@ internal object PrefsBackup {
         o.put(KEY_FR_PRELOAD_ENABLED, frPreloadEnabled)
         o.put(KEY_FR_USE_ITN, frUseItn)
         o.put(KEY_FR_PSEUDO_STREAM_ENABLED, frPseudoStreamEnabled)
-        // Paraformer（本地 ASR）
-        o.put(KEY_PF_MODEL_VARIANT, pfModelVariant)
-        o.put(KEY_PF_NUM_THREADS, pfNumThreads)
-        o.put(KEY_PF_KEEP_ALIVE_MINUTES, pfKeepAliveMinutes)
-        o.put(KEY_PF_PRELOAD_ENABLED, pfPreloadEnabled)
-        o.put(KEY_PF_USE_ITN, pfUseItn)
+        // X-ASR（本地 ASR）
+        o.put(KEY_X_ASR_MODEL_VARIANT, xAsrModelVariant)
+        o.put(KEY_X_ASR_NUM_THREADS, xAsrNumThreads)
+        o.put(KEY_X_ASR_KEEP_ALIVE_MINUTES, xAsrKeepAliveMinutes)
+        o.put(KEY_X_ASR_PRELOAD_ENABLED, xAsrPreloadEnabled)
+        o.put(KEY_X_ASR_USE_ITN, xAsrUseItn)
         // SyncClipboard 配置
         o.put(KEY_SC_ENABLED, syncClipboardEnabled)
         o.put(KEY_SC_SERVER_BASE, syncClipboardServerBase)
@@ -542,12 +542,22 @@ internal object PrefsBackup {
             (optBool(KEY_FR_PSEUDO_STREAM_ENABLED) ?: optBool(KEY_TS_PSEUDO_STREAM_ENABLED))?.let {
                 frPseudoStreamEnabled = it
             }
-            // Paraformer（本地 ASR）
-            optString(KEY_PF_MODEL_VARIANT)?.let { pfModelVariant = it }
-            optInt(KEY_PF_NUM_THREADS)?.let { pfNumThreads = it.coerceIn(1, 8) }
-            optInt(KEY_PF_KEEP_ALIVE_MINUTES)?.let { pfKeepAliveMinutes = it }
-            optBool(KEY_PF_PRELOAD_ENABLED)?.let { pfPreloadEnabled = it }
-            optBool(KEY_PF_USE_ITN)?.let { pfUseItn = it }
+            // X-ASR（本地 ASR）
+            (optString(KEY_X_ASR_MODEL_VARIANT) ?: optString(LEGACY_KEY_X_ASR_MODEL_VARIANT))?.let {
+                xAsrModelVariant = it
+            }
+            (optInt(KEY_X_ASR_NUM_THREADS) ?: optInt(LEGACY_KEY_X_ASR_NUM_THREADS))?.let {
+                xAsrNumThreads = it.coerceIn(1, 8)
+            }
+            (optInt(KEY_X_ASR_KEEP_ALIVE_MINUTES) ?: optInt(LEGACY_KEY_X_ASR_KEEP_ALIVE_MINUTES))?.let {
+                xAsrKeepAliveMinutes = it
+            }
+            (optBool(KEY_X_ASR_PRELOAD_ENABLED) ?: optBool(LEGACY_KEY_X_ASR_PRELOAD_ENABLED))?.let {
+                xAsrPreloadEnabled = it
+            }
+            (optBool(KEY_X_ASR_USE_ITN) ?: optBool(LEGACY_KEY_X_ASR_USE_ITN))?.let {
+                xAsrUseItn = it
+            }
             // SyncClipboard 配置
             optBool(KEY_SC_ENABLED)?.let { syncClipboardEnabled = it }
             optString(KEY_SC_SERVER_BASE)?.let { syncClipboardServerBase = it }
