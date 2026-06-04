@@ -13,6 +13,23 @@ class ChineseItnTest {
     }
 
     @Test
+    fun normalizesRegressionCasesFromReview() {
+        val cases = listOf(
+            "一千五元" to "1500元",
+            "一万三" to "13000",
+            "10点十分" to "10:10",
+            "2024年五月三日" to "2024年5月3日",
+            "三台电脑" to "3台电脑",
+            "两辆车" to "2辆车",
+            "五岁" to "5岁"
+        )
+
+        cases.forEach { (input, expected) ->
+            assertEquals(input, expected, ChineseItn.normalize(input))
+        }
+    }
+
+    @Test
     fun normalizesChineseItnReferenceCases() {
         val cases = loadChineseItnReferenceCases()
         val failures = cases.mapNotNull { (input, expected) ->
@@ -61,11 +78,12 @@ class ChineseItnTest {
     }
 
     private fun findRepoFile(relativePath: String): File {
-        var dir = File(System.getProperty("user.dir")).absoluteFile
+        val userDir = System.getProperty("user.dir") ?: "."
+        var dir = File(userDir).absoluteFile
         while (true) {
             val candidate = File(dir, relativePath)
             if (candidate.exists()) return candidate
-            val parent = dir.parentFile ?: error("Cannot find $relativePath from ${System.getProperty("user.dir")}")
+            val parent = dir.parentFile ?: error("Cannot find $relativePath from $userDir")
             dir = parent
         }
     }

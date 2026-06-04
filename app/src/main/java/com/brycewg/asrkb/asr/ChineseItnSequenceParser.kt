@@ -204,17 +204,24 @@ internal object ChineseItnSequenceParser {
         }
 
         if (limit != null) {
+            var skippedZero = false
             while (j < tokens.size) {
                 if (tokens[j].type == ChineseItnTokenType.ZERO) {
+                    skippedZero = true
                     consumed += 1
                     j += 1
                     continue
                 }
                 val chunk = parseAtomic(tokens, j) ?: break
                 if (chunk.value >= limit) break
-                value += chunk.value
+                value += if (!skippedZero && isSingleDigitChunk(tokens, j, chunk)) {
+                    chunk.value * (limit / 10L)
+                } else {
+                    chunk.value
+                }
                 consumed += chunk.consumed
                 j += chunk.consumed
+                skippedZero = false
             }
         }
 
@@ -234,4 +241,10 @@ internal object ChineseItnSequenceParser {
 
         return ParseResult(value, consumed)
     }
+
+    private fun isSingleDigitChunk(
+        tokens: List<ChineseItnToken>,
+        index: Int,
+        chunk: ParseResult
+    ): Boolean = chunk.consumed == 1 && tokens[index].type == ChineseItnTokenType.DIGIT
 }

@@ -87,6 +87,14 @@ internal object ChineseItnLexer {
                     tokens.add(ChineseItnToken(ChineseItnTokenType.ZERO, 0L, ch.toString(), i))
                     i++
                 }
+                ch == '0' -> {
+                    tokens.add(ChineseItnToken(ChineseItnTokenType.ZERO, 0L, ch.toString(), i))
+                    i++
+                }
+                ch in '1'..'9' -> {
+                    tokens.add(ChineseItnToken(ChineseItnTokenType.DIGIT, (ch.code - '0'.code).toLong(), ch.toString(), i))
+                    i++
+                }
                 ch in charArrayOf('一', '二', '两', '三', '四', '五', '六', '七', '八', '九', '幺') -> {
                     tokens.add(ChineseItnToken(ChineseItnTokenType.DIGIT, charValueMap[ch] ?: 0L, ch.toString(), i))
                     i++
@@ -124,6 +132,6 @@ internal object ChineseItnLexer {
         val nextIndex = index + 1
         if (nextIndex >= text.length) return true
         val next = text[nextIndex]
-        return next == '秒' || next in "零幺一二三四五六七八九十"
+        return next == '秒' || next in "0-9零幺一二三四五六七八九十"
     }
 }

@@ -124,7 +124,7 @@ internal object ChineseItnReducer {
             if (secondTokens.last().type != ChineseItnTokenType.SECOND_SUFFIX) return null
             val secondValueTokens = secondTokens.dropLast(1)
             if (secondValueTokens.isEmpty() || !allNumeric(secondValueTokens)) return null
-            var secondValues = ChineseItnSequenceParser.parseTokens(secondValueTokens) ?: return null
+            var secondValues = parseNumericValues(secondValueTokens) ?: return null
             if (secondValues.size == 2 && secondValues[0] == "0") {
                 secondValues = listOf(secondValues[1])
             }
@@ -132,8 +132,8 @@ internal object ChineseItnReducer {
             secondText = padTimeValue(secondValues[0])
         }
 
-        var hourValues = ChineseItnSequenceParser.parseTokens(hourTokens) ?: return null
-        var minuteValues = ChineseItnSequenceParser.parseTokens(minuteTokens) ?: return null
+        val hourValues = parseNumericValues(hourTokens) ?: return null
+        var minuteValues = parseNumericValues(minuteTokens) ?: return null
         if (hourValues.size != 1) return null
         if (minuteValues.size == 2 && minuteValues[0] == "0") {
             minuteValues = listOf(minuteValues[1])
@@ -164,7 +164,11 @@ internal object ChineseItnReducer {
             val yearTokens = tokens.subList(lastIndex, yearIndex)
             if (yearTokens.isEmpty() || !allNumeric(yearTokens)) return null
             val year = if (yearTokens.all { it.type in digitTypes }) {
-                ChineseItnText.convertPureNum(yearTokens.joinToString("") { it.text }, strict = true)
+                if (yearTokens.all { it.text.all(Char::isDigit) }) {
+                    yearTokens.joinToString("") { it.text }
+                } else {
+                    ChineseItnText.convertPureNum(yearTokens.joinToString("") { it.text }, strict = true)
+                }
             } else {
                 parseSingleNumeric(yearTokens)
             } ?: return null
@@ -217,7 +221,15 @@ internal object ChineseItnReducer {
 
     private fun parseSingleNumeric(tokens: List<ChineseItnToken>): String? {
         if (tokens.isEmpty() || !allNumeric(tokens)) return null
-        return ChineseItnSequenceParser.parseTokens(tokens)?.singleOrNull()
+        return parseNumericValues(tokens)?.singleOrNull()
+    }
+
+    private fun parseNumericValues(tokens: List<ChineseItnToken>): List<String>? {
+        if (tokens.isEmpty() || !allNumeric(tokens)) return null
+        if (tokens.all { it.text.all(Char::isDigit) }) {
+            return listOf(tokens.joinToString("") { it.text })
+        }
+        return ChineseItnSequenceParser.parseTokens(tokens)
     }
 
     private fun padTimeValue(value: String): String {
