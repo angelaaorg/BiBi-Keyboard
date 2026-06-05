@@ -17,9 +17,12 @@ import android.view.View
 import android.view.inputmethod.InputMethodManager
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -34,6 +37,7 @@ import com.brycewg.asrkb.ui.settings.compose.components.SettingsUpdateHost
 import com.brycewg.asrkb.ui.settings.compose.components.SettingsUpdateUiState
 import com.brycewg.asrkb.ui.settings.compose.core.BibiSettingsRoute
 import com.brycewg.asrkb.ui.settings.compose.core.BibiSettingsTheme
+import com.brycewg.asrkb.ui.settings.compose.core.BibiUiMode
 import com.brycewg.asrkb.ui.settings.compose.core.SettingsActionController
 import com.brycewg.asrkb.ui.settings.compose.screens.SettingsRootScreen
 import com.brycewg.asrkb.ui.settings.compose.state.SettingsEntryEffectsCoordinator
@@ -128,9 +132,12 @@ class SettingsActivity : BaseActivity() {
                 uiMode = uiState.uiMode,
                 themeMode = uiState.themeMode
             ) {
+                val hasUpdateAvailable by remember {
+                    derivedStateOf { updateCoordinator.uiState.value is SettingsUpdateUiState.UpdateAvailable }
+                }
                 SettingsRootScreen(
                     uiState = uiState,
-                    hasUpdateAvailable = updateCoordinator.uiState.value is SettingsUpdateUiState.UpdateAvailable,
+                    hasUpdateAvailable = hasUpdateAvailable,
                     onSelectTab = viewModel::selectHomeTab,
                     onPushRoute = viewModel::push,
                     onOpenRoute = viewModel::openRoute,
@@ -139,35 +146,40 @@ class SettingsActivity : BaseActivity() {
                     onSetThemeMode = viewModel::setThemeMode,
                     actions = actionController
                 )
-                SettingsTestInputSheet(
-                    show = testInputSheetVisible.value,
-                    uiMode = uiState.uiMode,
-                    onDismiss = { testInputSheetVisible.value = false }
-                )
-                SettingsUpdateHost(
-                    state = updateCoordinator.uiState.value,
-                    uiMode = uiState.uiMode,
-                    onDismiss = updateCoordinator::dismiss,
-                    onDownload = updateCoordinator::showDownloadSources,
-                    onOpenReleasePage = updateCoordinator::openReleasePage,
-                    onOpenChangelog = updateCoordinator::openChangelogHistory,
-                    onManualCheck = updateCoordinator::openManualReleasePage,
-                    onSelectDownloadSource = updateCoordinator::startDownload
-                )
-                SettingsMessageDialog(
-                    state = systemActionDialogState.value,
-                    uiMode = uiState.uiMode,
-                    onDismiss = { systemActionDialogState.value = null }
-                )
-                ProPromoDialogHost(
-                    state = proPromoDialogState.value,
-                    uiMode = uiState.uiMode,
-                    onStateChange = { proPromoDialogState.value = it }
-                )
+                settingsOverlayHosts(uiMode = uiState.uiMode)
             }
         }
 
         imePickerController.consumeShowImePickerExtraIfPresent(intent)
+    }
+
+    @Composable
+    private fun settingsOverlayHosts(uiMode: BibiUiMode) {
+        SettingsTestInputSheet(
+            show = testInputSheetVisible.value,
+            uiMode = uiMode,
+            onDismiss = { testInputSheetVisible.value = false }
+        )
+        SettingsUpdateHost(
+            state = updateCoordinator.uiState.value,
+            uiMode = uiMode,
+            onDismiss = updateCoordinator::dismiss,
+            onDownload = updateCoordinator::showDownloadSources,
+            onOpenReleasePage = updateCoordinator::openReleasePage,
+            onOpenChangelog = updateCoordinator::openChangelogHistory,
+            onManualCheck = updateCoordinator::openManualReleasePage,
+            onSelectDownloadSource = updateCoordinator::startDownload
+        )
+        SettingsMessageDialog(
+            state = systemActionDialogState.value,
+            uiMode = uiMode,
+            onDismiss = { systemActionDialogState.value = null }
+        )
+        ProPromoDialogHost(
+            state = proPromoDialogState.value,
+            uiMode = uiMode,
+            onStateChange = { proPromoDialogState.value = it }
+        )
     }
 
     override fun onNewIntent(intent: Intent) {

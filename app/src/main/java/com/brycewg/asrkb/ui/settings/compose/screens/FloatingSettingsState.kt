@@ -23,6 +23,16 @@ internal data class FloatingSettingsUiState(
     val writePasteEnabled: Boolean
 ) {
     companion object {
+        val placeholder: FloatingSettingsUiState = FloatingSettingsUiState(
+            asrEnabled = false,
+            onlyWhenImeVisible = false,
+            directDragEnabled = false,
+            alphaPercent = 100f,
+            sizeDp = 56,
+            writeCompatEnabled = false,
+            writePasteEnabled = false
+        )
+
         fun fromPrefs(prefs: Prefs): FloatingSettingsUiState = FloatingSettingsUiState(
             asrEnabled = prefs.floatingAsrEnabled,
             onlyWhenImeVisible = prefs.floatingSwitcherOnlyWhenImeVisible,
@@ -31,6 +41,20 @@ internal data class FloatingSettingsUiState(
             sizeDp = prefs.floatingBallSizeDp,
             writeCompatEnabled = prefs.floatingWriteTextCompatEnabled,
             writePasteEnabled = prefs.floatingWriteTextPasteEnabled
+        )
+    }
+}
+
+internal data class FloatingSettingsPrefsSnapshot(
+    val uiState: FloatingSettingsUiState,
+    val compatPackages: String,
+    val pastePackages: String
+) {
+    companion object {
+        fun fromPrefs(prefs: Prefs): FloatingSettingsPrefsSnapshot = FloatingSettingsPrefsSnapshot(
+            uiState = FloatingSettingsUiState.fromPrefs(prefs),
+            compatPackages = prefs.floatingWriteCompatPackages,
+            pastePackages = prefs.floatingWritePastePackages
         )
     }
 }

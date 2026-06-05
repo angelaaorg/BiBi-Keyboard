@@ -37,16 +37,20 @@ internal class FloatingVisibilityCoordinator(
         val imeVisible = isImeVisible()
         val overlayGranted = hasOverlayPermission()
 
-        logShowAttemptDedup(
-            src = src,
-            enabled = enabledPref,
-            overlayGranted = overlayGranted,
-            imeVisible = imeVisible,
-            onlyWhenImeVisible = onlyWhenImeVisible
-        )
+        if (DebugLogManager.isRecording()) {
+            logShowAttemptDedup(
+                src = src,
+                enabled = enabledPref,
+                overlayGranted = overlayGranted,
+                imeVisible = imeVisible,
+                onlyWhenImeVisible = onlyWhenImeVisible
+            )
+        }
 
         if (!enabledPref || !overlayGranted) {
-            DebugLogManager.log("float", "show_skip", mapOf("reason" to "pref_or_permission"))
+            if (DebugLogManager.isRecording()) {
+                DebugLogManager.log("float", "show_skip", mapOf("reason" to "pref_or_permission"))
+            }
             hideBall()
             return
         }
@@ -64,7 +68,9 @@ internal class FloatingVisibilityCoordinator(
             !completionActive &&
             !forceVisible
         ) {
-            DebugLogManager.log("float", "show_skip", mapOf("reason" to "ime_not_visible"))
+            if (DebugLogManager.isRecording()) {
+                DebugLogManager.log("float", "show_skip", mapOf("reason" to "ime_not_visible"))
+            }
             hideBall()
             return
         }

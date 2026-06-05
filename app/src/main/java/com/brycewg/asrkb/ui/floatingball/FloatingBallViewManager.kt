@@ -67,6 +67,8 @@ class FloatingBallViewManager(
     private var completionResetPosted: Boolean = false
     private var monetContext: Context? = null
     private var currentState: FloatingBallState = FloatingBallState.Idle
+    private var lastAppliedAlpha: Float? = null
+    private var lastAppliedBallSizeDp: Int? = null
 
     // 贴边半隐时仅显示“箭头把手”的宽度（需与布局一致）
 
@@ -142,7 +144,7 @@ class FloatingBallViewManager(
                 }
                 // 延后初始化完成后，根据当前状态刷新一次，以确保 Processing 时能立刻显示动画
                 try {
-                    updateStateVisual(currentState)
+                    updateStateVisual(currentState, force = true)
                 } catch (
                     e: Throwable
                 ) {
@@ -167,7 +169,7 @@ class FloatingBallViewManager(
             applyBallSize()
             // 应用初始状态
             try {
-                updateStateVisual(initialState)
+                updateStateVisual(initialState, force = true)
             } catch (
                 e: Throwable
             ) {
@@ -210,6 +212,8 @@ class FloatingBallViewManager(
         ripple3 = null
         rippleClip = null
         edgeHandleVisible = false
+        lastAppliedAlpha = null
+        lastAppliedBallSizeDp = null
         lp = null
     }
 
@@ -223,7 +227,10 @@ class FloatingBallViewManager(
             Log.w(TAG, "Failed to get alpha, using default", e)
             1.0f
         }
-        ballView?.alpha = alpha
+        val v = ballView ?: return
+        if (lastAppliedAlpha == alpha && v.alpha == alpha) return
+        v.alpha = alpha
+        lastAppliedAlpha = alpha
     }
 
     /** 应用悬浮球大小 */
@@ -236,13 +243,22 @@ class FloatingBallViewManager(
             Log.w(TAG, "Failed to get size, using default", e)
             56
         }
-        p.width = dp(size)
-        p.height = dp(size)
-        try {
-            windowManager.updateViewLayout(v, p)
-        } catch (e: Throwable) {
-            Log.e(TAG, "Failed to update view layout", e)
+        val targetPx = dp(size)
+        if (lastAppliedBallSizeDp == size && p.width == targetPx && p.height == targetPx) {
+            return
         }
+
+        val layoutChanged = p.width != targetPx || p.height != targetPx
+        p.width = targetPx
+        p.height = targetPx
+        if (layoutChanged) {
+            try {
+                windowManager.updateViewLayout(v, p)
+            } catch (e: Throwable) {
+                Log.e(TAG, "Failed to update view layout", e)
+            }
+        }
+        lastAppliedBallSizeDp = size
 
         // 同步调整内部图标大小，保持随悬浮球缩放
         try {
@@ -272,8 +288,10 @@ class FloatingBallViewManager(
     }
 
     /** 更新悬浮球状态显示 */
-    fun updateStateVisual(state: FloatingBallState) {
+    fun updateStateVisual(state: FloatingBallState, force: Boolean = false) {
         val prevState = currentState
+        if (!force && state == prevState) return
+
         val enteringError = state is FloatingBallState.Error &&
             (prevState !is FloatingBallState.Error || prevState.message != state.message)
         val leavingError = prevState is FloatingBallState.Error && state !is FloatingBallState.Error
@@ -381,10 +399,13 @@ class FloatingBallViewManager(
             interpolator = DecelerateInterpolator()
             addUpdateListener { anim ->
                 val f = anim.animatedValue as Float
-                p.x = (startX + dx * f).toInt()
-                p.y = (startY + dy * f).toInt()
+                val nx = (startX + dx * f).toInt()
+                val ny = (startY + dy * f).toInt()
+                if (p.x == nx && p.y == ny) return@addUpdateListener
+                p.x = nx
+                p.y = ny
                 try {
-                    windowManager.updateViewLayout(ballView ?: v, p)
+                    windowManager.updateViewLayout(v, p)
                 } catch (e: Throwable) {
                     Log.e(TAG, "Failed to update layout during reveal", e)
                 }
@@ -437,10 +458,13 @@ class FloatingBallViewManager(
             interpolator = DecelerateInterpolator()
             addUpdateListener { anim ->
                 val f = anim.animatedValue as Float
-                p.x = (startX + dx * f).toInt()
-                p.y = (startY + dy * f).toInt()
+                val nx = (startX + dx * f).toInt()
+                val ny = (startY + dy * f).toInt()
+                if (p.x == nx && p.y == ny) return@addUpdateListener
+                p.x = nx
+                p.y = ny
                 try {
-                    windowManager.updateViewLayout(ballView ?: v, p)
+                    windowManager.updateViewLayout(v, p)
                 } catch (e: Throwable) {
                     Log.e(TAG, "Failed to update layout during partial hide", e)
                 }
@@ -493,16 +517,25 @@ class FloatingBallViewManager(
         val dx = targetX - startX
         val dy = targetY - startY
 
+        if (dx == 0 && dy == 0) {
+            persistBallPosition()
+            onComplete?.invoke()
+            return
+        }
+
         edgeAnimator?.cancel()
         edgeAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
             duration = 250
             interpolator = DecelerateInterpolator()
             addUpdateListener { anim ->
                 val f = anim.animatedValue as Float
-                p.x = (startX + dx * f).toInt()
-                p.y = (startY + dy * f).toInt()
+                val nx = (startX + dx * f).toInt()
+                val ny = (startY + dy * f).toInt()
+                if (p.x == nx && p.y == ny) return@addUpdateListener
+                p.x = nx
+                p.y = ny
                 try {
-                    windowManager.updateViewLayout(ballView ?: v, p)
+                    windowManager.updateViewLayout(v, p)
                 } catch (e: Throwable) {
                     Log.e(TAG, "Failed to update layout during snap animation", e)
                 }
@@ -521,10 +554,14 @@ class FloatingBallViewManager(
     fun snapToEdge(v: View) {
         val p = lp ?: return
         val (targetX, targetY) = calculateSnapTarget(v)
+        if (p.x == targetX && p.y == targetY) {
+            persistBallPosition()
+            return
+        }
         p.x = targetX
         p.y = targetY
         try {
-            windowManager.updateViewLayout(ballView ?: v, p)
+            windowManager.updateViewLayout(v, p)
         } catch (e: Throwable) {
             Log.e(TAG, "Failed to update layout during snap", e)
         }
@@ -900,9 +937,15 @@ class FloatingBallViewManager(
     fun resetPositionToDefault() {
         val p = lp ?: return
         val v = ballView ?: return
+        val targetX = dp(12)
+        val targetY = dp(180)
+        if (p.x == targetX && p.y == targetY) {
+            persistBallPosition()
+            return
+        }
         try {
-            p.x = dp(12)
-            p.y = dp(180)
+            p.x = targetX
+            p.y = targetY
             windowManager.updateViewLayout(v, p)
         } catch (e: Throwable) {
             Log.e(TAG, "Failed to reset position to default", e)
@@ -936,6 +979,11 @@ class FloatingBallViewManager(
                 vh,
                 visibleXHint = p.x
             )
+            if (p.x == nx && p.y == ny) {
+                cachedDockAnchor = anchor
+                persistBallPosition()
+                return
+            }
             p.x = nx
             p.y = ny
             windowManager.updateViewLayout(v, p)

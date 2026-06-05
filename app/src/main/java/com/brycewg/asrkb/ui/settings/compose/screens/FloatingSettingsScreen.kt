@@ -18,6 +18,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -38,9 +39,24 @@ import com.brycewg.asrkb.ui.settings.compose.components.settingsFeatureExplainer
 import com.brycewg.asrkb.ui.settings.compose.core.BibiUiMode
 import com.brycewg.asrkb.ui.settings.compose.core.SettingsActionController
 import com.brycewg.asrkb.ui.settings.compose.core.SettingsLayoutMetrics
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 private const val FLOATING_TAG = "FloatingSettingsScreen"
+
+private data class FloatingPackageEdits(
+    val compat: String,
+    val paste: String,
+    val compatChanged: Boolean,
+    val pasteChanged: Boolean
+)
+
+private class FloatingPackagePersistState {
+    var compat: String? = null
+    var paste: String? = null
+}
 
 @Composable
 fun FloatingSettingsScreen(
@@ -49,31 +65,73 @@ fun FloatingSettingsScreen(
     actions: SettingsActionController
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
+    val appContext = context.applicationContext
     val lifecycleOwner = LocalLifecycleOwner.current
-    val prefs = remember(context) { Prefs(context) }
-    val serviceManager = remember(context) { FloatingServiceManager(context) }
-    var uiState by remember(context) { mutableStateOf(FloatingSettingsUiState.fromPrefs(prefs)) }
-    var compatPackages by remember(context) { mutableStateOf(prefs.floatingWriteCompatPackages) }
-    var pastePackages by remember(context) { mutableStateOf(prefs.floatingWritePastePackages) }
+    val prefs = remember(appContext) { Prefs(appContext) }
+    val serviceManager = remember(appContext) { FloatingServiceManager(appContext) }
+    val scope = rememberCoroutineScope()
+    var uiState by remember(appContext) { mutableStateOf(FloatingSettingsUiState.placeholder) }
+    var compatPackages by remember(appContext) { mutableStateOf("") }
+    var pastePackages by remember(appContext) { mutableStateOf("") }
+    val persistedPackages = remember(appContext) { FloatingPackagePersistState() }
+    var settingsLoaded by remember(appContext) { mutableStateOf(false) }
     var pendingAsrEnable by remember { mutableStateOf(false) }
     var pendingAsrPermission by remember { mutableStateOf<FloatingPermissionRequest?>(null) }
     var featureExplainerDialog by remember { mutableStateOf<SettingsFeatureExplainerDialogState?>(null) }
     var messageDialog by remember { mutableStateOf<SettingsMessageDialogState?>(null) }
     val latestCompatPackages by rememberUpdatedState(compatPackages)
     val latestPastePackages by rememberUpdatedState(pastePackages)
+    val latestSettingsLoaded by rememberUpdatedState(settingsLoaded)
 
-    LaunchedEffect(compatPackages) {
-        delay(300)
-        prefs.floatingWriteCompatPackages = compatPackages
+    fun applySnapshot(snapshot: FloatingSettingsPrefsSnapshot) {
+        if (uiState != snapshot.uiState) uiState = snapshot.uiState
+        if (compatPackages != snapshot.compatPackages) compatPackages = snapshot.compatPackages
+        if (pastePackages != snapshot.pastePackages) pastePackages = snapshot.pastePackages
+        persistedPackages.compat = snapshot.compatPackages
+        persistedPackages.paste = snapshot.pastePackages
+        if (!settingsLoaded) settingsLoaded = true
     }
 
-    LaunchedEffect(pastePackages) {
+    suspend fun loadSnapshot(): FloatingSettingsPrefsSnapshot = withContext(Dispatchers.IO) {
+        FloatingSettingsPrefsSnapshot.fromPrefs(prefs)
+    }
+
+    suspend fun loadUiState(): FloatingSettingsUiState = withContext(Dispatchers.IO) {
+        FloatingSettingsUiState.fromPrefs(prefs)
+    }
+
+    fun applyUiState(next: FloatingSettingsUiState) {
+        if (uiState != next) uiState = next
+    }
+
+    LaunchedEffect(prefs) {
+        applySnapshot(loadSnapshot())
+    }
+
+    LaunchedEffect(compatPackages, settingsLoaded) {
+        if (!settingsLoaded) return@LaunchedEffect
+        if (compatPackages == persistedPackages.compat) return@LaunchedEffect
         delay(300)
-        prefs.floatingWritePastePackages = pastePackages
+        withContext(Dispatchers.IO) {
+            prefs.floatingWriteCompatPackages = compatPackages
+        }
+        persistedPackages.compat = compatPackages
+    }
+
+    LaunchedEffect(pastePackages, settingsLoaded) {
+        if (!settingsLoaded) return@LaunchedEffect
+        if (pastePackages == persistedPackages.paste) return@LaunchedEffect
+        delay(300)
+        withContext(Dispatchers.IO) {
+            prefs.floatingWritePastePackages = pastePackages
+        }
+        persistedPackages.paste = pastePackages
     }
 
     fun refreshState() {
-        uiState = FloatingSettingsUiState.fromPrefs(prefs)
+        scope.launch {
+            applyUiState(loadUiState())
+        }
     }
 
     fun requestOverlayPermission() {
@@ -162,34 +220,69 @@ fun FloatingSettingsScreen(
             return
         }
 
-        if (prefs.floatingAsrEnabled) {
-            val hasOverlay = Settings.canDrawOverlays(context)
-            val hasAccessibility = isAccessibilityServiceEnabled(context)
-            if (!hasOverlay || !hasAccessibility) {
-                prefs.floatingAsrEnabled = false
-                serviceManager.hideAsrService()
+        scope.launch {
+            val asrEnabled = withContext(Dispatchers.IO) {
+                prefs.floatingAsrEnabled
             }
+            if (asrEnabled) {
+                val hasOverlay = Settings.canDrawOverlays(context)
+                val hasAccessibility = isAccessibilityServiceEnabled(context)
+                if (!hasOverlay || !hasAccessibility) {
+                    withContext(Dispatchers.IO) {
+                        prefs.floatingAsrEnabled = false
+                    }
+                    serviceManager.hideAsrService()
+                }
+            }
+            applyUiState(loadUiState())
         }
-        refreshState()
     }
 
     DisposableEffect(lifecycleOwner) {
-        fun flushPackageEdits() {
-            prefs.floatingWriteCompatPackages = latestCompatPackages
-            prefs.floatingWritePastePackages = latestPastePackages
+        fun pendingPackageEdits(): FloatingPackageEdits? {
+            if (!latestSettingsLoaded) return null
+            val compat = latestCompatPackages
+            val paste = latestPastePackages
+            val compatChanged = compat != persistedPackages.compat
+            val pasteChanged = paste != persistedPackages.paste
+            if (!compatChanged && !pasteChanged) return null
+            return FloatingPackageEdits(
+                compat = compat,
+                paste = paste,
+                compatChanged = compatChanged,
+                pasteChanged = pasteChanged
+            )
+        }
+
+        fun flushPackageEditsAsync() {
+            val edits = pendingPackageEdits() ?: return
+            scope.launch {
+                withContext(Dispatchers.IO) {
+                    if (edits.compatChanged) prefs.floatingWriteCompatPackages = edits.compat
+                    if (edits.pasteChanged) prefs.floatingWritePastePackages = edits.paste
+                }
+                if (edits.compatChanged) persistedPackages.compat = edits.compat
+                if (edits.pasteChanged) persistedPackages.paste = edits.paste
+            }
+        }
+
+        fun flushPackageEditsNow() {
+            val edits = pendingPackageEdits() ?: return
+            if (edits.compatChanged) prefs.floatingWriteCompatPackages = edits.compat
+            if (edits.pasteChanged) prefs.floatingWritePastePackages = edits.paste
         }
 
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_RESUME -> syncAsrToggleAfterPermissions()
-                Lifecycle.Event.ON_PAUSE -> flushPackageEdits()
+                Lifecycle.Event.ON_PAUSE -> flushPackageEditsAsync()
                 else -> Unit
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
-            flushPackageEdits()
+            flushPackageEditsNow()
         }
     }
 
@@ -284,7 +377,7 @@ fun FloatingSettingsScreen(
                                         requestAccessibilityPermission()
                                     } else {
                                         prefs.floatingSwitcherOnlyWhenImeVisible = enabled
-                                        serviceManager.refreshAsrService(prefs.floatingAsrEnabled)
+                                        serviceManager.refreshAsrService(uiState.asrEnabled)
                                     }
                                 }
                             },
@@ -324,7 +417,7 @@ fun FloatingSettingsScreen(
                             onValueChangeFinished = {
                                 actions.hapticTap()
                                 prefs.floatingSwitcherAlpha = (uiState.alphaPercent / 100f).coerceIn(0.2f, 1.0f)
-                                serviceManager.refreshAsrService(prefs.floatingAsrEnabled)
+                                serviceManager.refreshAsrService(uiState.asrEnabled)
                                 refreshState()
                             }
                         )
@@ -343,7 +436,7 @@ fun FloatingSettingsScreen(
                             onValueChangeFinished = {
                                 actions.hapticTap()
                                 prefs.floatingBallSizeDp = uiState.sizeDp
-                                if (prefs.floatingAsrEnabled) {
+                                if (uiState.asrEnabled) {
                                     serviceManager.showAsrService()
                                 }
                                 refreshState()

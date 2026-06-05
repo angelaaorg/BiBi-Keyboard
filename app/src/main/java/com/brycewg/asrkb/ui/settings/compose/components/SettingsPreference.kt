@@ -19,6 +19,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -53,16 +54,23 @@ fun SettingsPreference(
 
 @Composable
 fun SettingsPreferenceGroup(vararg entries: SettingsEntry?) {
-    val visibleEntries = entries.filterNotNull()
     val uiMode = LocalBibiUiMode.current
-    visibleEntries.forEachIndexed { index, entry ->
-        SettingsPreference(
-            entry = entry,
-            index = index,
-            count = visibleEntries.size
-        )
-        if (uiMode == BibiUiMode.Material && index < visibleEntries.lastIndex) {
-            Spacer(Modifier.height(SettingsLayoutMetrics.MaterialSectionItemSpacing))
+    val visibleCount = entries.count { it != null }
+    var visibleIndex = 0
+    entries.forEach { entry ->
+        if (entry != null) {
+            val index = visibleIndex
+            key(entry.id) {
+                SettingsPreference(
+                    entry = entry,
+                    index = index,
+                    count = visibleCount
+                )
+            }
+            if (uiMode == BibiUiMode.Material && index < visibleCount - 1) {
+                Spacer(Modifier.height(SettingsLayoutMetrics.MaterialSectionItemSpacing))
+            }
+            visibleIndex++
         }
     }
 }
@@ -74,6 +82,11 @@ internal fun SettingsHighlightContainer(
     content: @Composable () -> Unit
 ) {
     val highlightTargetId = LocalSettingsHighlightTarget.current
+    if (highlightTargetId == null) {
+        content()
+        return
+    }
+
     var active by remember(entryId, highlightTargetId) {
         mutableStateOf(highlightTargetId == entryId)
     }

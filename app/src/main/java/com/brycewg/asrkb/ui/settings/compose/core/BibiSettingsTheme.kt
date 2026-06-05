@@ -22,6 +22,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
@@ -54,24 +55,30 @@ fun BibiSettingsTheme(
         when (uiMode) {
             BibiUiMode.Material -> MaterialTheme(
                 colorScheme = materialColorScheme,
-                shapes = bibiMaterialShapes(),
+                shapes = bibiMaterialShapes,
                 content = content
             )
 
             BibiUiMode.Miuix -> MaterialTheme(
                 colorScheme = materialColorScheme,
-                shapes = bibiMaterialShapes()
+                shapes = bibiMaterialShapes
             ) {
-                MiuixTheme(
-                    controller = ThemeController(
-                        when (themeMode) {
-                            "light" -> ColorSchemeMode.Light
-                            "dark" -> ColorSchemeMode.Dark
-                            else -> ColorSchemeMode.System
-                        },
+                val miuixColorSchemeMode = remember(themeMode) {
+                    when (themeMode) {
+                        "light" -> ColorSchemeMode.Light
+                        "dark" -> ColorSchemeMode.Dark
+                        else -> ColorSchemeMode.System
+                    }
+                }
+                val miuixThemeController = remember(miuixColorSchemeMode, isDark) {
+                    ThemeController(
+                        miuixColorSchemeMode,
                         keyColor = null,
                         isDark = isDark
                     )
+                }
+                MiuixTheme(
+                    controller = miuixThemeController
                 ) {
                     CompositionLocalProvider(
                         LocalContentColor provides MiuixTheme.colorScheme.onBackground
@@ -91,14 +98,16 @@ fun BibiSettingsTheme(
 @Composable
 private fun bibiMaterialColorScheme(isDark: Boolean): ColorScheme {
     val context = LocalContext.current
-    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        if (isDark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-    } else {
-        if (isDark) darkColorScheme() else lightColorScheme()
+    return remember(context, isDark) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (isDark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        } else {
+            if (isDark) darkColorScheme() else lightColorScheme()
+        }
     }
 }
 
-private fun bibiMaterialShapes(): Shapes = Shapes(
+private val bibiMaterialShapes = Shapes(
     extraSmall = RoundedCornerShape(8.dp),
     small = RoundedCornerShape(14.dp),
     medium = RoundedCornerShape(20.dp),

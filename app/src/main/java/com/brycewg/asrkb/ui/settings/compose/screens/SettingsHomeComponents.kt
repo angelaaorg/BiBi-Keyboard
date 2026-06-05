@@ -44,6 +44,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -226,11 +227,13 @@ private fun SettingsHomeSection(
 ) {
     SettingsSectionContainer(uiMode = uiMode, titleRes = section.titleRes) {
         section.entries.forEachIndexed { index, entry ->
-            SettingsPreference(
-                entry = entry,
-                index = index,
-                count = section.entries.size
-            )
+            key(entry.id) {
+                SettingsPreference(
+                    entry = entry,
+                    index = index,
+                    count = section.entries.size
+                )
+            }
         }
     }
 }

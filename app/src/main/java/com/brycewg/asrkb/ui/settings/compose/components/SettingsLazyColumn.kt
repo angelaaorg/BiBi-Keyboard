@@ -20,7 +20,6 @@ import androidx.compose.ui.unit.dp
 import com.brycewg.asrkb.ui.settings.compose.core.BibiUiMode
 import com.brycewg.asrkb.ui.settings.compose.core.SettingsLayoutMetrics
 import top.yukonga.miuix.kmp.utils.overScrollVertical
-import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 
 @Composable
 internal fun SettingsLazyColumn(
@@ -35,7 +34,6 @@ internal fun SettingsLazyColumn(
         LazyColumn(
             modifier = modifier
                 .imePadding()
-                .scrollEndHaptic()
                 .overScrollVertical()
                 .then(miuixScrollModifier),
             contentPadding = contentPadding,

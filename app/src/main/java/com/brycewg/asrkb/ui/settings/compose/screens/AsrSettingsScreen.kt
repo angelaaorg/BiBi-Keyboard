@@ -41,6 +41,7 @@ import com.brycewg.asrkb.ui.settings.compose.components.settingsFeatureExplainer
 import com.brycewg.asrkb.ui.settings.compose.core.BibiUiMode
 import com.brycewg.asrkb.ui.settings.compose.core.SettingsActionController
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -50,6 +51,10 @@ private data class AsrLocalDownloadRequest(
     val variant: String,
     val options: List<DownloadSourceOption>
 )
+
+private class LocalModelRefreshHandle {
+    var job: Job? = null
+}
 
 @Composable
 fun AsrSettingsScreen(
@@ -82,6 +87,7 @@ fun AsrSettingsScreen(
     var localModelStatusByKey by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
     var localModelPendingKeys by remember { mutableStateOf<Set<String>>(emptySet()) }
     var pendingImport by remember { mutableStateOf<Pair<AsrLocalModelSpec, String>?>(null) }
+    val localModelRefreshHandle = remember { LocalModelRefreshHandle() }
 
     fun setLocalModelStatus(spec: AsrLocalModelSpec, message: String, pending: Boolean = false) {
         localModelStatusByKey = localModelStatusByKey + (spec.key to message)
@@ -100,8 +106,12 @@ fun AsrSettingsScreen(
 
     fun applyLocalModelReadyMap(readyMap: Map<String, Boolean>) {
         val readyKeys = readyMap.filterValues { it }.keys
-        localModelReadyByKey = readyMap
-        if (readyKeys.isNotEmpty()) {
+        val clearsTrackedState = localModelPendingKeys.any { it in readyKeys } ||
+            localModelStatusByKey.keys.any { it in readyKeys }
+        if (localModelReadyByKey != readyMap) {
+            localModelReadyByKey = readyMap
+        }
+        if (clearsTrackedState) {
             localModelStatusByKey = localModelStatusByKey - readyKeys
             localModelPendingKeys = localModelPendingKeys - readyKeys
             viewModel.refreshFromPrefs()
@@ -109,8 +119,15 @@ fun AsrSettingsScreen(
     }
 
     fun refreshLocalModelReady() {
-        scope.launch {
+        localModelRefreshHandle.job?.cancel()
+        val job = scope.launch {
             applyLocalModelReadyMap(queryLocalModelReady())
+        }
+        localModelRefreshHandle.job = job
+        job.invokeOnCompletion {
+            if (localModelRefreshHandle.job === job) {
+                localModelRefreshHandle.job = null
+            }
         }
     }
 

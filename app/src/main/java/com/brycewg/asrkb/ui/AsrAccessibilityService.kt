@@ -232,6 +232,14 @@ class AsrAccessibilityService : AccessibilityService() {
     }
 
     private val handler = Handler(Looper.getMainLooper())
+    private val prefsOrNull: Prefs? by lazy(LazyThreadSafetyMode.NONE) {
+        try {
+            Prefs(this)
+        } catch (e: Throwable) {
+            Log.e(TAG, "Error getting preferences", e)
+            null
+        }
+    }
     private var pendingCheck = false
     private var lastImeSceneActive: Boolean? = null
     private var lastEditableFocusAt: Long = 0L
@@ -249,18 +257,23 @@ class AsrAccessibilityService : AccessibilityService() {
         // 为避免频繁遍历树，做轻量节流
         if (event == null) return
 
-        // 事件计数（1s 聚合输出一次）
-        when (event.eventType) {
-            AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> aggWinStateChanged++
-            AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED -> aggWinContentChanged++
-            AccessibilityEvent.TYPE_VIEW_FOCUSED -> aggViewFocused++
-            AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED -> aggTextSelChanged++
-            AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED -> aggTextChanged++
-            AccessibilityEvent.TYPE_WINDOWS_CHANGED -> aggWindowsChanged++
+        if (DebugLogManager.isRecording()) {
+            // 事件计数（1s 聚合输出一次）
+            when (event.eventType) {
+                AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> aggWinStateChanged++
+                AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED -> aggWinContentChanged++
+                AccessibilityEvent.TYPE_VIEW_FOCUSED -> aggViewFocused++
+                AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED -> aggTextSelChanged++
+                AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED -> aggTextChanged++
+                AccessibilityEvent.TYPE_WINDOWS_CHANGED -> aggWindowsChanged++
+            }
+            maybeEmitA11yAgg()
         }
-        maybeEmitA11yAgg()
 
         if (!isRelevantEventType(event.eventType)) {
+            return
+        }
+        if (isOwnPackageContentChange(event)) {
             return
         }
 
@@ -283,14 +296,13 @@ class AsrAccessibilityService : AccessibilityService() {
         eventType == AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED ||
         eventType == AccessibilityEvent.TYPE_WINDOWS_CHANGED
 
-    private fun tryDispatchImeVisibilityHint() {
-        val prefs = try {
-            Prefs(this)
-        } catch (e: Throwable) {
-            Log.e(TAG, "Error getting preferences", e)
-            null
-        } ?: return
+    private fun isOwnPackageContentChange(event: AccessibilityEvent): Boolean {
+        if (event.eventType != AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) return false
+        return event.packageName?.toString() == packageName
+    }
 
+    private fun tryDispatchImeVisibilityHint() {
+        val prefs = prefsOrNull ?: return
         if (!shouldCheckImeVisibility(prefs)) return
 
         val now = System.currentTimeMillis()
@@ -355,21 +367,22 @@ class AsrAccessibilityService : AccessibilityService() {
         val prev = lastImeSceneActive
         if (prev == null || prev != active) {
             lastImeSceneActive = active
-            DebugLogManager.log(
-                category = "ime",
-                event = if (active) "scene_active" else "scene_inactive",
-                data = mapOf(
-                    "by" to "a11y",
-                    "pkg" to (getActiveWindowPackage() ?: "")
+            if (DebugLogManager.isRecording()) {
+                DebugLogManager.log(
+                    category = "ime",
+                    event = if (active) "scene_active" else "scene_inactive",
+                    data = mapOf(
+                        "by" to "a11y",
+                        "pkg" to (getActiveWindowPackage() ?: "")
+                    )
                 )
-            )
-            // 附带一次决策解释
-            try {
-                val prefs = Prefs(this)
-                val snapshot = buildImeDecisionSnapshot()
-                DebugLogManager.log("ime", "check", snapshot)
-            } catch (e: Throwable) {
-                Log.w(TAG, "Failed to log IME decision snapshot", e)
+                // 附带一次决策解释
+                try {
+                    val snapshot = buildImeDecisionSnapshot()
+                    DebugLogManager.log("ime", "check", snapshot)
+                } catch (e: Throwable) {
+                    Log.w(TAG, "Failed to log IME decision snapshot", e)
+                }
             }
             notifyFloatingServices(active)
         }

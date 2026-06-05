@@ -1,5 +1,7 @@
 package com.brycewg.asrkb.ui.floatingball
 
+import com.brycewg.asrkb.BuildConfig
+
 /**
  * 悬浮球状态机
  * 使用 sealed class 定义所有可能的状态，替代多个布尔标志
@@ -32,11 +34,14 @@ class FloatingBallStateMachine {
         get() = currentState
 
     fun transitionTo(newState: FloatingBallState) {
+        if (currentState == newState) return
         // 记录状态转换（便于调试）
-        android.util.Log.d(
-            "FloatingBallStateMachine",
-            "State transition: $currentState -> $newState"
-        )
+        if (BuildConfig.DEBUG) {
+            android.util.Log.d(
+                "FloatingBallStateMachine",
+                "State transition: $currentState -> $newState"
+            )
+        }
         currentState = newState
     }
 

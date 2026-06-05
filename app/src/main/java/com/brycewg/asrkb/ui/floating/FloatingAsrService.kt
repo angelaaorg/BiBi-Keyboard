@@ -69,7 +69,9 @@ class FloatingAsrService : Service() {
             when (intent?.action) {
                 FloatingImeHints.ACTION_HINT_IME_VISIBLE -> {
                     imeVisible = true
-                    DebugLogManager.log("float", "hint", mapOf("action" to "VISIBLE"))
+                    if (DebugLogManager.isRecording()) {
+                        DebugLogManager.log("float", "hint", mapOf("action" to "VISIBLE"))
+                    }
                     visibilityCoordinator.applyVisibility("hint_visible")
                     try {
                         BluetoothRouteManager.setImeActive(this@FloatingAsrService, true)
@@ -79,7 +81,9 @@ class FloatingAsrService : Service() {
                 }
                 FloatingImeHints.ACTION_HINT_IME_HIDDEN -> {
                     imeVisible = false
-                    DebugLogManager.log("float", "hint", mapOf("action" to "HIDDEN"))
+                    if (DebugLogManager.isRecording()) {
+                        DebugLogManager.log("float", "hint", mapOf("action" to "HIDDEN"))
+                    }
                     visibilityCoordinator.applyVisibility("hint_hidden")
                     try {
                         BluetoothRouteManager.setImeActive(this@FloatingAsrService, false)
@@ -190,7 +194,9 @@ class FloatingAsrService : Service() {
             ACTION_RESET_POSITION -> handleResetBallPosition()
             FloatingImeHints.ACTION_HINT_IME_VISIBLE -> {
                 imeVisible = true
-                DebugLogManager.log("float", "hint", mapOf("action" to "VISIBLE"))
+                if (DebugLogManager.isRecording()) {
+                    DebugLogManager.log("float", "hint", mapOf("action" to "VISIBLE"))
+                }
                 visibilityCoordinator.applyVisibility("start_hint_visible")
                 try {
                     BluetoothRouteManager.setImeActive(this, true)
@@ -200,7 +206,9 @@ class FloatingAsrService : Service() {
             }
             FloatingImeHints.ACTION_HINT_IME_HIDDEN -> {
                 imeVisible = false
-                DebugLogManager.log("float", "hint", mapOf("action" to "HIDDEN"))
+                if (DebugLogManager.isRecording()) {
+                    DebugLogManager.log("float", "hint", mapOf("action" to "HIDDEN"))
+                }
                 visibilityCoordinator.applyVisibility("start_hint_hidden")
                 try {
                     BluetoothRouteManager.setImeActive(this, false)
@@ -264,17 +272,23 @@ class FloatingAsrService : Service() {
             initialState = stateMachine.state
         )
         if (!success) {
-            DebugLogManager.log("float", "show_failed")
+            if (DebugLogManager.isRecording()) {
+                DebugLogManager.log("float", "show_failed")
+            }
             return
         }
-        DebugLogManager.log("float", "show_success")
+        if (DebugLogManager.isRecording()) {
+            DebugLogManager.log("float", "show_success")
+        }
 
         tryPreloadLocalAsrOnce()
     }
 
     private fun hideBall() {
         viewManager.hideBall()
-        DebugLogManager.log("float", "hide")
+        if (DebugLogManager.isRecording()) {
+            DebugLogManager.log("float", "hide")
+        }
     }
 
     private fun handleResetBallPosition() {

@@ -34,6 +34,7 @@ import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material.icons.rounded.TextFields
 import androidx.compose.material.icons.rounded.TouchApp
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,6 +44,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.ime.AsrKeyboardService
 import com.brycewg.asrkb.store.ApiLogStore
@@ -70,11 +74,16 @@ fun SettingsHomeScreen(
     onSetThemeMode: (String) -> Unit,
     actions: SettingsActionController
 ) {
-    val tabs = settingsHomeTabs()
+    val tabs = remember { settingsHomeTabs() }
     val context = LocalContext.current
     val appContext = context.applicationContext
+    val lifecycleOwner = LocalLifecycleOwner.current
     val prefs = remember(appContext) { Prefs(appContext) }
+    var homeSnapshot by remember(appContext) {
+        mutableStateOf(SettingsHomeSnapshot.placeholder(appContext))
+    }
     var hasRecentApiErrors by remember { mutableStateOf(false) }
+    var refreshToken by remember { mutableStateOf(0) }
     val pagerState = rememberPagerState(
         initialPage = selectedTab,
         pageCount = { tabs.size }
@@ -92,10 +101,96 @@ fun SettingsHomeScreen(
             onSelectTab(homePagerState.selectedPage)
         }
     }
-    LaunchedEffect(selectedTab) {
-        hasRecentApiErrors = withContext(Dispatchers.IO) {
-            hasRecentApiLogErrors()
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                refreshToken++
+            }
         }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+    LaunchedEffect(refreshToken) {
+        val loaded = withContext(Dispatchers.IO) {
+            SettingsHomeLoadedState(
+                snapshot = SettingsHomeSnapshot.fromPrefs(appContext, prefs),
+                hasRecentApiErrors = hasRecentApiLogErrors()
+            )
+        }
+        if (homeSnapshot != loaded.snapshot) {
+            homeSnapshot = loaded.snapshot
+        }
+        if (hasRecentApiErrors != loaded.hasRecentApiErrors) {
+            hasRecentApiErrors = loaded.hasRecentApiErrors
+        }
+    }
+
+    val inputPageSections = remember(homeSnapshot, actions, onPushRoute) {
+        inputSections(homeSnapshot, actions, onPushRoute)
+    }
+    val apiErrorsSummary = if (hasRecentApiErrors) {
+        stringResource(R.string.home_summary_api_log_errors)
+    } else {
+        null
+    }
+    val smartPageSections = remember(homeSnapshot, apiErrorsSummary, actions, onPushRoute) {
+        smartSections(
+            snapshot = homeSnapshot,
+            apiErrorsSummary = apiErrorsSummary,
+            actions = actions,
+            onPushRoute = onPushRoute
+        )
+    }
+    val updateAvailableSummary = if (homeSnapshot.autoUpdateCheckEnabled && hasUpdateAvailable) {
+        stringResource(R.string.home_summary_update_available)
+    } else {
+        null
+    }
+    val miuixUiModeLabel = stringResource(R.string.settings_ui_mode_miuix)
+    val materialUiModeLabel = stringResource(R.string.settings_ui_mode_material)
+    val uiModeOptions = remember(miuixUiModeLabel, materialUiModeLabel) {
+        listOf(
+            DropdownOption(BibiUiMode.Miuix.id, miuixUiModeLabel),
+            DropdownOption(BibiUiMode.Material.id, materialUiModeLabel)
+        )
+    }
+    val systemThemeLabel = stringResource(R.string.settings_theme_mode_system)
+    val lightThemeLabel = stringResource(R.string.settings_theme_mode_light)
+    val darkThemeLabel = stringResource(R.string.settings_theme_mode_dark)
+    val themeModeOptions = remember(systemThemeLabel, lightThemeLabel, darkThemeLabel) {
+        listOf(
+            DropdownOption("system", systemThemeLabel),
+            DropdownOption("light", lightThemeLabel),
+            DropdownOption("dark", darkThemeLabel)
+        )
+    }
+    val updatesEnabled = actions.updatesEnabled
+    val systemPageSections = remember(
+        uiMode,
+        themeMode,
+        uiModeOptions,
+        themeModeOptions,
+        updateAvailableSummary,
+        updatesEnabled,
+        actions,
+        onSetUiMode,
+        onSetThemeMode,
+        onPushRoute
+    ) {
+        systemSections(
+            uiMode = uiMode,
+            themeMode = themeMode,
+            uiModeOptions = uiModeOptions,
+            themeModeOptions = themeModeOptions,
+            updateAvailableSummary = updateAvailableSummary,
+            updatesEnabled = updatesEnabled,
+            onSetUiMode = onSetUiMode,
+            onSetThemeMode = onSetThemeMode,
+            actions = actions,
+            onPushRoute = onPushRoute
+        )
     }
 
     SettingsHomeScaffold(
@@ -110,41 +205,26 @@ fun SettingsHomeScreen(
         val contentPadding = SettingsLayoutMetrics.pageContentPadding(innerPadding)
         HorizontalPager(
             state = pagerState,
-            beyondViewportPageCount = 1,
+            beyondViewportPageCount = 0,
             modifier = Modifier.fillMaxSize()
         ) { page ->
             when (page) {
                 0 -> SettingsSectionList(
-                    sections = inputSections(context, prefs, actions, onPushRoute),
+                    sections = inputPageSections,
                     uiMode = uiMode,
                     modifier = scrollModifier,
                     contentPadding = contentPadding
                 )
 
                 1 -> SettingsSectionList(
-                    sections = smartSections(
-                        context = context,
-                        prefs = prefs,
-                        hasRecentApiErrors = hasRecentApiErrors,
-                        actions = actions,
-                        onPushRoute = onPushRoute
-                    ),
+                    sections = smartPageSections,
                     uiMode = uiMode,
                     modifier = scrollModifier,
                     contentPadding = contentPadding
                 )
 
                 else -> SettingsSectionList(
-                    sections = systemSections(
-                        uiMode = uiMode,
-                        themeMode = themeMode,
-                        prefs = prefs,
-                        hasUpdateAvailable = hasUpdateAvailable,
-                        onSetUiMode = onSetUiMode,
-                        onSetThemeMode = onSetThemeMode,
-                        actions = actions,
-                        onPushRoute = onPushRoute
-                    ),
+                    sections = systemPageSections,
                     uiMode = uiMode,
                     modifier = scrollModifier,
                     contentPadding = contentPadding
@@ -154,10 +234,8 @@ fun SettingsHomeScreen(
     }
 }
 
-@Composable
 private fun inputSections(
-    context: Context,
-    prefs: Prefs,
+    snapshot: SettingsHomeSnapshot,
     actions: SettingsActionController,
     onPushRoute: (BibiSettingsRoute) -> Unit
 ): List<SettingsSection> = listOf(
@@ -167,7 +245,7 @@ private fun inputSections(
             SettingsEntry.Action(
                 id = "one_click_setup",
                 titleRes = R.string.btn_one_click_setup,
-                summary = oneClickSetupSummary(context, prefs),
+                summary = snapshot.oneClickSetupSummary,
                 icon = Icons.Rounded.RocketLaunch,
                 onClick = actions::startOneClickSetup
             ),
@@ -198,14 +276,14 @@ private fun inputSections(
             SettingsEntry.Action(
                 id = "input_settings",
                 titleRes = R.string.title_input_settings,
-                summary = inputControlSummary(context, prefs),
+                summary = snapshot.inputControlSummary,
                 icon = Icons.Rounded.Keyboard,
                 onClick = { onPushRoute(BibiSettingsRoute.Input) }
             ),
             SettingsEntry.Action(
                 id = "floating_settings",
                 titleRes = R.string.title_floating_settings,
-                summary = enabledSummary(context, prefs.floatingAsrEnabled),
+                summary = snapshot.floatingSummary,
                 icon = Icons.Rounded.TouchApp,
                 onClick = { onPushRoute(BibiSettingsRoute.Floating) }
             )
@@ -213,11 +291,9 @@ private fun inputSections(
     )
 )
 
-@Composable
 private fun smartSections(
-    context: Context,
-    prefs: Prefs,
-    hasRecentApiErrors: Boolean,
+    snapshot: SettingsHomeSnapshot,
+    apiErrorsSummary: String?,
     actions: SettingsActionController,
     onPushRoute: (BibiSettingsRoute) -> Unit
 ): List<SettingsSection> = listOf(
@@ -227,25 +303,21 @@ private fun smartSections(
             SettingsEntry.Action(
                 id = "asr_settings",
                 titleRes = R.string.title_asr_settings,
-                summary = asrSummary(context, prefs),
+                summary = snapshot.asrSummary,
                 icon = Icons.Rounded.Mic,
                 onClick = { onPushRoute(BibiSettingsRoute.Asr) }
             ),
             SettingsEntry.Action(
                 id = "ai_settings",
                 titleRes = R.string.title_ai_settings,
-                summary = aiSummary(context, prefs),
+                summary = snapshot.aiSummary,
                 icon = Icons.Rounded.AutoAwesome,
                 onClick = { onPushRoute(BibiSettingsRoute.Ai) }
             ),
             SettingsEntry.Action(
                 id = "asr_history",
                 titleRes = R.string.btn_open_asr_history,
-                summary = if (hasRecentApiErrors) {
-                    stringResource(R.string.home_summary_api_log_errors)
-                } else {
-                    null
-                },
+                summary = apiErrorsSummary,
                 icon = Icons.Rounded.History,
                 onClick = {
                     actions.hapticTap()
@@ -256,12 +328,13 @@ private fun smartSections(
     )
 )
 
-@Composable
 private fun systemSections(
     uiMode: BibiUiMode,
     themeMode: String,
-    prefs: Prefs,
-    hasUpdateAvailable: Boolean,
+    uiModeOptions: List<DropdownOption>,
+    themeModeOptions: List<DropdownOption>,
+    updateAvailableSummary: String?,
+    updatesEnabled: Boolean,
     onSetUiMode: (BibiUiMode) -> Unit,
     onSetThemeMode: (String) -> Unit,
     actions: SettingsActionController,
@@ -275,10 +348,7 @@ private fun systemSections(
                 titleRes = R.string.settings_ui_mode,
                 summaryRes = R.string.settings_ui_mode_summary,
                 icon = Icons.Rounded.Dashboard,
-                options = listOf(
-                    DropdownOption(BibiUiMode.Miuix.id, stringResource(R.string.settings_ui_mode_miuix)),
-                    DropdownOption(BibiUiMode.Material.id, stringResource(R.string.settings_ui_mode_material))
-                ),
+                options = uiModeOptions,
                 selectedOptionId = uiMode.id,
                 onSelectedOptionChange = {
                     actions.hapticTap()
@@ -289,11 +359,7 @@ private fun systemSections(
                 id = "settings_theme_mode",
                 titleRes = R.string.settings_theme_mode,
                 icon = Icons.Rounded.Palette,
-                options = listOf(
-                    DropdownOption("system", stringResource(R.string.settings_theme_mode_system)),
-                    DropdownOption("light", stringResource(R.string.settings_theme_mode_light)),
-                    DropdownOption("dark", stringResource(R.string.settings_theme_mode_dark))
-                ),
+                options = themeModeOptions,
                 selectedOptionId = themeMode,
                 onSelectedOptionChange = {
                     actions.hapticTap()
@@ -322,7 +388,7 @@ private fun systemSections(
                 id = "check_update",
                 titleRes = R.string.btn_check_update,
                 icon = Icons.Rounded.SystemUpdate,
-                enabled = actions.updatesEnabled,
+                enabled = updatesEnabled,
                 onClick = actions::checkForUpdates
             ),
             SettingsEntry.Action(
@@ -334,16 +400,46 @@ private fun systemSections(
             SettingsEntry.Action(
                 id = "about",
                 titleRes = R.string.btn_about,
-                summary = if (prefs.autoUpdateCheckEnabled && hasUpdateAvailable) {
-                    stringResource(R.string.home_summary_update_available)
-                } else {
-                    null
-                },
+                summary = updateAvailableSummary,
                 icon = Icons.Rounded.Info,
                 onClick = { onPushRoute(BibiSettingsRoute.About) }
             )
         )
     )
+)
+
+private data class SettingsHomeSnapshot(
+    val oneClickSetupSummary: String,
+    val inputControlSummary: String,
+    val floatingSummary: String,
+    val asrSummary: String,
+    val aiSummary: String,
+    val autoUpdateCheckEnabled: Boolean
+) {
+    companion object {
+        fun placeholder(context: Context): SettingsHomeSnapshot = SettingsHomeSnapshot(
+            oneClickSetupSummary = "",
+            inputControlSummary = "",
+            floatingSummary = context.getString(R.string.home_summary_disabled),
+            asrSummary = "",
+            aiSummary = "",
+            autoUpdateCheckEnabled = false
+        )
+
+        fun fromPrefs(context: Context, prefs: Prefs): SettingsHomeSnapshot = SettingsHomeSnapshot(
+            oneClickSetupSummary = oneClickSetupSummary(context, prefs),
+            inputControlSummary = inputControlSummary(context, prefs),
+            floatingSummary = enabledSummary(context, prefs.floatingAsrEnabled),
+            asrSummary = asrSummary(context, prefs),
+            aiSummary = aiSummary(context, prefs),
+            autoUpdateCheckEnabled = prefs.autoUpdateCheckEnabled
+        )
+    }
+}
+
+private data class SettingsHomeLoadedState(
+    val snapshot: SettingsHomeSnapshot,
+    val hasRecentApiErrors: Boolean
 )
 
 private fun enabledSummary(context: Context, enabled: Boolean): String = context.getString(if (enabled) R.string.home_summary_enabled else R.string.home_summary_disabled)

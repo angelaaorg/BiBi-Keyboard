@@ -59,6 +59,8 @@ class FloatingBallTouchHandler(
     private var moveStarted = false
     private var directMoveEnabled = false
     private var activeMoveSlop = touchSlop
+    private var dragScreenW = 0
+    private var dragScreenH = 0
 
     private val longPressRunnable = Runnable {
         longPressPosted = false
@@ -138,6 +140,9 @@ class FloatingBallTouchHandler(
         moveStarted = false
         directMoveEnabled = prefs.floatingBallDirectDragEnabled
         activeMoveSlop = if (directMoveEnabled) directMoveSlop else touchSlop
+        val screen = getUsableScreenSize()
+        dragScreenW = screen.first
+        dragScreenH = screen.second
         downX = e.rawX
         downY = e.rawY
         startX = lp.x
@@ -211,7 +216,11 @@ class FloatingBallTouchHandler(
             moveStarted = true
             listener.onMoveStarted()
         }
-        val (screenW, screenH) = getUsableScreenSize()
+        val (screenW, screenH) = if (dragScreenW > 0 && dragScreenH > 0) {
+            dragScreenW to dragScreenH
+        } else {
+            getUsableScreenSize()
+        }
         val root = viewManager.getBallView() ?: v
         val vw = if (root.width > 0) root.width else lp.width
         val vh = if (root.height > 0) root.height else lp.height
@@ -219,9 +228,12 @@ class FloatingBallTouchHandler(
         val maxY = (screenH - vh).coerceAtLeast(0)
         val nx = (startX + dx).coerceIn(0, maxX)
         val ny = (startY + dy).coerceIn(0, maxY)
+        if (lp.x == nx && lp.y == ny) {
+            return true
+        }
         lp.x = nx
         lp.y = ny
-        viewManager.updateViewLayout(viewManager.getBallView() ?: v, lp)
+        viewManager.updateViewLayout(root, lp)
         return true
     }
 
@@ -257,6 +269,8 @@ class FloatingBallTouchHandler(
         longActionFired = false
         dragSelecting = false
         moveStarted = false
+        dragScreenW = 0
+        dragScreenH = 0
         return true
     }
 
@@ -273,6 +287,8 @@ class FloatingBallTouchHandler(
         longActionFired = false
         dragSelecting = false
         moveStarted = false
+        dragScreenW = 0
+        dragScreenH = 0
         return true
     }
 

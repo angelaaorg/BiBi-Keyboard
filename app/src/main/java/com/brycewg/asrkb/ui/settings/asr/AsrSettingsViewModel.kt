@@ -8,6 +8,7 @@ import com.brycewg.asrkb.asr.AsrVendor
 import com.brycewg.asrkb.store.Prefs
 import java.io.File
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,18 +26,28 @@ class AsrSettingsViewModel : ViewModel() {
     private lateinit var prefs: Prefs
     private lateinit var appContext: Context
     private var initialized = false
+    private var refreshJob: Job? = null
 
     fun initialize(context: Context) {
         if (initialized) return
         appContext = context.applicationContext
         prefs = Prefs(appContext)
-        loadInitialState()
         initialized = true
+        refreshFromPrefs()
     }
 
     fun refreshFromPrefs() {
         if (initialized) {
-            loadInitialState()
+            refreshJob?.cancel()
+            val job = viewModelScope.launch(Dispatchers.IO) {
+                loadInitialState()
+            }
+            refreshJob = job
+            job.invokeOnCompletion {
+                if (refreshJob === job) {
+                    refreshJob = null
+                }
+            }
         }
     }
 
