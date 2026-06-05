@@ -17,6 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -185,23 +186,23 @@ internal fun AsrActionPreference(
 }
 
 @Composable
-internal fun AsrBodyText(uiMode: BibiUiMode, textRes: Int) {
-    AsrBodyText(uiMode = uiMode, text = stringResource(textRes))
+internal fun AsrBodyText(uiMode: BibiUiMode, textRes: Int, color: Color? = null) {
+    AsrBodyText(uiMode = uiMode, text = stringResource(textRes), color = color)
 }
 
 @Composable
-internal fun AsrBodyText(uiMode: BibiUiMode, text: String) {
+internal fun AsrBodyText(uiMode: BibiUiMode, text: String, color: Color? = null) {
     when (uiMode) {
         BibiUiMode.Material -> Text(
             text = text,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = color ?: MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp)
         )
 
         BibiUiMode.Miuix -> MiuixText(
             text = text,
-            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+            color = color ?: MiuixTheme.colorScheme.onSurfaceVariantSummary,
             style = MiuixTheme.textStyles.body2,
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp)
         )

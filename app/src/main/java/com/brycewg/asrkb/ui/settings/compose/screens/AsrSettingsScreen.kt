@@ -26,6 +26,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.asr.AsrVendor
+import com.brycewg.asrkb.asr.LocalModelCheck
 import com.brycewg.asrkb.asr.VadDetector
 import com.brycewg.asrkb.store.Prefs
 import com.brycewg.asrkb.ui.DownloadSourceConfig
@@ -50,6 +51,11 @@ private data class AsrLocalDownloadRequest(
     val spec: AsrLocalModelSpec,
     val variant: String,
     val options: List<DownloadSourceOption>
+)
+
+private data class AsrLocalModelQueryResult(
+    val readyByKey: Map<String, Boolean>,
+    val checkStatusByKey: Map<String, String>
 )
 
 private class LocalModelRefreshHandle {
@@ -84,13 +90,14 @@ fun AsrSettingsScreen(
     var featureExplainerDialog by remember { mutableStateOf<SettingsFeatureExplainerDialogState?>(null) }
     var messageDialog by remember { mutableStateOf<SettingsMessageDialogState?>(null) }
     var localModelReadyByKey by remember { mutableStateOf<Map<String, Boolean>>(emptyMap()) }
-    var localModelStatusByKey by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+    var localModelOperationStatusByKey by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+    var localModelCheckStatusByKey by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
     var localModelPendingKeys by remember { mutableStateOf<Set<String>>(emptySet()) }
     var pendingImport by remember { mutableStateOf<Pair<AsrLocalModelSpec, String>?>(null) }
     val localModelRefreshHandle = remember { LocalModelRefreshHandle() }
 
     fun setLocalModelStatus(spec: AsrLocalModelSpec, message: String, pending: Boolean = false) {
-        localModelStatusByKey = localModelStatusByKey + (spec.key to message)
+        localModelOperationStatusByKey = localModelOperationStatusByKey + (spec.key to message)
         localModelPendingKeys = if (pending) {
             localModelPendingKeys + spec.key
         } else {
@@ -98,22 +105,42 @@ fun AsrSettingsScreen(
         }
     }
 
-    suspend fun queryLocalModelReady(): Map<String, Boolean> = withContext(Dispatchers.IO) {
-        AllAsrLocalModelSpecs.associate { spec ->
-            spec.key to runCatching { spec.isReady(viewModel, context) }.getOrDefault(false)
+    suspend fun queryLocalModelStatus(): AsrLocalModelQueryResult = withContext(Dispatchers.IO) {
+        val readyByKey = mutableMapOf<String, Boolean>()
+        val checkStatusByKey = mutableMapOf<String, String>()
+        AllAsrLocalModelSpecs.forEach { spec ->
+            val check = runCatching { spec.checkStatus(viewModel, context) }
+                .getOrDefault(LocalModelCheck.Missing)
+            readyByKey[spec.key] = check is LocalModelCheck.Ready
+            if (check is LocalModelCheck.IntegrityError) {
+                checkStatusByKey[spec.key] = context.getString(
+                    R.string.error_local_model_integrity_failed,
+                    check.fileName
+                )
+            }
         }
+        AsrLocalModelQueryResult(
+            readyByKey = readyByKey,
+            checkStatusByKey = checkStatusByKey
+        )
     }
 
-    fun applyLocalModelReadyMap(readyMap: Map<String, Boolean>) {
-        val readyKeys = readyMap.filterValues { it }.keys
-        val clearsTrackedState = localModelPendingKeys.any { it in readyKeys } ||
-            localModelStatusByKey.keys.any { it in readyKeys }
-        if (localModelReadyByKey != readyMap) {
-            localModelReadyByKey = readyMap
+    fun applyLocalModelQueryResult(result: AsrLocalModelQueryResult) {
+        val readyKeys = result.readyByKey.filterValues { it }.keys
+        val terminalKeys = readyKeys + result.checkStatusByKey.keys
+        val clearsTrackedState = localModelPendingKeys.any { it in terminalKeys } ||
+            localModelOperationStatusByKey.keys.any { it in terminalKeys }
+        if (localModelReadyByKey != result.readyByKey) {
+            localModelReadyByKey = result.readyByKey
+        }
+        if (localModelCheckStatusByKey != result.checkStatusByKey) {
+            localModelCheckStatusByKey = result.checkStatusByKey
         }
         if (clearsTrackedState) {
-            localModelStatusByKey = localModelStatusByKey - readyKeys
-            localModelPendingKeys = localModelPendingKeys - readyKeys
+            localModelOperationStatusByKey = localModelOperationStatusByKey - terminalKeys
+            localModelPendingKeys = localModelPendingKeys - terminalKeys
+        }
+        if (readyKeys.isNotEmpty() && clearsTrackedState) {
             viewModel.refreshFromPrefs()
         }
     }
@@ -121,7 +148,7 @@ fun AsrSettingsScreen(
     fun refreshLocalModelReady() {
         localModelRefreshHandle.job?.cancel()
         val job = scope.launch {
-            applyLocalModelReadyMap(queryLocalModelReady())
+            applyLocalModelQueryResult(queryLocalModelStatus())
         }
         localModelRefreshHandle.job = job
         job.invokeOnCompletion {
@@ -190,7 +217,7 @@ fun AsrSettingsScreen(
         var attempts = 0
         while (localModelPendingKeys.isNotEmpty() && attempts < 120) {
             delay(2500)
-            applyLocalModelReadyMap(queryLocalModelReady())
+            applyLocalModelQueryResult(queryLocalModelStatus())
             attempts += 1
         }
     }
@@ -572,7 +599,8 @@ fun AsrSettingsScreen(
             ),
             localModelState = AsrLocalModelRouteState(
                 readyByKey = localModelReadyByKey,
-                statusByKey = localModelStatusByKey,
+                statusByKey = localModelOperationStatusByKey + localModelCheckStatusByKey,
+                errorStatusKeys = localModelCheckStatusByKey.keys,
                 onDownload = ::showLocalModelDownloadSource,
                 onImport = ::importLocalModel,
                 onClear = ::confirmClearLocalModel,

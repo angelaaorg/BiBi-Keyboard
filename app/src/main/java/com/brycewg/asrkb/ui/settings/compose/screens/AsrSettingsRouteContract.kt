@@ -135,6 +135,7 @@ internal data class AsrBackupSettingsRouteState(
 internal data class AsrLocalModelRouteState(
     val readyByKey: Map<String, Boolean>,
     val statusByKey: Map<String, String>,
+    val errorStatusKeys: Set<String>,
     val onDownload: (AsrLocalModelSpec, String) -> Unit,
     val onImport: (AsrLocalModelSpec, String) -> Unit,
     val onClear: (AsrLocalModelSpec) -> Unit,

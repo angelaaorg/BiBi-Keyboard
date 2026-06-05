@@ -9,6 +9,7 @@ import android.content.Context
 import androidx.annotation.StringRes
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.asr.AsrVendor
+import com.brycewg.asrkb.asr.LocalModelCheck
 import com.brycewg.asrkb.asr.SherpaPunctuationManager
 import com.brycewg.asrkb.asr.normalizeFunAsrNanoVariant
 import com.brycewg.asrkb.asr.normalizeParakeetVariant
@@ -50,6 +51,7 @@ internal data class AsrLocalModelSpec(
     val currentVariant: (AsrSettingsUiState) -> String,
     val downloadUrl: (String) -> String,
     val isReady: (AsrSettingsViewModel, Context) -> Boolean,
+    val checkStatus: (AsrSettingsViewModel, Context) -> LocalModelCheck<*>,
     val clearInstalled: suspend (Context, Prefs) -> Boolean
 )
 
@@ -83,6 +85,7 @@ internal val SenseVoiceModelSpec = AsrLocalModelSpec(
         }
     },
     isReady = { viewModel, context -> viewModel.checkSvModelDownloaded(context) },
+    checkStatus = { viewModel, context -> viewModel.checkSvModelStatus(context) },
     clearInstalled = { context, prefs ->
         val base = context.getExternalFilesDir(null) ?: context.filesDir
         val root = File(base, "sensevoice")
@@ -127,6 +130,7 @@ internal val FunAsrNanoModelSpec = AsrLocalModelSpec(
         }
     },
     isReady = { viewModel, context -> viewModel.checkFnModelDownloaded(context) },
+    checkStatus = { viewModel, context -> viewModel.checkFnModelStatus(context) },
     clearInstalled = { context, _ ->
         val base = context.getExternalFilesDir(null) ?: context.filesDir
         val legacySenseVoice = File(base, "sensevoice")
@@ -165,6 +169,7 @@ internal val Qwen3AsrModelSpec = AsrLocalModelSpec(
         "https://github.com/BryceWG/BiBi-Keyboard/releases/download/models/sherpa-onnx-qwen3-asr-0.6B-int8-2026-03-25.zip"
     },
     isReady = { viewModel, context -> viewModel.checkQwModelDownloaded(context) },
+    checkStatus = { viewModel, context -> viewModel.checkQwModelStatus(context) },
     clearInstalled = { context, prefs ->
         val base = context.getExternalFilesDir(null) ?: context.filesDir
         File(File(base, "qwen3_asr"), normalizeQwen3AsrVariant(prefs.qwModelVariant)).deleteIfExists()
@@ -203,6 +208,7 @@ internal val ParakeetModelSpec = AsrLocalModelSpec(
         }
     },
     isReady = { viewModel, context -> viewModel.checkPkModelDownloaded(context) },
+    checkStatus = { viewModel, context -> viewModel.checkPkModelStatus(context) },
     clearInstalled = { context, prefs ->
         val base = context.getExternalFilesDir(null) ?: context.filesDir
         File(File(base, "parakeet"), normalizeParakeetVariant(prefs.pkModelVariant)).deleteIfExists()
@@ -236,6 +242,7 @@ internal val FireRedAsrModelSpec = AsrLocalModelSpec(
         "https://github.com/BryceWG/BiBi-Keyboard/releases/download/models/sherpa-onnx-fire-red-asr2-ctc-zh_en-int8-2026-02-25.zip"
     },
     isReady = { viewModel, context -> viewModel.checkFrModelDownloaded(context) },
+    checkStatus = { viewModel, context -> viewModel.checkFrModelStatus(context) },
     clearInstalled = { context, prefs ->
         val base = context.getExternalFilesDir(null) ?: context.filesDir
         File(File(base, "firered_asr"), prefs.frModelVariant).deleteIfExists()
@@ -269,6 +276,7 @@ internal val XAsrModelSpec = AsrLocalModelSpec(
         "https://github.com/BryceWG/BiBi-Keyboard/releases/download/models/sherpa-onnx-streaming-x-asr-480ms-zh-en.zip"
     },
     isReady = { viewModel, context -> viewModel.checkXAsrModelDownloaded(context) },
+    checkStatus = { viewModel, context -> viewModel.checkXAsrModelStatus(context) },
     clearInstalled = { context, _ ->
         val base = context.getExternalFilesDir(null) ?: context.filesDir
         File(base, "x_asr").deleteIfExists()
@@ -302,6 +310,7 @@ internal val PunctuationModelSpec = AsrLocalModelSpec(
         "https://github.com/BryceWG/BiBi-Keyboard/releases/download/models/sherpa-onnx-punct-ct-transformer-zh-en-vocab272727-2024-04-12-int8.zip"
     },
     isReady = { viewModel, context -> viewModel.isPunctuationModelInstalled(context) },
+    checkStatus = { viewModel, context -> viewModel.checkPunctuationModelStatus(context) },
     clearInstalled = { context, _ -> SherpaPunctuationManager.clearInstalledModel(context) }
 )
 

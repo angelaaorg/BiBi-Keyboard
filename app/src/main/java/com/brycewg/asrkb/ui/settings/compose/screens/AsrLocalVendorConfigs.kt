@@ -674,7 +674,11 @@ private fun LocalModelOperations(
     val ready = localModelState.readyByKey[spec.key] == true
     val status = localModelStatus(context, spec, ready, localModelState.statusByKey[spec.key])
     if (status.isNotBlank()) {
-        AsrBodyText(uiMode = uiMode, text = status)
+        AsrBodyText(
+            uiMode = uiMode,
+            text = status,
+            color = localModelStatusColor(uiMode, spec, localModelState)
+        )
     }
     LocalModelActionRow(
         uiMode = uiMode,
@@ -708,7 +712,11 @@ private fun PunctuationModelManager(
     AsrLocalDivider(uiMode)
     AsrBodyText(uiMode = uiMode, textRes = R.string.label_punct_model_shared)
     if (status.isNotBlank()) {
-        AsrBodyText(uiMode = uiMode, text = status)
+        AsrBodyText(
+            uiMode = uiMode,
+            text = status,
+            color = localModelStatusColor(uiMode, PunctuationModelSpec, localModelState)
+        )
     }
     LocalModelActionRow(
         uiMode = uiMode,
@@ -797,6 +805,20 @@ private fun localModelStatus(
     ready: Boolean,
     explicitStatus: String?
 ): String = if (ready) context.getString(spec.doneStatusRes) else explicitStatus.orEmpty()
+
+@Composable
+private fun localModelStatusColor(
+    uiMode: BibiUiMode,
+    spec: AsrLocalModelSpec,
+    localModelState: AsrLocalModelRouteState
+) = if (spec.key in localModelState.errorStatusKeys) {
+    when (uiMode) {
+        BibiUiMode.Material -> MaterialTheme.colorScheme.error
+        BibiUiMode.Miuix -> MiuixTheme.colorScheme.error
+    }
+} else {
+    null
+}
 
 internal fun localAsrPrimaryItemCount(selectedVendor: AsrVendor): Int = when (selectedVendor) {
     AsrVendor.SenseVoice -> 7

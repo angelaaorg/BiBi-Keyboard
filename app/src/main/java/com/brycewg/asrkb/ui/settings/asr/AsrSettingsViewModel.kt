@@ -5,6 +5,16 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.brycewg.asrkb.asr.AsrVendor
+import com.brycewg.asrkb.asr.LocalModelCheck
+import com.brycewg.asrkb.asr.LocalModelSpecs
+import com.brycewg.asrkb.asr.SherpaPunctuationManager
+import com.brycewg.asrkb.asr.checkFireRedAsrModelFiles
+import com.brycewg.asrkb.asr.checkFunAsrNanoModel
+import com.brycewg.asrkb.asr.checkParakeetModel
+import com.brycewg.asrkb.asr.checkQwen3AsrModel
+import com.brycewg.asrkb.asr.checkSenseVoiceModel
+import com.brycewg.asrkb.asr.checkXAsrModelFiles
+import com.brycewg.asrkb.asr.requireModelFilesCached
 import com.brycewg.asrkb.store.Prefs
 import java.io.File
 import kotlinx.coroutines.Dispatchers
@@ -813,38 +823,51 @@ class AsrSettingsViewModel : ViewModel() {
         }
     }
 
-    fun checkXAsrModelDownloaded(context: Context): Boolean {
+    internal fun checkXAsrModelStatus(context: Context): LocalModelCheck<*> {
         val base = context.getExternalFilesDir(null) ?: context.filesDir
-        return com.brycewg.asrkb.asr.checkXAsrModelFiles(context, File(base, "x_asr")) is
-            com.brycewg.asrkb.asr.LocalModelCheck.Ready
+        return checkXAsrModelFiles(context, File(base, "x_asr"))
     }
 
-    fun checkSvModelDownloaded(context: Context): Boolean = com.brycewg.asrkb.asr.checkSenseVoiceModel(context, prefs) is
-        com.brycewg.asrkb.asr.LocalModelCheck.Ready
+    fun checkXAsrModelDownloaded(context: Context): Boolean = checkXAsrModelStatus(context) is LocalModelCheck.Ready
 
-    fun checkFnModelDownloaded(context: Context): Boolean = com.brycewg.asrkb.asr.checkFunAsrNanoModel(context, prefs) is
-        com.brycewg.asrkb.asr.LocalModelCheck.Ready
+    internal fun checkSvModelStatus(context: Context): LocalModelCheck<*> = checkSenseVoiceModel(context, prefs)
 
-    fun checkQwModelDownloaded(context: Context): Boolean = com.brycewg.asrkb.asr.checkQwen3AsrModel(context, prefs) is
-        com.brycewg.asrkb.asr.LocalModelCheck.Ready
+    fun checkSvModelDownloaded(context: Context): Boolean = checkSvModelStatus(context) is LocalModelCheck.Ready
 
-    fun checkPkModelDownloaded(context: Context): Boolean = com.brycewg.asrkb.asr.checkParakeetModel(context, prefs) is
-        com.brycewg.asrkb.asr.LocalModelCheck.Ready
+    internal fun checkFnModelStatus(context: Context): LocalModelCheck<*> = checkFunAsrNanoModel(context, prefs)
 
-    fun checkFrModelDownloaded(context: Context): Boolean = try {
-        com.brycewg.asrkb.asr.checkFireRedAsrModelFiles(context, prefs) is
-            com.brycewg.asrkb.asr.LocalModelCheck.Ready
+    fun checkFnModelDownloaded(context: Context): Boolean = checkFnModelStatus(context) is LocalModelCheck.Ready
+
+    internal fun checkQwModelStatus(context: Context): LocalModelCheck<*> = checkQwen3AsrModel(context, prefs)
+
+    fun checkQwModelDownloaded(context: Context): Boolean = checkQwModelStatus(context) is LocalModelCheck.Ready
+
+    internal fun checkPkModelStatus(context: Context): LocalModelCheck<*> = checkParakeetModel(context, prefs)
+
+    fun checkPkModelDownloaded(context: Context): Boolean = checkPkModelStatus(context) is LocalModelCheck.Ready
+
+    internal fun checkFrModelStatus(context: Context): LocalModelCheck<*> = try {
+        checkFireRedAsrModelFiles(context, prefs)
     } catch (t: Throwable) {
         Log.w(TAG, "Failed to resolve FireRedASR model files", t)
-        false
+        LocalModelCheck.Missing
     }
 
-    fun isPunctuationModelInstalled(context: Context): Boolean = try {
-        com.brycewg.asrkb.asr.SherpaPunctuationManager.isModelInstalled(context)
+    fun checkFrModelDownloaded(context: Context): Boolean = checkFrModelStatus(context) is LocalModelCheck.Ready
+
+    internal fun checkPunctuationModelStatus(context: Context): LocalModelCheck<Unit> = try {
+        val dir = SherpaPunctuationManager.findPunctuationModelDir(context) ?: return LocalModelCheck.Missing
+        requireModelFilesCached(
+            context,
+            File(dir, "model.int8.onnx") to LocalModelSpecs.Punctuation.model,
+            File(dir, "tokens.json") to LocalModelSpecs.Punctuation.tokens
+        )
     } catch (t: Throwable) {
         Log.w(TAG, "Failed to check punctuation model installed", t)
-        false
+        LocalModelCheck.Missing
     }
+
+    fun isPunctuationModelInstalled(context: Context): Boolean = checkPunctuationModelStatus(context) is LocalModelCheck.Ready
 
     private fun findModelDir(root: File): File? {
         if (!root.exists()) return null
