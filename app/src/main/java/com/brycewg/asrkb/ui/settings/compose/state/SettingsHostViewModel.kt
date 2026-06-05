@@ -6,8 +6,11 @@
 package com.brycewg.asrkb.ui.settings.compose.state
 
 import android.app.Application
+import android.content.Intent
 import androidx.lifecycle.AndroidViewModel
+import com.brycewg.asrkb.ime.AsrKeyboardService
 import com.brycewg.asrkb.store.Prefs
+import com.brycewg.asrkb.ui.floating.FloatingAsrService
 import com.brycewg.asrkb.ui.settings.compose.core.BibiSettingsRoute
 import com.brycewg.asrkb.ui.settings.compose.core.BibiUiMode
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,11 +39,13 @@ class SettingsHostViewModel(application: Application) : AndroidViewModel(applica
     fun setUiMode(mode: BibiUiMode) {
         prefs.settingsUiMode = mode.id
         _uiState.update { it.copy(uiMode = mode) }
+        refreshInputSurfaces()
     }
 
     fun setThemeMode(mode: String) {
         prefs.settingsThemeMode = mode
         _uiState.update { it.copy(themeMode = prefs.settingsThemeMode) }
+        refreshInputSurfaces()
     }
 
     fun selectHomeTab(index: Int) {
@@ -102,5 +107,19 @@ class SettingsHostViewModel(application: Application) : AndroidViewModel(applica
         BibiSettingsRoute.History,
         BibiSettingsRoute.ApiLog,
         BibiSettingsRoute.Home -> 2
+    }
+
+    private fun refreshInputSurfaces() {
+        val app = getApplication<Application>()
+        app.sendBroadcast(
+            Intent(AsrKeyboardService.ACTION_REFRESH_IME_UI).setPackage(app.packageName)
+        )
+        if (prefs.floatingAsrEnabled) {
+            app.startService(
+                Intent(app, FloatingAsrService::class.java).apply {
+                    action = FloatingAsrService.ACTION_REFRESH_UI
+                }
+            )
+        }
     }
 }

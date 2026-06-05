@@ -6,14 +6,12 @@
 package com.brycewg.asrkb.ime
 
 import android.Manifest
-import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.inputmethodservice.InputMethodService
 import android.view.ContextThemeWrapper
-import android.view.LayoutInflater
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
@@ -21,7 +19,6 @@ import androidx.appcompat.widget.PopupMenu
 import androidx.core.content.ContextCompat
 import com.brycewg.asrkb.LocaleHelper
 import com.brycewg.asrkb.R
-import com.brycewg.asrkb.UiColors
 import com.brycewg.asrkb.asr.AsrVendor
 import com.brycewg.asrkb.asr.BluetoothRouteManager
 import com.brycewg.asrkb.asr.LlmPostProcessor
@@ -78,7 +75,7 @@ class AsrKeyboardService :
     // ========== 视图与控制器 ==========
     private var rootView: View? = null
     private var viewRefs: ImeViewRefs? = null
-    private val themeStyler = ImeThemeStyler()
+    private lateinit var themeStyler: ImeThemeStyler
     private var layoutController: ImeLayoutController? = null
     private var uiRenderer: ImeUiRenderer? = null
     private var mainKeyboardBinder: ImeMainKeyboardBinder? = null
@@ -113,6 +110,7 @@ class AsrKeyboardService :
     override fun onCreate() {
         super.onCreate()
         prefs = Prefs(this)
+        themeStyler = ImeThemeStyler(prefs)
         layoutController = ImeLayoutController(prefs, themeStyler) { viewRefs }
 
         // 初始化组件
@@ -142,22 +140,7 @@ class AsrKeyboardService :
             override fun onReceive(context: android.content.Context?, intent: Intent?) {
                 when (intent?.action) {
                     ACTION_REFRESH_IME_UI -> {
-                        val v = rootView
-                        if (v != null) {
-                            val layoutChanged = layoutController?.applyKeyboardHeightScale() == true
-                            extensionButtonsController?.applyConfig()
-                            uiRenderer?.updateWaveformSensitivity()
-                            uiRenderer?.updatePostprocIcon()
-                            if (layoutChanged) {
-                                v.requestLayout()
-                            }
-                            // 第二次异步重算，确保尺寸变化与父容器测量完成后 padding/overlay 位置也被同步
-                            v.post {
-                                if (layoutController?.applyKeyboardHeightScale() == true) {
-                                    v.requestLayout()
-                                }
-                            }
-                        }
+                        refreshCurrentInputViewTheme(recreateVisibleInputView = true)
                     }
                 }
             }
@@ -195,7 +178,6 @@ class AsrKeyboardService :
         prefsReceiver = null
     }
 
-    @SuppressLint("InflateParams")
     override fun onCreateInputView(): View = createKeyboardView()
 
     private fun createKeyboardView(): View {
@@ -203,7 +185,7 @@ class AsrKeyboardService :
         val dynamicContext = com.google.android.material.color.DynamicColors.wrapContextIfAvailable(
             themedContext
         )
-        val view = LayoutInflater.from(dynamicContext).inflate(R.layout.keyboard_view, null, false)
+        val view = ImeKeyboardViewFactory.create(dynamicContext, prefs)
         return setupKeyboardView(view)
     }
 
@@ -238,9 +220,46 @@ class AsrKeyboardService :
         return view
     }
 
+    private fun refreshCurrentInputViewTheme(recreateVisibleInputView: Boolean) {
+        if (recreateVisibleInputView && imeViewVisible && rootView != null) {
+            clipboardCoordinator?.stopClipboardPreviewListener()
+            clipboardCoordinator?.stopClipboardSyncSafely()
+            val newView = createKeyboardView()
+            setInputView(newView)
+            clipboardCoordinator?.startClipboardSync()
+            clipboardCoordinator?.startClipboardPreviewListener()
+            androidx.core.view.ViewCompat.requestApplyInsets(newView)
+            scheduleInsetsWarmup(newView)
+            if (asrManager.isRunning()) {
+                uiRenderer?.forceStructuralRenderOnNextFrame()
+            }
+            onStateChanged(actionHandler.getCurrentState())
+            newView.post { syncSystemBarsToKeyboardBackground(newView) }
+            return
+        }
+
+        val v = rootView ?: return
+        ImeKeyboardViewFactory.applyTheme(v, prefs)
+        val layoutChanged = layoutController?.applyKeyboardHeightScale() == true
+        extensionButtonsController?.applyConfig()
+        uiRenderer?.updateWaveformSensitivity()
+        uiRenderer?.updatePostprocIcon()
+        syncSystemBarsToKeyboardBackground(v)
+        if (layoutChanged) {
+            v.requestLayout()
+        }
+        // 第二次异步重算，确保尺寸变化与父容器测量完成后 padding/overlay 位置也被同步
+        v.post {
+            if (layoutController?.applyKeyboardHeightScale() == true) {
+                v.requestLayout()
+            }
+        }
+    }
+
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting)
         imeViewVisible = true
+        refreshCurrentInputViewTheme(recreateVisibleInputView = false)
         // 每次键盘视图启动时应用一次高度/底部间距等缩放
         if (layoutController?.applyKeyboardHeightScale() == true) {
             rootView?.requestLayout()
@@ -447,8 +466,8 @@ class AsrKeyboardService :
         val refs = ImeViewRefs.bind(view)
         viewRefs = refs
 
-        // 为波形视图应用动态颜色（通过 UiColors 统一获取主色）
-        refs.waveformView?.setWaveformColor(UiColors.primary(view))
+        // 为波形视图应用随设置 UI 模式解析后的主色。
+        ImeKeyboardViewFactory.applyTheme(view, prefs)
         // 应用波形灵敏度设置
         refs.waveformView?.sensitivity = prefs.waveformSensitivity
         // 修复麦克风垂直位置

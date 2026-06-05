@@ -1,3 +1,8 @@
+/**
+ * 悬浮球窗口、位置与状态动画管理。
+ *
+ * 归属模块：ui/floatingball
+ */
 package com.brycewg.asrkb.ui.floatingball
 
 import android.animation.Animator
@@ -10,7 +15,6 @@ import android.os.Build
 import android.util.Log
 import android.view.ContextThemeWrapper
 import android.view.Gravity
-import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewOutlineProvider
 import android.view.WindowInsets
@@ -18,8 +22,8 @@ import android.view.WindowManager
 import android.view.animation.DecelerateInterpolator
 import android.widget.ImageView
 import com.brycewg.asrkb.R
-import com.brycewg.asrkb.UiColors
 import com.brycewg.asrkb.store.Prefs
+import com.brycewg.asrkb.ui.BibiViewThemes
 import com.brycewg.asrkb.ui.widgets.ProcessingSpinnerView
 import com.google.android.material.color.DynamicColors
 import kotlin.math.sqrt
@@ -65,7 +69,6 @@ class FloatingBallViewManager(
     private var recordingBreathAnimator: ValueAnimator? = null
     private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
     private var completionResetPosted: Boolean = false
-    private var monetContext: Context? = null
     private var currentState: FloatingBallState = FloatingBallState.Idle
     private var lastAppliedAlpha: Float? = null
     private var lastAppliedBallSizeDp: Int? = null
@@ -88,6 +91,7 @@ class FloatingBallViewManager(
         initialState: FloatingBallState
     ): Boolean {
         if (ballView != null) {
+            applyBallTheme()
             applyBallAlpha()
             applyBallSize()
             try {
@@ -103,9 +107,8 @@ class FloatingBallViewManager(
         try {
             val themedCtx = ContextThemeWrapper(context, R.style.Theme_ASRKeyboard)
             val dynCtx = DynamicColors.wrapContextIfAvailable(themedCtx)
-            monetContext = dynCtx
 
-            val view = LayoutInflater.from(dynCtx).inflate(R.layout.floating_asr_ball, null, false)
+            val view = FloatingBallComposeViewFactory.create(dynCtx, prefs)
             ballIcon = view.findViewById(R.id.ballIcon)
             edgeHandleIcon = view.findViewById(R.id.edgeHandleIcon)
             rippleClip = view.findViewById(R.id.rippleClip)
@@ -119,26 +122,18 @@ class FloatingBallViewManager(
                 null
             }
 
-            // 获取 Monet 动态颜色
-            val colorSecondaryContainer = getMonetColor(
-                com.google.android.material.R.attr.colorSecondaryContainer,
-                0xFF6200EE.toInt()
-            )
-            val colorSecondary = getMonetColor(
-                com.google.android.material.R.attr.colorSecondary,
-                colorSecondaryContainer
-            )
+            val theme = BibiViewThemes.resolve(dynCtx, prefs)
 
             // 将相对更重的初始化（波纹背景/自定义进度指示器）延后到下一帧，
             // 以降低 addView 当帧的主线程压力，避免与 IME 显示竞争导致掉帧。
             view.post {
                 try {
-                    setupRippleBackgrounds(colorSecondary)
+                    setupRippleBackgrounds(theme.floatingIcon)
                 } catch (e: Throwable) {
                     Log.w(TAG, "Deferred ripple setup failed", e)
                 }
                 try {
-                    setupProcessingSpinner(ballContainer, colorSecondary)
+                    setupProcessingSpinner(ballContainer, theme.primary)
                 } catch (e: Throwable) {
                     Log.w(TAG, "Deferred spinner setup failed", e)
                 }
@@ -231,6 +226,14 @@ class FloatingBallViewManager(
         if (lastAppliedAlpha == alpha && v.alpha == alpha) return
         v.alpha = alpha
         lastAppliedAlpha = alpha
+    }
+
+    fun applyBallTheme() {
+        val v = ballView ?: return
+        FloatingBallComposeViewFactory.applyTheme(v, prefs)
+        val theme = BibiViewThemes.resolve(v.context, prefs)
+        setupRippleBackgrounds(theme.floatingIcon)
+        processingSpinner?.setSpinnerColor(applyAlpha(theme.primary, 0.6f))
     }
 
     /** 应用悬浮球大小 */
@@ -618,18 +621,6 @@ class FloatingBallViewManager(
     }
 
     // ==================== 私有辅助方法 ====================
-
-    private fun getMonetColor(attr: Int, fallback: Int): Int {
-        val ctx = monetContext ?: context
-        return try {
-            val tv = android.util.TypedValue()
-            val theme = ctx.theme
-            if (theme.resolveAttribute(attr, tv, true)) tv.data else fallback
-        } catch (e: Throwable) {
-            Log.w(TAG, "Failed to resolve theme attribute $attr, using fallback", e)
-            fallback
-        }
-    }
 
     private fun setupRippleBackgrounds(color: Int) {
         val rippleStrokeColor = applyAlpha(color, 1.0f)
@@ -1478,7 +1469,7 @@ class FloatingBallViewManager(
         } catch (e: Throwable) {
             Log.w(TAG, "Failed to cancel icon animation", e)
         }
-        icon.setColorFilter(UiColors.error(icon))
+        icon.setColorFilter(BibiViewThemes.resolve(icon.context, prefs).error)
 
         var canceled = false
         val shake = ValueAnimator.ofFloat(0f, -16f, 16f, -12f, 12f, -6f, 6f, 0f).apply {

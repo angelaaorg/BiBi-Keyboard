@@ -1,3 +1,8 @@
+/**
+ * IME View 主题色与系统栏同步工具。
+ *
+ * 归属模块：ime
+ */
 package com.brycewg.asrkb.ime
 
 import android.content.Context
@@ -6,22 +11,16 @@ import android.view.Window
 import androidx.core.graphics.ColorUtils
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import com.brycewg.asrkb.UiColorTokens
-import com.brycewg.asrkb.UiColors
+import com.brycewg.asrkb.store.Prefs
+import com.brycewg.asrkb.ui.BibiViewThemes
 
-internal class ImeThemeStyler {
+internal class ImeThemeStyler(private val prefs: Prefs) {
 
     fun applyKeyboardBackgroundColor(root: View) {
         root.setBackgroundColor(resolveKeyboardBackgroundColor(root.context))
     }
 
-    fun resolveKeyboardBackgroundColor(ctx: Context): Int {
-        val baseSurface = UiColors.panelBg(ctx)
-        val micContainer = UiColors.get(ctx, UiColorTokens.secondaryContainer)
-        val scrim = UiColors.get(ctx, UiColorTokens.scrim)
-        val mixed = ColorUtils.blendARGB(baseSurface, micContainer, 0.08f)
-        return ColorUtils.blendARGB(mixed, scrim, 0.04f)
-    }
+    fun resolveKeyboardBackgroundColor(ctx: Context): Int = BibiViewThemes.resolve(ctx, prefs).keyboardBackground
 
     fun syncSystemBarsToKeyboardBackground(
         window: Window,

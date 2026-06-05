@@ -1,3 +1,8 @@
+/**
+ * IME 标点组合按键绘制视图。
+ *
+ * 归属模块：ui/widgets
+ */
 package com.brycewg.asrkb.ui.widgets
 
 import android.content.Context
@@ -23,6 +28,7 @@ class PunctKeyView @JvmOverloads constructor(
 
     private var primaryText: String = ""
     private var secondaryText: String = ""
+    private var keyTextColor: Int? = null
 
     private val primaryPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         textAlign = Paint.Align.LEFT // 我们自行做边界校正
@@ -41,11 +47,17 @@ class PunctKeyView @JvmOverloads constructor(
         invalidate()
     }
 
+    fun setKeyTextColor(color: Int) {
+        if (keyTextColor == color) return
+        keyTextColor = color
+        invalidate()
+    }
+
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
         // 取色：键盘按键前景色
-        val fg = try {
+        val fg = keyTextColor ?: try {
             UiColors.get(context, UiColorTokens.kbdKeyFg)
         } catch (
             _: Throwable

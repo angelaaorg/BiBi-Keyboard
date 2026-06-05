@@ -45,6 +45,7 @@ class FloatingAsrService : Service() {
         const val ACTION_SHOW = "com.brycewg.asrkb.action.FLOATING_ASR_SHOW"
         const val ACTION_HIDE = "com.brycewg.asrkb.action.FLOATING_ASR_HIDE"
         const val ACTION_RESET_POSITION = "com.brycewg.asrkb.action.FLOATING_ASR_RESET_POS"
+        const val ACTION_REFRESH_UI = "com.brycewg.asrkb.action.FLOATING_ASR_REFRESH_UI"
     }
 
     private lateinit var windowManager: WindowManager
@@ -192,6 +193,11 @@ class FloatingAsrService : Service() {
             }
             ACTION_HIDE -> hideBall()
             ACTION_RESET_POSITION -> handleResetBallPosition()
+            ACTION_REFRESH_UI -> {
+                viewManager.applyBallTheme()
+                viewManager.applyBallAlpha()
+                viewManager.updateStateVisual(stateMachine.state, force = true)
+            }
             FloatingImeHints.ACTION_HINT_IME_VISIBLE -> {
                 imeVisible = true
                 if (DebugLogManager.isRecording()) {
@@ -259,6 +265,7 @@ class FloatingAsrService : Service() {
         Log.d(TAG, "showBall called: src=$src")
 
         if (viewManager.getBallView() != null) {
+            viewManager.applyBallTheme()
             viewManager.applyBallAlpha()
             viewManager.applyBallSize()
             viewManager.updateStateVisual(stateMachine.state)

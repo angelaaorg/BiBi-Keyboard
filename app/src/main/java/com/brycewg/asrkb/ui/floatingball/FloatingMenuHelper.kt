@@ -1,3 +1,8 @@
+/**
+ * 悬浮球菜单 View 构建与 WindowManager 挂载工具。
+ *
+ * 归属模块：ui/floatingball
+ */
 package com.brycewg.asrkb.ui.floatingball
 
 import android.content.Context
@@ -10,10 +15,9 @@ import android.view.WindowManager
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
-import androidx.core.content.ContextCompat
 import com.brycewg.asrkb.R
-import com.brycewg.asrkb.UiColors
 import com.brycewg.asrkb.store.Prefs
+import com.brycewg.asrkb.ui.BibiViewThemes
 import com.brycewg.asrkb.util.HapticFeedbackHelper
 import com.google.android.material.color.DynamicColors
 
@@ -175,7 +179,7 @@ class FloatingMenuHelper(rawContext: Context, private val windowManager: WindowM
 
             val container = LinearLayout(context).apply {
                 orientation = LinearLayout.VERTICAL
-                background = ContextCompat.getDrawable(context, R.drawable.bg_panel_round)
+                background = panelBackground()
                 val pad = dp(8)
                 setPadding(pad, pad, pad, pad)
             }
@@ -276,7 +280,7 @@ class FloatingMenuHelper(rawContext: Context, private val windowManager: WindowM
 
             val container = LinearLayout(context).apply {
                 orientation = LinearLayout.VERTICAL
-                background = ContextCompat.getDrawable(context, R.drawable.bg_panel_round)
+                background = panelBackground()
                 val pad = dp(8)
                 setPadding(pad, pad, pad, pad)
             }
@@ -398,14 +402,14 @@ class FloatingMenuHelper(rawContext: Context, private val windowManager: WindowM
 
             val container = LinearLayout(context).apply {
                 orientation = LinearLayout.VERTICAL
-                background = ContextCompat.getDrawable(context, R.drawable.bg_panel_round)
+                background = panelBackground()
                 val pad = dp(12)
                 setPadding(pad, pad, pad, pad)
             }
 
             val titleView = TextView(context).apply {
                 text = title
-                setTextColor(UiColors.panelFg(context))
+                setTextColor(currentTheme().panelContent)
                 textSize = 16f
                 setPadding(0, 0, 0, dp(4))
             }
@@ -420,7 +424,7 @@ class FloatingMenuHelper(rawContext: Context, private val windowManager: WindowM
             entries.forEach { (label, isSelected, onClick) ->
                 val tv = TextView(context).apply {
                     text = if (isSelected) "✓  $label" else label
-                    setTextColor(UiColors.panelFgVariant(context))
+                    setTextColor(if (isSelected) currentTheme().primary else currentTheme().panelSummary)
                     textSize = 14f
                     setPadding(dp(6), dp(8), dp(6), dp(8))
                     isClickable = true
@@ -533,14 +537,14 @@ class FloatingMenuHelper(rawContext: Context, private val windowManager: WindowM
 
             val container = LinearLayout(context).apply {
                 orientation = LinearLayout.VERTICAL
-                background = ContextCompat.getDrawable(context, R.drawable.bg_panel_round)
+                background = panelBackground()
                 val pad = dp(12)
                 setPadding(pad, pad, pad, pad)
             }
 
             val titleView = TextView(context).apply {
                 text = title
-                setTextColor(UiColors.panelFg(context))
+                setTextColor(currentTheme().panelContent)
                 textSize = 16f
                 setPadding(0, 0, 0, dp(4))
             }
@@ -590,12 +594,12 @@ class FloatingMenuHelper(rawContext: Context, private val windowManager: WindowM
             fun addTextView(text: String) {
                 val tv = TextView(context).apply {
                     this.text = text
-                    setTextColor(UiColors.panelFgVariant(context))
+                    setTextColor(currentTheme().panelSummary)
                     textSize = 14f
                     setPadding(dp(10), dp(8), dp(10), dp(8))
                     isClickable = true
                     isFocusable = true
-                    background = ContextCompat.getDrawable(context, R.drawable.ripple_capsule)
+                    background = capsuleBackground()
                     maxLines = 3
                     ellipsize = android.text.TextUtils.TruncateAt.END
                     setOnClickListener {
@@ -734,11 +738,13 @@ class FloatingMenuHelper(rawContext: Context, private val windowManager: WindowM
     // ==================== 私有辅助方法 ====================
 
     private fun buildCapsule(iconRes: Int, label: String, cd: String, onClick: () -> Unit): View {
+        val theme = currentTheme()
         val layout = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
-            background = ContextCompat.getDrawable(context, R.drawable.ripple_capsule)
-            val p = dp(10)
-            setPadding(p, p, p, p)
+            background = capsuleBackground()
+            val horizontal = if (theme.isMiuix) dp(12) else dp(10)
+            val vertical = if (theme.isMiuix) dp(9) else dp(10)
+            setPadding(horizontal, vertical, horizontal, vertical)
             isClickable = true
             isFocusable = true
             contentDescription = cd
@@ -750,14 +756,14 @@ class FloatingMenuHelper(rawContext: Context, private val windowManager: WindowM
         val iv = ImageView(context).apply {
             setImageResource(iconRes)
             try {
-                setColorFilter(UiColors.panelFg(context))
+                setColorFilter(theme.panelContent)
             } catch (e: Throwable) {
                 Log.w(TAG, "Failed to set icon color filter", e)
             }
         }
         val tv = TextView(context).apply {
             text = label
-            setTextColor(UiColors.panelFg(context))
+            setTextColor(theme.panelContent)
             textSize = 12f
             setPadding(dp(6), 0, 0, 0)
         }
@@ -802,6 +808,24 @@ class FloatingMenuHelper(rawContext: Context, private val windowManager: WindowM
 
     private fun hapticFeedback(view: View) {
         HapticFeedbackHelper.performTap(context, prefs, view)
+    }
+
+    private fun currentTheme() = BibiViewThemes.resolve(context, prefs)
+
+    private fun panelBackground(): android.graphics.drawable.Drawable {
+        val theme = currentTheme()
+        return BibiViewThemes.roundedRect(context, theme.panelBackground, theme.panelRadiusDp)
+    }
+
+    private fun capsuleBackground(): android.graphics.drawable.Drawable {
+        val theme = currentTheme()
+        return BibiViewThemes.roundedRipple(
+            context,
+            theme.menuItemBackground,
+            theme.ripple,
+            theme.rectKeyRadiusDp,
+            insetDp = 0
+        )
     }
 
     private fun dp(v: Int): Int {
