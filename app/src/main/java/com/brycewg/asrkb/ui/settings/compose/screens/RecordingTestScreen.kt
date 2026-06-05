@@ -76,7 +76,8 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 @Composable
 internal fun RecordingTestScreen(
     uiMode: BibiUiMode,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onOpenAsrSettings: () -> Unit
 ) {
     val context = LocalContext.current
     val appContext = context.applicationContext
@@ -136,7 +137,8 @@ internal fun RecordingTestScreen(
                     uiMode = uiMode,
                     state = state,
                     onPromptSelected = viewModel::selectPromptPreset,
-                    onAiProcess = viewModel::processAi
+                    onAiProcess = viewModel::processAi,
+                    onOpenAsrSettings = onOpenAsrSettings
                 )
             }
             item("results") {
@@ -426,7 +428,8 @@ private fun RecognitionPipelineSection(
     uiMode: BibiUiMode,
     state: RecordingTestUiState,
     onPromptSelected: (String) -> Unit,
-    onAiProcess: () -> Unit
+    onAiProcess: () -> Unit,
+    onOpenAsrSettings: () -> Unit
 ) {
     val context = LocalContext.current
     val promptOptions = remember(state.promptPresets) {
@@ -449,8 +452,8 @@ private fun RecognitionPipelineSection(
                 titleRes = R.string.recording_test_asr_label,
                 summary = configuredAsrSummary(context, state),
                 icon = Icons.Rounded.Mic,
-                enabled = false,
-                onClick = {}
+                enabled = !state.isRecording && !state.isTranscribing && !state.isAiProcessing,
+                onClick = onOpenAsrSettings
             ),
             index = 0,
             count = 2

@@ -162,7 +162,8 @@ private fun SettingsRouteContent(
 
         BibiSettingsRoute.RecordingTest -> RecordingTestScreen(
             uiMode = uiState.uiMode,
-            onBack = { onPopRoute() }
+            onBack = { onPopRoute() },
+            onOpenAsrSettings = { onPushRoute(BibiSettingsRoute.Asr) }
         )
 
         BibiSettingsRoute.Floating -> FloatingSettingsScreen(
