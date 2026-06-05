@@ -40,8 +40,8 @@ internal object SettingsLayoutMetrics {
     val ActionButtonInsideHorizontalPadding = 16.dp
     val ActionButtonInsideVerticalPadding = 13.dp
     val ActionButtonRowHorizontalPadding = 20.dp
-    val ActionButtonRowTopPadding = 12.dp
-    val ActionButtonRowBottomPadding = 8.dp
+    val ActionButtonRowTopPadding = 4.dp
+    val ActionButtonRowBottomPadding = 20.dp
     val ActionButtonSpacing = 8.dp
     val ActionButtonIconSize = 18.dp
     val ActionButtonIconSpacing = 8.dp
