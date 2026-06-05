@@ -11,6 +11,10 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.brycewg.asrkb.LocaleHelper
 import com.brycewg.asrkb.R
+import com.brycewg.asrkb.asr.LocalModelCheck
+import com.brycewg.asrkb.asr.LocalModelFileSpec
+import com.brycewg.asrkb.asr.LocalModelSpecs
+import com.brycewg.asrkb.asr.requireModelFilesCached
 import com.brycewg.asrkb.store.Prefs
 import com.brycewg.asrkb.ui.SettingsActivity
 import java.io.File
@@ -270,6 +274,7 @@ class ModelDownloadService : Service() {
             Log.e(TAG, "Download task failed for key=$key, url=$url", t)
             val onlyZipMsg = getString(R.string.error_only_zip_supported)
             val failText = when {
+                t is ModelIntegrityException -> t.message ?: getString(R.string.error_local_model_integrity_failed, "")
                 t.message == onlyZipMsg -> onlyZipMsg
                 modelType == "x_asr" -> getString(R.string.x_asr_download_status_failed)
                 modelType == "firered_asr" -> getString(R.string.fr_download_status_failed)
@@ -701,116 +706,11 @@ class ModelDownloadService : Service() {
             "qwen3_asr" -> findQwen3AsrModelDir(tmpDir)
             // Parakeet 使用 Nemo transducer 文件组：encoder/decoder/joiner + tokens
             "parakeet" -> findParakeetModelDir(tmpDir)
-            "x_asr" -> com.brycewg.asrkb.asr.findXAsrModelDir(tmpDir)
+            "x_asr" -> findXAsrInstallModelDir(tmpDir)
             else -> findModelDir(tmpDir)
         } ?: throw IllegalStateException("model dir not found")
 
-        // SenseVoice / X-ASR / FireRedASR / Parakeet 依赖 tokens.txt；FunASR Nano 与 Qwen3-ASR 不依赖。
-        if (modelType != "funasr_nano" && modelType != "qwen3_asr") {
-            val tokens = File(modelDir, "tokens.txt")
-            if (!tokens.exists()) throw IllegalStateException("tokens.txt missing")
-        }
-
-        if (modelType == "x_asr") {
-            val files = com.brycewg.asrkb.asr.findXAsrModelFiles(modelDir)
-            if (files == null) {
-                throw IllegalStateException("x_asr files missing after extract")
-            }
-            val minOnnxBytes = 512L * 1024L
-            if (files.encoder.length() < minOnnxBytes ||
-                files.decoder.length() < minOnnxBytes ||
-                files.joiner.length() < minOnnxBytes ||
-                files.tokens.length() < 1024L
-            ) {
-                throw IllegalStateException("x_asr files look truncated after extract")
-            }
-        } else if (modelType == "firered_asr") {
-            val hasCtc = File(modelDir, "model.int8.onnx").exists() ||
-                File(modelDir, "model.onnx").exists()
-            if (!hasCtc) {
-                throw IllegalStateException("firered_asr files missing after extract")
-            }
-        } else if (modelType == "funasr_nano") {
-            val encoderAdaptor = File(modelDir, "encoder_adaptor.int8.onnx")
-            val llm = File(modelDir, "llm.int8.onnx")
-            val embedding = File(modelDir, "embedding.int8.onnx")
-            val tokenizerDir = findFunAsrNanoTokenizerDir(modelDir)
-
-            if (!encoderAdaptor.exists() ||
-                !llm.exists() ||
-                !embedding.exists() ||
-                tokenizerDir == null
-            ) {
-                throw IllegalStateException("funasr_nano files missing after extract")
-            }
-
-            // 粗略下限，避免明显截断（该模型应为数百 MB 量级）
-            val minOnnxBytes = 8L * 1024L * 1024L
-            val minLlmBytes = 32L * 1024L * 1024L
-            if (encoderAdaptor.length() < minOnnxBytes ||
-                embedding.length() < minOnnxBytes ||
-                llm.length() < minLlmBytes
-            ) {
-                throw IllegalStateException("funasr_nano files look truncated after extract")
-            }
-
-            val tokenizerJson = File(tokenizerDir, "tokenizer.json")
-            if (!tokenizerJson.exists() || tokenizerJson.length() < 1024L) {
-                throw IllegalStateException("funasr_nano tokenizer missing after extract")
-            }
-        } else if (modelType == "qwen3_asr") {
-            val convFrontend = File(modelDir, "conv_frontend.onnx")
-            val encoder = File(modelDir, "encoder.int8.onnx")
-            val decoder = File(modelDir, "decoder.int8.onnx")
-            val tokenizerDir = findQwen3AsrTokenizerDir(modelDir)
-
-            if (!convFrontend.exists() ||
-                !encoder.exists() ||
-                !decoder.exists() ||
-                tokenizerDir == null
-            ) {
-                throw IllegalStateException("qwen3_asr files missing after extract")
-            }
-
-            val minOnnxBytes = 1024L * 1024L
-            if (convFrontend.length() < minOnnxBytes ||
-                encoder.length() < minOnnxBytes ||
-                decoder.length() < minOnnxBytes
-            ) {
-                throw IllegalStateException("qwen3_asr files look truncated after extract")
-            }
-
-            if (!isQwen3AsrTokenizerDir(tokenizerDir)) {
-                throw IllegalStateException("qwen3_asr tokenizer missing after extract")
-            }
-        } else if (modelType == "parakeet") {
-            val encoder = File(modelDir, "encoder.int8.onnx")
-            val decoder = File(modelDir, "decoder.int8.onnx")
-            val joiner = File(modelDir, "joiner.int8.onnx")
-            val tokens = File(modelDir, "tokens.txt")
-
-            if (!encoder.exists() || !decoder.exists() || !joiner.exists() || !tokens.exists()) {
-                throw IllegalStateException("parakeet files missing after extract")
-            }
-
-            val minEncoderBytes = 64L * 1024L * 1024L
-            val minSmallOnnxBytes = 512L * 1024L
-            if (encoder.length() < minEncoderBytes ||
-                decoder.length() < minSmallOnnxBytes ||
-                joiner.length() < minSmallOnnxBytes ||
-                tokens.length() < 1024L
-            ) {
-                throw IllegalStateException("parakeet files look truncated after extract")
-            }
-        } else {
-            if (!(
-                    File(modelDir, "model.int8.onnx").exists() ||
-                        File(modelDir, "model.onnx").exists()
-                    )
-            ) {
-                throw IllegalStateException("sensevoice files missing after extract")
-            }
-        }
+        verifyModelIntegrity(modelDir, variant, modelType)
 
         Log.d(TAG, "Model files verified, installing to final location")
 
@@ -894,6 +794,10 @@ class ModelDownloadService : Service() {
 
         val modelDir = findPunctDir(tmpDir)
             ?: throw IllegalStateException("punctuation files missing after extract")
+        requireInstalledFiles(
+            File(modelDir, "model.int8.onnx") to LocalModelSpecs.Punctuation.model,
+            File(modelDir, "tokens.json") to LocalModelSpecs.Punctuation.tokens
+        )
 
         Log.d(TAG, "Punctuation model dir located at: ${modelDir.path}")
 
@@ -930,6 +834,119 @@ class ModelDownloadService : Service() {
 
         Log.d(TAG, "Punctuation model installation completed: ${punctRoot.path}")
     }
+
+    private fun verifyModelIntegrity(modelDir: File, variant: String, modelType: String) {
+        when (modelType) {
+            "x_asr" -> requireInstalledFiles(
+                File(modelDir, "tokens.txt") to LocalModelSpecs.XAsr.tokens,
+                File(modelDir, "encoder-480ms.onnx") to LocalModelSpecs.XAsr.encoder,
+                File(modelDir, "decoder-480ms.onnx") to LocalModelSpecs.XAsr.decoder,
+                File(modelDir, "joiner-480ms.onnx") to LocalModelSpecs.XAsr.joiner
+            )
+            "firered_asr" -> requireInstalledFiles(
+                File(modelDir, "tokens.txt") to LocalModelSpecs.FireRedAsr.tokens,
+                File(modelDir, "model.int8.onnx") to LocalModelSpecs.FireRedAsr.ctcModel
+            )
+            "funasr_nano" -> {
+                val tokenizerDir = findFunAsrNanoTokenizerDir(modelDir)
+                    ?: throw IllegalStateException("funasr_nano tokenizer missing after extract")
+                val specs = funAsrNanoInstallSpecs(variant)
+                requireInstalledFiles(
+                    File(modelDir, "encoder_adaptor.int8.onnx") to specs.encoderAdaptor,
+                    File(modelDir, "llm.int8.onnx") to specs.llm,
+                    File(modelDir, "embedding.int8.onnx") to specs.embedding,
+                    File(tokenizerDir, "tokenizer.json") to LocalModelSpecs.FunAsrNano.tokenizer
+                )
+            }
+            "qwen3_asr" -> {
+                val tokenizerDir = findQwen3AsrTokenizerDir(modelDir)
+                    ?: throw IllegalStateException("qwen3_asr tokenizer missing after extract")
+                requireInstalledFiles(
+                    File(modelDir, "conv_frontend.onnx") to LocalModelSpecs.Qwen3Asr.convFrontend,
+                    File(modelDir, "encoder.int8.onnx") to LocalModelSpecs.Qwen3Asr.encoder,
+                    File(modelDir, "decoder.int8.onnx") to LocalModelSpecs.Qwen3Asr.decoder,
+                    File(tokenizerDir, "merges.txt") to LocalModelSpecs.Qwen3Asr.merges,
+                    File(tokenizerDir, "tokenizer_config.json") to LocalModelSpecs.Qwen3Asr.tokenizerConfig,
+                    File(tokenizerDir, "vocab.json") to LocalModelSpecs.Qwen3Asr.vocab
+                )
+            }
+            "parakeet" -> {
+                val specs = parakeetInstallSpecs(variant)
+                requireInstalledFiles(
+                    File(modelDir, "tokens.txt") to specs.tokens,
+                    File(modelDir, "encoder.int8.onnx") to specs.encoder,
+                    File(modelDir, "decoder.int8.onnx") to specs.decoder,
+                    File(modelDir, "joiner.int8.onnx") to specs.joiner
+                )
+            }
+            else -> {
+                val normalizedVariant = if (variant == "small-full") "small-full" else "small-int8"
+                val modelSpec = if (normalizedVariant == "small-full") {
+                    LocalModelSpecs.SenseVoice.smallFull
+                } else {
+                    LocalModelSpecs.SenseVoice.smallInt8
+                }
+                val modelFileName = if (normalizedVariant == "small-full") "model.onnx" else "model.int8.onnx"
+                requireInstalledFiles(
+                    File(modelDir, "tokens.txt") to LocalModelSpecs.SenseVoice.tokens,
+                    File(modelDir, modelFileName) to modelSpec
+                )
+            }
+        }
+    }
+
+    private fun requireInstalledFiles(vararg files: Pair<File, LocalModelFileSpec>) {
+        when (val check = requireModelFilesCached(this, *files)) {
+            is LocalModelCheck.Ready -> Unit
+            LocalModelCheck.Missing -> throw IllegalStateException("model files missing after extract")
+            is LocalModelCheck.IntegrityError -> throw ModelIntegrityException(
+                getString(R.string.error_local_model_integrity_failed, check.fileName)
+            )
+        }
+    }
+
+    private fun funAsrNanoInstallSpecs(variant: String): FunAsrNanoInstallSpecs = if (com.brycewg.asrkb.asr.normalizeFunAsrNanoVariant(variant) == "mlt-int8") {
+        FunAsrNanoInstallSpecs(
+            encoderAdaptor = LocalModelSpecs.FunAsrNano.mltEncoderAdaptor,
+            llm = LocalModelSpecs.FunAsrNano.mltLlm,
+            embedding = LocalModelSpecs.FunAsrNano.mltEmbedding
+        )
+    } else {
+        FunAsrNanoInstallSpecs(
+            encoderAdaptor = LocalModelSpecs.FunAsrNano.nanoEncoderAdaptor,
+            llm = LocalModelSpecs.FunAsrNano.nanoLlm,
+            embedding = LocalModelSpecs.FunAsrNano.nanoEmbedding
+        )
+    }
+
+    private data class FunAsrNanoInstallSpecs(
+        val encoderAdaptor: LocalModelFileSpec,
+        val llm: LocalModelFileSpec,
+        val embedding: LocalModelFileSpec
+    )
+
+    private fun parakeetInstallSpecs(variant: String): ParakeetInstallSpecs = if (com.brycewg.asrkb.asr.normalizeParakeetVariant(variant) == "0.6b-v2-int8") {
+        ParakeetInstallSpecs(
+            tokens = LocalModelSpecs.Parakeet.v2Tokens,
+            encoder = LocalModelSpecs.Parakeet.v2Encoder,
+            decoder = LocalModelSpecs.Parakeet.v2Decoder,
+            joiner = LocalModelSpecs.Parakeet.v2Joiner
+        )
+    } else {
+        ParakeetInstallSpecs(
+            tokens = LocalModelSpecs.Parakeet.v3Tokens,
+            encoder = LocalModelSpecs.Parakeet.v3Encoder,
+            decoder = LocalModelSpecs.Parakeet.v3Decoder,
+            joiner = LocalModelSpecs.Parakeet.v3Joiner
+        )
+    }
+
+    private data class ParakeetInstallSpecs(
+        val tokens: LocalModelFileSpec,
+        val encoder: LocalModelFileSpec,
+        val decoder: LocalModelFileSpec,
+        val joiner: LocalModelFileSpec
+    )
 
     private fun ensureChannel() {
         val ch = NotificationChannel(
@@ -1161,7 +1178,6 @@ class ModelDownloadService : Service() {
 
     private fun isQwen3AsrTokenizerDir(dir: File): Boolean {
         if (!dir.isDirectory) return false
-        if (File(dir, "tokenizer.json").exists()) return true
         return File(dir, "vocab.json").exists() &&
             File(dir, "merges.txt").exists() &&
             File(dir, "tokenizer_config.json").exists()
@@ -1190,6 +1206,22 @@ class ModelDownloadService : Service() {
         subs.forEach { f ->
             if (f.isDirectory && f.name != "__MACOSX" && !f.name.startsWith(".tmp_")) {
                 findParakeetModelDir(f)?.let { return it }
+            }
+        }
+        return null
+    }
+
+    private fun findXAsrInstallModelDir(root: File): File? {
+        if (!root.exists() || !root.isDirectory) return null
+        val hasFiles = File(root, "tokens.txt").exists() &&
+            File(root, "encoder-480ms.onnx").exists() &&
+            File(root, "decoder-480ms.onnx").exists() &&
+            File(root, "joiner-480ms.onnx").exists()
+        if (hasFiles) return root
+        val subs = root.listFiles() ?: return null
+        subs.forEach { f ->
+            if (f.isDirectory && f.name != "__MACOSX" && !f.name.startsWith(".")) {
+                findXAsrInstallModelDir(f)?.let { return it }
             }
         }
         return null
@@ -1232,6 +1264,8 @@ data class DownloadKey(val variant: String, val url: String) {
 
     fun notifIdForKey(): Int = 2000 + (toSerializedKey().hashCode() and 0x7fffffff) % 100000
 }
+
+private class ModelIntegrityException(message: String) : IllegalStateException(message)
 
 /**
  * 封装通知逻辑的处理器

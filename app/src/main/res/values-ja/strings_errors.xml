@@ -25,6 +25,7 @@
     <string name="error_asr_empty_result">空のASR結果</string>
     <string name="error_asr_timeout">認識がタイムアウトしました。しばらくしてから再試行してください。</string>
     <string name="error_recognize_failed_with_reason">認識失敗：%1$s</string>
+    <string name="error_local_model_integrity_failed">ローカルモデルファイルの整合性チェックに失敗しました：%1$s。モデルを削除して再ダウンロードまたは再インポートしてください。</string>
 
     <!-- User-facing ASR error toasts (floating + keyboard) -->
     <string name="asr_error_empty_result">音声が認識されませんでした。もう一度お試しください。</string>

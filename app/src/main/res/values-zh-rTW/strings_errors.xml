@@ -24,6 +24,7 @@
     <string name="error_asr_empty_result">識別回傳為空</string>
     <string name="error_asr_timeout">識別逾時，請稍後重試</string>
     <string name="error_recognize_failed_with_reason">識別失敗：%1$s</string>
+    <string name="error_local_model_integrity_failed">本機模型檔案完整性異常：%1$s。請刪除後重新下載或匯入模型。</string>
 
     <!-- User-facing ASR error toasts (floating + keyboard) -->
     <string name="asr_error_empty_result">未識別到內容，請再說一遍</string>

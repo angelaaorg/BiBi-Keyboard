@@ -117,10 +117,15 @@ internal class FireRedAsrFileAsrEngine(
                 return
             }
 
-            val modelFiles = resolveFireRedAsrModelFiles(context, prefs)
+            val modelFilesCheck = checkFireRedAsrModelFiles(context, prefs)
+            val modelFiles = (modelFilesCheck as? LocalModelCheck.Ready)?.value
             if (modelFiles == null) {
                 reportDuration()
-                val msg = context.getString(R.string.error_firered_asr_model_missing)
+                val msg = localModelErrorMessage(
+                    context,
+                    modelFilesCheck,
+                    R.string.error_firered_asr_model_missing
+                )
                 localLog.failure(msg)
                 listener.onError(msg)
                 return
@@ -270,13 +275,19 @@ internal fun preloadFireRedAsrIfConfigured(
             return
         }
 
-        val modelFiles = resolveFireRedAsrModelFiles(context, prefs)
+        val modelFilesCheck = checkFireRedAsrModelFiles(context, prefs)
+        val modelFiles = (modelFilesCheck as? LocalModelCheck.Ready)?.value
         if (modelFiles == null) {
+            val msg = localModelErrorMessage(
+                context,
+                modelFilesCheck,
+                R.string.error_firered_asr_model_missing
+            )
             LocalAsrCallLogger.recordLoadFailure(
                 prefs,
                 AsrVendor.FireRedAsr,
                 "preload",
-                context.getString(R.string.error_firered_asr_model_missing)
+                msg
             )
             return
         }
@@ -370,11 +381,8 @@ internal fun preloadFireRedAsrIfConfigured(
 internal fun findFireRedAsrModelDir(root: File?): File? {
     if (root == null || !root.exists() || !root.isDirectory || isFireRedTempModelDir(root)) return null
     val hasTokens = File(root, "tokens.txt").exists()
-    val hasCtcModel = File(root, "model.int8.onnx").exists() || File(root, "model.onnx").exists()
-    val hasAedModel =
-        (File(root, "encoder.int8.onnx").exists() || File(root, "encoder.onnx").exists()) &&
-            (File(root, "decoder.int8.onnx").exists() || File(root, "decoder.onnx").exists())
-    if (hasTokens && (hasCtcModel || hasAedModel)) {
+    val hasCtcModel = File(root, "model.int8.onnx").exists()
+    if (hasTokens && hasCtcModel) {
         return root
     }
     return root.listFiles()?.firstNotNullOfOrNull { child ->
@@ -384,7 +392,7 @@ internal fun findFireRedAsrModelDir(root: File?): File? {
 
 private fun isFireRedTempModelDir(dir: File): Boolean = dir.name.startsWith(".tmp_")
 
-internal fun resolveFireRedAsrModelFiles(context: Context, prefs: Prefs): FireRedAsrResolvedModel? {
+internal fun checkFireRedAsrModelFiles(context: Context, prefs: Prefs): LocalModelCheck<FireRedAsrResolvedModel> {
     val base = try {
         context.getExternalFilesDir(null)
     } catch (t: Throwable) {
@@ -400,37 +408,53 @@ internal fun resolveFireRedAsrModelFiles(context: Context, prefs: Prefs): FireRe
         "ctc-int8"
     }
     val cacheKey = probeRoot.absolutePath + "|" + preferredVariant
-    val cached = FireRedAsrModelResolverCache.get(cacheKey)
-    if (cached != null) return cached
+    val cached = FireRedAsrModelResolverCache.get(context, cacheKey)
+    if (cached != null) return LocalModelCheck.Ready(cached)
 
     val variantDir = File(probeRoot, preferredVariant)
-    val modelDir = findFireRedAsrModelDir(variantDir) ?: findFireRedAsrModelDir(probeRoot) ?: return null
+    val modelDir = findFireRedAsrModelDir(variantDir) ?: findFireRedAsrModelDir(probeRoot) ?: return LocalModelCheck.Missing
 
     val tokens = File(modelDir, "tokens.txt")
-    if (!tokens.exists()) return null
+    if (!tokens.exists()) return LocalModelCheck.Missing
 
-    val ctcModel = firstExistingFile(modelDir, "model.int8.onnx", "model.onnx") ?: return null
-
-    return FireRedAsrResolvedModel(
-        variant = "ctc-int8",
-        modelDir = modelDir,
-        tokensPath = tokens.absolutePath,
-        ctcModelPath = ctcModel.absolutePath,
-        encoderPath = null,
-        decoderPath = null
-    ).also {
-        FireRedAsrModelResolverCache.put(cacheKey, it)
+    val ctcModel = File(modelDir, "model.int8.onnx")
+    if (!ctcModel.exists()) return LocalModelCheck.Missing
+    when (
+        val check = requireModelFilesCached(
+            context,
+            tokens to LocalModelSpecs.FireRedAsr.tokens,
+            ctcModel to LocalModelSpecs.FireRedAsr.ctcModel
+        )
+    ) {
+        is LocalModelCheck.IntegrityError -> return LocalModelCheck.IntegrityError(check.fileName)
+        LocalModelCheck.Missing -> return LocalModelCheck.Missing
+        is LocalModelCheck.Ready -> Unit
     }
+
+    return LocalModelCheck.Ready(
+        FireRedAsrResolvedModel(
+            variant = "ctc-int8",
+            modelDir = modelDir,
+            tokensPath = tokens.absolutePath,
+            ctcModelPath = ctcModel.absolutePath,
+            encoderPath = null,
+            decoderPath = null
+        ).also {
+            FireRedAsrModelResolverCache.put(cacheKey, it)
+        }
+    )
 }
+
+internal fun resolveFireRedAsrModelFiles(context: Context, prefs: Prefs): FireRedAsrResolvedModel? = (checkFireRedAsrModelFiles(context, prefs) as? LocalModelCheck.Ready)?.value
 
 private object FireRedAsrModelResolverCache {
     @Volatile private var cachedKey: String? = null
 
     @Volatile private var cachedValue: FireRedAsrResolvedModel? = null
 
-    fun get(key: String): FireRedAsrResolvedModel? {
+    fun get(context: Context, key: String): FireRedAsrResolvedModel? {
         val cached = if (cachedKey == key) cachedValue else null
-        return cached?.takeIf(::isUsable)
+        return cached?.takeIf { isUsable(context, it) }
     }
 
     fun put(key: String, model: FireRedAsrResolvedModel) {
@@ -438,24 +462,19 @@ private object FireRedAsrModelResolverCache {
         cachedValue = model
     }
 
-    private fun isUsable(model: FireRedAsrResolvedModel): Boolean {
-        if (!File(model.tokensPath).exists()) return false
+    private fun isUsable(context: Context, model: FireRedAsrResolvedModel): Boolean {
         val ctcModelPath = model.ctcModelPath
         if (ctcModelPath != null) {
-            return File(ctcModelPath).exists()
+            return requireModelFilesCached(
+                context,
+                File(model.tokensPath) to LocalModelSpecs.FireRedAsr.tokens,
+                File(ctcModelPath) to LocalModelSpecs.FireRedAsr.ctcModel
+            ) is LocalModelCheck.Ready
         }
         val encoderPath = model.encoderPath ?: return false
         val decoderPath = model.decoderPath ?: return false
         return File(encoderPath).exists() && File(decoderPath).exists()
     }
-}
-
-private fun firstExistingFile(dir: File, vararg names: String): File? {
-    for (name in names) {
-        val file = File(dir, name)
-        if (file.exists()) return file
-    }
-    return null
 }
 
 internal fun sanitizeFireRedAsrResult(text: String?): String {

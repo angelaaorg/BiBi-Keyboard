@@ -79,7 +79,12 @@ class SherpaPunctuationManager private constructor() {
         fun findOfflineModelPath(context: Context): String? {
             val dir = findPunctuationModelDir(context) ?: return null
             val file = java.io.File(dir, MODEL_FILE_NAME)
-            return if (file.exists()) file.absolutePath else null
+            val check = requireModelFilesCached(
+                context,
+                file to LocalModelSpecs.Punctuation.model,
+                java.io.File(dir, "tokens.json") to LocalModelSpecs.Punctuation.tokens
+            )
+            return if (check is LocalModelCheck.Ready) file.absolutePath else null
         }
 
         /**

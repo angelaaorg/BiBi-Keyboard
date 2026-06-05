@@ -280,11 +280,18 @@ internal class FireRedAsrPseudoStreamDelegate(
             return null
         }
 
-        val modelFiles = resolveFireRedAsrModelFiles(context, prefs)
+        val modelFilesCheck = checkFireRedAsrModelFiles(context, prefs)
+        val modelFiles = (modelFilesCheck as? LocalModelCheck.Ready)?.value
         if (modelFiles == null) {
             if (reportErrorToUser) {
                 try {
-                    listener.onError(context.getString(R.string.error_firered_asr_model_missing))
+                    listener.onError(
+                        localModelErrorMessage(
+                            context,
+                            modelFilesCheck,
+                            R.string.error_firered_asr_model_missing
+                        )
+                    )
                 } catch (t: Throwable) {
                     Log.e(tag, "Failed to notify model-missing error", t)
                 }

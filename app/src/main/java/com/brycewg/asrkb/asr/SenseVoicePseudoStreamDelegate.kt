@@ -249,11 +249,18 @@ internal class SenseVoicePseudoStreamDelegate(
             return null
         }
 
-        val resolvedModel = resolveSenseVoiceModel(context, prefs)
+        val resolvedModelCheck = checkSenseVoiceModel(context, prefs)
+        val resolvedModel = (resolvedModelCheck as? LocalModelCheck.Ready)?.value
         if (resolvedModel == null) {
             if (reportErrorToUser) {
                 try {
-                    listener.onError(context.getString(R.string.error_sensevoice_model_missing))
+                    listener.onError(
+                        localModelErrorMessage(
+                            context,
+                            resolvedModelCheck,
+                            R.string.error_sensevoice_model_missing
+                        )
+                    )
                 } catch (t: Throwable) {
                     Log.e(tag, "Failed to notify model-missing error", t)
                 }

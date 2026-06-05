@@ -129,9 +129,14 @@ class XAsrStreamAsrEngine(
         if (!externalPcmMode) startCapture()
         scope.launch(Dispatchers.Default) {
             val base = context.getExternalFilesDir(null) ?: context.filesDir
-            val files = findXAsrModelFiles(java.io.File(base, "x_asr"))
+            val filesCheck = checkXAsrModelFiles(context, java.io.File(base, "x_asr"))
+            val files = (filesCheck as? LocalModelCheck.Ready)?.value
             if (files == null) {
-                val msg = context.getString(R.string.error_x_asr_model_missing)
+                val msg = localModelErrorMessage(
+                    context,
+                    filesCheck,
+                    R.string.error_x_asr_model_missing
+                )
                 failStreamLog(msg)
                 listener.onError(msg)
                 running.set(false)
@@ -583,10 +588,22 @@ internal data class XAsrModelFiles(
     val joiner: java.io.File
 )
 
-internal fun findXAsrModelFiles(root: java.io.File?): XAsrModelFiles? {
-    if (root == null || !root.exists() || !root.isDirectory) return null
+internal fun findXAsrModelFiles(root: java.io.File?): XAsrModelFiles? = (checkXAsrModelFiles(root) as? LocalModelCheck.Ready)?.value
 
-    fun filesIn(dir: java.io.File): XAsrModelFiles? {
+internal fun checkXAsrModelFiles(root: java.io.File?): LocalModelCheck<XAsrModelFiles> = checkXAsrModelFilesInternal(context = null, root = root)
+
+internal fun checkXAsrModelFiles(
+    context: Context,
+    root: java.io.File?
+): LocalModelCheck<XAsrModelFiles> = checkXAsrModelFilesInternal(context = context.applicationContext, root = root)
+
+private fun checkXAsrModelFilesInternal(
+    context: Context?,
+    root: java.io.File?
+): LocalModelCheck<XAsrModelFiles> {
+    if (root == null || !root.exists() || !root.isDirectory) return LocalModelCheck.Missing
+
+    fun filesIn(dir: java.io.File): LocalModelCheck<XAsrModelFiles> {
         val files = XAsrModelFiles(
             dir = dir,
             tokens = java.io.File(dir, "tokens.txt"),
@@ -594,26 +611,39 @@ internal fun findXAsrModelFiles(root: java.io.File?): XAsrModelFiles? {
             decoder = java.io.File(dir, "decoder-480ms.onnx"),
             joiner = java.io.File(dir, "joiner-480ms.onnx")
         )
-        return if (
-            files.tokens.exists() &&
-            files.encoder.exists() &&
-            files.decoder.exists() &&
-            files.joiner.exists()
-        ) {
-            files
+        val check = if (context != null) {
+            requireModelFilesCached(
+                context,
+                files.tokens to LocalModelSpecs.XAsr.tokens,
+                files.encoder to LocalModelSpecs.XAsr.encoder,
+                files.decoder to LocalModelSpecs.XAsr.decoder,
+                files.joiner to LocalModelSpecs.XAsr.joiner
+            )
         } else {
-            null
+            requireModelFiles(
+                files.tokens to LocalModelSpecs.XAsr.tokens,
+                files.encoder to LocalModelSpecs.XAsr.encoder,
+                files.decoder to LocalModelSpecs.XAsr.decoder,
+                files.joiner to LocalModelSpecs.XAsr.joiner
+            )
+        }
+        return when (check) {
+            is LocalModelCheck.IntegrityError -> LocalModelCheck.IntegrityError(check.fileName)
+            LocalModelCheck.Missing -> LocalModelCheck.Missing
+            is LocalModelCheck.Ready -> LocalModelCheck.Ready(files)
         }
     }
 
-    filesIn(root)?.let { return it }
-    val subs = root.listFiles() ?: return null
+    val direct = filesIn(root)
+    if (direct is LocalModelCheck.Ready || direct is LocalModelCheck.IntegrityError) return direct
+    val subs = root.listFiles() ?: return LocalModelCheck.Missing
     subs.forEach { child ->
         if (child.isDirectory && child.name != "__MACOSX" && !child.name.startsWith(".")) {
-            findXAsrModelFiles(child)?.let { return it }
+            val nested = checkXAsrModelFilesInternal(context, child)
+            if (nested is LocalModelCheck.Ready || nested is LocalModelCheck.IntegrityError) return nested
         }
     }
-    return null
+    return LocalModelCheck.Missing
 }
 
 /**
@@ -1175,13 +1205,19 @@ fun preloadXAsrIfConfigured(
         }
 
         val base = context.getExternalFilesDir(null) ?: context.filesDir
-        val files = findXAsrModelFiles(java.io.File(base, "x_asr"))
+        val filesCheck = checkXAsrModelFiles(context, java.io.File(base, "x_asr"))
+        val files = (filesCheck as? LocalModelCheck.Ready)?.value
         if (files == null) {
+            val msg = localModelErrorMessage(
+                context,
+                filesCheck,
+                com.brycewg.asrkb.R.string.error_x_asr_model_missing
+            )
             LocalAsrCallLogger.recordLoadFailure(
                 prefs,
                 AsrVendor.XAsr,
                 "preload",
-                context.getString(com.brycewg.asrkb.R.string.error_x_asr_model_missing)
+                msg
             )
             return
         }

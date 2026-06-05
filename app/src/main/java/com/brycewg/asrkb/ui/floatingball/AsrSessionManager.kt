@@ -245,17 +245,11 @@ class AsrSessionManager(
             Log.d(TAG, "Audio ducking disabled by user; skip audio focus request")
         }
 
-        // 检查本地 SenseVoice 模型（如果需要）
-        if (!checkSenseVoiceModel()) {
-            val errRes = when (prefs.asrVendor) {
-                AsrVendor.FireRedAsr -> com.brycewg.asrkb.R.string.error_firered_asr_model_missing
-                AsrVendor.Qwen3Asr -> com.brycewg.asrkb.R.string.error_qwen3_asr_model_missing
-                AsrVendor.Parakeet -> com.brycewg.asrkb.R.string.error_parakeet_model_missing
-                else -> com.brycewg.asrkb.R.string.error_sensevoice_model_missing
-            }
+        val localModelError = checkLocalModelError()
+        if (localModelError != null) {
             clearActiveSessionToken(sessionToken)
             releaseRecordingResources("model_missing")
-            listener.onError(context.getString(errRes))
+            listener.onError(localModelError)
             return
         }
 
@@ -772,15 +766,16 @@ class AsrSessionManager(
 
     // ==================== 私有辅助方法 ====================
 
-    private fun checkSenseVoiceModel(): Boolean {
+    private fun checkLocalModelError(): String? {
         if (
             prefs.asrVendor != AsrVendor.SenseVoice &&
             prefs.asrVendor != AsrVendor.FunAsrNano &&
             prefs.asrVendor != AsrVendor.FireRedAsr &&
             prefs.asrVendor != AsrVendor.Qwen3Asr &&
-            prefs.asrVendor != AsrVendor.Parakeet
+            prefs.asrVendor != AsrVendor.Parakeet &&
+            prefs.asrVendor != AsrVendor.XAsr
         ) {
-            return true
+            return null
         }
 
         val prepared = try {
@@ -790,77 +785,94 @@ class AsrSessionManager(
                 AsrVendor.FireRedAsr -> com.brycewg.asrkb.asr.isFireRedAsrPrepared()
                 AsrVendor.Qwen3Asr -> com.brycewg.asrkb.asr.isQwen3AsrPrepared()
                 AsrVendor.Parakeet -> com.brycewg.asrkb.asr.isParakeetPrepared()
+                AsrVendor.XAsr -> com.brycewg.asrkb.asr.isXAsrPrepared()
                 else -> true
             }
         } catch (e: Throwable) {
             Log.w(TAG, "Failed to check local model preparation", e)
             false
         }
-        if (prepared) return true
+        if (prepared) return null
 
-        // 检查模型文件
         val base = try {
             context.getExternalFilesDir(null)
         } catch (e: Throwable) {
             Log.w(TAG, "Failed to get external files dir", e)
             context.filesDir
         }
-        return if (prefs.asrVendor == AsrVendor.FireRedAsr) {
-            val probeRoot = java.io.File(base, "firered_asr")
-            val variant = try {
-                prefs.frModelVariant
-            } catch (e: Throwable) {
-                Log.w(TAG, "Failed to get FireRedASR variant", e)
-                "ctc-int8"
+        return when (prefs.asrVendor) {
+            AsrVendor.FireRedAsr -> {
+                val check = com.brycewg.asrkb.asr.checkFireRedAsrModelFiles(context, prefs)
+                if (check is com.brycewg.asrkb.asr.LocalModelCheck.Ready) {
+                    null
+                } else {
+                    com.brycewg.asrkb.asr.localModelErrorMessage(
+                        context,
+                        check,
+                        com.brycewg.asrkb.R.string.error_firered_asr_model_missing
+                    )
+                }
             }
-            val variantDir = java.io.File(probeRoot, variant)
-            val found = com.brycewg.asrkb.asr.findFireRedAsrModelDir(variantDir)
-                ?: com.brycewg.asrkb.asr.findFireRedAsrModelDir(probeRoot)
-            found != null
-        } else if (prefs.asrVendor == AsrVendor.FunAsrNano) {
-            val probeRoot = java.io.File(base, "funasr_nano")
-            val variantDir = java.io.File(
-                probeRoot,
-                com.brycewg.asrkb.asr.normalizeFunAsrNanoVariant(prefs.fnModelVariant)
-            )
-            val found = com.brycewg.asrkb.asr.findFnModelDir(variantDir)
-                ?: com.brycewg.asrkb.asr.findDirectFnModelDir(probeRoot)
-            found != null
-        } else if (prefs.asrVendor == AsrVendor.Qwen3Asr) {
-            val probeRoot = java.io.File(base, "qwen3_asr")
-            val variantDir = java.io.File(
-                probeRoot,
-                com.brycewg.asrkb.asr.normalizeQwen3AsrVariant(prefs.qwModelVariant)
-            )
-            val found = com.brycewg.asrkb.asr.findQwen3AsrModelDir(variantDir)
-                ?: com.brycewg.asrkb.asr.findQwen3AsrModelDir(probeRoot)
-            found != null
-        } else if (prefs.asrVendor == AsrVendor.Parakeet) {
-            val probeRoot = java.io.File(base, "parakeet")
-            val variantDir = java.io.File(
-                probeRoot,
-                com.brycewg.asrkb.asr.normalizeParakeetVariant(prefs.pkModelVariant)
-            )
-            val found = com.brycewg.asrkb.asr.findParakeetModelDir(variantDir)
-                ?: com.brycewg.asrkb.asr.findParakeetModelDir(probeRoot)
-            found != null
-        } else {
-            val rawVariant = try {
-                prefs.svModelVariant
-            } catch (e: Throwable) {
-                Log.w(TAG, "Failed to get local variant", e)
-                "small-int8"
+            AsrVendor.FunAsrNano -> {
+                val check = com.brycewg.asrkb.asr.checkFunAsrNanoModel(context, prefs)
+                if (check is com.brycewg.asrkb.asr.LocalModelCheck.Ready) {
+                    null
+                } else {
+                    com.brycewg.asrkb.asr.localModelErrorMessage(
+                        context,
+                        check,
+                        com.brycewg.asrkb.R.string.error_funasr_model_missing
+                    )
+                }
             }
-            val variant = if (rawVariant == "small-full") "small-full" else "small-int8"
-            val probeRoot = java.io.File(base, "sensevoice")
-            val variantDir = if (variant == "small-full") {
-                java.io.File(probeRoot, "small-full")
-            } else {
-                java.io.File(probeRoot, "small-int8")
+            AsrVendor.Qwen3Asr -> {
+                val check = com.brycewg.asrkb.asr.checkQwen3AsrModel(context, prefs)
+                if (check is com.brycewg.asrkb.asr.LocalModelCheck.Ready) {
+                    null
+                } else {
+                    com.brycewg.asrkb.asr.localModelErrorMessage(
+                        context,
+                        check,
+                        com.brycewg.asrkb.R.string.error_qwen3_asr_model_missing
+                    )
+                }
             }
-            val found = com.brycewg.asrkb.asr.findSvModelDir(variantDir)
-                ?: com.brycewg.asrkb.asr.findSvModelDir(probeRoot)
-            found != null
+            AsrVendor.Parakeet -> {
+                val check = com.brycewg.asrkb.asr.checkParakeetModel(context, prefs)
+                if (check is com.brycewg.asrkb.asr.LocalModelCheck.Ready) {
+                    null
+                } else {
+                    com.brycewg.asrkb.asr.localModelErrorMessage(
+                        context,
+                        check,
+                        com.brycewg.asrkb.R.string.error_parakeet_model_missing
+                    )
+                }
+            }
+            AsrVendor.XAsr -> {
+                val check = com.brycewg.asrkb.asr.checkXAsrModelFiles(context, java.io.File(base, "x_asr"))
+                if (check is com.brycewg.asrkb.asr.LocalModelCheck.Ready) {
+                    null
+                } else {
+                    com.brycewg.asrkb.asr.localModelErrorMessage(
+                        context,
+                        check,
+                        com.brycewg.asrkb.R.string.error_x_asr_model_missing
+                    )
+                }
+            }
+            else -> {
+                val check = com.brycewg.asrkb.asr.checkSenseVoiceModel(context, prefs)
+                if (check is com.brycewg.asrkb.asr.LocalModelCheck.Ready) {
+                    null
+                } else {
+                    com.brycewg.asrkb.asr.localModelErrorMessage(
+                        context,
+                        check,
+                        com.brycewg.asrkb.R.string.error_sensevoice_model_missing
+                    )
+                }
+            }
         }
     }
 

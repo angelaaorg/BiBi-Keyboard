@@ -51,73 +51,19 @@ internal fun isAsrVendorConfigured(context: Context, prefs: Prefs, vendor: AsrVe
     false
 }
 
-private fun hasSenseVoiceModelInstalled(context: Context, prefs: Prefs): Boolean {
-    val base = context.getExternalFilesDir(null) ?: context.filesDir
-    val root = File(base, "sensevoice")
-    val variantDir = if (prefs.svModelVariant == "small-full") {
-        File(root, "small-full")
-    } else {
-        File(root, "small-int8")
-    }
-    val modelDir = findSvModelDir(variantDir) ?: findSvModelDir(root)
-    return modelDir != null &&
-        File(modelDir, "tokens.txt").exists() &&
-        (
-            File(modelDir, "model.int8.onnx").exists() ||
-                File(modelDir, "model.onnx").exists()
-            )
-}
+private fun hasSenseVoiceModelInstalled(context: Context, prefs: Prefs): Boolean = checkSenseVoiceModel(context, prefs) is LocalModelCheck.Ready
 
-private fun hasFunAsrNanoModelInstalled(context: Context, prefs: Prefs): Boolean {
-    val base = context.getExternalFilesDir(null) ?: context.filesDir
-    val root = File(base, "funasr_nano")
-    val variantDir = File(root, normalizeFunAsrNanoVariant(prefs.fnModelVariant))
-    val modelDir = findFnModelDir(variantDir) ?: findDirectFnModelDir(root)
-    val tokenizerDir = modelDir?.let { findFnTokenizerDir(it) }
-    return modelDir != null &&
-        File(modelDir, "encoder_adaptor.int8.onnx").exists() &&
-        File(modelDir, "llm.int8.onnx").exists() &&
-        File(modelDir, "embedding.int8.onnx").exists() &&
-        tokenizerDir != null &&
-        File(tokenizerDir, "tokenizer.json").exists()
-}
+private fun hasFunAsrNanoModelInstalled(context: Context, prefs: Prefs): Boolean = checkFunAsrNanoModel(context, prefs) is LocalModelCheck.Ready
 
-private fun hasQwen3AsrModelInstalled(context: Context, prefs: Prefs): Boolean {
-    val base = context.getExternalFilesDir(null) ?: context.filesDir
-    val root = File(base, "qwen3_asr")
-    val variantDir = File(root, normalizeQwen3AsrVariant(prefs.qwModelVariant))
-    val modelDir = findQwen3AsrModelDir(variantDir) ?: findQwen3AsrModelDir(root)
-    val tokenizerDir = modelDir?.let { findQwen3AsrTokenizerDir(it) }
-    return modelDir != null &&
-        File(modelDir, "conv_frontend.onnx").exists() &&
-        File(modelDir, "encoder.int8.onnx").exists() &&
-        File(modelDir, "decoder.int8.onnx").exists() &&
-        tokenizerDir != null &&
-        isQwen3AsrTokenizerDir(tokenizerDir)
-}
+private fun hasQwen3AsrModelInstalled(context: Context, prefs: Prefs): Boolean = checkQwen3AsrModel(context, prefs) is LocalModelCheck.Ready
 
-private fun hasFireRedAsrModelInstalled(context: Context, prefs: Prefs): Boolean {
-    val base = context.getExternalFilesDir(null) ?: context.filesDir
-    val root = File(base, "firered_asr")
-    val variantDir = File(root, prefs.frModelVariant)
-    return findFireRedAsrModelDir(variantDir) != null || findFireRedAsrModelDir(root) != null
-}
+private fun hasFireRedAsrModelInstalled(context: Context, prefs: Prefs): Boolean = checkFireRedAsrModelFiles(context, prefs) is LocalModelCheck.Ready
 
-private fun hasParakeetModelInstalled(context: Context, prefs: Prefs): Boolean {
-    val base = context.getExternalFilesDir(null) ?: context.filesDir
-    val root = File(base, "parakeet")
-    val variantDir = File(root, normalizeParakeetVariant(prefs.pkModelVariant))
-    val modelDir = findParakeetModelDir(variantDir) ?: findParakeetModelDir(root)
-    return modelDir != null &&
-        File(modelDir, "tokens.txt").exists() &&
-        File(modelDir, "encoder.int8.onnx").exists() &&
-        File(modelDir, "decoder.int8.onnx").exists() &&
-        File(modelDir, "joiner.int8.onnx").exists()
-}
+private fun hasParakeetModelInstalled(context: Context, prefs: Prefs): Boolean = checkParakeetModel(context, prefs) is LocalModelCheck.Ready
 
 private fun hasXAsrModelInstalled(context: Context): Boolean {
     val base = context.getExternalFilesDir(null) ?: context.filesDir
-    return findXAsrModelFiles(File(base, "x_asr")) != null
+    return checkXAsrModelFiles(context, File(base, "x_asr")) is LocalModelCheck.Ready
 }
 
 private const val TAG = "AsrVendorAvailability"

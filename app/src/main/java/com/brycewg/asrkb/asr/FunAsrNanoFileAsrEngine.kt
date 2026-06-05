@@ -112,10 +112,15 @@ class FunAsrNanoFileAsrEngine(
                 return
             }
 
-            val resolvedModel = resolveFunAsrNanoModel(context, prefs)
+            val resolvedModelCheck = checkFunAsrNanoModel(context, prefs)
+            val resolvedModel = (resolvedModelCheck as? LocalModelCheck.Ready)?.value
             if (resolvedModel == null) {
                 reportDuration()
-                val msg = context.getString(R.string.error_funasr_model_missing)
+                val msg = localModelErrorMessage(
+                    context,
+                    resolvedModelCheck,
+                    R.string.error_funasr_model_missing
+                )
                 localLog.failure(msg)
                 listener.onError(msg)
                 return
@@ -584,13 +589,19 @@ fun preloadFunAsrNanoIfConfigured(
             return
         }
 
-        val resolvedModel = resolveFunAsrNanoModel(context, prefs)
+        val resolvedModelCheck = checkFunAsrNanoModel(context, prefs)
+        val resolvedModel = (resolvedModelCheck as? LocalModelCheck.Ready)?.value
         if (resolvedModel == null) {
+            val msg = localModelErrorMessage(
+                context,
+                resolvedModelCheck,
+                R.string.error_funasr_model_missing
+            )
             LocalAsrCallLogger.recordLoadFailure(
                 prefs,
                 AsrVendor.FunAsrNano,
                 "preload",
-                context.getString(R.string.error_funasr_model_missing)
+                msg
             )
             return
         }
@@ -676,9 +687,6 @@ fun preloadFunAsrNanoIfConfigured(
     }
 }
 
-private const val FUNASR_NANO_MIN_ONNX_BYTES = 8L * 1024L * 1024L
-private const val FUNASR_NANO_MIN_LLM_BYTES = 32L * 1024L * 1024L
-
 internal data class FunAsrNanoResolvedModel(
     val modelDir: File,
     val encoderAdaptorPath: String,
@@ -692,7 +700,7 @@ private object FunAsrNanoModelResolverCache {
 
     @Volatile private var cachedValue: FunAsrNanoResolvedModel? = null
 
-    fun resolve(context: Context, variant: String): FunAsrNanoResolvedModel? {
+    fun resolve(context: Context, variant: String): LocalModelCheck<FunAsrNanoResolvedModel> {
         val base = try {
             context.getExternalFilesDir(null)
         } catch (t: Throwable) {
@@ -702,42 +710,76 @@ private object FunAsrNanoModelResolverCache {
         val probeRoot = File(base, "funasr_nano")
         val cacheKey = probeRoot.absolutePath + "|" + variant
         val cached = if (cachedKey == cacheKey) cachedValue else null
-        if (cached != null && isUsable(cached)) return cached
+        if (cached != null && isUsable(context, cached, variant)) return LocalModelCheck.Ready(cached)
 
         val variantDir = File(probeRoot, variant)
-        val modelDir = findFnModelDir(variantDir) ?: findDirectFnModelDir(probeRoot) ?: return null
+        val modelDir = findFnModelDir(variantDir) ?: findDirectFnModelDir(probeRoot) ?: return LocalModelCheck.Missing
         val encoderAdaptor = File(modelDir, "encoder_adaptor.int8.onnx")
         val llm = File(modelDir, "llm.int8.onnx")
         val embedding = File(modelDir, "embedding.int8.onnx")
-        val tokenizerDir = findFnTokenizerDir(modelDir) ?: return null
+        val tokenizerDir = findFnTokenizerDir(modelDir) ?: return LocalModelCheck.Missing
         val tokenizerJson = File(tokenizerDir, "tokenizer.json")
-        if (!encoderAdaptor.exists() || !embedding.exists() || !llm.exists() || !tokenizerJson.exists()) {
-            return null
-        }
-        if (
-            encoderAdaptor.length() < FUNASR_NANO_MIN_ONNX_BYTES ||
-            embedding.length() < FUNASR_NANO_MIN_ONNX_BYTES ||
-            llm.length() < FUNASR_NANO_MIN_LLM_BYTES
+        val specs = specsForVariant(variant)
+        when (
+            val check = requireModelFilesCached(
+                context,
+                encoderAdaptor to specs.encoderAdaptor,
+                llm to specs.llm,
+                embedding to specs.embedding,
+                tokenizerJson to LocalModelSpecs.FunAsrNano.tokenizer
+            )
         ) {
-            return null
+            is LocalModelCheck.IntegrityError -> return LocalModelCheck.IntegrityError(check.fileName)
+            LocalModelCheck.Missing -> return LocalModelCheck.Missing
+            is LocalModelCheck.Ready -> Unit
         }
 
-        return FunAsrNanoResolvedModel(
-            modelDir = modelDir,
-            encoderAdaptorPath = encoderAdaptor.absolutePath,
-            llmPath = llm.absolutePath,
-            embeddingPath = embedding.absolutePath,
-            tokenizerDirPath = tokenizerDir.absolutePath
-        ).also {
-            cachedKey = cacheKey
-            cachedValue = it
-        }
+        return LocalModelCheck.Ready(
+            FunAsrNanoResolvedModel(
+                modelDir = modelDir,
+                encoderAdaptorPath = encoderAdaptor.absolutePath,
+                llmPath = llm.absolutePath,
+                embeddingPath = embedding.absolutePath,
+                tokenizerDirPath = tokenizerDir.absolutePath
+            ).also {
+                cachedKey = cacheKey
+                cachedValue = it
+            }
+        )
     }
 
-    private fun isUsable(model: FunAsrNanoResolvedModel): Boolean = File(model.encoderAdaptorPath).let { it.exists() && it.length() >= FUNASR_NANO_MIN_ONNX_BYTES } &&
-        File(model.embeddingPath).let { it.exists() && it.length() >= FUNASR_NANO_MIN_ONNX_BYTES } &&
-        File(model.llmPath).let { it.exists() && it.length() >= FUNASR_NANO_MIN_LLM_BYTES } &&
-        File(model.tokenizerDirPath, "tokenizer.json").exists()
+    private fun isUsable(context: Context, model: FunAsrNanoResolvedModel, variant: String): Boolean {
+        val specs = specsForVariant(variant)
+        return requireModelFilesCached(
+            context,
+            File(model.encoderAdaptorPath) to specs.encoderAdaptor,
+            File(model.llmPath) to specs.llm,
+            File(model.embeddingPath) to specs.embedding,
+            File(model.tokenizerDirPath, "tokenizer.json") to LocalModelSpecs.FunAsrNano.tokenizer
+        ) is LocalModelCheck.Ready
+    }
+
+    private fun specsForVariant(variant: String): FunAsrNanoVariantSpecs = if (normalizeFunAsrNanoVariant(variant) == "mlt-int8") {
+        FunAsrNanoVariantSpecs(
+            encoderAdaptor = LocalModelSpecs.FunAsrNano.mltEncoderAdaptor,
+            llm = LocalModelSpecs.FunAsrNano.mltLlm,
+            embedding = LocalModelSpecs.FunAsrNano.mltEmbedding
+        )
+    } else {
+        FunAsrNanoVariantSpecs(
+            encoderAdaptor = LocalModelSpecs.FunAsrNano.nanoEncoderAdaptor,
+            llm = LocalModelSpecs.FunAsrNano.nanoLlm,
+            embedding = LocalModelSpecs.FunAsrNano.nanoEmbedding
+        )
+    }
+
+    private data class FunAsrNanoVariantSpecs(
+        val encoderAdaptor: LocalModelFileSpec,
+        val llm: LocalModelFileSpec,
+        val embedding: LocalModelFileSpec
+    )
 }
 
-internal fun resolveFunAsrNanoModel(context: Context, prefs: Prefs): FunAsrNanoResolvedModel? = FunAsrNanoModelResolverCache.resolve(context, normalizeFunAsrNanoVariant(prefs.fnModelVariant))
+internal fun checkFunAsrNanoModel(context: Context, prefs: Prefs): LocalModelCheck<FunAsrNanoResolvedModel> = FunAsrNanoModelResolverCache.resolve(context, normalizeFunAsrNanoVariant(prefs.fnModelVariant))
+
+internal fun resolveFunAsrNanoModel(context: Context, prefs: Prefs): FunAsrNanoResolvedModel? = (checkFunAsrNanoModel(context, prefs) as? LocalModelCheck.Ready)?.value

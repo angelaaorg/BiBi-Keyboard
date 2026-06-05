@@ -804,87 +804,28 @@ class AsrSettingsViewModel : ViewModel() {
 
     fun checkXAsrModelDownloaded(context: Context): Boolean {
         val base = context.getExternalFilesDir(null) ?: context.filesDir
-        return com.brycewg.asrkb.asr.findXAsrModelFiles(File(base, "x_asr")) != null
+        return com.brycewg.asrkb.asr.checkXAsrModelFiles(context, File(base, "x_asr")) is
+            com.brycewg.asrkb.asr.LocalModelCheck.Ready
     }
 
-    fun checkSvModelDownloaded(context: Context): Boolean {
-        val base = context.getExternalFilesDir(null) ?: context.filesDir
-        val root = File(base, "sensevoice")
-        val variant = prefs.svModelVariant
-        val dir = when (variant) {
-            "small-full" -> File(root, "small-full")
-            else -> File(root, "small-int8")
-        }
-        val modelDir = findModelDir(dir)
-        return modelDir != null &&
-            File(modelDir, "tokens.txt").exists() &&
-            (
-                File(
-                    modelDir,
-                    "model.int8.onnx"
-                ).exists() ||
-                    File(modelDir, "model.onnx").exists()
-                )
-    }
+    fun checkSvModelDownloaded(context: Context): Boolean = com.brycewg.asrkb.asr.checkSenseVoiceModel(context, prefs) is
+        com.brycewg.asrkb.asr.LocalModelCheck.Ready
 
-    fun checkFnModelDownloaded(context: Context): Boolean {
-        val base = context.getExternalFilesDir(null) ?: context.filesDir
-        val root = File(base, "funasr_nano")
-        val dirName = com.brycewg.asrkb.asr.normalizeFunAsrNanoVariant(prefs.fnModelVariant)
-        val dir = File(root, dirName)
-        val modelDir =
-            com.brycewg.asrkb.asr.findFnModelDir(dir) ?: com.brycewg.asrkb.asr.findDirectFnModelDir(root)
-        val tokenizerDir = modelDir?.let { com.brycewg.asrkb.asr.findFnTokenizerDir(it) }
-        return modelDir != null &&
-            File(modelDir, "encoder_adaptor.int8.onnx").exists() &&
-            File(modelDir, "llm.int8.onnx").exists() &&
-            File(modelDir, "embedding.int8.onnx").exists() &&
-            tokenizerDir != null &&
-            File(tokenizerDir, "tokenizer.json").exists()
-    }
+    fun checkFnModelDownloaded(context: Context): Boolean = com.brycewg.asrkb.asr.checkFunAsrNanoModel(context, prefs) is
+        com.brycewg.asrkb.asr.LocalModelCheck.Ready
 
-    fun checkQwModelDownloaded(context: Context): Boolean {
-        val base = context.getExternalFilesDir(null) ?: context.filesDir
-        val root = File(base, "qwen3_asr")
-        val dirName = com.brycewg.asrkb.asr.normalizeQwen3AsrVariant(prefs.qwModelVariant)
-        val dir = File(root, dirName)
-        val modelDir =
-            com.brycewg.asrkb.asr.findQwen3AsrModelDir(dir)
-                ?: com.brycewg.asrkb.asr.findQwen3AsrModelDir(root)
-        val tokenizerDir = modelDir?.let { com.brycewg.asrkb.asr.findQwen3AsrTokenizerDir(it) }
-        return modelDir != null &&
-            File(modelDir, "conv_frontend.onnx").exists() &&
-            File(modelDir, "encoder.int8.onnx").exists() &&
-            File(modelDir, "decoder.int8.onnx").exists() &&
-            tokenizerDir != null &&
-            com.brycewg.asrkb.asr.isQwen3AsrTokenizerDir(tokenizerDir)
-    }
+    fun checkQwModelDownloaded(context: Context): Boolean = com.brycewg.asrkb.asr.checkQwen3AsrModel(context, prefs) is
+        com.brycewg.asrkb.asr.LocalModelCheck.Ready
 
-    fun checkPkModelDownloaded(context: Context): Boolean {
-        val base = context.getExternalFilesDir(null) ?: context.filesDir
-        val root = File(base, "parakeet")
-        val dirName = com.brycewg.asrkb.asr.normalizeParakeetVariant(prefs.pkModelVariant)
-        val dir = File(root, dirName)
-        val modelDir =
-            com.brycewg.asrkb.asr.findParakeetModelDir(dir)
-                ?: com.brycewg.asrkb.asr.findParakeetModelDir(root)
-        return modelDir != null &&
-            File(modelDir, "tokens.txt").exists() &&
-            File(modelDir, "encoder.int8.onnx").exists() &&
-            File(modelDir, "decoder.int8.onnx").exists() &&
-            File(modelDir, "joiner.int8.onnx").exists()
-    }
+    fun checkPkModelDownloaded(context: Context): Boolean = com.brycewg.asrkb.asr.checkParakeetModel(context, prefs) is
+        com.brycewg.asrkb.asr.LocalModelCheck.Ready
 
-    fun checkFrModelDownloaded(context: Context): Boolean {
-        val resolved = try {
-            com.brycewg.asrkb.asr.resolveFireRedAsrModelFiles(context, prefs)
-        } catch (t: Throwable) {
-            Log.w(TAG, "Failed to resolve FireRedASR model files", t)
-            null
-        } ?: return false
-        return File(resolved.tokensPath).exists() &&
-            !resolved.ctcModelPath.isNullOrBlank() &&
-            File(resolved.ctcModelPath).exists()
+    fun checkFrModelDownloaded(context: Context): Boolean = try {
+        com.brycewg.asrkb.asr.checkFireRedAsrModelFiles(context, prefs) is
+            com.brycewg.asrkb.asr.LocalModelCheck.Ready
+    } catch (t: Throwable) {
+        Log.w(TAG, "Failed to resolve FireRedASR model files", t)
+        false
     }
 
     fun isPunctuationModelInstalled(context: Context): Boolean = try {

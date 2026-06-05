@@ -121,10 +121,15 @@ class SenseVoiceFileAsrEngine(
                 listener.onError(msg)
                 return
             }
-            val resolvedModel = resolveSenseVoiceModel(context, prefs)
+            val resolvedModelCheck = checkSenseVoiceModel(context, prefs)
+            val resolvedModel = (resolvedModelCheck as? LocalModelCheck.Ready)?.value
             if (resolvedModel == null) {
                 reportDuration()
-                val msg = context.getString(R.string.error_sensevoice_model_missing)
+                val msg = localModelErrorMessage(
+                    context,
+                    resolvedModelCheck,
+                    R.string.error_sensevoice_model_missing
+                )
                 localLog.failure(msg)
                 listener.onError(msg)
                 return
@@ -283,13 +288,19 @@ fun preloadSenseVoiceIfConfigured(
             return
         }
 
-        val resolvedModel = resolveSenseVoiceModel(context, prefs)
+        val resolvedModelCheck = checkSenseVoiceModel(context, prefs)
+        val resolvedModel = (resolvedModelCheck as? LocalModelCheck.Ready)?.value
         if (resolvedModel == null) {
+            val msg = localModelErrorMessage(
+                context,
+                resolvedModelCheck,
+                R.string.error_sensevoice_model_missing
+            )
             LocalAsrCallLogger.recordLoadFailure(
                 prefs,
                 AsrVendor.SenseVoice,
                 "preload",
-                context.getString(R.string.error_sensevoice_model_missing)
+                msg
             )
             return
         }
@@ -361,8 +372,6 @@ fun preloadSenseVoiceIfConfigured(
     }
 }
 
-private const val SENSEVOICE_MIN_MODEL_BYTES = 8L * 1024L * 1024L
-
 internal data class SenseVoiceResolvedModel(
     val variant: String,
     val modelDir: File,
@@ -375,7 +384,7 @@ private object SenseVoiceModelResolverCache {
 
     @Volatile private var cachedValue: SenseVoiceResolvedModel? = null
 
-    fun resolve(context: Context, prefs: Prefs): SenseVoiceResolvedModel? {
+    fun resolve(context: Context, prefs: Prefs): LocalModelCheck<SenseVoiceResolvedModel> {
         val base = try {
             context.getExternalFilesDir(null)
         } catch (t: Throwable) {
@@ -392,47 +401,87 @@ private object SenseVoiceModelResolverCache {
         val variant = if (rawVariant == "small-full") "small-full" else "small-int8"
         val cacheKey = probeRoot.absolutePath + "|" + variant
         val cached = if (cachedKey == cacheKey) cachedValue else null
-        if (cached != null && isUsable(cached)) return cached
+        if (cached != null && isUsable(context, cached)) return LocalModelCheck.Ready(cached)
 
         val variantDir = File(probeRoot, variant)
-        val modelDir = findSvModelDir(variantDir) ?: return resolveFallback(probeRoot, variant)
+        val modelDir = findSvModelDir(variantDir) ?: return resolveFallback(context, probeRoot, variant)
         val tokensPath = File(modelDir, "tokens.txt").absolutePath
-        val modelFile = selectSvModelFile(modelDir, variant) ?: return null
-        if (!File(tokensPath).exists() || modelFile.length() < SENSEVOICE_MIN_MODEL_BYTES) {
-            return null
+        val modelFile = selectSvModelFile(modelDir, variant) ?: return LocalModelCheck.Missing
+        val spec = if (variant == "small-full") {
+            LocalModelSpecs.SenseVoice.smallFull
+        } else {
+            LocalModelSpecs.SenseVoice.smallInt8
+        }
+        when (
+            val check = requireModelFilesCached(
+                context,
+                File(tokensPath) to LocalModelSpecs.SenseVoice.tokens,
+                modelFile to spec
+            )
+        ) {
+            is LocalModelCheck.IntegrityError -> return LocalModelCheck.IntegrityError(check.fileName)
+            LocalModelCheck.Missing -> return LocalModelCheck.Missing
+            is LocalModelCheck.Ready -> Unit
         }
 
-        return SenseVoiceResolvedModel(
-            variant = variant,
-            modelDir = modelDir,
-            tokensPath = tokensPath,
-            modelPath = modelFile.absolutePath
-        ).also {
-            cachedKey = cacheKey
-            cachedValue = it
-        }
-    }
-
-    private fun resolveFallback(probeRoot: File, requestedVariant: String): SenseVoiceResolvedModel? {
-        val modelDir = findSvModelDir(probeRoot) ?: return null
-        val tokensPath = File(modelDir, "tokens.txt").absolutePath
-        val modelFile = selectSvModelFile(modelDir, requestedVariant) ?: return null
-        if (!File(tokensPath).exists() || modelFile.length() < SENSEVOICE_MIN_MODEL_BYTES) {
-            return null
-        }
-        return SenseVoiceResolvedModel(
-            variant = requestedVariant,
-            modelDir = modelDir,
-            tokensPath = tokensPath,
-            modelPath = modelFile.absolutePath
+        return LocalModelCheck.Ready(
+            SenseVoiceResolvedModel(
+                variant = variant,
+                modelDir = modelDir,
+                tokensPath = tokensPath,
+                modelPath = modelFile.absolutePath
+            ).also {
+                cachedKey = cacheKey
+                cachedValue = it
+            }
         )
     }
 
-    private fun isUsable(model: SenseVoiceResolvedModel): Boolean = File(model.tokensPath).exists() &&
-        File(model.modelPath).let { it.exists() && it.length() >= SENSEVOICE_MIN_MODEL_BYTES }
+    private fun resolveFallback(context: Context, probeRoot: File, requestedVariant: String): LocalModelCheck<SenseVoiceResolvedModel> {
+        val modelDir = findSvModelDir(probeRoot) ?: return LocalModelCheck.Missing
+        val tokensPath = File(modelDir, "tokens.txt").absolutePath
+        val modelFile = selectSvModelFile(modelDir, requestedVariant) ?: return LocalModelCheck.Missing
+        val spec = when (modelFile.name) {
+            "model.onnx" -> LocalModelSpecs.SenseVoice.smallFull
+            else -> LocalModelSpecs.SenseVoice.smallInt8
+        }
+        when (
+            val check = requireModelFilesCached(
+                context,
+                File(tokensPath) to LocalModelSpecs.SenseVoice.tokens,
+                modelFile to spec
+            )
+        ) {
+            is LocalModelCheck.IntegrityError -> return LocalModelCheck.IntegrityError(check.fileName)
+            LocalModelCheck.Missing -> return LocalModelCheck.Missing
+            is LocalModelCheck.Ready -> Unit
+        }
+        return LocalModelCheck.Ready(
+            SenseVoiceResolvedModel(
+                variant = requestedVariant,
+                modelDir = modelDir,
+                tokensPath = tokensPath,
+                modelPath = modelFile.absolutePath
+            )
+        )
+    }
+
+    private fun isUsable(context: Context, model: SenseVoiceResolvedModel): Boolean {
+        val spec = when (File(model.modelPath).name) {
+            "model.onnx" -> LocalModelSpecs.SenseVoice.smallFull
+            else -> LocalModelSpecs.SenseVoice.smallInt8
+        }
+        return requireModelFilesCached(
+            context,
+            File(model.tokensPath) to LocalModelSpecs.SenseVoice.tokens,
+            File(model.modelPath) to spec
+        ) is LocalModelCheck.Ready
+    }
 }
 
-internal fun resolveSenseVoiceModel(context: Context, prefs: Prefs): SenseVoiceResolvedModel? = SenseVoiceModelResolverCache.resolve(context, prefs)
+internal fun checkSenseVoiceModel(context: Context, prefs: Prefs): LocalModelCheck<SenseVoiceResolvedModel> = SenseVoiceModelResolverCache.resolve(context, prefs)
+
+internal fun resolveSenseVoiceModel(context: Context, prefs: Prefs): SenseVoiceResolvedModel? = (checkSenseVoiceModel(context, prefs) as? LocalModelCheck.Ready)?.value
 
 // 顶层工具：在指定根目录下寻找包含 tokens.txt 的模型目录（最多一层）
 fun findSvModelDir(root: java.io.File?): java.io.File? {

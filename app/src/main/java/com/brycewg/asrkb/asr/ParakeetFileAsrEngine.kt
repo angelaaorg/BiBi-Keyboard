@@ -112,10 +112,15 @@ internal class ParakeetFileAsrEngine(
                 return
             }
 
-            val model = resolveParakeetModel(context, prefs)
+            val modelCheck = checkParakeetModel(context, prefs)
+            val model = (modelCheck as? LocalModelCheck.Ready)?.value
             if (model == null) {
                 reportDuration()
-                val msg = context.getString(R.string.error_parakeet_model_missing)
+                val msg = localModelErrorMessage(
+                    context,
+                    modelCheck,
+                    R.string.error_parakeet_model_missing
+                )
                 localLog.failure(msg)
                 listener.onError(msg)
                 return
@@ -247,7 +252,7 @@ internal fun findParakeetModelDir(root: File?): File? {
 
 private fun isParakeetTempModelDir(dir: File): Boolean = dir.name.startsWith(".tmp_")
 
-internal fun resolveParakeetModel(context: Context, prefs: Prefs): ParakeetResolvedModel? {
+internal fun checkParakeetModel(context: Context, prefs: Prefs): LocalModelCheck<ParakeetResolvedModel> {
     val base = try {
         context.getExternalFilesDir(null)
     } catch (t: Throwable) {
@@ -258,45 +263,54 @@ internal fun resolveParakeetModel(context: Context, prefs: Prefs): ParakeetResol
     val root = File(base, "parakeet")
     val variant = normalizeParakeetVariant(prefs.pkModelVariant)
     val cacheKey = root.absolutePath + "|" + variant
-    val cached = ParakeetModelResolverCache.get(cacheKey)
-    if (cached != null) return cached
+    val cached = ParakeetModelResolverCache.get(context, cacheKey)
+    if (cached != null) return LocalModelCheck.Ready(cached)
 
     val variantDir = File(root, variant)
-    val modelDir = findParakeetModelDir(variantDir) ?: findParakeetModelDir(root) ?: return null
+    val modelDir = findParakeetModelDir(variantDir) ?: findParakeetModelDir(root) ?: return LocalModelCheck.Missing
     val tokens = File(modelDir, "tokens.txt")
     val encoder = File(modelDir, "encoder.int8.onnx")
     val decoder = File(modelDir, "decoder.int8.onnx")
     val joiner = File(modelDir, "joiner.int8.onnx")
-    if (!tokens.exists() || !encoder.exists() || !decoder.exists() || !joiner.exists()) return null
-    if (
-        encoder.length() < PARAKEET_MIN_ENCODER_BYTES ||
-        decoder.length() < PARAKEET_MIN_SMALL_ONNX_BYTES ||
-        joiner.length() < PARAKEET_MIN_SMALL_ONNX_BYTES ||
-        tokens.length() < PARAKEET_MIN_TOKENS_BYTES
+    val specs = parakeetSpecsForVariant(variant)
+    when (
+        val check = requireModelFilesCached(
+            context,
+            tokens to specs.tokens,
+            encoder to specs.encoder,
+            decoder to specs.decoder,
+            joiner to specs.joiner
+        )
     ) {
-        return null
+        is LocalModelCheck.IntegrityError -> return LocalModelCheck.IntegrityError(check.fileName)
+        LocalModelCheck.Missing -> return LocalModelCheck.Missing
+        is LocalModelCheck.Ready -> Unit
     }
 
-    return ParakeetResolvedModel(
-        variant = variant,
-        modelDir = modelDir,
-        tokensPath = tokens.absolutePath,
-        encoderPath = encoder.absolutePath,
-        decoderPath = decoder.absolutePath,
-        joinerPath = joiner.absolutePath
-    ).also {
-        ParakeetModelResolverCache.put(cacheKey, it)
-    }
+    return LocalModelCheck.Ready(
+        ParakeetResolvedModel(
+            variant = variant,
+            modelDir = modelDir,
+            tokensPath = tokens.absolutePath,
+            encoderPath = encoder.absolutePath,
+            decoderPath = decoder.absolutePath,
+            joinerPath = joiner.absolutePath
+        ).also {
+            ParakeetModelResolverCache.put(cacheKey, it)
+        }
+    )
 }
+
+internal fun resolveParakeetModel(context: Context, prefs: Prefs): ParakeetResolvedModel? = (checkParakeetModel(context, prefs) as? LocalModelCheck.Ready)?.value
 
 private object ParakeetModelResolverCache {
     @Volatile private var cachedKey: String? = null
 
     @Volatile private var cachedValue: ParakeetResolvedModel? = null
 
-    fun get(key: String): ParakeetResolvedModel? {
+    fun get(context: Context, key: String): ParakeetResolvedModel? {
         val cached = if (cachedKey == key) cachedValue else null
-        return cached?.takeIf(::isUsable)
+        return cached?.takeIf { isUsable(context, it) }
     }
 
     fun put(key: String, model: ParakeetResolvedModel) {
@@ -304,10 +318,39 @@ private object ParakeetModelResolverCache {
         cachedValue = model
     }
 
-    private fun isUsable(model: ParakeetResolvedModel): Boolean = File(model.tokensPath).let { it.exists() && it.length() >= PARAKEET_MIN_TOKENS_BYTES } &&
-        File(model.encoderPath).let { it.exists() && it.length() >= PARAKEET_MIN_ENCODER_BYTES } &&
-        File(model.decoderPath).let { it.exists() && it.length() >= PARAKEET_MIN_SMALL_ONNX_BYTES } &&
-        File(model.joinerPath).let { it.exists() && it.length() >= PARAKEET_MIN_SMALL_ONNX_BYTES }
+    private fun isUsable(context: Context, model: ParakeetResolvedModel): Boolean {
+        val specs = parakeetSpecsForVariant(model.variant)
+        return requireModelFilesCached(
+            context,
+            File(model.tokensPath) to specs.tokens,
+            File(model.encoderPath) to specs.encoder,
+            File(model.decoderPath) to specs.decoder,
+            File(model.joinerPath) to specs.joiner
+        ) is LocalModelCheck.Ready
+    }
+}
+
+private data class ParakeetVariantSpecs(
+    val tokens: LocalModelFileSpec,
+    val encoder: LocalModelFileSpec,
+    val decoder: LocalModelFileSpec,
+    val joiner: LocalModelFileSpec
+)
+
+private fun parakeetSpecsForVariant(variant: String): ParakeetVariantSpecs = if (normalizeParakeetVariant(variant) == "0.6b-v2-int8") {
+    ParakeetVariantSpecs(
+        tokens = LocalModelSpecs.Parakeet.v2Tokens,
+        encoder = LocalModelSpecs.Parakeet.v2Encoder,
+        decoder = LocalModelSpecs.Parakeet.v2Decoder,
+        joiner = LocalModelSpecs.Parakeet.v2Joiner
+    )
+} else {
+    ParakeetVariantSpecs(
+        tokens = LocalModelSpecs.Parakeet.v3Tokens,
+        encoder = LocalModelSpecs.Parakeet.v3Encoder,
+        decoder = LocalModelSpecs.Parakeet.v3Decoder,
+        joiner = LocalModelSpecs.Parakeet.v3Joiner
+    )
 }
 
 internal class ParakeetOnnxManager private constructor() : BaseSherpaOfflineRecognizerManager() {
@@ -542,13 +585,19 @@ internal fun preloadParakeetIfConfigured(
             return
         }
 
-        val model = resolveParakeetModel(context, prefs)
+        val modelCheck = checkParakeetModel(context, prefs)
+        val model = (modelCheck as? LocalModelCheck.Ready)?.value
         if (model == null) {
+            val msg = localModelErrorMessage(
+                context,
+                modelCheck,
+                R.string.error_parakeet_model_missing
+            )
             LocalAsrCallLogger.recordLoadFailure(
                 prefs,
                 AsrVendor.Parakeet,
                 "preload",
-                context.getString(R.string.error_parakeet_model_missing)
+                msg
             )
             return
         }
@@ -642,7 +691,3 @@ internal fun parakeetPcmToFloatArray(pcm: ByteArray): FloatArray {
     }
     return out
 }
-
-private const val PARAKEET_MIN_ENCODER_BYTES = 64L * 1024L * 1024L
-private const val PARAKEET_MIN_SMALL_ONNX_BYTES = 512L * 1024L
-private const val PARAKEET_MIN_TOKENS_BYTES = 1024L

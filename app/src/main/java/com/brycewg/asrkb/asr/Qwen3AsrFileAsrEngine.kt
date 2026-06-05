@@ -111,10 +111,15 @@ internal class Qwen3AsrFileAsrEngine(
                 return
             }
 
-            val resolvedModel = resolveQwen3AsrModel(context, prefs)
+            val resolvedModelCheck = checkQwen3AsrModel(context, prefs)
+            val resolvedModel = (resolvedModelCheck as? LocalModelCheck.Ready)?.value
             if (resolvedModel == null) {
                 reportDuration()
-                val msg = context.getString(R.string.error_qwen3_asr_model_missing)
+                val msg = localModelErrorMessage(
+                    context,
+                    resolvedModelCheck,
+                    R.string.error_qwen3_asr_model_missing
+                )
                 localLog.failure(msg)
                 listener.onError(msg)
                 return
@@ -260,7 +265,6 @@ private fun isQwen3AsrModelDir(dir: File): Boolean = File(dir, "conv_frontend.on
 
 internal fun isQwen3AsrTokenizerDir(dir: File): Boolean {
     if (!dir.isDirectory) return false
-    if (File(dir, "tokenizer.json").exists()) return true
     return File(dir, "vocab.json").exists() &&
         File(dir, "merges.txt").exists() &&
         File(dir, "tokenizer_config.json").exists()
@@ -527,13 +531,19 @@ internal fun preloadQwen3AsrIfConfigured(
             return
         }
 
-        val resolvedModel = resolveQwen3AsrModel(context, prefs)
+        val resolvedModelCheck = checkQwen3AsrModel(context, prefs)
+        val resolvedModel = (resolvedModelCheck as? LocalModelCheck.Ready)?.value
         if (resolvedModel == null) {
+            val msg = localModelErrorMessage(
+                context,
+                resolvedModelCheck,
+                R.string.error_qwen3_asr_model_missing
+            )
             LocalAsrCallLogger.recordLoadFailure(
                 prefs,
                 AsrVendor.Qwen3Asr,
                 "preload",
-                context.getString(R.string.error_qwen3_asr_model_missing)
+                msg
             )
             return
         }
@@ -607,8 +617,6 @@ internal fun preloadQwen3AsrIfConfigured(
     }
 }
 
-private const val QWEN3_ASR_MIN_ONNX_BYTES = 1024L * 1024L
-
 internal data class Qwen3AsrResolvedModel(
     val modelDir: File,
     val convFrontendPath: String,
@@ -622,7 +630,7 @@ private object Qwen3AsrModelResolverCache {
 
     @Volatile private var cachedValue: Qwen3AsrResolvedModel? = null
 
-    fun resolve(context: Context, variant: String): Qwen3AsrResolvedModel? {
+    fun resolve(context: Context, variant: String): LocalModelCheck<Qwen3AsrResolvedModel> {
         val base = try {
             context.getExternalFilesDir(null)
         } catch (t: Throwable) {
@@ -632,48 +640,59 @@ private object Qwen3AsrModelResolverCache {
         val probeRoot = File(base, "qwen3_asr")
         val cacheKey = probeRoot.absolutePath + "|" + variant
         val cached = if (cachedKey == cacheKey) cachedValue else null
-        if (cached != null && isUsable(cached)) return cached
+        if (cached != null && isUsable(context, cached)) return LocalModelCheck.Ready(cached)
 
         val variantDir = File(probeRoot, variant)
-        val modelDir = findQwen3AsrModelDir(variantDir) ?: findQwen3AsrModelDir(probeRoot) ?: return null
+        val modelDir = findQwen3AsrModelDir(variantDir) ?: findQwen3AsrModelDir(probeRoot) ?: return LocalModelCheck.Missing
         val convFrontend = File(modelDir, "conv_frontend.onnx")
         val encoder = File(modelDir, "encoder.int8.onnx")
         val decoder = File(modelDir, "decoder.int8.onnx")
-        val tokenizerDir = findQwen3AsrTokenizerDir(modelDir) ?: return null
-        if (!convFrontend.exists() ||
-            !encoder.exists() ||
-            !decoder.exists() ||
-            !isQwen3AsrTokenizerDir(tokenizerDir)
+        val tokenizerDir = findQwen3AsrTokenizerDir(modelDir) ?: return LocalModelCheck.Missing
+        if (!isQwen3AsrTokenizerDir(tokenizerDir)) return LocalModelCheck.Missing
+        when (
+            val check = requireModelFilesCached(
+                context,
+                convFrontend to LocalModelSpecs.Qwen3Asr.convFrontend,
+                encoder to LocalModelSpecs.Qwen3Asr.encoder,
+                decoder to LocalModelSpecs.Qwen3Asr.decoder,
+                File(tokenizerDir, "merges.txt") to LocalModelSpecs.Qwen3Asr.merges,
+                File(tokenizerDir, "tokenizer_config.json") to LocalModelSpecs.Qwen3Asr.tokenizerConfig,
+                File(tokenizerDir, "vocab.json") to LocalModelSpecs.Qwen3Asr.vocab
+            )
         ) {
-            return null
-        }
-        if (
-            convFrontend.length() < QWEN3_ASR_MIN_ONNX_BYTES ||
-            encoder.length() < QWEN3_ASR_MIN_ONNX_BYTES ||
-            decoder.length() < QWEN3_ASR_MIN_ONNX_BYTES
-        ) {
-            return null
+            is LocalModelCheck.IntegrityError -> return LocalModelCheck.IntegrityError(check.fileName)
+            LocalModelCheck.Missing -> return LocalModelCheck.Missing
+            is LocalModelCheck.Ready -> Unit
         }
 
-        return Qwen3AsrResolvedModel(
-            modelDir = modelDir,
-            convFrontendPath = convFrontend.absolutePath,
-            encoderPath = encoder.absolutePath,
-            decoderPath = decoder.absolutePath,
-            tokenizerDirPath = tokenizerDir.absolutePath
-        ).also {
-            cachedKey = cacheKey
-            cachedValue = it
-        }
+        return LocalModelCheck.Ready(
+            Qwen3AsrResolvedModel(
+                modelDir = modelDir,
+                convFrontendPath = convFrontend.absolutePath,
+                encoderPath = encoder.absolutePath,
+                decoderPath = decoder.absolutePath,
+                tokenizerDirPath = tokenizerDir.absolutePath
+            ).also {
+                cachedKey = cacheKey
+                cachedValue = it
+            }
+        )
     }
 
-    private fun isUsable(model: Qwen3AsrResolvedModel): Boolean = File(model.convFrontendPath).let { it.exists() && it.length() >= QWEN3_ASR_MIN_ONNX_BYTES } &&
-        File(model.encoderPath).let { it.exists() && it.length() >= QWEN3_ASR_MIN_ONNX_BYTES } &&
-        File(model.decoderPath).let { it.exists() && it.length() >= QWEN3_ASR_MIN_ONNX_BYTES } &&
-        isQwen3AsrTokenizerDir(File(model.tokenizerDirPath))
+    private fun isUsable(context: Context, model: Qwen3AsrResolvedModel): Boolean = requireModelFilesCached(
+        context,
+        File(model.convFrontendPath) to LocalModelSpecs.Qwen3Asr.convFrontend,
+        File(model.encoderPath) to LocalModelSpecs.Qwen3Asr.encoder,
+        File(model.decoderPath) to LocalModelSpecs.Qwen3Asr.decoder,
+        File(model.tokenizerDirPath, "merges.txt") to LocalModelSpecs.Qwen3Asr.merges,
+        File(model.tokenizerDirPath, "tokenizer_config.json") to LocalModelSpecs.Qwen3Asr.tokenizerConfig,
+        File(model.tokenizerDirPath, "vocab.json") to LocalModelSpecs.Qwen3Asr.vocab
+    ) is LocalModelCheck.Ready
 }
 
-internal fun resolveQwen3AsrModel(context: Context, prefs: Prefs): Qwen3AsrResolvedModel? = Qwen3AsrModelResolverCache.resolve(context, normalizeQwen3AsrVariant(prefs.qwModelVariant))
+internal fun checkQwen3AsrModel(context: Context, prefs: Prefs): LocalModelCheck<Qwen3AsrResolvedModel> = Qwen3AsrModelResolverCache.resolve(context, normalizeQwen3AsrVariant(prefs.qwModelVariant))
+
+internal fun resolveQwen3AsrModel(context: Context, prefs: Prefs): Qwen3AsrResolvedModel? = (checkQwen3AsrModel(context, prefs) as? LocalModelCheck.Ready)?.value
 
 private fun qwen3AsrPcmToFloatArray(pcm: ByteArray): FloatArray {
     if (pcm.isEmpty()) return FloatArray(0)

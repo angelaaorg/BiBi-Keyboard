@@ -675,74 +675,90 @@ class AsrKeyboardService :
         if (prefs.asrVendor == AsrVendor.SenseVoice) {
             val prepared = com.brycewg.asrkb.asr.isSenseVoicePrepared()
             if (!prepared) {
-                val base = getExternalFilesDir(null) ?: filesDir
-                val probeRoot = java.io.File(base, "sensevoice")
-                val rawVariant = prefs.svModelVariant
-                val variant = if (rawVariant == "small-full") "small-full" else "small-int8"
-                val variantDir = if (variant == "small-full") {
-                    java.io.File(probeRoot, "small-full")
-                } else {
-                    java.io.File(probeRoot, "small-int8")
-                }
-                val found = com.brycewg.asrkb.asr.findSvModelDir(variantDir)
-                    ?: com.brycewg.asrkb.asr.findSvModelDir(probeRoot)
-                if (found == null) {
+                val check = com.brycewg.asrkb.asr.checkSenseVoiceModel(this, prefs)
+                if (check !is com.brycewg.asrkb.asr.LocalModelCheck.Ready) {
                     uiRenderer?.clearStatusTextStyle()
                     viewRefs?.txtStatusText?.text =
-                        getString(R.string.error_sensevoice_model_missing)
+                        com.brycewg.asrkb.asr.localModelErrorMessage(
+                            this,
+                            check,
+                            R.string.error_sensevoice_model_missing
+                        )
                     return false
                 }
             }
         } else if (prefs.asrVendor == AsrVendor.FunAsrNano) {
             val prepared = com.brycewg.asrkb.asr.isFunAsrNanoPrepared()
             if (!prepared) {
-                val base = getExternalFilesDir(null) ?: filesDir
-                val probeRoot = java.io.File(base, "funasr_nano")
-                val variantDir = java.io.File(
-                    probeRoot,
-                    com.brycewg.asrkb.asr.normalizeFunAsrNanoVariant(prefs.fnModelVariant)
-                )
-                val found = com.brycewg.asrkb.asr.findFnModelDir(variantDir)
-                    ?: com.brycewg.asrkb.asr.findDirectFnModelDir(probeRoot)
-                if (found == null) {
+                val check = com.brycewg.asrkb.asr.checkFunAsrNanoModel(this, prefs)
+                if (check !is com.brycewg.asrkb.asr.LocalModelCheck.Ready) {
                     uiRenderer?.clearStatusTextStyle()
-                    viewRefs?.txtStatusText?.text = getString(R.string.error_funasr_model_missing)
+                    viewRefs?.txtStatusText?.text = com.brycewg.asrkb.asr.localModelErrorMessage(
+                        this,
+                        check,
+                        R.string.error_funasr_model_missing
+                    )
                     return false
                 }
             }
         } else if (prefs.asrVendor == AsrVendor.Qwen3Asr) {
             val prepared = com.brycewg.asrkb.asr.isQwen3AsrPrepared()
             if (!prepared) {
-                val base = getExternalFilesDir(null) ?: filesDir
-                val probeRoot = java.io.File(base, "qwen3_asr")
-                val variantDir = java.io.File(
-                    probeRoot,
-                    com.brycewg.asrkb.asr.normalizeQwen3AsrVariant(prefs.qwModelVariant)
-                )
-                val found = com.brycewg.asrkb.asr.findQwen3AsrModelDir(variantDir)
-                    ?: com.brycewg.asrkb.asr.findQwen3AsrModelDir(probeRoot)
-                if (found == null) {
+                val check = com.brycewg.asrkb.asr.checkQwen3AsrModel(this, prefs)
+                if (check !is com.brycewg.asrkb.asr.LocalModelCheck.Ready) {
                     uiRenderer?.clearStatusTextStyle()
                     viewRefs?.txtStatusText?.text =
-                        getString(R.string.error_qwen3_asr_model_missing)
+                        com.brycewg.asrkb.asr.localModelErrorMessage(
+                            this,
+                            check,
+                            R.string.error_qwen3_asr_model_missing
+                        )
                     return false
                 }
             }
         } else if (prefs.asrVendor == AsrVendor.Parakeet) {
             val prepared = com.brycewg.asrkb.asr.isParakeetPrepared()
             if (!prepared) {
-                val base = getExternalFilesDir(null) ?: filesDir
-                val probeRoot = java.io.File(base, "parakeet")
-                val variantDir = java.io.File(
-                    probeRoot,
-                    com.brycewg.asrkb.asr.normalizeParakeetVariant(prefs.pkModelVariant)
-                )
-                val found = com.brycewg.asrkb.asr.findParakeetModelDir(variantDir)
-                    ?: com.brycewg.asrkb.asr.findParakeetModelDir(probeRoot)
-                if (found == null) {
+                val check = com.brycewg.asrkb.asr.checkParakeetModel(this, prefs)
+                if (check !is com.brycewg.asrkb.asr.LocalModelCheck.Ready) {
                     uiRenderer?.clearStatusTextStyle()
                     viewRefs?.txtStatusText?.text =
-                        getString(R.string.error_parakeet_model_missing)
+                        com.brycewg.asrkb.asr.localModelErrorMessage(
+                            this,
+                            check,
+                            R.string.error_parakeet_model_missing
+                        )
+                    return false
+                }
+            }
+        } else if (prefs.asrVendor == AsrVendor.FireRedAsr) {
+            val prepared = com.brycewg.asrkb.asr.isFireRedAsrPrepared()
+            if (!prepared) {
+                val check = com.brycewg.asrkb.asr.checkFireRedAsrModelFiles(this, prefs)
+                if (check !is com.brycewg.asrkb.asr.LocalModelCheck.Ready) {
+                    uiRenderer?.clearStatusTextStyle()
+                    viewRefs?.txtStatusText?.text =
+                        com.brycewg.asrkb.asr.localModelErrorMessage(
+                            this,
+                            check,
+                            R.string.error_firered_asr_model_missing
+                        )
+                    return false
+                }
+            }
+        } else if (prefs.asrVendor == AsrVendor.XAsr) {
+            val prepared = com.brycewg.asrkb.asr.isXAsrPrepared()
+            if (!prepared) {
+                val base = getExternalFilesDir(null) ?: filesDir
+                val check = com.brycewg.asrkb.asr.checkXAsrModelFiles(this, java.io.File(base, "x_asr"))
+                if (check !is com.brycewg.asrkb.asr.LocalModelCheck.Ready) {
+                    uiRenderer?.clearStatusTextStyle()
+                    viewRefs?.txtStatusText?.text =
+                        com.brycewg.asrkb.asr.localModelErrorMessage(
+                            this,
+                            check,
+                            R.string.error_x_asr_model_missing
+                        )
                     return false
                 }
             }
