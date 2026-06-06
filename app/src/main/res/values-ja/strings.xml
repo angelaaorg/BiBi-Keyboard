@@ -165,7 +165,30 @@
   <!-- ============================================== -->
   <!-- 拡張ボタン設定 -->
   <!-- ============================================== -->
-  <string name="label_extension_buttons">ツールバーボタンをカスタマイズ</string>
+  <string name="label_extension_buttons">カスタムキーボードレイアウト</string>
+  <string name="keyboard_layout_summary">メイン %1$dx%2$d、AI %3$dx%4$d</string>
+  <string name="keyboard_layout_editor_title">カスタムキーボードレイアウト</string>
+  <string name="keyboard_layout_panel_selector">編集レイアウト</string>
+  <string name="keyboard_layout_panel_main">メイン</string>
+  <string name="keyboard_layout_panel_ai_edit">AI編集</string>
+  <string name="keyboard_layout_panel_recording">録音</string>
+  <string name="keyboard_layout_cols">列</string>
+  <string name="keyboard_layout_rows">行</string>
+  <string name="keyboard_layout_reset_default">リセット</string>
+  <string name="keyboard_layout_clear_current">クリア</string>
+  <string name="keyboard_layout_import_export">共有</string>
+  <string name="keyboard_layout_copy_json">JSONをコピー</string>
+  <string name="keyboard_layout_json_label">レイアウトJSON</string>
+  <string name="keyboard_layout_import_json">JSONをインポート</string>
+  <string name="keyboard_layout_import_success">レイアウトをインポートしました</string>
+  <string name="keyboard_layout_import_failed">レイアウトJSONが無効です</string>
+  <string name="keyboard_layout_export_copied">レイアウトJSONをコピーしました</string>
+  <string name="keyboard_layout_save_success">レイアウトを保存しました</string>
+  <string name="keyboard_layout_error_invalid">必須ボタン不足、重なり、または範囲外のボタンがあります。</string>
+  <string name="keyboard_layout_block_status">ステータス</string>
+  <string name="keyboard_layout_block_ai_info">AI情報</string>
+  <string name="btn_save">保存</string>
+  <string name="btn_delete">削除</string>
   <string name="ext_btn_default_summary">元に戻す、すべて選択、コピー、キーボードを非表示</string>
   <string name="ext_btn_none_selected">未選択</string>
   <string name="ext_btn_must_select_4">正確に4つのボタンを選択してください</string>

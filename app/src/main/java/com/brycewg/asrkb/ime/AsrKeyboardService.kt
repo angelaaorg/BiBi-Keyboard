@@ -573,15 +573,27 @@ class AsrKeyboardService :
         extensionButtonsController = ImeExtensionButtonsController(
             prefs = prefs,
             views = refs,
+            inputHelper = inputHelper,
             actionHandler = actionHandler,
             inputConnectionProvider = { currentInputConnection },
+            editorInfoProvider = { currentInputEditorInfo },
             performKeyHaptic = ::performKeyHaptic,
+            checkAsrReady = ::checkAsrReady,
             moveCursorBy = { delta -> aiEditPanelController?.moveCursorBy(delta) },
             toggleSelectionMode = { aiEditPanelController?.toggleSelectionMode() },
+            isSelectionModeEnabled = { aiEditPanelController?.isSelectionModeEnabled() == true },
             updateSelectExtButtonsUi = { aiEditPanelController?.applySelectExtButtonsUi() },
+            showAiEditPanel = { showAiEditPanel() },
+            hideAiEditPanel = { aiEditPanelController?.hide() },
             showNumpadPanel = { showNumpadPanel(returnToAiPanel = false) },
+            showNumpadPanelFromAi = { showNumpadPanel(returnToAiPanel = true) },
             showClipboardPanel = { showClipboardPanel() },
-            hideKeyboardPanel = { hideKeyboardPanel() }
+            hideKeyboardPanel = { hideKeyboardPanel() },
+            openSettings = { openSettings() },
+            showPromptPicker = { anchor -> showPromptPicker(anchor) },
+            showPromptPickerForApply = { anchor -> aiEditPanelController?.showPromptPickerForApply(anchor) },
+            showVendorPicker = { anchor -> showVendorPicker(anchor) },
+            onImeSwitchButtonClicked = { handleImeSwitchClick() }
         )
     }
 
@@ -614,6 +626,14 @@ class AsrKeyboardService :
         hideClipboardPanel()
         hideNumpadPanel()
         aiEditPanelController?.show()
+        if (layoutController?.applyKeyboardHeightScale() == true) {
+            rootView?.requestLayout()
+        }
+        rootView?.post {
+            if (isAiEditPanelVisible && layoutController?.applyKeyboardHeightScale() == true) {
+                rootView?.requestLayout()
+            }
+        }
         uiRenderer?.render(actionHandler.getCurrentState())
     }
 

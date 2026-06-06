@@ -2,12 +2,6 @@
 <resources>
     <!-- IDs formerly contributed by removed keyboard and floating-ball XML layouts. -->
     <item name="aiEditInfoBar" type="id" />
-    <item name="aiEditRow1Left" type="id" />
-    <item name="aiEditRow1Right" type="id" />
-    <item name="aiEditRow2Left" type="id" />
-    <item name="aiEditRow2Right" type="id" />
-    <item name="aiEditRow3Left" type="id" />
-    <item name="aiEditRow3Right" type="id" />
     <item name="ballContainer" type="id" />
     <item name="ballIcon" type="id" />
     <item name="btnAiEdit" type="id" />
@@ -18,6 +12,7 @@
     <item name="btnAiPanelCursorRight" type="id" />
     <item name="btnAiPanelMoveEnd" type="id" />
     <item name="btnAiPanelMoveStart" type="id" />
+    <item name="btnAiPanelMic" type="id" />
     <item name="btnAiPanelNumpad" type="id" />
     <item name="btnAiPanelPaste" type="id" />
     <item name="btnAiPanelSelect" type="id" />
@@ -51,7 +46,10 @@
     <item name="containerPunct" type="id" />
     <item name="edgeHandleIcon" type="id" />
     <item name="groupMicStatus" type="id" />
-    <item name="guidelineCenter" type="id" />
+    <item name="keyboardLayoutCanvas" type="id" />
+    <item name="keyboardLayoutBlockDefTag" type="id" />
+    <item name="keyboardLayoutBlockDynamicTag" type="id" />
+    <item name="keyboardLayoutBlockPanelTag" type="id" />
     <item name="layoutAiEditPanel" type="id" />
     <item name="layoutClipboardPanel" type="id" />
     <item name="layoutMainKeyboard" type="id" />
@@ -75,15 +73,12 @@
     <item name="ripple2" type="id" />
     <item name="ripple3" type="id" />
     <item name="rippleClip" type="id" />
-    <item name="rowExtension" type="id" />
     <item name="rowNumpadBottomBar" type="id" />
     <item name="rowNumpadDigits" type="id" />
-    <item name="rowOverlay" type="id" />
     <item name="rowPunct1" type="id" />
     <item name="rowPunct2" type="id" />
     <item name="rowPunctWrap" type="id" />
     <item name="rowRecordingGestures" type="id" />
-    <item name="rowTop" type="id" />
     <item name="tvEntry" type="id" />
     <item name="txtAiEditInfo" type="id" />
     <item name="txtStatus" type="id" />

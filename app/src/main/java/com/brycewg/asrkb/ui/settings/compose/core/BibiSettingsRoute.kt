@@ -16,6 +16,10 @@ sealed interface BibiSettingsRoute {
         override val id: String = "input"
     }
 
+    data object KeyboardLayout : BibiSettingsRoute {
+        override val id: String = "keyboard_layout"
+    }
+
     data object RecordingTest : BibiSettingsRoute {
         override val id: String = "recording_test"
     }
@@ -60,6 +64,7 @@ sealed interface BibiSettingsRoute {
         fun fromId(id: String?): BibiSettingsRoute? = when (id) {
             Home.id -> Home
             Input.id -> Input
+            KeyboardLayout.id -> KeyboardLayout
             RecordingTest.id -> RecordingTest
             Floating.id -> Floating
             Asr.id -> Asr

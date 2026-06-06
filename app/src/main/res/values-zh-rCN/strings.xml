@@ -164,7 +164,30 @@
   <!-- ============================================== -->
   <!-- 扩展按钮配置 -->
   <!-- ============================================== -->
-  <string name="label_extension_buttons">自定义第一排按钮</string>
+  <string name="label_extension_buttons">自定义键盘布局</string>
+  <string name="keyboard_layout_summary">主键盘 %1$dx%2$d，AI %3$dx%4$d</string>
+  <string name="keyboard_layout_editor_title">自定义键盘布局</string>
+  <string name="keyboard_layout_panel_selector">编辑布局</string>
+  <string name="keyboard_layout_panel_main">主键盘</string>
+  <string name="keyboard_layout_panel_ai_edit">AI 编辑</string>
+  <string name="keyboard_layout_panel_recording">录音</string>
+  <string name="keyboard_layout_cols">列</string>
+  <string name="keyboard_layout_rows">行</string>
+  <string name="keyboard_layout_reset_default">重置</string>
+  <string name="keyboard_layout_clear_current">清空</string>
+  <string name="keyboard_layout_import_export">分享</string>
+  <string name="keyboard_layout_copy_json">复制 JSON</string>
+  <string name="keyboard_layout_json_label">布局 JSON</string>
+  <string name="keyboard_layout_import_json">导入 JSON</string>
+  <string name="keyboard_layout_import_success">布局已导入</string>
+  <string name="keyboard_layout_import_failed">布局 JSON 无效</string>
+  <string name="keyboard_layout_export_copied">布局 JSON 已复制</string>
+  <string name="keyboard_layout_save_success">布局已保存</string>
+  <string name="keyboard_layout_error_invalid">布局存在必选按钮缺失、重叠或越界。</string>
+  <string name="keyboard_layout_block_status">状态栏</string>
+  <string name="keyboard_layout_block_ai_info">AI 信息栏</string>
+  <string name="btn_save">保存</string>
+  <string name="btn_delete">删除</string>
   <string name="ext_btn_default_summary">撤销、全选、复制、收起键盘</string>
   <string name="ext_btn_none_selected">未选择</string>
   <string name="ext_btn_must_select_4">请选择恰好 4 个按钮</string>

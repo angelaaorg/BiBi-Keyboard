@@ -32,7 +32,12 @@ internal class MicGestureController(
     private var state: GestureState = GestureState.None
 
     fun bindMicButton() {
-        views.btnMic?.setOnClickListener { v ->
+        bindMicButton(views.btnMic)
+        bindMicButton(views.btnAiPanelMic)
+    }
+
+    private fun bindMicButton(button: View?) {
+        button?.setOnClickListener { v ->
             val locked = actionHandler.isMicLockedBySwipe()
             if (!prefs.micTapToggleEnabled && !locked) return@setOnClickListener
             performKeyHaptic(v)
@@ -64,7 +69,7 @@ internal class MicGestureController(
             }
         }
 
-        views.btnMic?.setOnTouchListener { v, event ->
+        button?.setOnTouchListener { v, event ->
             if (prefs.micTapToggleEnabled) return@setOnTouchListener false
             if (isAiEditPanelVisible()) {
                 handleAiEditMicTouch(v, event)

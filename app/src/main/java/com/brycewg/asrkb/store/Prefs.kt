@@ -1414,6 +1414,10 @@ class Prefs(context: Context) {
         }
         set(value) = sp.edit { putString(KEY_EXT_BTN_4, value.id) }
 
+    var customKeyboardLayoutsJson: String
+        get() = sp.getString(KEY_CUSTOM_KEYBOARD_LAYOUTS_JSON, "") ?: ""
+        set(value) = sp.edit { putString(KEY_CUSTOM_KEYBOARD_LAYOUTS_JSON, value) }
+
     // 历史语音识别总字数（仅统计最终提交到编辑器的识别结果；AI编辑不计入）
     var totalAsrChars: Long
         get() = sp.getLong(KEY_TOTAL_ASR_CHARS, 0L).coerceAtLeast(0L)

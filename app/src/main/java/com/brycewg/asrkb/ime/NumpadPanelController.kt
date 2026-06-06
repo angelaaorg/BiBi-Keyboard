@@ -25,8 +25,9 @@ internal class NumpadPanelController(
     fun bindListeners() {
         views.btnNumpadBack?.setOnClickListener { v ->
             performKeyHaptic(v)
+            val shouldReturnToAiPanel = returnToAiPanel
             hide()
-            if (returnToAiPanel) {
+            if (shouldReturnToAiPanel) {
                 onRequestShowAiEditPanel()
             } else {
                 views.layoutMainKeyboard?.visibility = View.VISIBLE
@@ -61,7 +62,8 @@ internal class NumpadPanelController(
     fun show(returnToAiPanel: Boolean) {
         if (isVisible) return
         this.returnToAiPanel = returnToAiPanel
-        val mainHeight = views.layoutMainKeyboard?.height?.takeIf { it > 0 }
+        val mainHeight = views.rootView.findViewById<View>(R.id.keyboardLayoutCanvas)?.height?.takeIf { it > 0 }
+            ?: views.layoutMainKeyboard?.height?.takeIf { it > 0 }
             ?: (
                 (views.rootView.height - views.rootView.paddingTop - views.rootView.paddingBottom).takeIf {
                     it >
@@ -85,9 +87,13 @@ internal class NumpadPanelController(
     }
 
     fun hide() {
+        val shouldReturnToAiPanel = returnToAiPanel
         if (!isVisible) {
-            views.layoutMainKeyboard?.visibility = View.VISIBLE
-            views.groupMicStatus?.visibility = View.VISIBLE
+            if (!shouldReturnToAiPanel) {
+                views.layoutMainKeyboard?.visibility = View.VISIBLE
+                views.groupMicStatus?.visibility = View.VISIBLE
+            }
+            returnToAiPanel = false
             return
         }
         val panel = views.layoutNumpadPanel
@@ -97,9 +103,12 @@ internal class NumpadPanelController(
             lp.height = ViewGroup.LayoutParams.WRAP_CONTENT
             panel.layoutParams = lp
         }
-        views.groupMicStatus?.visibility = View.VISIBLE
-        views.layoutMainKeyboard?.visibility = View.VISIBLE
+        if (!shouldReturnToAiPanel) {
+            views.groupMicStatus?.visibility = View.VISIBLE
+            views.layoutMainKeyboard?.visibility = View.VISIBLE
+        }
         isVisible = false
+        returnToAiPanel = false
     }
 
     private fun bindNumpadKeys() {

@@ -334,8 +334,7 @@ internal class ImeUiRenderer(
         setVisibilityIfChanged(views.waveformView, View.GONE)
         views.waveformView?.stop()
 
-        setSelectedIfChanged(views.btnMic, false)
-        setImageResourceIfChanged(views.btnMic, R.drawable.microphone)
+        setMicButtons(selected = false, imageRes = R.drawable.microphone)
         setImageResourceIfChanged(views.btnPromptPicker, R.drawable.pencil_simple_line)
         inputConnectionProvider()?.let { inputHelper.finishComposingText(it) }
     }
@@ -347,8 +346,7 @@ internal class ImeUiRenderer(
         setVisibilityIfChanged(views.waveformView, View.VISIBLE)
         views.waveformView?.start()
 
-        setSelectedIfChanged(views.btnMic, true)
-        setImageResourceIfChanged(views.btnMic, R.drawable.microphone_fill)
+        setMicButtons(selected = true, imageRes = R.drawable.microphone_fill)
         setImageResourceIfChanged(views.btnPromptPicker, R.drawable.pencil_simple_line)
         showRecordingGesturesOverlay(state)
     }
@@ -362,8 +360,7 @@ internal class ImeUiRenderer(
         setVisibilityIfChanged(views.waveformView, View.GONE)
         views.waveformView?.stop()
 
-        setSelectedIfChanged(views.btnMic, false)
-        setImageResourceIfChanged(views.btnMic, R.drawable.microphone)
+        setMicButtons(selected = false, imageRes = R.drawable.microphone)
         setImageResourceIfChanged(views.btnPromptPicker, R.drawable.pencil_simple_line)
     }
 
@@ -383,8 +380,7 @@ internal class ImeUiRenderer(
         setVisibilityIfChanged(views.waveformView, View.GONE)
         views.waveformView?.stop()
 
-        setSelectedIfChanged(views.btnMic, false)
-        setImageResourceIfChanged(views.btnMic, R.drawable.microphone)
+        setMicButtons(selected = false, imageRes = R.drawable.microphone)
         setImageResourceIfChanged(views.btnPromptPicker, R.drawable.pencil_simple_line)
     }
 
@@ -397,8 +393,7 @@ internal class ImeUiRenderer(
         setVisibilityIfChanged(views.waveformView, View.GONE)
         views.waveformView?.stop()
 
-        setSelectedIfChanged(views.btnMic, false)
-        setImageResourceIfChanged(views.btnMic, R.drawable.microphone_fill)
+        setMicButtons(selected = false, imageRes = R.drawable.microphone_fill)
         setImageResourceIfChanged(views.btnPromptPicker, R.drawable.pencil_simple_line_fill)
     }
 
@@ -411,8 +406,7 @@ internal class ImeUiRenderer(
         setVisibilityIfChanged(views.waveformView, View.GONE)
         views.waveformView?.stop()
 
-        setSelectedIfChanged(views.btnMic, false)
-        setImageResourceIfChanged(views.btnMic, R.drawable.microphone)
+        setMicButtons(selected = false, imageRes = R.drawable.microphone)
         setImageResourceIfChanged(views.btnPromptPicker, R.drawable.pencil_simple_line_fill)
     }
 
@@ -489,6 +483,13 @@ internal class ImeUiRenderer(
         if (view != null && view.isEnabled != enabled) {
             view.isEnabled = enabled
         }
+    }
+
+    private fun setMicButtons(selected: Boolean, imageRes: Int) {
+        setSelectedIfChanged(views.btnMic, selected)
+        setImageResourceIfChanged(views.btnMic, imageRes)
+        setSelectedIfChanged(views.btnAiPanelMic, selected)
+        setImageResourceIfChanged(views.btnAiPanelMic, imageRes)
     }
 
     private fun setImageResourceIfChanged(view: View?, resId: Int) {

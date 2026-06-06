@@ -21,12 +21,18 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.constraintlayout.widget.Guideline
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.UiColorTokens
 import com.brycewg.asrkb.UiColors
+import com.brycewg.asrkb.ime.layout.BlockDef
+import com.brycewg.asrkb.ime.layout.BlockDefRegistry
+import com.brycewg.asrkb.ime.layout.ButtonViewKind
+import com.brycewg.asrkb.ime.layout.KeyboardLayoutPanel
+import com.brycewg.asrkb.ime.layout.KeyboardLayoutRuntimeApplier
+import com.brycewg.asrkb.ime.layout.KeyboardLayoutStore
+import com.brycewg.asrkb.ime.layout.KeyboardLayoutViewTags
 import com.brycewg.asrkb.store.Prefs
 import com.brycewg.asrkb.ui.BibiViewThemes
 import com.brycewg.asrkb.ui.widgets.PunctKeyView
@@ -47,8 +53,8 @@ internal object ImeKeyboardViewFactory {
             setPadding(dp(context, 12), dp(context, 8), dp(context, 12), dp(context, 12))
         }
 
-        root.addView(createMainKeyboard(context))
-        root.addView(createAiEditPanel(context))
+        root.addView(createMainKeyboard(context, prefs))
+        root.addView(createAiEditPanel(context, prefs))
         root.addView(createNumpadPanel(context))
         root.addView(createClipboardPanel(context))
         root.addView(createMicStatusGroup(context))
@@ -92,9 +98,11 @@ internal object ImeKeyboardViewFactory {
             }
         }
 
-        root.findViewById<FloatingActionButton>(R.id.btnMic)?.apply {
-            backgroundTintList = ColorStateList.valueOf(theme.micContainer)
-            imageTintList = ColorStateList.valueOf(theme.micContent)
+        listOf(R.id.btnMic, R.id.btnAiPanelMic).forEach { id ->
+            root.findViewById<FloatingActionButton>(id)?.apply {
+                backgroundTintList = ColorStateList.valueOf(theme.micContainer)
+                imageTintList = ColorStateList.valueOf(theme.micContent)
+            }
         }
         root.findViewById<WaveformView>(R.id.waveformView)?.setWaveformColor(theme.primary)
 
@@ -106,7 +114,7 @@ internal object ImeKeyboardViewFactory {
         root.findViewById<TextView>(R.id.clip_txtCount)?.setTextColor(theme.panelSummary)
     }
 
-    private fun createMainKeyboard(context: Context): View {
+    private fun createMainKeyboard(context: Context, prefs: Prefs): View {
         val container = FrameLayout(context).apply {
             id = R.id.layoutMainKeyboard
             layoutParams = FrameLayout.LayoutParams(
@@ -115,288 +123,68 @@ internal object ImeKeyboardViewFactory {
             )
         }
 
-        val column = LinearLayout(context).apply {
-            orientation = LinearLayout.VERTICAL
+        val canvas = FrameLayout(context).apply {
+            id = R.id.keyboardLayoutCanvas
+            clipChildren = false
+            clipToPadding = false
             layoutParams = FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.WRAP_CONTENT
             )
         }
-        column.addView(createExtensionRow(context))
-        column.addView(createTopRow(context))
-        column.addView(createPunctuationRow(context))
-
-        container.addView(column)
-        container.addView(createOverlayRow(context))
-        container.addView(createRecordingGestureRow(context))
+        addMainKeyboardButtons(context, canvas)
+        container.addView(canvas)
+        container.addView(createRecordingGestureLayer(context))
+        container.post {
+            KeyboardLayoutRuntimeApplier.applyAll(container.rootView, KeyboardLayoutStore.load(prefs), 1f)
+        }
         return container
     }
 
-    private fun createExtensionRow(context: Context): View {
-        val row = ConstraintLayout(context).apply {
-            id = R.id.rowExtension
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(context, 50)
-            )
-        }
-
-        row.addView(
-            imageButton(context, R.id.btnExt1, R.string.desc_extension_button_1).withConstraints {
-                startToStart = ConstraintLayout.LayoutParams.PARENT_ID
-                topToTop = ConstraintLayout.LayoutParams.PARENT_ID
-                bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID
-                marginEnd = dp(context, 6)
-            }
-        )
-        row.addView(
-            imageButton(context, R.id.btnExt2, R.string.desc_extension_button_2).withConstraints {
-                startToEnd = R.id.btnExt1
-                topToTop = ConstraintLayout.LayoutParams.PARENT_ID
-                bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID
-                marginStart = dp(context, 6)
-            }
-        )
-        row.addView(
-            imageButton(context, R.id.btnExt4, R.string.desc_extension_button_4).withConstraints {
-                endToEnd = ConstraintLayout.LayoutParams.PARENT_ID
-                topToTop = ConstraintLayout.LayoutParams.PARENT_ID
-                bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID
-                marginStart = dp(context, 6)
-            }
-        )
-        row.addView(
-            imageButton(context, R.id.btnExt3, R.string.desc_extension_button_3).withConstraints {
-                endToStart = R.id.btnExt4
-                topToTop = ConstraintLayout.LayoutParams.PARENT_ID
-                bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID
-                marginEnd = dp(context, 6)
-            }
-        )
-        row.addView(createStatusCenter(context))
-        return row
+    private fun addMainKeyboardButtons(context: Context, canvas: FrameLayout) {
+        BlockDefRegistry.default.defsFor(KeyboardLayoutPanel.Main)
+            .filter { it.viewId != R.id.groupMicStatus }
+            .forEach { def -> canvas.addFrameChild(createLayoutBlockButton(context, KeyboardLayoutPanel.Main, def)) }
     }
 
-    private fun createStatusCenter(context: Context): View = keyFrame(context, R.id.btnExtCenter1).apply {
-        contentDescription = context.getString(R.string.desc_extension_center_button_1)
+    private fun createStatusFrame(context: Context, def: BlockDef): View = keyFrame(
+        context,
+        def.viewId ?: View.NO_ID
+    ).apply {
+        contentDescription = context.getString(def.labelRes)
         isClickable = true
         isFocusable = true
         clipChildren = true
         clipToPadding = true
-        layoutParams = ConstraintLayout.LayoutParams(0, dp(context, 40)).apply {
-            startToEnd = R.id.btnExt2
-            endToStart = R.id.btnExt3
-            topToTop = ConstraintLayout.LayoutParams.PARENT_ID
-            bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID
-            marginStart = dp(context, 6)
-            marginEnd = dp(context, 6)
-        }
-        addView(statusText(context, R.id.txtStatusText))
-        addView(
-            WaveformView(context).apply {
-                id = R.id.waveformView
-                visibility = View.GONE
-                layoutParams = FrameLayout.LayoutParams(
-                    FrameLayout.LayoutParams.MATCH_PARENT,
-                    FrameLayout.LayoutParams.MATCH_PARENT
-                ).apply {
-                    setMargins(dp(context, 4), dp(context, 4), dp(context, 4), dp(context, 4))
+        val textId = if (def.viewId == R.id.aiEditInfoBar) R.id.txtAiEditInfo else R.id.txtStatusText
+        addView(statusText(context, textId))
+        if (def.viewId == R.id.btnExtCenter1) {
+            addView(
+                WaveformView(context).apply {
+                    id = R.id.waveformView
+                    visibility = View.GONE
+                    layoutParams = FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        FrameLayout.LayoutParams.MATCH_PARENT
+                    ).apply {
+                        setMargins(dp(context, 4), dp(context, 4), dp(context, 4), dp(context, 4))
+                    }
                 }
-            }
-        )
-    }
-
-    private fun createTopRow(context: Context): View {
-        val row = ConstraintLayout(context).apply {
-            id = R.id.rowTop
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(context, 80)
             )
         }
-        row.addView(
-            imageButton(context, R.id.btnHide, R.string.ext_btn_clipboard, R.drawable.clipboard_toggle)
-                .withConstraints {
-                    endToStart = R.id.btnBackspace
-                    topToTop = ConstraintLayout.LayoutParams.PARENT_ID
-                    bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID
-                    verticalBias = 0f
-                    marginEnd = dp(context, 6)
-                }
-        )
-        row.addView(
-            imageButton(context, R.id.btnPostproc, R.string.cd_postproc_toggle, R.drawable.magic_wand)
-                .withConstraints {
-                    startToEnd = R.id.btnPromptPicker
-                    topToTop = ConstraintLayout.LayoutParams.PARENT_ID
-                    bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID
-                    verticalBias = 0f
-                    marginStart = dp(context, 6)
-                }
-        )
-        row.addView(
-            imageButton(context, R.id.btnBackspace, R.string.cd_backspace, R.drawable.backspace_toggle)
-                .withConstraints {
-                    endToEnd = ConstraintLayout.LayoutParams.PARENT_ID
-                    topToTop = ConstraintLayout.LayoutParams.PARENT_ID
-                    bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID
-                    verticalBias = 0f
-                    marginStart = dp(context, 6)
-                }
-        )
-        row.addView(
-            imageButton(context, R.id.btnPromptPicker, R.string.cd_ai_edit, R.drawable.pencil_simple_line)
-                .withConstraints {
-                    startToStart = ConstraintLayout.LayoutParams.PARENT_ID
-                    topToTop = ConstraintLayout.LayoutParams.PARENT_ID
-                    bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID
-                    verticalBias = 0f
-                    marginEnd = dp(context, 6)
-                }
-        )
-        return row
     }
 
-    private fun createPunctuationRow(context: Context): View {
-        val row = ConstraintLayout(context).apply {
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                topMargin = dp(context, 12)
-            }
-        }
-        row.addView(
-            imageButton(context, R.id.btnPunct1, R.string.cd_numpad, R.drawable.numpad_toggle)
-                .withConstraints {
-                    startToStart = ConstraintLayout.LayoutParams.PARENT_ID
-                    topToTop = ConstraintLayout.LayoutParams.PARENT_ID
-                    bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID
-                    marginEnd = dp(context, 6)
-                }
-        )
-        row.addView(
-            punctButton(context, R.id.btnPunct2, R.string.cd_punct_btn_2).withConstraints {
-                startToEnd = R.id.btnPunct1
-                topToTop = ConstraintLayout.LayoutParams.PARENT_ID
-                bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID
-                marginStart = dp(context, 6)
-                marginEnd = dp(context, 6)
-            }
-        )
-        row.addView(
-            punctButton(context, R.id.btnPunct3, R.string.cd_punct_btn_3).withConstraints {
-                endToStart = R.id.btnPunct4
-                topToTop = ConstraintLayout.LayoutParams.PARENT_ID
-                bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID
-                marginStart = dp(context, 6)
-                marginEnd = dp(context, 6)
-            }
-        )
-        row.addView(
-            imageButton(context, R.id.btnPunct4, R.string.cd_vendor_picker, R.drawable.circles_four_toggle)
-                .withConstraints {
-                    endToEnd = ConstraintLayout.LayoutParams.PARENT_ID
-                    topToTop = ConstraintLayout.LayoutParams.PARENT_ID
-                    bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID
-                    marginStart = dp(context, 6)
-                }
-        )
-        row.addView(
-            keyButton(context, R.id.btnExtCenter2, R.string.desc_extension_center_button_2).apply {
-                text = context.getString(R.string.cd_space)
-                layoutParams = ConstraintLayout.LayoutParams(0, dp(context, 40)).apply {
-                    startToEnd = R.id.btnPunct2
-                    endToStart = R.id.btnPunct3
-                    topToTop = ConstraintLayout.LayoutParams.PARENT_ID
-                    bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID
-                    marginStart = dp(context, 6)
-                    marginEnd = dp(context, 6)
-                }
-            }
-        )
-        return row
-    }
-
-    private fun createOverlayRow(context: Context): View {
-        val row = ConstraintLayout(context).apply {
-            id = R.id.rowOverlay
-            layoutParams = FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                gravity = Gravity.TOP
-                topMargin = dp(context, 96)
-            }
-        }
-        row.addView(
-            imageButton(context, R.id.btnSettings, R.string.cd_settings, R.drawable.gear_toggle)
-                .withConstraints {
-                    startToStart = ConstraintLayout.LayoutParams.PARENT_ID
-                    topToTop = ConstraintLayout.LayoutParams.PARENT_ID
-                    bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID
-                    marginEnd = dp(context, 6)
-                }
-        )
-        row.addView(
-            imageButton(context, R.id.btnImeSwitcher, R.string.cd_prompt_picker, R.drawable.article_toggle)
-                .withConstraints {
-                    startToEnd = R.id.btnSettings
-                    topToTop = ConstraintLayout.LayoutParams.PARENT_ID
-                    bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID
-                    marginStart = dp(context, 6)
-                }
-        )
-        row.addView(
-            imageButton(context, R.id.btnEnter, R.string.cd_enter, R.drawable.key_return_toggle)
-                .withConstraints {
-                    endToEnd = ConstraintLayout.LayoutParams.PARENT_ID
-                    topToTop = ConstraintLayout.LayoutParams.PARENT_ID
-                    bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID
-                    marginStart = dp(context, 6)
-                }
-        )
-        row.addView(
-            imageButton(context, R.id.btnAiEdit, R.string.cd_switch_ime, R.drawable.keyboard_toggle)
-                .withConstraints {
-                    startToEnd = R.id.btnImeSwitcher
-                    endToStart = R.id.btnEnter
-                    topToTop = ConstraintLayout.LayoutParams.PARENT_ID
-                    bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID
-                    horizontalBias = 1f
-                    marginEnd = dp(context, 6)
-                }
-        )
-        return row
-    }
-
-    private fun createRecordingGestureRow(context: Context): View {
-        val row = ConstraintLayout(context).apply {
+    private fun createRecordingGestureLayer(context: Context): View {
+        val row = FrameLayout(context).apply {
             id = R.id.rowRecordingGestures
             visibility = View.GONE
             layoutParams = FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                gravity = Gravity.CENTER
-            }
+            )
         }
-        row.addView(
-            gestureButton(context, R.id.btnGestureCancel, R.string.label_recording_gesture_cancel)
-                .withConstraints {
-                    startToStart = ConstraintLayout.LayoutParams.PARENT_ID
-                    topToTop = ConstraintLayout.LayoutParams.PARENT_ID
-                    bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID
-                }
-        )
-        row.addView(
-            gestureButton(context, R.id.btnGestureSend, R.string.label_recording_gesture_send)
-                .withConstraints {
-                    endToEnd = ConstraintLayout.LayoutParams.PARENT_ID
-                    topToTop = ConstraintLayout.LayoutParams.PARENT_ID
-                    bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID
-                }
-        )
+        BlockDefRegistry.default.defsFor(KeyboardLayoutPanel.Recording)
+            .forEach { row.addFrameChild(createButtonFromDef(context, it)) }
         return row
     }
 
@@ -470,8 +258,8 @@ internal object ImeKeyboardViewFactory {
         return header
     }
 
-    private fun createAiEditPanel(context: Context): View {
-        val panel = ConstraintLayout(context).apply {
+    private fun createAiEditPanel(context: Context, prefs: Prefs): View {
+        val panel = FrameLayout(context).apply {
             id = R.id.layoutAiEditPanel
             visibility = View.GONE
             layoutParams = FrameLayout.LayoutParams(
@@ -482,163 +270,51 @@ internal object ImeKeyboardViewFactory {
             }
         }
 
-        panel.addView(
-            keyFrame(context, R.id.aiEditInfoBar).apply {
-                layoutParams = ConstraintLayout.LayoutParams(0, dp(context, 40)).apply {
-                    startToStart = ConstraintLayout.LayoutParams.PARENT_ID
-                    endToEnd = ConstraintLayout.LayoutParams.PARENT_ID
-                    topToTop = ConstraintLayout.LayoutParams.PARENT_ID
-                    topMargin = dp(context, 5)
-                }
-                addView(statusText(context, R.id.txtAiEditInfo))
-            }
-        )
-        panel.addView(
-            Guideline(context).apply {
-                id = R.id.guidelineCenter
-                layoutParams = ConstraintLayout.LayoutParams(
-                    ConstraintLayout.LayoutParams.WRAP_CONTENT,
-                    ConstraintLayout.LayoutParams.WRAP_CONTENT
-                ).apply {
-                    orientation = ConstraintLayout.LayoutParams.VERTICAL
-                    guidePercent = 0.5f
-                }
-            }
-        )
-
-        panel.addView(
-            aiEditButtonRow(
-                context,
-                id = R.id.aiEditRow1Left,
-                gravity = Gravity.START or Gravity.CENTER_VERTICAL,
-                topDp = 50,
-                first = imageButton(context, R.id.btnAiPanelBack, R.string.cd_return_main, R.drawable.arrow_u_up_left_toggle),
-                second = imageButton(context, R.id.btnAiPanelApplyPreset, R.string.cd_apply_preset_prompt, R.drawable.lightning_toggle)
-            ).withConstraints {
-                startToStart = ConstraintLayout.LayoutParams.PARENT_ID
-                endToStart = R.id.guidelineCenter
-                topToTop = ConstraintLayout.LayoutParams.PARENT_ID
-                topMargin = dp(context, 50)
-            }
-        )
-        panel.addView(
-            aiEditButtonRow(
-                context,
-                id = R.id.aiEditRow1Right,
-                gravity = Gravity.END or Gravity.CENTER_VERTICAL,
-                topDp = 50,
-                first = imageButton(context, R.id.btnAiPanelSelectAll, R.string.cd_select_all, R.drawable.selection_all_toggle),
-                second = imageButton(context, R.id.btnAiPanelUndo, R.string.cd_backspace, R.drawable.backspace_toggle)
-            ).withConstraints {
-                startToEnd = R.id.guidelineCenter
-                endToEnd = ConstraintLayout.LayoutParams.PARENT_ID
-                topToTop = ConstraintLayout.LayoutParams.PARENT_ID
-                topMargin = dp(context, 50)
-            }
-        )
-        panel.addView(
-            aiEditButtonRow(
-                context,
-                id = R.id.aiEditRow2Left,
-                gravity = Gravity.START or Gravity.CENTER_VERTICAL,
-                topDp = 96,
-                first = imageButton(context, R.id.btnAiPanelCursorLeft, R.string.cd_cursor_left, R.drawable.arrow_left_toggle),
-                second = imageButton(context, R.id.btnAiPanelCursorRight, R.string.cd_cursor_right, R.drawable.arrow_right_toggle)
-            ).withConstraints {
-                startToStart = ConstraintLayout.LayoutParams.PARENT_ID
-                endToStart = R.id.guidelineCenter
-                topToTop = ConstraintLayout.LayoutParams.PARENT_ID
-                topMargin = dp(context, 96)
-            }
-        )
-        panel.addView(
-            aiEditButtonRow(
-                context,
-                id = R.id.aiEditRow2Right,
-                gravity = Gravity.END or Gravity.CENTER_VERTICAL,
-                topDp = 96,
-                first = imageButton(context, R.id.btnAiPanelCopy, R.string.cd_copy, R.drawable.copy_toggle),
-                second = imageButton(context, R.id.btnAiPanelPaste, R.string.cd_paste, R.drawable.selection_background_toggle)
-            ).withConstraints {
-                startToEnd = R.id.guidelineCenter
-                endToEnd = ConstraintLayout.LayoutParams.PARENT_ID
-                topToTop = ConstraintLayout.LayoutParams.PARENT_ID
-                topMargin = dp(context, 96)
-            }
-        )
-        panel.addView(
-            aiEditButtonRow(
-                context,
-                id = R.id.aiEditRow3Left,
-                gravity = Gravity.START or Gravity.CENTER_VERTICAL,
-                topDp = 142,
-                first = imageButton(context, R.id.btnAiPanelNumpad, R.string.cd_numpad, R.drawable.numpad_toggle),
-                second = imageButton(context, R.id.btnAiPanelSelect, R.string.cd_select_toggle, R.drawable.selection_toggle)
-            ).withConstraints {
-                startToStart = ConstraintLayout.LayoutParams.PARENT_ID
-                topToTop = ConstraintLayout.LayoutParams.PARENT_ID
-                topMargin = dp(context, 142)
-                width = ConstraintLayout.LayoutParams.WRAP_CONTENT
-            }
-        )
-        panel.addView(
-            keyButton(context, R.id.btnAiPanelSpace, R.string.cd_space).apply {
-                text = context.getString(R.string.cd_space)
-                layoutParams = ConstraintLayout.LayoutParams(0, dp(context, 40)).apply {
-                    startToEnd = R.id.aiEditRow3Left
-                    endToStart = R.id.aiEditRow3Right
-                    topToTop = ConstraintLayout.LayoutParams.PARENT_ID
-                    topMargin = dp(context, 142)
-                    marginStart = dp(context, 6)
-                    marginEnd = dp(context, 6)
-                }
-            }
-        )
-        panel.addView(
-            aiEditButtonRow(
-                context,
-                id = R.id.aiEditRow3Right,
-                gravity = Gravity.END or Gravity.CENTER_VERTICAL,
-                topDp = 142,
-                first = imageButton(context, R.id.btnAiPanelMoveStart, R.string.cd_move_home, R.drawable.arrow_line_left_toggle),
-                second = imageButton(context, R.id.btnAiPanelMoveEnd, R.string.cd_move_end, R.drawable.arrow_line_right_toggle)
-            ).withConstraints {
-                endToEnd = ConstraintLayout.LayoutParams.PARENT_ID
-                topToTop = ConstraintLayout.LayoutParams.PARENT_ID
-                topMargin = dp(context, 142)
-                width = ConstraintLayout.LayoutParams.WRAP_CONTENT
-            }
-        )
+        BlockDefRegistry.default.defsFor(KeyboardLayoutPanel.AiEdit)
+            .forEach { panel.addFrameChild(createLayoutBlockButton(context, KeyboardLayoutPanel.AiEdit, it)) }
+        panel.post {
+            KeyboardLayoutRuntimeApplier.applyAll(panel.rootView, KeyboardLayoutStore.load(prefs), 1f)
+        }
         return panel
     }
 
-    private fun aiEditButtonRow(
+    internal fun createLayoutBlockButton(
         context: Context,
-        id: Int,
-        gravity: Int,
-        topDp: Int,
-        first: ImageButton,
-        second: ImageButton
-    ): LinearLayout = LinearLayout(context).apply {
-        this.id = id
-        this.gravity = gravity
-        orientation = LinearLayout.HORIZONTAL
-        layoutParams = ConstraintLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-            topToTop = ConstraintLayout.LayoutParams.PARENT_ID
-            topMargin = dp(context, topDp)
+        panel: KeyboardLayoutPanel,
+        def: BlockDef
+    ): View {
+        val view = createButtonFromDef(context, def)
+        val dynamic = def.viewId == null
+        KeyboardLayoutViewTags.markBlockView(view, panel, def, dynamic)
+        if (dynamic) {
+            view.visibility = View.GONE
         }
-        addView(
-            first.apply {
-                layoutParams = LinearLayout.LayoutParams(dp(context, 40), dp(context, 40)).apply {
-                    marginEnd = dp(context, 6)
-                }
+        return view
+    }
+
+    private fun createButtonFromDef(context: Context, def: BlockDef): View {
+        val id = def.viewId ?: View.NO_ID
+        if (id == R.id.btnAiPanelMic) return micFabButton(context, id, def.labelRes)
+        if (def.viewKind == ButtonViewKind.Status && def.viewId == null) {
+            return keyButton(context, id, def.labelRes).apply {
+                text = context.getString(def.labelRes)
             }
-        )
-        addView(
-            second.apply {
-                layoutParams = LinearLayout.LayoutParams(dp(context, 40), dp(context, 40))
+        }
+        return when (def.viewKind) {
+            ButtonViewKind.Icon -> imageButton(context, id, def.labelRes, def.iconRes)
+            ButtonViewKind.Text -> keyButton(context, id, def.labelRes).apply {
+                text = context.getString(def.labelRes)
             }
-        )
+            ButtonViewKind.Status -> createStatusFrame(context, def)
+            ButtonViewKind.Punctuation -> punctButton(context, id, def.labelRes)
+            ButtonViewKind.Gesture -> gestureButton(context, id, def.labelRes)
+            ButtonViewKind.External -> imageButton(context, id, def.labelRes, def.iconRes)
+        }
+    }
+
+    private fun FrameLayout.addFrameChild(view: View) {
+        view.layoutParams = FrameLayout.LayoutParams(dp(context, 40), dp(context, 40))
+        addView(view)
     }
 
     private fun createNumpadPanel(context: Context): View = LinearLayout(context).apply {
@@ -800,36 +476,14 @@ internal object ImeKeyboardViewFactory {
     private fun createMicStatusGroup(context: Context): View = LinearLayout(context).apply {
         id = R.id.groupMicStatus
         orientation = LinearLayout.VERTICAL
-        gravity = Gravity.CENTER_HORIZONTAL
-        translationY = dp(context, 3).toFloat()
+        gravity = Gravity.CENTER
         layoutParams = FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.MATCH_PARENT,
             FrameLayout.LayoutParams.WRAP_CONTENT
         ).apply {
             gravity = Gravity.CENTER
         }
-        addView(
-            FloatingActionButton(context).apply {
-                id = R.id.btnMic
-                contentDescription = context.getString(R.string.cd_mic)
-                setImageResource(R.drawable.microphone)
-                backgroundTintList = ColorStateList.valueOf(
-                    UiColors.get(context, UiColorTokens.secondaryContainer)
-                )
-                imageTintList = ColorStateList.valueOf(
-                    UiColors.get(context, UiColorTokens.onSecondaryContainer)
-                )
-                elevation = 0f
-                compatElevation = 0f
-                stateListAnimator = null
-                customSize = dp(context, 72)
-                setMaxImageSize(dp(context, 40))
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                )
-            }
-        )
+        addView(micFabButton(context, R.id.btnMic, R.string.cd_mic))
         addView(
             TextView(context).apply {
                 id = R.id.txtStatus
@@ -901,6 +555,27 @@ internal object ImeKeyboardViewFactory {
             this.weight = weight
             marginEnd = dp(context, marginEndDp)
         }
+    }
+
+    private fun micFabButton(context: Context, id: Int, contentDescriptionRes: Int): FloatingActionButton = FloatingActionButton(context).apply {
+        this.id = id
+        contentDescription = context.getString(contentDescriptionRes)
+        setImageResource(R.drawable.microphone)
+        backgroundTintList = ColorStateList.valueOf(
+            UiColors.get(context, UiColorTokens.secondaryContainer)
+        )
+        imageTintList = ColorStateList.valueOf(
+            UiColors.get(context, UiColorTokens.onSecondaryContainer)
+        )
+        elevation = 0f
+        compatElevation = 0f
+        stateListAnimator = null
+        customSize = dp(context, 72)
+        setMaxImageSize(dp(context, 40))
+        layoutParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        )
     }
 
     private fun numpadTextKey(
@@ -1038,6 +713,9 @@ internal object ImeKeyboardViewFactory {
         if (view.tag == "key40") {
             view.applyRectKeyTheme(theme)
         }
+        if (KeyboardLayoutViewTags.isDynamicBlockView(view)) {
+            view.applyDynamicLayoutKeyTheme(theme)
+        }
         if (view is ViewGroup) {
             for (i in 0 until view.childCount) {
                 applyTaggedKeys(view.getChildAt(i), theme)
@@ -1045,45 +723,34 @@ internal object ImeKeyboardViewFactory {
         }
     }
 
-    private val iconKeyIds = intArrayOf(
-        R.id.btnExt1,
-        R.id.btnExt2,
-        R.id.btnExt3,
-        R.id.btnExt4,
-        R.id.btnHide,
-        R.id.btnPostproc,
-        R.id.btnBackspace,
-        R.id.btnPromptPicker,
-        R.id.btnSettings,
-        R.id.btnImeSwitcher,
-        R.id.btnEnter,
-        R.id.btnAiEdit,
-        R.id.btnPunct1,
-        R.id.btnPunct4,
-        R.id.btnAiPanelBack,
-        R.id.btnAiPanelApplyPreset,
-        R.id.btnAiPanelCursorLeft,
-        R.id.btnAiPanelCursorRight,
-        R.id.btnAiPanelMoveStart,
-        R.id.btnAiPanelMoveEnd,
-        R.id.btnAiPanelSelect,
-        R.id.btnAiPanelSelectAll,
-        R.id.btnAiPanelCopy,
-        R.id.btnAiPanelPaste,
-        R.id.btnAiPanelUndo,
-        R.id.btnAiPanelNumpad,
-        R.id.clip_btnBack,
-        R.id.clip_btnDelete
-    )
+    private fun View.applyDynamicLayoutKeyTheme(theme: com.brycewg.asrkb.ui.BibiViewTheme) {
+        when (this) {
+            is ImageButton -> {
+                background = BibiViewThemes.roundedRipple(
+                    context,
+                    theme.keyBackground,
+                    theme.ripple,
+                    theme.iconKeyRadiusDp,
+                    insetDp = theme.keyInsetDp
+                )
+                imageTintList = ColorStateList.valueOf(theme.keyContent)
+            }
+            is Button -> applyRectKeyTheme(theme)
+            is TextView -> applyRectKeyTheme(theme)
+        }
+    }
 
-    private val rectKeyIds = intArrayOf(
-        R.id.btnExtCenter1,
-        R.id.btnExtCenter2,
-        R.id.aiEditInfoBar,
-        R.id.btnAiPanelSpace,
-        R.id.btnGestureCancel,
-        R.id.btnGestureSend
-    )
+    private val iconKeyIds: IntArray = (
+        keyboardButtonIds(ButtonViewKind.Icon) +
+            keyboardButtonIds(ButtonViewKind.External) +
+            listOf(R.id.clip_btnBack, R.id.clip_btnDelete)
+        ).distinct().toIntArray()
+
+    private val rectKeyIds: IntArray = (
+        keyboardButtonIds(ButtonViewKind.Text) +
+            keyboardButtonIds(ButtonViewKind.Status) +
+            keyboardButtonIds(ButtonViewKind.Gesture)
+        ).distinct().toIntArray()
 
     private val statusTextIds = intArrayOf(
         R.id.txtStatusText,
@@ -1091,4 +758,11 @@ internal object ImeKeyboardViewFactory {
         R.id.txtStatus,
         R.id.clip_txtCount
     )
+
+    private fun keyboardButtonIds(kind: ButtonViewKind): List<Int> = KeyboardLayoutPanel.values().flatMap { panel ->
+        BlockDefRegistry.default.defsFor(panel)
+            .filter { it.viewKind == kind }
+            .mapNotNull { it.viewId }
+            .filter { it != R.id.groupMicStatus && it != R.id.btnAiPanelMic }
+    }
 }

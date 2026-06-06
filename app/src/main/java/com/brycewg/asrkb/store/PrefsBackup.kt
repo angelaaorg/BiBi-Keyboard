@@ -145,6 +145,7 @@ internal object PrefsBackup {
         o.put(KEY_EXT_BTN_2, extBtn2.id)
         o.put(KEY_EXT_BTN_3, extBtn3.id)
         o.put(KEY_EXT_BTN_4, extBtn4.id)
+        o.put(KEY_CUSTOM_KEYBOARD_LAYOUTS_JSON, customKeyboardLayoutsJson)
         // 统计信息
         o.put(KEY_TOTAL_ASR_CHARS, totalAsrChars)
         // 使用统计（聚合）与首次使用日期
@@ -485,6 +486,7 @@ internal object PrefsBackup {
                 extBtn4 =
                     com.brycewg.asrkb.ime.ExtensionButtonAction.fromId(it)
             }
+            optString(KEY_CUSTOM_KEYBOARD_LAYOUTS_JSON)?.let { customKeyboardLayoutsJson = it }
             // 统计信息（可选）
             if (o.has(KEY_TOTAL_ASR_CHARS)) {
                 // 使用 optLong，若类型为字符串/浮点将尽力转换

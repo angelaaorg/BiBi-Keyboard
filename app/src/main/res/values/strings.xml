@@ -166,7 +166,30 @@
   <!-- ============================================== -->
   <!-- Extension Button Configuration -->
   <!-- ============================================== -->
-  <string name="label_extension_buttons">Customize toolbar buttons</string>
+  <string name="label_extension_buttons">Custom keyboard layout</string>
+  <string name="keyboard_layout_summary">Main %1$dx%2$d, AI %3$dx%4$d</string>
+  <string name="keyboard_layout_editor_title">Custom keyboard layout</string>
+  <string name="keyboard_layout_panel_selector">Layout</string>
+  <string name="keyboard_layout_panel_main">Main</string>
+  <string name="keyboard_layout_panel_ai_edit">AI edit</string>
+  <string name="keyboard_layout_panel_recording">Recording</string>
+  <string name="keyboard_layout_cols">Cols</string>
+  <string name="keyboard_layout_rows">Rows</string>
+  <string name="keyboard_layout_reset_default">Reset</string>
+  <string name="keyboard_layout_clear_current">Clear</string>
+  <string name="keyboard_layout_import_export">Share</string>
+  <string name="keyboard_layout_copy_json">Copy JSON</string>
+  <string name="keyboard_layout_json_label">Layout JSON</string>
+  <string name="keyboard_layout_import_json">Import JSON</string>
+  <string name="keyboard_layout_import_success">Layout imported</string>
+  <string name="keyboard_layout_import_failed">Invalid layout JSON</string>
+  <string name="keyboard_layout_export_copied">Layout JSON copied</string>
+  <string name="keyboard_layout_save_success">Layout saved</string>
+  <string name="keyboard_layout_error_invalid">Layout has missing, overlapping, or out-of-bounds buttons.</string>
+  <string name="keyboard_layout_block_status">Status</string>
+  <string name="keyboard_layout_block_ai_info">AI info</string>
+  <string name="btn_save">Save</string>
+  <string name="btn_delete">Delete</string>
   <string name="ext_btn_default_summary">Undo, Select All, Copy, Hide Keyboard</string>
   <string name="ext_btn_none_selected">Not selected</string>
   <string name="ext_btn_must_select_4">Please select exactly 4 buttons</string>

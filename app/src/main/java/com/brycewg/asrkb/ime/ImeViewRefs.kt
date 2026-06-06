@@ -1,10 +1,14 @@
+/**
+ * IME View 引用集合，集中绑定键盘各面板控件。
+ *
+ * 归属模块：ime
+ */
 package com.brycewg.asrkb.ime
 
 import android.view.View
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.TextView
-import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.recyclerview.widget.RecyclerView
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.ui.widgets.PunctKeyView
@@ -37,11 +41,7 @@ internal class ImeViewRefs private constructor(
     val btnPunct3: PunctKeyView?,
     val btnPunct4: ImageButton?,
 
-    // Rows
-    val rowTop: ConstraintLayout?,
-    val rowOverlay: ConstraintLayout?,
-    val rowRecordingGestures: ConstraintLayout?,
-    val rowExtension: ConstraintLayout?,
+    val rowRecordingGestures: View?,
 
     // Recording gesture overlay
     val btnGestureCancel: TextView?,
@@ -65,6 +65,7 @@ internal class ImeViewRefs private constructor(
     val aiEditInfoBar: View?,
     val txtAiEditInfo: TextView?,
     val btnAiEditPanelBack: ImageButton?,
+    val btnAiPanelMic: ImageButton?,
     val btnAiPanelApplyPreset: ImageButton?,
     val btnAiPanelSpace: Button?,
     val btnAiPanelCursorLeft: ImageButton?,
@@ -114,10 +115,7 @@ internal class ImeViewRefs private constructor(
             btnPunct3 = rootView.findViewById(R.id.btnPunct3),
             btnPunct4 = rootView.findViewById(R.id.btnPunct4),
 
-            rowTop = rootView.findViewById(R.id.rowTop),
-            rowOverlay = rootView.findViewById(R.id.rowOverlay),
             rowRecordingGestures = rootView.findViewById(R.id.rowRecordingGestures),
-            rowExtension = rootView.findViewById(R.id.rowExtension),
 
             btnGestureCancel = rootView.findViewById(R.id.btnGestureCancel),
             btnGestureSend = rootView.findViewById(R.id.btnGestureSend),
@@ -138,6 +136,7 @@ internal class ImeViewRefs private constructor(
             txtAiEditInfo = rootView.findViewById(R.id.txtAiEditInfo),
 
             btnAiEditPanelBack = rootView.findViewById(R.id.btnAiPanelBack),
+            btnAiPanelMic = rootView.findViewById(R.id.btnAiPanelMic),
             btnAiPanelApplyPreset = rootView.findViewById(R.id.btnAiPanelApplyPreset),
             btnAiPanelSpace = rootView.findViewById(R.id.btnAiPanelSpace),
             btnAiPanelCursorLeft = rootView.findViewById(R.id.btnAiPanelCursorLeft),

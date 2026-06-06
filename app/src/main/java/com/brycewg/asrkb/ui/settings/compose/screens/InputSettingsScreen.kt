@@ -18,7 +18,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.brycewg.asrkb.R
-import com.brycewg.asrkb.ime.ExtensionButtonAction
 import com.brycewg.asrkb.store.Prefs
 import com.brycewg.asrkb.ui.settings.compose.components.SettingsChoiceGroup
 import com.brycewg.asrkb.ui.settings.compose.components.SettingsChoiceItem
@@ -28,8 +27,6 @@ import com.brycewg.asrkb.ui.settings.compose.components.SettingsFeatureExplainer
 import com.brycewg.asrkb.ui.settings.compose.components.SettingsFeatureExplainerDialogState
 import com.brycewg.asrkb.ui.settings.compose.components.SettingsMessageDialog
 import com.brycewg.asrkb.ui.settings.compose.components.SettingsMessageDialogState
-import com.brycewg.asrkb.ui.settings.compose.components.SettingsMultiChoiceSheet
-import com.brycewg.asrkb.ui.settings.compose.components.SettingsMultiChoiceSheetState
 import com.brycewg.asrkb.ui.settings.compose.components.settingsFeatureExplainerDialogState
 import com.brycewg.asrkb.ui.settings.compose.core.BibiUiMode
 import com.brycewg.asrkb.ui.settings.compose.core.SettingsActionController
@@ -38,6 +35,7 @@ import com.brycewg.asrkb.ui.settings.compose.core.SettingsActionController
 fun InputSettingsScreen(
     uiMode: BibiUiMode,
     onBack: () -> Unit,
+    onOpenKeyboardLayout: () -> Unit,
     actions: SettingsActionController
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -46,7 +44,6 @@ fun InputSettingsScreen(
     var pendingHeadsetPermission by remember { mutableStateOf(false) }
     var lastHapticLevel by remember { mutableStateOf(prefs.hapticFeedbackLevel) }
     var choiceSheet by remember { mutableStateOf<SettingsChoiceSheetState?>(null) }
-    var multiChoiceSheet by remember { mutableStateOf<SettingsMultiChoiceSheetState?>(null) }
     var messageDialog by remember { mutableStateOf<SettingsMessageDialogState?>(null) }
     var featureExplainerDialog by remember { mutableStateOf<SettingsFeatureExplainerDialogState?>(null) }
 
@@ -127,44 +124,6 @@ fun InputSettingsScreen(
         )
     }
 
-    fun showExtensionButtonsPicker() {
-        val allActions = ExtensionButtonAction.values()
-            .filter {
-                it != ExtensionButtonAction.NONE &&
-                    it != ExtensionButtonAction.NUMPAD &&
-                    it != ExtensionButtonAction.CLIPBOARD
-            }
-        val current = listOf(prefs.extBtn1, prefs.extBtn2, prefs.extBtn3, prefs.extBtn4)
-            .filter { it != ExtensionButtonAction.NONE }
-        val selectedOrder = current.mapNotNull { action ->
-            allActions.indexOf(action).takeIf { it >= 0 }
-        }.distinct()
-        multiChoiceSheet = SettingsMultiChoiceSheetState(
-            title = context.getString(R.string.ext_btn_must_select_4),
-            items = allActions.map { context.getString(it.titleResId) },
-            checkedIndices = selectedOrder.toSet(),
-            selectedOrder = selectedOrder,
-            confirmText = context.getString(android.R.string.ok),
-            cancelText = context.getString(R.string.btn_cancel),
-            requiredSelectionCount = 4,
-            maxSelectionCount = 4,
-            maxSelectionMessage = context.getString(R.string.ext_btn_max_4),
-            showSelectionOrder = true,
-            onChoiceClick = actions::hapticTap,
-            onSelectionRejected = ::showInputMessage,
-            onConfirm = { orderedIndices ->
-                val selected = orderedIndices.mapNotNull { index -> allActions.getOrNull(index) }
-                prefs.extBtn1 = selected.getOrElse(0) { ExtensionButtonAction.NONE }
-                prefs.extBtn2 = selected.getOrElse(1) { ExtensionButtonAction.NONE }
-                prefs.extBtn3 = selected.getOrElse(2) { ExtensionButtonAction.NONE }
-                prefs.extBtn4 = selected.getOrElse(3) { ExtensionButtonAction.NONE }
-                context.sendImeRefreshBroadcast()
-                refreshState()
-                true
-            }
-        )
-    }
-
     fun applyExplainedSwitch(
         current: Boolean,
         target: Boolean,
@@ -201,11 +160,6 @@ fun InputSettingsScreen(
             uiMode = uiMode,
             onDismiss = { choiceSheet = null }
         )
-        SettingsMultiChoiceSheet(
-            state = multiChoiceSheet,
-            uiMode = uiMode,
-            onDismiss = { multiChoiceSheet = null }
-        )
         SettingsMessageDialog(
             state = messageDialog,
             uiMode = uiMode,
@@ -232,7 +186,7 @@ fun InputSettingsScreen(
             },
             onRefreshState = ::refreshState,
             onShowExternalAidlGuideDialog = ::showExternalAidlGuideDialog,
-            onShowExtensionButtonsPicker = ::showExtensionButtonsPicker,
+            onShowExtensionButtonsPicker = onOpenKeyboardLayout,
             onApplyExplainedSwitch = { current, target, titleRes, offDescRes, onDescRes, preferenceKey, preCheck, onChanged, write ->
                 applyExplainedSwitch(
                     current = current,

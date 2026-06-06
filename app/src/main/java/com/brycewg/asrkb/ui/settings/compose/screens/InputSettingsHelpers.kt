@@ -18,7 +18,7 @@ import android.view.inputmethod.InputMethodManager
 import androidx.core.content.ContextCompat
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.ime.AsrKeyboardService
-import com.brycewg.asrkb.ime.ExtensionButtonAction
+import com.brycewg.asrkb.ime.layout.KeyboardLayoutStore
 import com.brycewg.asrkb.store.Prefs
 import kotlin.math.roundToInt
 
@@ -71,13 +71,14 @@ internal fun Context.imeSwitchTargetLabel(prefs: Prefs): String {
 }
 
 internal fun Context.extensionButtonsLabel(prefs: Prefs): String {
-    val current = listOf(prefs.extBtn1, prefs.extBtn2, prefs.extBtn3, prefs.extBtn4)
-        .filter { it != ExtensionButtonAction.NONE }
-    return if (current.isEmpty()) {
-        getString(R.string.ext_btn_none_selected)
-    } else {
-        current.joinToString(", ") { getString(it.titleResId) }
-    }
+    val bundle = KeyboardLayoutStore.load(prefs)
+    return getString(
+        R.string.keyboard_layout_summary,
+        bundle.main.gridSize.cols,
+        bundle.main.gridSize.rows,
+        bundle.aiEdit.gridSize.cols,
+        bundle.aiEdit.gridSize.rows
+    )
 }
 
 internal fun Context.hapticFeedbackStrengthLabel(level: Int): String {

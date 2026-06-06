@@ -119,11 +119,15 @@ internal class AiEditPanelController(
     }
 
     fun show() {
-        if (isVisible) return
+        if (isVisible) {
+            views.groupMicStatus?.visibility = View.GONE
+            return
+        }
         // 进入面板时重置选择模式
         resetSelectionMode()
         val mainHeight = views.layoutMainKeyboard?.height
         views.layoutMainKeyboard?.visibility = View.GONE
+        views.groupMicStatus?.visibility = View.GONE
         val panel = views.layoutAiEditPanel
         if (panel != null) {
             if (mainHeight != null && mainHeight > 0) {
@@ -145,6 +149,7 @@ internal class AiEditPanelController(
             panel.layoutParams = lp
         }
         views.layoutMainKeyboard?.visibility = View.VISIBLE
+        views.groupMicStatus?.visibility = View.VISIBLE
         isVisible = false
         resetSelectionMode()
         releaseCursorRepeatCallbacks()
@@ -165,19 +170,7 @@ internal class AiEditPanelController(
     fun isSelectionModeEnabled(): Boolean = selectMode
 
     fun applySelectExtButtonsUi() {
-        val enabled = selectMode
-        fun updateBtn(btn: android.widget.ImageButton?, action: ExtensionButtonAction) {
-            if (action == ExtensionButtonAction.SELECT) {
-                btn?.setImageResource(
-                    if (enabled) R.drawable.selection_fill else R.drawable.selection_toggle
-                )
-                btn?.isSelected = enabled
-            }
-        }
-        updateBtn(views.btnExt1, prefs.extBtn1)
-        updateBtn(views.btnExt2, prefs.extBtn2)
-        updateBtn(views.btnExt3, prefs.extBtn3)
-        updateBtn(views.btnExt4, prefs.extBtn4)
+        // 旧四槽扩展按钮已不再创建；保留入口给过渡期控制器调用。
     }
 
     fun toggleSelectionMode() {
@@ -277,7 +270,7 @@ internal class AiEditPanelController(
         }
     }
 
-    private fun showPromptPickerForApply(anchor: View) {
+    fun showPromptPickerForApply(anchor: View) {
         val presets = prefs.getPromptPresets()
         if (presets.isEmpty()) return
         val popup = PopupMenu(anchor.context, anchor)

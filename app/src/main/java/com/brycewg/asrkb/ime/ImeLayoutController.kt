@@ -6,13 +6,15 @@
 package com.brycewg.asrkb.ime
 
 import android.inputmethodservice.InputMethodService
-import android.view.Gravity
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.LinearLayout
-import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.ViewCompat
 import com.brycewg.asrkb.R
+import com.brycewg.asrkb.ime.layout.BlockDefRegistry
+import com.brycewg.asrkb.ime.layout.KeyboardLayoutPanel
+import com.brycewg.asrkb.ime.layout.KeyboardLayoutRuntimeApplier
+import com.brycewg.asrkb.ime.layout.KeyboardLayoutStore
 import com.brycewg.asrkb.store.Prefs
 import com.brycewg.asrkb.store.debug.DebugLogManager
 
@@ -23,7 +25,6 @@ internal class ImeLayoutController(
 ) {
     private var rootView: View? = null
     private var systemNavBarBottomInset: Int = 0
-    private var micBaseGroupHeight: Int = -1
     private var lastAppliedHeightScale: Float = 1.0f
 
     fun installKeyboardInsetsListener(rootView: View) {
@@ -35,18 +36,7 @@ internal class ImeLayoutController(
     }
 
     fun bindMicVerticalFix(views: ImeViewRefs) {
-        micBaseGroupHeight = -1
-        views.groupMicStatus?.addOnLayoutChangeListener { v, _, _, _, _, _, _, _, _ ->
-            val h = v.height
-            if (h <= 0) return@addOnLayoutChangeListener
-            if (micBaseGroupHeight < 0) {
-                micBaseGroupHeight = h
-                views.btnMic?.translationY = 0f
-            } else {
-                val delta = h - micBaseGroupHeight
-                views.btnMic?.translationY = (delta / 2f)
-            }
-        }
+        views.btnMic?.translationY = 0f
     }
 
     fun applyKeyboardHeightScale(): Boolean {
@@ -56,8 +46,8 @@ internal class ImeLayoutController(
 
         val tier = prefs.keyboardHeightTier
         val scale = when (tier) {
-            2 -> 1.15f
-            3 -> 1.30f
+            1 -> 0.85f
+            3 -> 1.15f
             else -> 1.0f
         }
 
@@ -66,10 +56,9 @@ internal class ImeLayoutController(
             return (v * d + 0.5f).toInt()
         }
 
-        // 若缩放等级发生变化，重置麦克风位移基线，避免基于旧高度的下移造成底部截断
+        // 麦克风现在由容器居中；缩放变化时清掉旧版本可能留下的位移。
         if (kotlin.math.abs(lastAppliedHeightScale - scale) > 1e-3f) {
             lastAppliedHeightScale = scale
-            micBaseGroupHeight = -1
             refs?.btnMic?.translationY = 0f
         }
 
@@ -83,23 +72,6 @@ internal class ImeLayoutController(
             }
             if (height != null && lp.height != height) {
                 lp.height = height
-                changed = true
-            }
-            if (changed) {
-                view.layoutParams = lp
-                layoutChanged = true
-            }
-        }
-
-        fun updateFrameLayoutParams(view: View?, topMargin: Int? = null, gravity: Int? = null) {
-            val lp = view?.layoutParams as? FrameLayout.LayoutParams ?: return
-            var changed = false
-            if (topMargin != null && lp.topMargin != topMargin) {
-                lp.topMargin = topMargin
-                changed = true
-            }
-            if (gravity != null && lp.gravity != gravity) {
-                lp.gravity = gravity
                 changed = true
             }
             if (changed) {
@@ -138,37 +110,6 @@ internal class ImeLayoutController(
             }
         }
 
-        // 顶部主行高度（无论是否缩放都需要重设，避免从大/中切回小时残留）
-        run {
-            val topRow = refs?.rowTop ?: root.findViewById(R.id.rowTop) as? ConstraintLayout
-            updateLayoutSize(topRow, height = dp(80f * scale))
-        }
-
-        // 扩展按钮行高度（同样需要在 scale==1 时恢复）
-        run {
-            val extRow =
-                refs?.rowExtension ?: root.findViewById(R.id.rowExtension) as? ConstraintLayout
-            updateLayoutSize(extRow, height = dp(50f * scale))
-        }
-
-        // 使主键盘功能行（overlay）从顶部锚定，避免垂直居中导致的像素舍入抖动
-        // 计算规则：rowExtension 完整高度 + rowTop 高度的一半 + 固定偏移
-        // = 50s(rowExtension完整) + 40s(rowTop的一半) + 6 = 90s + 6
-        run {
-            val overlay =
-                refs?.rowOverlay ?: root.findViewById(R.id.rowOverlay) as? ConstraintLayout
-            updateFrameLayoutParams(overlay, topMargin = dp(90f * scale + 6f), gravity = Gravity.TOP)
-        }
-
-        // 手势按钮覆盖层：定位到第二排第三排按钮的位置
-        // 计算：rowExtension 高度 (50dp) 作为顶部偏移，使手势按钮与第二排顶部对齐
-        run {
-            val overlay =
-                refs?.rowRecordingGestures
-                    ?: root.findViewById(R.id.rowRecordingGestures) as? ConstraintLayout
-            updateFrameLayoutParams(overlay, topMargin = dp(50f * scale), gravity = Gravity.TOP)
-        }
-
         fun scaleSquareButton(id: Int) {
             val v = root.findViewById<View>(id) ?: return
             updateLayoutSize(v, width = dp(40f * scale), height = dp(40f * scale))
@@ -179,55 +120,27 @@ internal class ImeLayoutController(
             updateLayoutSize(v, width = dp(baseSize), height = dp(baseSize))
         }
 
-        fun scaleChildrenByTag(root: View?, tag: String) {
+        fun scaleChildrenByTag(root: View?, tag: String, height: Int) {
             if (root == null) return
             if (root is android.view.ViewGroup) {
                 for (i in 0 until root.childCount) {
-                    scaleChildrenByTag(root.getChildAt(i), tag)
+                    scaleChildrenByTag(root.getChildAt(i), tag, height)
                 }
             }
             val t = root.tag as? String
             if (t == tag) {
-                updateLayoutSize(root, height = dp(40f * scale))
+                updateLayoutSize(root, height = height)
             }
         }
 
-        val ids40 = intArrayOf(
-            // 主键盘按钮
-            R.id.btnHide,
-            R.id.btnPostproc,
-            R.id.btnBackspace,
-            R.id.btnPromptPicker,
-            R.id.btnSettings,
-            R.id.btnImeSwitcher,
-            R.id.btnEnter,
-            R.id.btnAiEdit,
-            R.id.btnPunct1,
-            R.id.btnPunct2,
-            R.id.btnPunct3,
-            R.id.btnPunct4,
-            // 扩展按钮
-            R.id.btnExt1,
-            R.id.btnExt2,
-            R.id.btnExt3,
-            R.id.btnExt4,
-            // AI 编辑面板按钮
-            R.id.btnAiPanelBack,
-            R.id.btnAiPanelApplyPreset,
-            R.id.btnAiPanelCursorLeft,
-            R.id.btnAiPanelCursorRight,
-            R.id.btnAiPanelNumpad,
-            R.id.btnAiPanelSelect,
-            R.id.btnAiPanelSelectAll,
-            R.id.btnAiPanelCopy,
-            R.id.btnAiPanelUndo,
-            R.id.btnAiPanelPaste,
-            R.id.btnAiPanelMoveStart,
-            R.id.btnAiPanelMoveEnd,
-            // 剪贴板面板按钮
-            R.id.clip_btnBack,
-            R.id.clip_btnDelete
-        )
+        val ids40 = (
+            KeyboardLayoutPanel.values().flatMap { panel ->
+                BlockDefRegistry.default.defsFor(panel).mapNotNull { it.viewId }
+            } +
+                listOf(R.id.clip_btnBack, R.id.clip_btnDelete)
+            )
+            .filter { it != R.id.groupMicStatus }
+            .distinct()
         ids40.forEach { scaleSquareButton(it) }
         scaleGestureButton(refs?.btnGestureCancel)
         scaleGestureButton(refs?.btnGestureSend)
@@ -243,23 +156,29 @@ internal class ImeLayoutController(
             updateLayoutSize(v2, height = dp(40f * scale))
         }
 
-        // 数字/标点小键盘的方形按键（通过 tag="key40" 统一缩放高度）
-        scaleChildrenByTag(refs?.layoutNumpadPanel, "key40")
+        if (KeyboardLayoutRuntimeApplier.applyAll(root, KeyboardLayoutStore.load(prefs), scale)) {
+            layoutChanged = true
+        }
 
-        // 数字/符号面板：按主键盘网格对齐，避免切换时上下错位
+        // 数字/符号面板：总高度对齐主键盘画布，通过调整按钮高度避免切换跳变
         run {
             val panel: View? = refs?.layoutNumpadPanel ?: root.findViewById(R.id.layoutNumpadPanel)
             if (panel != null) {
-                val extRowHeightPx = dp(50f * scale)
-                val keySizePx = dp(40f * scale)
-                val topInsetPx = ((extRowHeightPx - keySizePx) / 2).coerceAtLeast(0)
+                val canvasHeight = root.findViewById<View>(R.id.keyboardLayoutCanvas)?.height
+                    ?.takeIf { it > 0 }
+                    ?: refs?.layoutMainKeyboard?.height?.takeIf { it > 0 }
+                val targetPanelHeight = canvasHeight ?: dp(190f * scale)
                 val gapPx = dp(6f)
+                val rowHeightPx = ((targetPanelHeight - gapPx * 3) / 4).coerceAtLeast(dp(32f))
+                updateLayoutSize(panel, height = targetPanelHeight)
+                scaleChildrenByTag(panel, "key40", rowHeightPx)
 
                 val ps = panel.paddingStart
                 val pe = panel.paddingEnd
                 val pb = panel.paddingBottom
-                if (panel.paddingTop != topInsetPx) {
-                    panel.setPaddingRelative(ps, topInsetPx, pe, pb)
+                if (panel.paddingTop != 0) {
+                    panel.setPaddingRelative(ps, 0, pe, pb)
+                    layoutChanged = true
                 }
 
                 fun updateLinearTopMargin(id: Int, topPx: Int) {
@@ -268,6 +187,7 @@ internal class ImeLayoutController(
                     if (lp.topMargin == topPx) return
                     lp.topMargin = topPx
                     v.layoutParams = lp
+                    layoutChanged = true
                 }
 
                 fun updateLinearBottomMargin(id: Int, bottomPx: Int) {
@@ -276,91 +196,57 @@ internal class ImeLayoutController(
                     if (lp.bottomMargin == bottomPx) return
                     lp.bottomMargin = bottomPx
                     v.layoutParams = lp
+                    layoutChanged = true
                 }
 
-                updateLinearBottomMargin(R.id.rowNumpadDigits, topInsetPx)
+                updateLinearBottomMargin(R.id.rowNumpadDigits, gapPx)
                 updateLinearBottomMargin(R.id.rowPunct1, gapPx)
                 updateLinearBottomMargin(R.id.rowPunct2, gapPx)
                 updateLinearTopMargin(R.id.rowNumpadBottomBar, 0)
             }
         }
 
-        // AI 编辑面板：按主键盘按钮行对齐（避免切换时按钮上下跳变）
-        run {
-            fun updateTopMargin(id: Int, topPx: Int) {
-                val v = root.findViewById<View>(id) ?: return
-                val lp = v.layoutParams as? ConstraintLayout.LayoutParams ?: return
-                if (lp.topMargin == topPx) return
-                lp.topMargin = topPx
-                v.layoutParams = lp
+        // 麦克风容器需要和 AI 面板麦克风同一基线，避免面板切换时出现几像素跳动。
+        refs?.groupMicStatus?.let { group ->
+            if (group.translationY != 0f) {
+                group.translationY = 0f
             }
-
-            val infoTop = dp(5f * scale)
-            val row1Top = dp(50f * scale)
-            val row2Top = dp(90f * scale + 6f)
-            val row3Top = dp(130f * scale + 12f)
-
-            // 信息栏：与主键盘第一行按钮对齐，且高度随缩放同步
-            val info = root.findViewById<View>(R.id.aiEditInfoBar)
-            val infoLp = info?.layoutParams as? ConstraintLayout.LayoutParams
-            if (info != null && infoLp != null) {
-                val h = dp(40f * scale)
-                var changed = false
-                if (infoLp.topMargin != infoTop) {
-                    infoLp.topMargin = infoTop
-                    changed = true
-                }
-                if (infoLp.height != h) {
-                    infoLp.height = h
-                    changed = true
-                }
-                if (changed) info.layoutParams = infoLp
-            }
-
-            // 空格键：与 AI 编辑面板第三行按钮对齐（对应主键盘第四行），且高度随缩放同步
-            val space = root.findViewById<View>(R.id.btnAiPanelSpace)
-            val spaceLp = space?.layoutParams as? ConstraintLayout.LayoutParams
-            if (space != null && spaceLp != null) {
-                val h = dp(40f * scale)
-                var changed = false
-                if (spaceLp.topMargin != row3Top) {
-                    spaceLp.topMargin = row3Top
-                    changed = true
-                }
-                if (spaceLp.height != h) {
-                    spaceLp.height = h
-                    changed = true
-                }
-                if (changed) space.layoutParams = spaceLp
-            }
-
-            // 三行按钮：分别与主键盘第 2/3/4 行按钮对齐
-            updateTopMargin(R.id.aiEditRow1Left, row1Top)
-            updateTopMargin(R.id.aiEditRow1Right, row1Top)
-            updateTopMargin(R.id.aiEditRow2Left, row2Top)
-            updateTopMargin(R.id.aiEditRow2Right, row2Top)
-            updateTopMargin(R.id.aiEditRow3Left, row3Top)
-            updateTopMargin(R.id.aiEditRow3Right, row3Top)
         }
-
         refs?.btnMic?.let { mic ->
-            val size = dp(72f * scale)
+            val group = refs?.groupMicStatus
+            val groupSize = listOfNotNull(
+                group?.dimensionOrLayoutParam(isWidth = true),
+                group?.dimensionOrLayoutParam(isWidth = false)
+            ).minOrNull()
+            val size = if (groupSize != null) {
+                (groupSize * MIC_SIZE_RATIO).toInt().coerceAtLeast(1)
+            } else {
+                dp(80f * scale)
+            }
             if (mic.customSize != size) {
                 mic.customSize = size
                 layoutChanged = true
             }
+            mic.setMaxImageSize((size * MIC_ICON_SIZE_RATIO).toInt().coerceAtLeast(1))
         }
-
-        // 调整麦克风容器的 translationY：使用常量位移，避免大比例时向下偏移过多导致底部裁剪
-        refs?.groupMicStatus?.let { group ->
-            val translationY = dp(3f).toFloat()
-            if (group.translationY != translationY) {
-                group.translationY = translationY
-            }
-        }
-        // 确保麦克风容器在最上层，避免被其它 overlay 遮挡
-        refs?.groupMicStatus?.bringToFront()
+        // 确保主键盘麦克风仅在主键盘可见时参与层级排序。
+        refs
+            ?.takeIf { it.layoutMainKeyboard?.visibility == View.VISIBLE }
+            ?.groupMicStatus
+            ?.bringToFront()
         return layoutChanged
+    }
+
+    private fun View.dimensionOrLayoutParam(isWidth: Boolean): Int? {
+        val lpValue = if (isWidth) layoutParams?.width else layoutParams?.height
+        if (lpValue != null && lpValue > 0) return lpValue
+        val current = if (isWidth) width else height
+        return current.takeIf { it > 0 }
+    }
+
+    private companion object {
+        private const val MIC_SIZE_RATIO = 0.9f
+        private const val MIC_ICON_SIZE_RATIO = 0.42f
     }
 
     fun hasResolvedBottomInset(): Boolean = systemNavBarBottomInset > 0
