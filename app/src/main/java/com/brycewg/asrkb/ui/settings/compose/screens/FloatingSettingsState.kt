@@ -5,10 +5,12 @@
  */
 package com.brycewg.asrkb.ui.settings.compose.screens
 
+import android.content.ComponentName
 import android.content.Context
 import android.provider.Settings
 import android.util.Log
 import com.brycewg.asrkb.store.Prefs
+import com.brycewg.asrkb.ui.AsrAccessibilityService
 import com.brycewg.asrkb.ui.floating.FloatingServiceManager
 
 private const val FLOATING_SETTINGS_STATE_TAG = "FloatingSettingsState"
@@ -77,7 +79,11 @@ internal enum class FloatingPermissionRequest {
 }
 
 internal fun isAccessibilityServiceEnabled(context: Context): Boolean {
-    val expectedComponentName = "${context.packageName}/com.brycewg.asrkb.ui.AsrAccessibilityService"
+    val component = ComponentName(context, AsrAccessibilityService::class.java)
+    val expectedComponentNames = setOf(
+        component.flattenToString(),
+        component.flattenToShortString()
+    )
     val enabledServicesSetting = try {
         Settings.Secure.getString(
             context.contentResolver,
@@ -87,7 +93,9 @@ internal fun isAccessibilityServiceEnabled(context: Context): Boolean {
         Log.e(FLOATING_SETTINGS_STATE_TAG, "Failed to check accessibility service", e)
         return false
     }
-    return enabledServicesSetting?.contains(expectedComponentName) == true
+    return enabledServicesSetting
+        ?.split(':')
+        ?.any { it in expectedComponentNames } == true
 }
 
 internal fun resetFloatingPosition(

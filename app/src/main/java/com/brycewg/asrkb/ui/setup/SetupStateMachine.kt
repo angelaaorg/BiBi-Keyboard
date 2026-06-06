@@ -244,8 +244,8 @@ class SetupStateMachine(
             }
         }
 
-        // 4) 无障碍权限（仅当启用悬浮球时需要）
-        val needA11y = prefs.floatingAsrEnabled
+        // 4) 无障碍权限（悬浮球与音量键录音都依赖无障碍服务）
+        val needA11y = prefs.floatingAsrEnabled || prefs.volumeKeyRecordingEnabled
         if (!state.askedA11y && needA11y && !hasAccessibilityPermission()) {
             Log.d(TAG, "Requesting accessibility permission")
             showSetupMessage(R.string.toast_need_accessibility_perm)
@@ -284,7 +284,7 @@ class SetupStateMachine(
         val micGranted = hasMicrophonePermission()
         val needOverlay = prefs.floatingAsrEnabled
         val overlayGranted = !needOverlay || hasOverlayPermission()
-        val needA11y = prefs.floatingAsrEnabled
+        val needA11y = prefs.floatingAsrEnabled || prefs.volumeKeyRecordingEnabled
         val a11yGranted = !needA11y || hasAccessibilityPermission()
 
         // Android 13+ 通知权限仅作为增强项，缺失不阻塞核心功能

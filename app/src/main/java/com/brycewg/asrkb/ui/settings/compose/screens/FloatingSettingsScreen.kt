@@ -81,6 +81,7 @@ fun FloatingSettingsScreen(
     var pendingAsrEnable by remember { mutableStateOf(false) }
     var pendingAsrPermission by remember { mutableStateOf<FloatingPermissionRequest?>(null) }
     var pendingVolumeKeyEnable by remember { mutableStateOf(false) }
+    var autoAccessibilityRequested by remember { mutableStateOf(false) }
     var choiceSheet by remember { mutableStateOf<SettingsChoiceSheetState?>(null) }
     var featureExplainerDialog by remember { mutableStateOf<SettingsFeatureExplainerDialogState?>(null) }
     var messageDialog by remember { mutableStateOf<SettingsMessageDialogState?>(null) }
@@ -175,6 +176,16 @@ fun FloatingSettingsScreen(
         showFloatingMessage(R.string.toast_need_accessibility_perm)
     }
 
+    fun floatingInputNeedsAccessibility(): Boolean = uiState.asrEnabled || uiState.volumeKeyRecordingEnabled
+
+    LaunchedEffect(settingsLoaded, uiState.asrEnabled, uiState.volumeKeyRecordingEnabled) {
+        if (!settingsLoaded || autoAccessibilityRequested) return@LaunchedEffect
+        if (floatingInputNeedsAccessibility() && !isAccessibilityServiceEnabled(context)) {
+            autoAccessibilityRequested = true
+            requestAccessibilityPermission()
+        }
+    }
+
     fun setAsrEnabled(enabled: Boolean): Boolean {
         if (enabled) {
             if (!Settings.canDrawOverlays(context)) {
@@ -244,19 +255,6 @@ fun FloatingSettingsScreen(
         }
 
         scope.launch {
-            val asrEnabled = withContext(Dispatchers.IO) {
-                prefs.floatingAsrEnabled
-            }
-            if (asrEnabled) {
-                val hasOverlay = Settings.canDrawOverlays(context)
-                val hasAccessibility = isAccessibilityServiceEnabled(context)
-                if (!hasOverlay || !hasAccessibility) {
-                    withContext(Dispatchers.IO) {
-                        prefs.floatingAsrEnabled = false
-                    }
-                    serviceManager.hideAsrService()
-                }
-            }
             applyUiState(loadUiState())
         }
     }

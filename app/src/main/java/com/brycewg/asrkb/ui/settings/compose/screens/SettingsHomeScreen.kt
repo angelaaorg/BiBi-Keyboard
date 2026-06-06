@@ -420,20 +420,30 @@ private data class SettingsHomeSnapshot(
         fun placeholder(context: Context): SettingsHomeSnapshot = SettingsHomeSnapshot(
             oneClickSetupSummary = "",
             inputControlSummary = "",
-            floatingSummary = context.getString(R.string.home_summary_disabled),
+            floatingSummary = context.getString(R.string.home_summary_more_input_disabled),
             asrSummary = "",
             aiSummary = "",
             autoUpdateCheckEnabled = false
         )
 
-        fun fromPrefs(context: Context, prefs: Prefs): SettingsHomeSnapshot = SettingsHomeSnapshot(
-            oneClickSetupSummary = oneClickSetupSummary(context, prefs),
-            inputControlSummary = inputControlSummary(context, prefs),
-            floatingSummary = enabledSummary(context, prefs.floatingAsrEnabled || prefs.volumeKeyRecordingEnabled),
-            asrSummary = asrSummary(context, prefs),
-            aiSummary = aiSummary(context, prefs),
-            autoUpdateCheckEnabled = prefs.autoUpdateCheckEnabled
-        )
+        fun fromPrefs(context: Context, prefs: Prefs): SettingsHomeSnapshot {
+            val floatingEnabled = prefs.floatingAsrEnabled
+            val volumeKeyEnabled = prefs.volumeKeyRecordingEnabled
+            val accessibilityMissing = (floatingEnabled || volumeKeyEnabled) && !isAccessibilityServiceEnabled(context)
+            return SettingsHomeSnapshot(
+                oneClickSetupSummary = oneClickSetupSummary(context, prefs),
+                inputControlSummary = inputControlSummary(context, prefs),
+                floatingSummary = moreInputSummary(
+                    context = context,
+                    floatingEnabled = floatingEnabled,
+                    volumeKeyEnabled = volumeKeyEnabled,
+                    accessibilityMissing = accessibilityMissing
+                ),
+                asrSummary = asrSummary(context, prefs),
+                aiSummary = aiSummary(context, prefs),
+                autoUpdateCheckEnabled = prefs.autoUpdateCheckEnabled
+            )
+        }
     }
 }
 
@@ -443,6 +453,21 @@ private data class SettingsHomeLoadedState(
 )
 
 private fun enabledSummary(context: Context, enabled: Boolean): String = context.getString(if (enabled) R.string.home_summary_enabled else R.string.home_summary_disabled)
+
+private fun moreInputSummary(
+    context: Context,
+    floatingEnabled: Boolean,
+    volumeKeyEnabled: Boolean,
+    accessibilityMissing: Boolean
+): String = context.getString(
+    when {
+        accessibilityMissing -> R.string.home_summary_more_input_accessibility_missing
+        floatingEnabled && volumeKeyEnabled -> R.string.home_summary_more_input_both_enabled
+        volumeKeyEnabled -> R.string.home_summary_more_input_volume_key_enabled
+        floatingEnabled -> R.string.home_summary_more_input_floating_enabled
+        else -> R.string.home_summary_more_input_disabled
+    }
+)
 
 private fun inputControlSummary(context: Context, prefs: Prefs): String = context.getString(
     if (prefs.micTapToggleEnabled) {
@@ -495,7 +520,7 @@ private fun oneClickSetupSummary(context: Context, prefs: Prefs): String {
             add(Settings.canDrawOverlays(context))
         }
         if (prefs.floatingAsrEnabled || prefs.volumeKeyRecordingEnabled) {
-            add(com.brycewg.asrkb.ui.AsrAccessibilityService.isEnabled())
+            add(isAccessibilityServiceEnabled(context))
         }
     }
     val done = checks.count { it }
