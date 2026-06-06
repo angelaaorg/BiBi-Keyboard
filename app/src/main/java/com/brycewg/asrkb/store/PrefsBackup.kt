@@ -89,6 +89,7 @@ internal object PrefsBackup {
         // OpenAI ASR：流式/Prompt 开关（布尔）
         o.put(KEY_OA_ASR_STREAMING_ENABLED, oaAsrStreamingEnabled)
         o.put(KEY_OA_ASR_USE_PROMPT, oaAsrUsePrompt)
+        o.put(KEY_OA_ASR_USE_COMPLETIONS, oaAsrUseCompletions)
         getOpenAiAsrProviders()
         o.put(KEY_OA_ASR_PROVIDERS, openAiAsrProvidersJson)
         o.put(KEY_OA_ASR_ACTIVE_ID, activeOpenAiAsrProviderId)
@@ -390,6 +391,7 @@ internal object PrefsBackup {
             optInt(KEY_POSTPROC_SKIP_UNDER_CHARS)?.let { postprocSkipUnderChars = it }
             val importedOpenAiStreaming = optBool(KEY_OA_ASR_STREAMING_ENABLED)
             val importedOpenAiUsePrompt = optBool(KEY_OA_ASR_USE_PROMPT)
+            val importedOpenAiUseCompletions = optBool(KEY_OA_ASR_USE_COMPLETIONS)
             val hasOpenAiProviders = o.has(KEY_OA_ASR_PROVIDERS)
             val importedOpenAiProviders = optString(KEY_OA_ASR_PROVIDERS)
             val importedOpenAiActiveId = optString(KEY_OA_ASR_ACTIVE_ID)
@@ -472,6 +474,9 @@ internal object PrefsBackup {
             }
             importedOpenAiStreaming?.let { oaAsrStreamingEnabled = it }
             importedOpenAiUsePrompt?.let { oaAsrUsePrompt = it }
+            if (!hasOpenAiProviders) {
+                importedOpenAiUseCompletions?.let { oaAsrUseCompletions = it }
+            }
             syncLegacyOpenAiAsrFields(getActiveOpenAiAsrProvider())
             optString(KEY_PUNCT_1)?.let { punct1 = it }
             optString(KEY_PUNCT_2)?.let { punct2 = it }

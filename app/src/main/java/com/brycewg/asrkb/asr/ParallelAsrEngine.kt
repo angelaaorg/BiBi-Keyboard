@@ -588,7 +588,7 @@ class ParallelAsrEngine(
         AsrVendor.DashScope -> prefs.isDashStreamingModelSelected()
         AsrVendor.Soniox -> prefs.sonioxStreamingEnabled
         AsrVendor.ElevenLabs -> prefs.elevenStreamingEnabled
-        AsrVendor.OpenAI -> prefs.oaAsrStreamingEnabled
+        AsrVendor.OpenAI -> prefs.isOpenAiStreamingEffective()
         AsrVendor.XAsr -> true
         else -> false
     }
@@ -840,7 +840,7 @@ class ParallelAsrEngine(
                 )
                     .let { wrapPushFileEngine(engineListener, it) }
             }
-            AsrVendor.OpenAI -> if (prefs.oaAsrStreamingEnabled) {
+            AsrVendor.OpenAI -> if (prefs.isOpenAiStreamingEffective()) {
                 OpenAiRealtimeAsrEngine(
                     context,
                     scope,

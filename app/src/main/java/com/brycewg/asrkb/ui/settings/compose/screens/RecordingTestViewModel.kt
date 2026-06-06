@@ -682,7 +682,7 @@ internal class RecordingTestViewModel(
                 ElevenLabsFileAsrEngine(appContext, viewModelScope, prefs, listener, onRequestDuration)
             )
         }
-        AsrVendor.OpenAI -> if (prefs.oaAsrStreamingEnabled) {
+        AsrVendor.OpenAI -> if (prefs.isOpenAiStreamingEffective()) {
             OpenAiRealtimeAsrEngine(appContext, viewModelScope, prefs, listener, externalPcmMode = true)
         } else {
             wrapPushFileEngine(
@@ -809,7 +809,7 @@ internal class RecordingTestViewModel(
         AsrVendor.DashScope -> prefs.isDashStreamingModelSelected()
         AsrVendor.Soniox -> prefs.sonioxStreamingEnabled
         AsrVendor.ElevenLabs -> prefs.elevenStreamingEnabled
-        AsrVendor.OpenAI -> prefs.oaAsrStreamingEnabled
+        AsrVendor.OpenAI -> prefs.isOpenAiStreamingEffective()
         AsrVendor.XAsr -> true
         AsrVendor.SenseVoice -> prefs.svPseudoStreamEnabled
         AsrVendor.FireRedAsr -> prefs.frPseudoStreamEnabled

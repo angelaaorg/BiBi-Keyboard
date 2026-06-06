@@ -947,7 +947,7 @@ class AsrSessionManager(
                 null
             }
             AsrVendor.OpenAI -> if (prefs.hasOpenAiKeys()) {
-                if (prefs.oaAsrStreamingEnabled) {
+                if (prefs.isOpenAiStreamingEffective()) {
                     OpenAiRealtimeAsrEngine(context, serviceScope, prefs, engineListener)
                 } else {
                     OpenAiFileAsrEngine(

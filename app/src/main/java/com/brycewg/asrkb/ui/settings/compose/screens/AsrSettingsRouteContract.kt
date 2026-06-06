@@ -109,6 +109,8 @@ internal data class AsrOnlineSettingsRouteState(
     val onOpenAiModelChange: (String) -> Unit,
     val openAiStreaming: Boolean,
     val onOpenAiStreamingChange: (Boolean) -> Unit,
+    val openAiUseCompletions: Boolean,
+    val onOpenAiUseCompletionsChange: (Boolean) -> Unit,
     val openAiUsePrompt: Boolean,
     val onOpenAiUsePromptChange: (Boolean) -> Unit,
     val openAiPrompt: String,

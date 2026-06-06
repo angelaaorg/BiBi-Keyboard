@@ -610,7 +610,7 @@ class ExternalSpeechService : Service() {
             AsrVendor.Parakeet,
             AsrVendor.FireRedAsr -> false
             AsrVendor.ElevenLabs -> prefs.elevenStreamingEnabled
-            AsrVendor.OpenAI -> prefs.oaAsrStreamingEnabled
+            AsrVendor.OpenAI -> prefs.isOpenAiStreamingEffective()
             // 其他云厂商（Gemini/SiliconFlow/OpenRouter/StepAudio/Zhipu/MiMo）仅非流式
             AsrVendor.Gemini,
             AsrVendor.SiliconFlow,

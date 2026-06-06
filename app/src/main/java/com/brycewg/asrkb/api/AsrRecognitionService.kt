@@ -293,7 +293,7 @@ class AsrRecognitionService : RecognitionService() {
         AsrVendor.DashScope -> prefs.isDashStreamingModelSelected()
         AsrVendor.Soniox -> prefs.sonioxStreamingEnabled
         AsrVendor.ElevenLabs -> prefs.elevenStreamingEnabled
-        AsrVendor.OpenAI -> prefs.oaAsrStreamingEnabled
+        AsrVendor.OpenAI -> prefs.isOpenAiStreamingEffective()
         AsrVendor.XAsr -> true
         AsrVendor.SenseVoice,
         AsrVendor.FunAsrNano,

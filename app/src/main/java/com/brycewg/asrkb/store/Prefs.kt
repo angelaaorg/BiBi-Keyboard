@@ -477,6 +477,7 @@ class Prefs(context: Context) {
         val apiKey: String,
         val model: String,
         val streamingEnabled: Boolean = false,
+        val useCompletions: Boolean = false,
         val usePrompt: Boolean = false,
         val prompt: String = "",
         val language: String = ""
@@ -888,6 +889,19 @@ class Prefs(context: Context) {
         get() = getActiveOpenAiAsrProvider()?.streamingEnabled ?: oaAsrStreamingEnabledLegacy
         set(value) {
             updateActiveOpenAiAsrProvider { it.copy(streamingEnabled = value) }
+        }
+
+    fun isOpenAiStreamingEffective(): Boolean = !oaAsrUseCompletions && oaAsrStreamingEnabled
+
+    // OpenAI：使用 Chat Completions 多模态识别（固定非流式）
+    private var oaAsrUseCompletionsLegacy: Boolean
+        get() = sp.getBoolean(KEY_OA_ASR_USE_COMPLETIONS, false)
+        set(value) = sp.edit { putBoolean(KEY_OA_ASR_USE_COMPLETIONS, value) }
+
+    var oaAsrUseCompletions: Boolean
+        get() = getActiveOpenAiAsrProvider()?.useCompletions ?: oaAsrUseCompletionsLegacy
+        set(value) {
+            updateActiveOpenAiAsrProvider { it.copy(useCompletions = value) }
         }
 
     // OpenAI：是否启用自定义 Prompt（部分模型不支持）
@@ -1733,6 +1747,7 @@ class Prefs(context: Context) {
             apiKey = oaAsrApiKeyLegacy,
             model = oaAsrModelLegacy,
             streamingEnabled = oaAsrStreamingEnabledLegacy,
+            useCompletions = oaAsrUseCompletionsLegacy,
             usePrompt = oaAsrUsePromptLegacy,
             prompt = oaAsrPromptLegacy,
             language = oaAsrLanguageLegacy
@@ -1746,6 +1761,7 @@ class Prefs(context: Context) {
         oaAsrApiKeyLegacy = normalized.apiKey
         oaAsrModelLegacy = normalized.model
         oaAsrStreamingEnabledLegacy = normalized.streamingEnabled
+        oaAsrUseCompletionsLegacy = normalized.useCompletions
         oaAsrUsePromptLegacy = normalized.usePrompt
         oaAsrPromptLegacy = normalized.prompt
         oaAsrLanguageLegacy = normalized.language

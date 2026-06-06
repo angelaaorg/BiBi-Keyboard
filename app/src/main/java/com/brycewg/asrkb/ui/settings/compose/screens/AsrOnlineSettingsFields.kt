@@ -66,6 +66,7 @@ internal class AsrOnlineSettingsFields(
     var openAiApiKey by mutableStateOf(prefs.oaAsrApiKey)
     var openAiModel by mutableStateOf(prefs.oaAsrModel)
     var openAiStreaming by mutableStateOf(prefs.oaAsrStreamingEnabled)
+    var openAiUseCompletions by mutableStateOf(prefs.oaAsrUseCompletions)
     var openAiUsePrompt by mutableStateOf(prefs.oaAsrUsePrompt)
     var openAiPrompt by mutableStateOf(prefs.oaAsrPrompt)
     var openAiLanguage by mutableStateOf(prefs.oaAsrLanguage)
@@ -130,6 +131,7 @@ internal class AsrOnlineSettingsFields(
         openAiApiKey = prefs.oaAsrApiKey
         openAiModel = prefs.oaAsrModel
         openAiStreaming = prefs.oaAsrStreamingEnabled
+        openAiUseCompletions = prefs.oaAsrUseCompletions
         openAiUsePrompt = prefs.oaAsrUsePrompt
         openAiPrompt = prefs.oaAsrPrompt
         openAiLanguage = prefs.oaAsrLanguage
@@ -341,6 +343,7 @@ internal class AsrOnlineSettingsFields(
                 apiKey = "",
                 model = Prefs.DEFAULT_OA_ASR_MODEL,
                 streamingEnabled = true,
+                useCompletions = false,
                 usePrompt = false,
                 prompt = "",
                 language = ""
@@ -397,6 +400,13 @@ internal class AsrOnlineSettingsFields(
         onOpenAiStreamingChange = { checked ->
             hapticTap()
             applyOpenAiStreamingSwitch(checked)
+        },
+        openAiUseCompletions = openAiUseCompletions,
+        onOpenAiUseCompletionsChange = { checked ->
+            hapticTap()
+            openAiUseCompletions = checked
+            prefs.oaAsrUseCompletions = checked
+            viewModel.refreshOpenAiProfileState()
         },
         openAiUsePrompt = openAiUsePrompt,
         onOpenAiUsePromptChange = { checked ->

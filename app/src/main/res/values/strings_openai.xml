@@ -9,10 +9,11 @@
     <string name="toast_openai_profile_deleted">Channel deleted</string>
     <string name="toast_openai_profile_delete_blocked">Keep at least one channel</string>
     <string name="openai_profile_default_name">OpenAI Channel %1$d</string>
-    <string name="label_openai_asr_endpoint">ASR Endpoint(../transcriptions)</string>
+    <string name="label_openai_asr_endpoint">Endpoint(../transcriptions or ../chat/completions)</string>
     <string name="label_openai_api_key">API Key (Bearer)</string>
     <string name="label_openai_model">Model (e.g., gpt-4o-mini-transcribe or whisper-1)</string>
     <string name="label_openai_streaming">Streaming recognition</string>
+    <string name="label_openai_use_completions">Use Completions API</string>
     <string name="label_openai_use_prompt">Custom prompt (some models unsupported)</string>
     <string name="label_openai_prompt">Custom prompt (optional)</string>
     <string name="label_openai_language">Recognition language</string>

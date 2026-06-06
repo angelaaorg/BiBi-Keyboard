@@ -243,6 +243,8 @@ internal fun AsrSettingsRouteContent(
                         onOpenAiModelChange = onlineState.onOpenAiModelChange,
                         openAiStreaming = onlineState.openAiStreaming,
                         onOpenAiStreamingChange = onlineState.onOpenAiStreamingChange,
+                        openAiUseCompletions = onlineState.openAiUseCompletions,
+                        onOpenAiUseCompletionsChange = onlineState.onOpenAiUseCompletionsChange,
                         openAiUsePrompt = onlineState.openAiUsePrompt,
                         onOpenAiUsePromptChange = onlineState.onOpenAiUsePromptChange,
                         openAiPrompt = onlineState.openAiPrompt,
@@ -330,6 +332,7 @@ private fun currentAsrVendorPrimaryItemCount(
         selectedVendor = selectedVendor,
         openAiProviders = onlineState.openAiProviders,
         openAiUsePrompt = onlineState.openAiUsePrompt,
+        openAiUseCompletions = onlineState.openAiUseCompletions,
         mimoCustomEndpointVisible = onlineState.mimoEndpointPreset == Prefs.MIMO_ENDPOINT_PRESET_CUSTOM,
         mimoPromptVisible = onlineState.mimoPromptEnabled
     )

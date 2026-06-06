@@ -293,7 +293,7 @@ class AsrSessionManager(
             }
 
             AsrVendor.OpenAI -> if (prefs.hasOpenAiKeys()) {
-                if (prefs.oaAsrStreamingEnabled) {
+                if (prefs.isOpenAiStreamingEffective()) {
                     OpenAiRealtimeAsrEngine(context, scope, prefs, engineListener)
                 } else {
                     OpenAiFileAsrEngine(
@@ -569,8 +569,8 @@ class AsrSessionManager(
                 else -> null
             }
             AsrVendor.OpenAI -> when (current) {
-                is OpenAiRealtimeAsrEngine -> if (prefs.oaAsrStreamingEnabled) current else null
-                is OpenAiFileAsrEngine -> if (!prefs.oaAsrStreamingEnabled) current else null
+                is OpenAiRealtimeAsrEngine -> if (prefs.isOpenAiStreamingEffective()) current else null
+                is OpenAiFileAsrEngine -> if (!prefs.isOpenAiStreamingEffective()) current else null
                 else -> null
             }
             AsrVendor.OpenRouter -> if (current is OpenRouterFileAsrEngine) current else null

@@ -231,7 +231,7 @@ internal object NetworkWarmupCoordinator {
         }
 
         AsrVendor.OpenAI -> {
-            if (prefs.oaAsrStreamingEnabled) {
+            if (prefs.isOpenAiStreamingEffective()) {
                 buildDnsTarget(prefs.oaAsrEndpoint.ifBlank { Prefs.DEFAULT_OA_ASR_ENDPOINT })
             } else {
                 buildTarget(

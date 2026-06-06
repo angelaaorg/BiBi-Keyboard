@@ -98,6 +98,8 @@ internal fun CurrentAsrVendorConfig(
     onOpenAiModelChange: (String) -> Unit,
     openAiStreaming: Boolean,
     onOpenAiStreamingChange: (Boolean) -> Unit,
+    openAiUseCompletions: Boolean,
+    onOpenAiUseCompletionsChange: (Boolean) -> Unit,
     openAiUsePrompt: Boolean,
     onOpenAiUsePromptChange: (Boolean) -> Unit,
     openAiPrompt: String,
@@ -123,7 +125,8 @@ internal fun CurrentAsrVendorConfig(
             val itemCount = primaryGroupCount ?: currentOnlineAsrPrimaryItemCount(
                 selectedVendor = selectedVendor,
                 openAiProviders = openAiProviders,
-                openAiUsePrompt = openAiUsePrompt
+                openAiUsePrompt = openAiUsePrompt,
+                openAiUseCompletions = openAiUseCompletions
             )
             AsrSwitchPreference(
                 id = "sf_free_asr_enabled",
@@ -476,6 +479,8 @@ internal fun CurrentAsrVendorConfig(
                 onModelChange = onOpenAiModelChange,
                 streaming = openAiStreaming,
                 onStreamingChange = onOpenAiStreamingChange,
+                useCompletions = openAiUseCompletions,
+                onUseCompletionsChange = onOpenAiUseCompletionsChange,
                 usePrompt = openAiUsePrompt,
                 onUsePromptChange = onOpenAiUsePromptChange,
                 prompt = openAiPrompt,
@@ -527,6 +532,8 @@ private fun OpenAiAsrConfig(
     onModelChange: (String) -> Unit,
     streaming: Boolean,
     onStreamingChange: (Boolean) -> Unit,
+    useCompletions: Boolean,
+    onUseCompletionsChange: (Boolean) -> Unit,
     usePrompt: Boolean,
     onUsePromptChange: (Boolean) -> Unit,
     prompt: String,
@@ -542,7 +549,7 @@ private fun OpenAiAsrConfig(
         DropdownOption(profile.id, openAiProfileDisplayName(context, profile))
     }
     var itemIndex = primaryIndexOffset
-    val itemCount = primaryGroupCount ?: openAiAsrPrimaryItemCount(profiles, usePrompt)
+    val itemCount = primaryGroupCount ?: openAiAsrPrimaryItemCount(profiles, usePrompt, useCompletions)
     if (profileOptions.isNotEmpty()) {
         AsrDropdownPreference(
             titleRes = R.string.label_openai_choose_profile,
@@ -586,23 +593,33 @@ private fun OpenAiAsrConfig(
         index = itemIndex++,
         count = itemCount
     )
-    AsrDropdownPreference(
-        titleRes = R.string.label_openai_language,
-        options = openAiLanguageOptions(context).map { option ->
-            DropdownOption(option.value, option.label)
-        },
-        selectedOptionId = language,
-        index = itemIndex++,
-        count = itemCount,
-        onSelectedOptionChange = onLanguageChange
-    )
+    if (!useCompletions) {
+        AsrDropdownPreference(
+            titleRes = R.string.label_openai_language,
+            options = openAiLanguageOptions(context).map { option ->
+                DropdownOption(option.value, option.label)
+            },
+            selectedOptionId = language,
+            index = itemIndex++,
+            count = itemCount,
+            onSelectedOptionChange = onLanguageChange
+        )
+        AsrSwitchPreference(
+            id = "openai_streaming",
+            titleRes = R.string.label_openai_streaming,
+            checked = streaming,
+            index = itemIndex++,
+            count = itemCount,
+            onCheckedChange = onStreamingChange
+        )
+    }
     AsrSwitchPreference(
-        id = "openai_streaming",
-        titleRes = R.string.label_openai_streaming,
-        checked = streaming,
+        id = "openai_use_completions",
+        titleRes = R.string.label_openai_use_completions,
+        checked = useCompletions,
         index = itemIndex++,
         count = itemCount,
-        onCheckedChange = onStreamingChange
+        onCheckedChange = onUseCompletionsChange
     )
     AsrSwitchPreference(
         id = "openai_use_prompt",
@@ -712,6 +729,7 @@ internal fun currentOnlineAsrPrimaryItemCount(
     selectedVendor: AsrVendor,
     openAiProviders: List<Prefs.OpenAiAsrProvider>,
     openAiUsePrompt: Boolean,
+    openAiUseCompletions: Boolean = false,
     mimoCustomEndpointVisible: Boolean = false,
     mimoPromptVisible: Boolean = false
 ): Int = when (selectedVendor) {
@@ -725,15 +743,26 @@ internal fun currentOnlineAsrPrimaryItemCount(
         customEndpointVisible = mimoCustomEndpointVisible,
         promptVisible = mimoPromptVisible
     )
-    AsrVendor.OpenAI -> openAiAsrPrimaryItemCount(openAiProviders, openAiUsePrompt)
+    AsrVendor.OpenAI -> openAiAsrPrimaryItemCount(
+        openAiProviders,
+        openAiUsePrompt,
+        openAiUseCompletions
+    )
     AsrVendor.Soniox -> 5
     else -> 0
 }
 
 private fun openAiAsrPrimaryItemCount(
     profiles: List<Prefs.OpenAiAsrProvider>,
-    usePrompt: Boolean
-): Int = (if (profiles.isNotEmpty()) 1 else 0) + 8 + (if (usePrompt) 1 else 0)
+    usePrompt: Boolean,
+    useCompletions: Boolean
+): Int {
+    val profilePicker = if (profiles.isNotEmpty()) 1 else 0
+    val fixedItems = 7
+    val transcriptionsOnlyItems = if (useCompletions) 0 else 2
+    val promptItems = if (usePrompt) 1 else 0
+    return profilePicker + fixedItems + transcriptionsOnlyItems + promptItems
+}
 
 private fun mimoPrimaryItemCount(
     customEndpointVisible: Boolean,

@@ -87,6 +87,7 @@ class AsrSettingsViewModel : ViewModel() {
             elevenStreamingEnabled = prefs.elevenStreamingEnabled,
             // OpenAI settings
             oaAsrStreamingEnabled = prefs.oaAsrStreamingEnabled,
+            oaAsrUseCompletions = prefs.oaAsrUseCompletions,
             oaAsrUsePrompt = prefs.oaAsrUsePrompt,
             // Soniox settings
             sonioxStreamingEnabled = prefs.sonioxStreamingEnabled,
@@ -343,6 +344,7 @@ class AsrSettingsViewModel : ViewModel() {
     fun refreshOpenAiProfileState() {
         _uiState.value = _uiState.value.copy(
             oaAsrStreamingEnabled = prefs.oaAsrStreamingEnabled,
+            oaAsrUseCompletions = prefs.oaAsrUseCompletions,
             oaAsrUsePrompt = prefs.oaAsrUsePrompt
         )
     }
@@ -912,6 +914,7 @@ data class AsrSettingsUiState(
     val elevenStreamingEnabled: Boolean = false,
     // OpenAI settings
     val oaAsrStreamingEnabled: Boolean = false,
+    val oaAsrUseCompletions: Boolean = false,
     val oaAsrUsePrompt: Boolean = false,
     // Soniox settings
     val sonioxStreamingEnabled: Boolean = false,
