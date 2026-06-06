@@ -2,8 +2,9 @@
 <resources>
     <!-- フローティングボール関連文字列 - Floating ball related strings -->
 
-    <string name="title_floating_settings">フローティング設定</string>
-    <string name="section_floating_basic">基本設定</string>
+    <string name="title_floating_settings">その他の入力方法</string>
+    <string name="section_floating_basic">フローティングボール設定</string>
+    <string name="section_volume_key_recording">音量キー録音モード</string>
     <string name="section_floating_compat">互換性</string>
     <string name="section_floating_keep_alive">バックグラウンド保活</string>
     <string name="label_floating_only_when_ime_visible">キーボード表示時のみフローティングボールを表示する</string>
@@ -24,6 +25,16 @@
     <string name="label_floating_write_paste_pkgs">ターゲットパッケージ（1行に1つ）</string>
     <string name="hint_floating_write_paste_pkgs">正確なパッケージ名を入力（例：com.tencent.mm）。グローバルに適用するには、allを含む行を1つ追加してください。</string>
     <string name="toast_need_accessibility_perm">この機能をサポートするには、システム設定でアクセシビリティサービスを有効にしてください</string>
+    <string name="label_volume_key_recording">音量キーで音声認識を使用する</string>
+    <string name="label_volume_key_recording_mode">音量キーの操作</string>
+    <string name="option_volume_key_up_toggle">音量+で録音開始/停止</string>
+    <string name="option_volume_key_down_toggle">音量-で録音開始/停止</string>
+    <string name="option_volume_key_up_start_down_stop">音量+で開始、音量-で停止</string>
+    <string name="option_volume_key_down_start_up_stop">音量-で開始、音量+で停止</string>
+    <string name="label_volume_key_status_toast">録音状態の通知</string>
+    <string name="label_volume_key_stop_on_ime_hidden">キーボード非表示時に録音を停止</string>
+    <string name="toast_volume_key_recording_started">録音を開始しました</string>
+    <string name="toast_volume_key_recording_stopped">録音を停止しました</string>
     <string name="cd_floating_asr">フローティングボール音声認識</string>
     <string name="cd_floating_edge_handle">フローティングボールを表示</string>
     <string name="toast_battery_whitelist_already">すでに電池最適化の除外済みです</string>
@@ -38,7 +49,7 @@
     <!-- Floating ASR status messages -->
     <string name="floating_asr_error">認識失敗：%1$s</string>
     <string name="floating_asr_copied">クリップボードにコピーしました</string>
-    <string name="accessibility_service_description">フローティングボールがASR結果を現在の入力フィールドに挿入できるようにします。データは収集またはアップロードされません。</string>
+    <string name="accessibility_service_description">フローティングボールと音量キー録音がASR結果を現在の入力フィールドに挿入できるようにします。データは収集またはアップロードされません。</string>
 
     <!-- Floating radial menu -->
     <string name="label_radial_switch_asr">ASRプロバイダーを切り替え</string>
@@ -78,6 +89,14 @@
     <!-- 直接ドラッグ移動 -->
     <string name="feature_floating_direct_drag_off_desc">移動するには長押しで移動モードに入るか、メニューから移動を選ぶ必要があります。</string>
     <string name="feature_floating_direct_drag_on_desc">フローティングボールを直接ドラッグして移動できます。</string>
+
+    <!-- 音量キー録音 -->
+    <string name="feature_volume_key_recording_off_desc">音量キーは通常のシステム動作のままで、録音操作には使われません。</string>
+    <string name="feature_volume_key_recording_on_desc">キーボード表示中、アクセシビリティサービスが音量キーのクリックを監視し、音声認識の開始または停止に使用します。不安定な音量キー長押しは使用しません。</string>
+    <string name="feature_volume_key_status_toast_off_desc">音量キー録音の開始と停止は追加通知なしで行います。既存のエラー通知には影響しません。</string>
+    <string name="feature_volume_key_status_toast_on_desc">音量キーで録音の開始または停止に成功したとき、短い Toast を表示します。</string>
+    <string name="feature_volume_key_stop_on_ime_hidden_off_desc">音量キー録音中にキーボードが消えても、手動で停止するまで録音を続けます。</string>
+    <string name="feature_volume_key_stop_on_ime_hidden_on_desc">音量キー録音中にキーボードが消えると、自動的に録音を停止します。</string>
 
     <!-- フローティング書き込み互換モード -->
     <string name="feature_floating_write_compat_off_desc">標準のアクセシビリティAPIを使用してテキストを挿入します。ほとんどのアプリで動作します。</string>

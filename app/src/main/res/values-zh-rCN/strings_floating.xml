@@ -1,8 +1,9 @@
 <resources>
     <!-- 悬浮球相关字符串 - Floating ball related strings -->
 
-    <string name="title_floating_settings">悬浮球设置</string>
-    <string name="section_floating_basic">基本设置</string>
+    <string name="title_floating_settings">更多输入方式</string>
+    <string name="section_floating_basic">悬浮球设置</string>
+    <string name="section_volume_key_recording">音量键录音模式</string>
     <string name="section_floating_compat">兼容性</string>
     <string name="section_floating_keep_alive">后台保活</string>
     <string name="label_floating_only_when_ime_visible">仅在键盘显示时显示悬浮球</string>
@@ -23,6 +24,16 @@
     <string name="label_floating_write_paste_pkgs">目标包名（每行一个）</string>
     <string name="hint_floating_write_paste_pkgs">请填写完整包名进行精确匹配（例如 com.tencent.mm）。如需全局生效，单独添加一行 all。</string>
     <string name="toast_need_accessibility_perm">请在系统设置中授予"无障碍服务"权限以支持此功能</string>
+    <string name="label_volume_key_recording">使用音量键进行语音识别</string>
+    <string name="label_volume_key_recording_mode">音量键操作方式</string>
+    <string name="option_volume_key_up_toggle">音量+开始/停止录音</string>
+    <string name="option_volume_key_down_toggle">音量-开始/停止录音</string>
+    <string name="option_volume_key_up_start_down_stop">音量+开始，音量-停止</string>
+    <string name="option_volume_key_down_start_up_stop">音量-开始，音量+停止</string>
+    <string name="label_volume_key_status_toast">录音状态提醒</string>
+    <string name="label_volume_key_stop_on_ime_hidden">键盘消失时停止录音</string>
+    <string name="toast_volume_key_recording_started">已开始录音</string>
+    <string name="toast_volume_key_recording_stopped">已停止录音</string>
     <string name="cd_floating_asr">悬浮球语音识别</string>
     <string name="cd_floating_edge_handle">展开悬浮球</string>
     <string name="toast_battery_whitelist_already">已在电池优化白名单中</string>
@@ -37,7 +48,7 @@
     <!-- Floating ASR status messages -->
     <string name="floating_asr_error">识别失败: %1$s</string>
     <string name="floating_asr_copied">已复制到剪贴板</string>
-    <string name="accessibility_service_description">允许说点啥悬浮球将语音识别结果自动插入到当前输入框中。不会收集或上传任何数据。</string>
+    <string name="accessibility_service_description">允许说点啥悬浮球和音量键录音将语音识别结果自动插入到当前输入框中。不会收集或上传任何数据。</string>
 
     <!-- Floating radial menu -->
     <string name="label_radial_switch_asr">切换 ASR 供应商</string>
@@ -77,6 +88,14 @@
     <!-- 直接拖动移动悬浮球 -->
     <string name="feature_floating_direct_drag_off_desc">移动悬浮球需要长按进入移动模式或通过菜单开启移动模式。</string>
     <string name="feature_floating_direct_drag_on_desc">可直接拖动悬浮球调整位置。</string>
+
+    <!-- 音量键录音模式 -->
+    <string name="feature_volume_key_recording_off_desc">音量键保持系统默认行为，不用于控制录音。</string>
+    <string name="feature_volume_key_recording_on_desc">当键盘显示时，无障碍服务会监听音量键点击，用于开始或停止语音识别。不监听不稳定的音量键长按。</string>
+    <string name="feature_volume_key_status_toast_off_desc">音量键录音开始和停止时不额外提示，现有错误提示不受影响。</string>
+    <string name="feature_volume_key_status_toast_on_desc">使用音量键成功开始或停止录音时，显示短 Toast 提示。</string>
+    <string name="feature_volume_key_stop_on_ime_hidden_off_desc">音量键录音期间如果键盘消失，录音会继续，直到你手动停止。</string>
+    <string name="feature_volume_key_stop_on_ime_hidden_on_desc">音量键录音期间如果键盘消失，会自动停止录音。</string>
 
     <!-- 悬浮球写入文字兼容性模式 -->
     <string name="feature_floating_write_compat_off_desc">使用标准无障碍 API 插入文本。适用于大多数应用。</string>

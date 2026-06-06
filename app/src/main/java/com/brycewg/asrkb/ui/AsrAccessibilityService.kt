@@ -10,6 +10,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.view.KeyEvent
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.view.accessibility.AccessibilityWindowInfo
@@ -286,6 +287,24 @@ class AsrAccessibilityService : AccessibilityService() {
         }
     }
 
+    override fun onKeyEvent(event: KeyEvent?): Boolean {
+        if (event == null) return false
+        if (event.action != KeyEvent.ACTION_DOWN || event.repeatCount != 0) return false
+        if (event.keyCode != KeyEvent.KEYCODE_VOLUME_UP &&
+            event.keyCode != KeyEvent.KEYCODE_VOLUME_DOWN
+        ) {
+            return false
+        }
+
+        val prefs = prefsOrNull ?: return false
+        if (!prefs.volumeKeyRecordingEnabled) return false
+        val action = volumeKeyActionFor(prefs.volumeKeyRecordingMode, event.keyCode) ?: return false
+        if (!isImeSceneActiveForVolumeKey()) return false
+
+        dispatchVolumeKeyRecordingAction(action)
+        return true
+    }
+
     /**
      * 判断事件类型是否与输入法可见性检测相关。
      */
@@ -345,10 +364,11 @@ class AsrAccessibilityService : AccessibilityService() {
      * 判断是否需要检测输入法可见性。
      */
     private fun shouldCheckImeVisibility(prefs: Prefs): Boolean {
-        // 启用悬浮球时均进行检测：
+        // 启用悬浮球或音量键录音时均进行检测：
         // - 开启“仅在键盘显示时显示悬浮球”用于显隐控制（已有逻辑）
         // - 关闭该开关时用于半隐联动（键盘/焦点出现浮现，收起回半隐）
-        return prefs.floatingAsrEnabled
+        // - 音量键录音严格依赖同一份 IME 场景状态，避免键盘隐藏时拦截音量键
+        return prefs.floatingAsrEnabled || prefs.volumeKeyRecordingEnabled
     }
 
     /**
@@ -426,6 +446,40 @@ class AsrAccessibilityService : AccessibilityService() {
             }
         } catch (e: Throwable) {
             Log.e(TAG, "Error notifying floating services", e)
+        }
+    }
+
+    private fun isImeSceneActiveForVolumeKey(): Boolean {
+        val now = System.currentTimeMillis()
+        val active = determineImeSceneActive(now)
+        updateImeVisibilityState(active)
+        return active
+    }
+
+    private fun volumeKeyActionFor(mode: String, keyCode: Int): String? = when (mode) {
+        Prefs.VOLUME_KEY_MODE_UP_TOGGLE ->
+            if (keyCode == KeyEvent.KEYCODE_VOLUME_UP) FloatingAsrService.ACTION_VOLUME_KEY_TOGGLE else null
+        Prefs.VOLUME_KEY_MODE_DOWN_TOGGLE ->
+            if (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) FloatingAsrService.ACTION_VOLUME_KEY_TOGGLE else null
+        Prefs.VOLUME_KEY_MODE_UP_START_DOWN_STOP -> when (keyCode) {
+            KeyEvent.KEYCODE_VOLUME_UP -> FloatingAsrService.ACTION_VOLUME_KEY_START
+            KeyEvent.KEYCODE_VOLUME_DOWN -> FloatingAsrService.ACTION_VOLUME_KEY_STOP
+            else -> null
+        }
+        Prefs.VOLUME_KEY_MODE_DOWN_START_UP_STOP -> when (keyCode) {
+            KeyEvent.KEYCODE_VOLUME_DOWN -> FloatingAsrService.ACTION_VOLUME_KEY_START
+            KeyEvent.KEYCODE_VOLUME_UP -> FloatingAsrService.ACTION_VOLUME_KEY_STOP
+            else -> null
+        }
+        else -> null
+    }
+
+    private fun dispatchVolumeKeyRecordingAction(action: String) {
+        try {
+            val i = Intent(this, FloatingAsrService::class.java).apply { this.action = action }
+            startService(i)
+        } catch (e: Throwable) {
+            Log.e(TAG, "Error dispatching volume-key recording action", e)
         }
     }
 

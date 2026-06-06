@@ -19,6 +19,10 @@ internal data class FloatingSettingsUiState(
     val directDragEnabled: Boolean,
     val alphaPercent: Float,
     val sizeDp: Int,
+    val volumeKeyRecordingEnabled: Boolean,
+    val volumeKeyRecordingMode: String,
+    val volumeKeyStatusToastEnabled: Boolean,
+    val volumeKeyStopOnImeHidden: Boolean,
     val writeCompatEnabled: Boolean,
     val writePasteEnabled: Boolean
 ) {
@@ -29,6 +33,10 @@ internal data class FloatingSettingsUiState(
             directDragEnabled = false,
             alphaPercent = 100f,
             sizeDp = 56,
+            volumeKeyRecordingEnabled = false,
+            volumeKeyRecordingMode = Prefs.VOLUME_KEY_MODE_UP_TOGGLE,
+            volumeKeyStatusToastEnabled = false,
+            volumeKeyStopOnImeHidden = true,
             writeCompatEnabled = false,
             writePasteEnabled = false
         )
@@ -39,6 +47,10 @@ internal data class FloatingSettingsUiState(
             directDragEnabled = prefs.floatingBallDirectDragEnabled,
             alphaPercent = (prefs.floatingSwitcherAlpha * 100f).coerceIn(30f, 100f),
             sizeDp = prefs.floatingBallSizeDp,
+            volumeKeyRecordingEnabled = prefs.volumeKeyRecordingEnabled,
+            volumeKeyRecordingMode = prefs.volumeKeyRecordingMode,
+            volumeKeyStatusToastEnabled = prefs.volumeKeyStatusToastEnabled,
+            volumeKeyStopOnImeHidden = prefs.volumeKeyStopOnImeHidden,
             writeCompatEnabled = prefs.floatingWriteTextCompatEnabled,
             writePasteEnabled = prefs.floatingWriteTextPasteEnabled
         )

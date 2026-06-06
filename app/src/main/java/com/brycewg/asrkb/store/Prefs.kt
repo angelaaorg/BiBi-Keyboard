@@ -359,6 +359,28 @@ class Prefs(context: Context) {
         get() = sp.getBoolean(KEY_FLOATING_ASR_ENABLED, false)
         set(value) = sp.edit { putBoolean(KEY_FLOATING_ASR_ENABLED, value) }
 
+    // 音量键录音模式：通过无障碍服务在 IME 场景内监听音量键
+    var volumeKeyRecordingEnabled: Boolean
+        get() = sp.getBoolean(KEY_VOLUME_KEY_RECORDING_ENABLED, false)
+        set(value) = sp.edit { putBoolean(KEY_VOLUME_KEY_RECORDING_ENABLED, value) }
+
+    var volumeKeyRecordingMode: String
+        get() = normalizeVolumeKeyRecordingMode(
+            sp.getString(
+                KEY_VOLUME_KEY_RECORDING_MODE,
+                VOLUME_KEY_MODE_UP_TOGGLE
+            )
+        )
+        set(value) = sp.edit { putString(KEY_VOLUME_KEY_RECORDING_MODE, normalizeVolumeKeyRecordingMode(value)) }
+
+    var volumeKeyStatusToastEnabled: Boolean
+        get() = sp.getBoolean(KEY_VOLUME_KEY_STATUS_TOAST_ENABLED, true)
+        set(value) = sp.edit { putBoolean(KEY_VOLUME_KEY_STATUS_TOAST_ENABLED, value) }
+
+    var volumeKeyStopOnImeHidden: Boolean
+        get() = sp.getBoolean(KEY_VOLUME_KEY_STOP_ON_IME_HIDDEN, true)
+        set(value) = sp.edit { putBoolean(KEY_VOLUME_KEY_STOP_ON_IME_HIDDEN, value) }
+
     // 悬浮球：前台保活开关
     var floatingKeepAliveEnabled: Boolean
         get() = sp.getBoolean(KEY_FLOATING_KEEP_ALIVE_ENABLED, false)
@@ -1678,6 +1700,18 @@ class Prefs(context: Context) {
         // 悬浮球默认大小（dp）
         const val DEFAULT_FLOATING_BALL_SIZE_DP = 44
 
+        const val VOLUME_KEY_MODE_UP_TOGGLE = "volume_up_toggle"
+        const val VOLUME_KEY_MODE_DOWN_TOGGLE = "volume_down_toggle"
+        const val VOLUME_KEY_MODE_UP_START_DOWN_STOP = "volume_up_start_down_stop"
+        const val VOLUME_KEY_MODE_DOWN_START_UP_STOP = "volume_down_start_up_stop"
+
+        val VOLUME_KEY_RECORDING_MODES: Set<String> = setOf(
+            VOLUME_KEY_MODE_UP_TOGGLE,
+            VOLUME_KEY_MODE_DOWN_TOGGLE,
+            VOLUME_KEY_MODE_UP_START_DOWN_STOP,
+            VOLUME_KEY_MODE_DOWN_START_UP_STOP
+        )
+
         // 悬浮写入兼容：默认目标包名（每行一个；支持前缀匹配）
         const val DEFAULT_FLOATING_WRITE_COMPAT_PACKAGES = "org.telegram.messenger\nnu.gpu.nagram"
 
@@ -1715,6 +1749,11 @@ class Prefs(context: Context) {
         oaAsrUsePromptLegacy = normalized.usePrompt
         oaAsrPromptLegacy = normalized.prompt
         oaAsrLanguageLegacy = normalized.language
+    }
+
+    private fun normalizeVolumeKeyRecordingMode(value: String?): String {
+        val mode = value?.trim().orEmpty()
+        return if (mode in VOLUME_KEY_RECORDING_MODES) mode else VOLUME_KEY_MODE_UP_TOGGLE
     }
 
     private fun normalizeOpenAiAsrProvider(provider: OpenAiAsrProvider): OpenAiAsrProvider = provider.copy(

@@ -62,6 +62,10 @@ internal object PrefsBackup {
         o.put(KEY_FLOATING_DIRECT_DRAG_ENABLED, floatingBallDirectDragEnabled)
         o.put(KEY_FLOATING_ASR_ENABLED, floatingAsrEnabled)
         o.put(KEY_FLOATING_ONLY_WHEN_IME_VISIBLE, floatingSwitcherOnlyWhenImeVisible)
+        o.put(KEY_VOLUME_KEY_RECORDING_ENABLED, volumeKeyRecordingEnabled)
+        o.put(KEY_VOLUME_KEY_RECORDING_MODE, volumeKeyRecordingMode)
+        o.put(KEY_VOLUME_KEY_STATUS_TOAST_ENABLED, volumeKeyStatusToastEnabled)
+        o.put(KEY_VOLUME_KEY_STOP_ON_IME_HIDDEN, volumeKeyStopOnImeHidden)
         o.put(KEY_FLOATING_KEEP_ALIVE_ENABLED, floatingKeepAliveEnabled)
         o.put(KEY_FLOATING_KEEP_ALIVE_PRIVILEGED_ENABLED, floatingKeepAlivePrivilegedEnabled)
 
@@ -360,6 +364,10 @@ internal object PrefsBackup {
                 floatingSwitcherOnlyWhenImeVisible =
                     it
             }
+            optBool(KEY_VOLUME_KEY_RECORDING_ENABLED)?.let { volumeKeyRecordingEnabled = it }
+            optString(KEY_VOLUME_KEY_RECORDING_MODE)?.let { volumeKeyRecordingMode = it }
+            optBool(KEY_VOLUME_KEY_STATUS_TOAST_ENABLED)?.let { volumeKeyStatusToastEnabled = it }
+            optBool(KEY_VOLUME_KEY_STOP_ON_IME_HIDDEN)?.let { volumeKeyStopOnImeHidden = it }
             optBool(KEY_FLOATING_KEEP_ALIVE_ENABLED)?.let { floatingKeepAliveEnabled = it }
             optBool(KEY_FLOATING_KEEP_ALIVE_PRIVILEGED_ENABLED)?.let {
                 floatingKeepAlivePrivilegedEnabled =

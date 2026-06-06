@@ -1,8 +1,9 @@
 <resources>
     <!-- 懸浮球相關字串 - Floating ball related strings -->
 
-    <string name="title_floating_settings">懸浮球設定</string>
-    <string name="section_floating_basic">基本設定</string>
+    <string name="title_floating_settings">更多輸入方式</string>
+    <string name="section_floating_basic">懸浮球設定</string>
+    <string name="section_volume_key_recording">音量鍵錄音模式</string>
     <string name="section_floating_compat">相容性</string>
     <string name="section_floating_keep_alive">背景保活</string>
     <string name="label_floating_only_when_ime_visible">僅在鍵盤顯示時顯示懸浮球</string>
@@ -23,6 +24,16 @@
     <string name="label_floating_write_paste_pkgs">目標套件名稱（每行一個）</string>
     <string name="hint_floating_write_paste_pkgs">請填寫完整套件名稱進行精確匹配（例如 com.tencent.mm）。如需全域生效，單獨新增一行 all。</string>
     <string name="toast_need_accessibility_perm">請在系統設定中授予「無障礙服務」權限以支援此功能</string>
+    <string name="label_volume_key_recording">使用音量鍵進行語音識別</string>
+    <string name="label_volume_key_recording_mode">音量鍵操作方式</string>
+    <string name="option_volume_key_up_toggle">音量+開始/停止錄音</string>
+    <string name="option_volume_key_down_toggle">音量-開始/停止錄音</string>
+    <string name="option_volume_key_up_start_down_stop">音量+開始，音量-停止</string>
+    <string name="option_volume_key_down_start_up_stop">音量-開始，音量+停止</string>
+    <string name="label_volume_key_status_toast">錄音狀態提醒</string>
+    <string name="label_volume_key_stop_on_ime_hidden">鍵盤消失時停止錄音</string>
+    <string name="toast_volume_key_recording_started">已開始錄音</string>
+    <string name="toast_volume_key_recording_stopped">已停止錄音</string>
     <string name="cd_floating_asr">懸浮球語音識別</string>
     <string name="cd_floating_edge_handle">展開懸浮球</string>
     <string name="toast_battery_whitelist_already">已在電池最佳化白名單中</string>
@@ -37,7 +48,7 @@
     <!-- Floating ASR status messages -->
     <string name="floating_asr_error">識別失敗：%1$s</string>
     <string name="floating_asr_copied">已複製到剪貼簿</string>
-    <string name="accessibility_service_description">允許說點啥懸浮球將語音識別結果自動插入到目前輸入欄位中。不會收集或上傳任何資料。</string>
+    <string name="accessibility_service_description">允許說點啥懸浮球和音量鍵錄音將語音識別結果自動插入到目前輸入欄位中。不會收集或上傳任何資料。</string>
 
     <!-- Floating radial menu -->
     <string name="label_radial_switch_asr">切換 ASR 供應商</string>
@@ -77,6 +88,14 @@
     <!-- 直接拖動移動懸浮球 -->
     <string name="feature_floating_direct_drag_off_desc">移動懸浮球需要長按進入移動模式或透過選單開啟移動模式。</string>
     <string name="feature_floating_direct_drag_on_desc">可直接拖動懸浮球調整位置。</string>
+
+    <!-- 音量鍵錄音模式 -->
+    <string name="feature_volume_key_recording_off_desc">音量鍵保持系統預設行為，不用於控制錄音。</string>
+    <string name="feature_volume_key_recording_on_desc">當鍵盤顯示時，無障礙服務會監聽音量鍵點擊，用於開始或停止語音識別。不監聽不穩定的音量鍵長按。</string>
+    <string name="feature_volume_key_status_toast_off_desc">音量鍵錄音開始和停止時不額外提示，現有錯誤提示不受影響。</string>
+    <string name="feature_volume_key_status_toast_on_desc">使用音量鍵成功開始或停止錄音時，顯示短 Toast 提示。</string>
+    <string name="feature_volume_key_stop_on_ime_hidden_off_desc">音量鍵錄音期間如果鍵盤消失，錄音會繼續，直到你手動停止。</string>
+    <string name="feature_volume_key_stop_on_ime_hidden_on_desc">音量鍵錄音期間如果鍵盤消失，會自動停止錄音。</string>
 
     <!-- 懸浮球寫入文字相容性模式 -->
     <string name="feature_floating_write_compat_off_desc">使用標準無障礙 API 插入文字。適用於大多數應用程式。</string>

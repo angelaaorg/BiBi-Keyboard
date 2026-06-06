@@ -429,7 +429,7 @@ private data class SettingsHomeSnapshot(
         fun fromPrefs(context: Context, prefs: Prefs): SettingsHomeSnapshot = SettingsHomeSnapshot(
             oneClickSetupSummary = oneClickSetupSummary(context, prefs),
             inputControlSummary = inputControlSummary(context, prefs),
-            floatingSummary = enabledSummary(context, prefs.floatingAsrEnabled),
+            floatingSummary = enabledSummary(context, prefs.floatingAsrEnabled || prefs.volumeKeyRecordingEnabled),
             asrSummary = asrSummary(context, prefs),
             aiSummary = aiSummary(context, prefs),
             autoUpdateCheckEnabled = prefs.autoUpdateCheckEnabled
@@ -493,6 +493,8 @@ private fun oneClickSetupSummary(context: Context, prefs: Prefs): String {
         }
         if (prefs.floatingAsrEnabled) {
             add(Settings.canDrawOverlays(context))
+        }
+        if (prefs.floatingAsrEnabled || prefs.volumeKeyRecordingEnabled) {
             add(com.brycewg.asrkb.ui.AsrAccessibilityService.isEnabled())
         }
     }

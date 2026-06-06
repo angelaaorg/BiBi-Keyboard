@@ -54,6 +54,7 @@ internal class FloatingAsrInteractionController(
     private var postCommitPartialHideRunnable: Runnable? = null
     private var postErrorPartialHideRunnable: Runnable? = null
     private var postErrorResetStateRunnable: Runnable? = null
+    private var volumeKeySessionActive: Boolean = false
 
     fun isForceVisibleActive(): Boolean = menuController.isForceVisibleMenuActive() ||
         stateMachine.isMoveMode ||
@@ -78,20 +79,48 @@ internal class FloatingAsrInteractionController(
 
     // ==================== 录音控制 ====================
 
-    private fun startRecording() {
+    fun onVolumeKeyStart() {
+        if (stateMachine.isRecording || stateMachine.isProcessing) return
+        if (startRecording(fromVolumeKey = true)) showVolumeKeyStatusToast(R.string.toast_volume_key_recording_started)
+    }
+
+    fun onVolumeKeyStop() {
+        if (!stateMachine.isRecording) return
+        stopRecording()
+        showVolumeKeyStatusToast(R.string.toast_volume_key_recording_stopped)
+    }
+
+    fun onVolumeKeyToggle() {
+        if (stateMachine.isRecording) {
+            stopRecording()
+            showVolumeKeyStatusToast(R.string.toast_volume_key_recording_stopped)
+            return
+        }
+        if (stateMachine.isProcessing) return
+        if (startRecording(fromVolumeKey = true)) showVolumeKeyStatusToast(R.string.toast_volume_key_recording_started)
+    }
+
+    fun stopVolumeKeyRecordingOnImeHidden() {
+        if (!volumeKeySessionActive) return
+        if (!prefs.volumeKeyStopOnImeHidden) return
+        if (!stateMachine.isRecording) return
+        stopRecording()
+    }
+
+    private fun startRecording(fromVolumeKey: Boolean = false): Boolean {
         Log.d(tag, "startRecording called")
         cancelEdgeHandleAutoHide()
 
         if (!hasRecordAudioPermission()) {
             Log.w(tag, "No record audio permission")
             showToast(context.getString(R.string.asr_error_mic_permission_denied))
-            return
+            return false
         }
 
         if (!prefs.hasAsrKeys()) {
             Log.w(tag, "No ASR keys configured")
             showToast(context.getString(R.string.hint_need_keys))
-            return
+            return false
         }
 
         // 开始录音前切换为激活态图标
@@ -102,13 +131,16 @@ internal class FloatingAsrInteractionController(
             Log.w(tag, "Failed to reset icon to mic", e)
         }
 
+        volumeKeySessionActive = fromVolumeKey
         asrSessionManager.startRecording()
         updateVisibilityByPref("start_recording")
+        return true
     }
 
     private fun stopRecording() {
         Log.d(tag, "stopRecording called")
         cancelEdgeHandleAutoHide()
+        volumeKeySessionActive = false
         asrSessionManager.stopRecording()
         updateVisibilityByPref("stop_recording")
     }
@@ -116,6 +148,7 @@ internal class FloatingAsrInteractionController(
     private fun cancelCurrentSession() {
         Log.d(tag, "cancelCurrentSession called")
         cancelEdgeHandleAutoHide()
+        volumeKeySessionActive = false
         asrSessionManager.cancelSession()
         updateVisibilityByPref("cancel_session")
     }
@@ -278,6 +311,7 @@ internal class FloatingAsrInteractionController(
     }
 
     override fun onResultCommitted(text: String, success: Boolean) {
+        volumeKeySessionActive = false
         handler.post {
             if (success) {
                 viewManager.showCompletionTick()
@@ -365,6 +399,7 @@ internal class FloatingAsrInteractionController(
     }
 
     override fun onError(message: String) {
+        volumeKeySessionActive = false
         handler.post {
             val mapped = AsrErrorMessageMapper.map(context, message)
             if (mapped != null) {
@@ -1072,6 +1107,11 @@ internal class FloatingAsrInteractionController(
         } catch (e: Throwable) {
             Log.e(tag, "Failed to show toast: $message", e)
         }
+    }
+
+    private fun showVolumeKeyStatusToast(messageRes: Int) {
+        if (!prefs.volumeKeyStatusToastEnabled) return
+        showToast(context.getString(messageRes))
     }
 
     private fun hasRecordAudioPermission(): Boolean = ContextCompat.checkSelfPermission(

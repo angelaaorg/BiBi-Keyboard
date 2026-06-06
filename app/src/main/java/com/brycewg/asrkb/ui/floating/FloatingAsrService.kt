@@ -46,6 +46,9 @@ class FloatingAsrService : Service() {
         const val ACTION_HIDE = "com.brycewg.asrkb.action.FLOATING_ASR_HIDE"
         const val ACTION_RESET_POSITION = "com.brycewg.asrkb.action.FLOATING_ASR_RESET_POS"
         const val ACTION_REFRESH_UI = "com.brycewg.asrkb.action.FLOATING_ASR_REFRESH_UI"
+        const val ACTION_VOLUME_KEY_START = "com.brycewg.asrkb.action.VOLUME_KEY_RECORDING_START"
+        const val ACTION_VOLUME_KEY_STOP = "com.brycewg.asrkb.action.VOLUME_KEY_RECORDING_STOP"
+        const val ACTION_VOLUME_KEY_TOGGLE = "com.brycewg.asrkb.action.VOLUME_KEY_RECORDING_TOGGLE"
     }
 
     private lateinit var windowManager: WindowManager
@@ -85,6 +88,7 @@ class FloatingAsrService : Service() {
                     if (DebugLogManager.isRecording()) {
                         DebugLogManager.log("float", "hint", mapOf("action" to "HIDDEN"))
                     }
+                    interactionController.stopVolumeKeyRecordingOnImeHidden()
                     visibilityCoordinator.applyVisibility("hint_hidden")
                     try {
                         BluetoothRouteManager.setImeActive(this@FloatingAsrService, false)
@@ -198,6 +202,9 @@ class FloatingAsrService : Service() {
                 viewManager.applyBallAlpha()
                 viewManager.updateStateVisual(stateMachine.state, force = true)
             }
+            ACTION_VOLUME_KEY_START -> interactionController.onVolumeKeyStart()
+            ACTION_VOLUME_KEY_STOP -> interactionController.onVolumeKeyStop()
+            ACTION_VOLUME_KEY_TOGGLE -> interactionController.onVolumeKeyToggle()
             FloatingImeHints.ACTION_HINT_IME_VISIBLE -> {
                 imeVisible = true
                 if (DebugLogManager.isRecording()) {
@@ -215,6 +222,7 @@ class FloatingAsrService : Service() {
                 if (DebugLogManager.isRecording()) {
                     DebugLogManager.log("float", "hint", mapOf("action" to "HIDDEN"))
                 }
+                interactionController.stopVolumeKeyRecordingOnImeHidden()
                 visibilityCoordinator.applyVisibility("start_hint_hidden")
                 try {
                     BluetoothRouteManager.setImeActive(this, false)

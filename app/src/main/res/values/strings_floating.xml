@@ -1,8 +1,9 @@
 <resources>
     <!-- Floating ball related strings -->
 
-    <string name="title_floating_settings">Floating Settings</string>
-    <string name="section_floating_basic">Basic Settings</string>
+    <string name="title_floating_settings">More Input Methods</string>
+    <string name="section_floating_basic">Floating Ball Settings</string>
+    <string name="section_volume_key_recording">Volume Key Recording Mode</string>
     <string name="section_floating_compat">Compatibility</string>
     <string name="section_floating_keep_alive">Background Keep-Alive</string>
     <string name="label_floating_only_when_ime_visible">Only show floating ball when keyboard is visible</string>
@@ -23,6 +24,16 @@
     <string name="label_floating_write_paste_pkgs">Target packages (one per line)</string>
     <string name="hint_floating_write_paste_pkgs">Enter exact package names (e.g., com.tencent.mm). To apply globally, add a single line with all.</string>
     <string name="toast_need_accessibility_perm">Please enable Accessibility Service in system settings to support this feature</string>
+    <string name="label_volume_key_recording">Use volume keys for voice recognition</string>
+    <string name="label_volume_key_recording_mode">Volume key action</string>
+    <string name="option_volume_key_up_toggle">Volume+ starts / stops recording</string>
+    <string name="option_volume_key_down_toggle">Volume- starts / stops recording</string>
+    <string name="option_volume_key_up_start_down_stop">Volume+ starts, Volume- stops</string>
+    <string name="option_volume_key_down_start_up_stop">Volume- starts, Volume+ stops</string>
+    <string name="label_volume_key_status_toast">Recording status reminder</string>
+    <string name="label_volume_key_stop_on_ime_hidden">Stop recording when keyboard disappears</string>
+    <string name="toast_volume_key_recording_started">Recording started</string>
+    <string name="toast_volume_key_recording_stopped">Recording stopped</string>
     <string name="cd_floating_asr">Floating ball voice recognition</string>
     <string name="cd_floating_edge_handle">Show floating ball</string>
     <string name="toast_battery_whitelist_already">Already ignoring battery optimizations</string>
@@ -37,7 +48,7 @@
     <!-- Floating ASR status messages -->
     <string name="floating_asr_error">Recognition failed: %1$s</string>
     <string name="floating_asr_copied">Copied to clipboard</string>
-    <string name="accessibility_service_description">Allow floating ball to insert ASR results into the current input field. No data is collected or uploaded.</string>
+    <string name="accessibility_service_description">Allow floating ball and volume-key recording to insert ASR results into the current input field. No data is collected or uploaded.</string>
 
     <!-- Floating radial menu -->
     <string name="label_radial_switch_asr">Switch ASR provider</string>
@@ -77,6 +88,14 @@
     <!-- Floating direct drag -->
     <string name="feature_floating_direct_drag_off_desc">Moving the floating ball requires long-pressing to enter move mode or using the menu.</string>
     <string name="feature_floating_direct_drag_on_desc">You can drag the floating ball directly to reposition it.</string>
+
+    <!-- Volume key recording -->
+    <string name="feature_volume_key_recording_off_desc">Volume keys keep their normal system behavior and will not control recording.</string>
+    <string name="feature_volume_key_recording_on_desc">When a keyboard is visible, the Accessibility Service listens for volume key clicks to start or stop voice recognition. Long-press volume keys are not used.</string>
+    <string name="feature_volume_key_status_toast_off_desc">Volume key recording starts and stops silently, except for existing error prompts.</string>
+    <string name="feature_volume_key_status_toast_on_desc">Shows a short toast when volume keys successfully start or stop recording.</string>
+    <string name="feature_volume_key_stop_on_ime_hidden_off_desc">If the keyboard disappears while volume-key recording is active, recording continues until you stop it manually.</string>
+    <string name="feature_volume_key_stop_on_ime_hidden_on_desc">If the keyboard disappears while volume-key recording is active, recording stops automatically.</string>
 
     <!-- Floating write compatibility mode -->
     <string name="feature_floating_write_compat_off_desc">Uses standard Accessibility API to insert text. Works for most apps.</string>

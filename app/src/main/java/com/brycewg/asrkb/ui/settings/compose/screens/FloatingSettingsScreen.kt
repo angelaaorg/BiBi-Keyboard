@@ -30,11 +30,14 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.store.Prefs
 import com.brycewg.asrkb.ui.floating.FloatingServiceManager
+import com.brycewg.asrkb.ui.settings.compose.components.SettingsChoiceSheet
+import com.brycewg.asrkb.ui.settings.compose.components.SettingsChoiceSheetState
 import com.brycewg.asrkb.ui.settings.compose.components.SettingsFeatureExplainerDialog
 import com.brycewg.asrkb.ui.settings.compose.components.SettingsFeatureExplainerDialogState
 import com.brycewg.asrkb.ui.settings.compose.components.SettingsLazyColumn
 import com.brycewg.asrkb.ui.settings.compose.components.SettingsMessageDialog
 import com.brycewg.asrkb.ui.settings.compose.components.SettingsMessageDialogState
+import com.brycewg.asrkb.ui.settings.compose.components.settingsChoiceSheetState
 import com.brycewg.asrkb.ui.settings.compose.components.settingsFeatureExplainerDialogState
 import com.brycewg.asrkb.ui.settings.compose.core.BibiUiMode
 import com.brycewg.asrkb.ui.settings.compose.core.SettingsActionController
@@ -77,6 +80,8 @@ fun FloatingSettingsScreen(
     var settingsLoaded by remember(appContext) { mutableStateOf(false) }
     var pendingAsrEnable by remember { mutableStateOf(false) }
     var pendingAsrPermission by remember { mutableStateOf<FloatingPermissionRequest?>(null) }
+    var pendingVolumeKeyEnable by remember { mutableStateOf(false) }
+    var choiceSheet by remember { mutableStateOf<SettingsChoiceSheetState?>(null) }
     var featureExplainerDialog by remember { mutableStateOf<SettingsFeatureExplainerDialogState?>(null) }
     var messageDialog by remember { mutableStateOf<SettingsMessageDialogState?>(null) }
     val latestCompatPackages by rememberUpdatedState(compatPackages)
@@ -200,7 +205,25 @@ fun FloatingSettingsScreen(
         return true
     }
 
+    fun setVolumeKeyRecordingEnabled(enabled: Boolean) {
+        if (enabled && !isAccessibilityServiceEnabled(context)) {
+            pendingVolumeKeyEnable = true
+            showAccessibilityPermissionMessage()
+            requestAccessibilityPermission()
+            refreshState()
+            return
+        }
+        pendingVolumeKeyEnable = false
+        prefs.volumeKeyRecordingEnabled = enabled
+        refreshState()
+    }
+
     fun syncAsrToggleAfterPermissions() {
+        if (pendingVolumeKeyEnable && isAccessibilityServiceEnabled(context)) {
+            setVolumeKeyRecordingEnabled(true)
+            return
+        }
+
         if (pendingAsrEnable) {
             val hasOverlay = Settings.canDrawOverlays(context)
             val hasAccessibility = isAccessibilityServiceEnabled(context)
@@ -309,7 +332,40 @@ fun FloatingSettingsScreen(
         )
     }
 
+    fun volumeKeyModeLabel(mode: String): String = context.getString(
+        when (mode) {
+            Prefs.VOLUME_KEY_MODE_DOWN_TOGGLE -> R.string.option_volume_key_down_toggle
+            Prefs.VOLUME_KEY_MODE_UP_START_DOWN_STOP -> R.string.option_volume_key_up_start_down_stop
+            Prefs.VOLUME_KEY_MODE_DOWN_START_UP_STOP -> R.string.option_volume_key_down_start_up_stop
+            else -> R.string.option_volume_key_up_toggle
+        }
+    )
+
+    fun showVolumeKeyModeSheet() {
+        val modes = listOf(
+            Prefs.VOLUME_KEY_MODE_UP_TOGGLE,
+            Prefs.VOLUME_KEY_MODE_DOWN_TOGGLE,
+            Prefs.VOLUME_KEY_MODE_UP_START_DOWN_STOP,
+            Prefs.VOLUME_KEY_MODE_DOWN_START_UP_STOP
+        )
+        val selectedIndex = modes.indexOf(uiState.volumeKeyRecordingMode).takeIf { it >= 0 } ?: 0
+        choiceSheet = settingsChoiceSheetState(
+            title = context.getString(R.string.label_volume_key_recording_mode),
+            items = modes.map { volumeKeyModeLabel(it) },
+            selectedIndex = selectedIndex,
+            onChoiceClick = actions::hapticTap
+        ) { index ->
+            prefs.volumeKeyRecordingMode = modes.getOrElse(index) { Prefs.VOLUME_KEY_MODE_UP_TOGGLE }
+            refreshState()
+        }
+    }
+
     FloatingScaffold(uiMode = uiMode, onBack = onBack) { innerPadding, scrollModifier ->
+        SettingsChoiceSheet(
+            state = choiceSheet,
+            uiMode = uiMode,
+            onDismiss = { choiceSheet = null }
+        )
         SettingsFeatureExplainerDialog(
             state = featureExplainerDialog,
             uiMode = uiMode,
@@ -453,6 +509,79 @@ fun FloatingSettingsScreen(
                                 }
                                 showFloatingMessage(messageRes)
                             }
+                        )
+                    }
+                }
+            }
+
+            item("volume_key") {
+                FloatingSection(uiMode = uiMode, titleRes = R.string.section_volume_key_recording) {
+                    val volumeItemCount = if (uiState.volumeKeyRecordingEnabled) 4 else 1
+                    FloatingExplainedSwitch(
+                        id = "volume_key_recording",
+                        titleRes = R.string.label_volume_key_recording,
+                        checked = uiState.volumeKeyRecordingEnabled,
+                        onToggle = { target ->
+                            actions.hapticTap()
+                            applyExplainedSwitch(
+                                current = uiState.volumeKeyRecordingEnabled,
+                                target = target,
+                                titleRes = R.string.label_volume_key_recording,
+                                offDescRes = R.string.feature_volume_key_recording_off_desc,
+                                onDescRes = R.string.feature_volume_key_recording_on_desc,
+                                preferenceKey = "volume_key_recording_explained"
+                            ) { setVolumeKeyRecordingEnabled(it) }
+                        },
+                        index = 0,
+                        count = volumeItemCount
+                    )
+                    if (uiState.volumeKeyRecordingEnabled) {
+                        FloatingValuePreference(
+                            titleRes = R.string.label_volume_key_recording_mode,
+                            value = volumeKeyModeLabel(uiState.volumeKeyRecordingMode),
+                            uiMode = uiMode,
+                            index = 1,
+                            count = volumeItemCount,
+                            onClick = {
+                                actions.hapticTap()
+                                showVolumeKeyModeSheet()
+                            }
+                        )
+                        FloatingExplainedSwitch(
+                            id = "volume_key_status_toast",
+                            titleRes = R.string.label_volume_key_status_toast,
+                            checked = uiState.volumeKeyStatusToastEnabled,
+                            onToggle = { target ->
+                                actions.hapticTap()
+                                applyExplainedSwitch(
+                                    current = uiState.volumeKeyStatusToastEnabled,
+                                    target = target,
+                                    titleRes = R.string.label_volume_key_status_toast,
+                                    offDescRes = R.string.feature_volume_key_status_toast_off_desc,
+                                    onDescRes = R.string.feature_volume_key_status_toast_on_desc,
+                                    preferenceKey = "volume_key_status_toast_explained"
+                                ) { prefs.volumeKeyStatusToastEnabled = it }
+                            },
+                            index = 2,
+                            count = volumeItemCount
+                        )
+                        FloatingExplainedSwitch(
+                            id = "volume_key_stop_on_ime_hidden",
+                            titleRes = R.string.label_volume_key_stop_on_ime_hidden,
+                            checked = uiState.volumeKeyStopOnImeHidden,
+                            onToggle = { target ->
+                                actions.hapticTap()
+                                applyExplainedSwitch(
+                                    current = uiState.volumeKeyStopOnImeHidden,
+                                    target = target,
+                                    titleRes = R.string.label_volume_key_stop_on_ime_hidden,
+                                    offDescRes = R.string.feature_volume_key_stop_on_ime_hidden_off_desc,
+                                    onDescRes = R.string.feature_volume_key_stop_on_ime_hidden_on_desc,
+                                    preferenceKey = "volume_key_stop_on_ime_hidden_explained"
+                                ) { prefs.volumeKeyStopOnImeHidden = it }
+                            },
+                            index = 3,
+                            count = volumeItemCount
                         )
                     }
                 }

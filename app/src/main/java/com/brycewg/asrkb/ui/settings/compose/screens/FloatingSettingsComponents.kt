@@ -40,6 +40,7 @@ import com.brycewg.asrkb.ui.settings.compose.components.SettingsPreference
 import com.brycewg.asrkb.ui.settings.compose.components.SettingsSectionContainer
 import com.brycewg.asrkb.ui.settings.compose.components.SettingsSliderPreference
 import com.brycewg.asrkb.ui.settings.compose.components.SettingsTextField
+import com.brycewg.asrkb.ui.settings.compose.components.SettingsValuePreference
 import com.brycewg.asrkb.ui.settings.compose.core.BibiUiMode
 import com.brycewg.asrkb.ui.settings.compose.core.SettingsLayoutMetrics
 import com.brycewg.asrkb.ui.settings.compose.model.SettingsEntry
@@ -213,6 +214,25 @@ internal fun FloatingSliderPreference(
         count = count,
         onValueChange = { onValueChange(it.roundFloatingToStep(step)) },
         onValueChangeFinished = onValueChangeFinished
+    )
+}
+
+@Composable
+internal fun FloatingValuePreference(
+    titleRes: Int,
+    value: String,
+    uiMode: BibiUiMode,
+    index: Int = 0,
+    count: Int = 1,
+    onClick: () -> Unit
+) {
+    SettingsValuePreference(
+        titleRes = titleRes,
+        value = value,
+        uiMode = uiMode,
+        index = index,
+        count = count,
+        onClick = onClick
     )
 }
 
