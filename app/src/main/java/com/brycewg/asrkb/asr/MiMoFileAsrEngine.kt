@@ -116,7 +116,7 @@ class MiMoFileAsrEngine(
             val t0 = System.nanoTime()
             val resp = http.newCall(request).execute()
             resp.use { r ->
-                val bodyStr = r.body?.string().orEmpty()
+                val bodyStr = r.body.string().orEmpty()
                 if (!r.isSuccessful) {
                     val extra = extractErrorHint(bodyStr)
                     val detail = formatHttpDetail(r.message, extra)

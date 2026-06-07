@@ -347,7 +347,7 @@ object AnalyticsManager {
                     Log.w(TAG, "Fetch consent list failed: code=${res.code}")
                     return null
                 }
-                val body = res.body?.string().orEmpty()
+                val body = res.body.string().orEmpty()
                 val parsed = json.decodeFromString<PbListResponse<ConsentItem>>(body)
                 parsed.items.firstOrNull()?.id
             }

@@ -65,12 +65,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -124,7 +122,6 @@ internal fun KeyboardLayoutEditorScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
-    val clipboard = LocalClipboardManager.current
     val prefs = remember(context) { Prefs(context) }
     val registry = remember { BlockDefRegistry.default }
     var bundle by remember { mutableStateOf(KeyboardLayoutStore.load(prefs)) }
@@ -155,7 +152,6 @@ internal fun KeyboardLayoutEditorScreen(
     }
 
     fun copyJsonToClipboard(text: String = KeyboardLayoutStore.encodeBundle(bundle)) {
-        clipboard.setText(AnnotatedString(text))
         copyToSystemClipboard(context, text)
         showMessage(context.getString(R.string.keyboard_layout_export_copied))
     }

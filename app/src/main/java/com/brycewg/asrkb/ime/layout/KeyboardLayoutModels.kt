@@ -61,8 +61,8 @@ data class BlockPlacement(
 
 data class BlockDef(
     val id: String,
-    @StringRes val labelRes: Int,
-    @DrawableRes val iconRes: Int?,
+    @param:StringRes val labelRes: Int,
+    @param:DrawableRes val iconRes: Int?,
     val viewKind: ButtonViewKind,
     val allowedSizes: List<BlockSize>,
     val defaultSize: BlockSize,

@@ -723,7 +723,7 @@ class LlmPostProcessor(private val client: OkHttpClient? = null) {
         if (!resp.isSuccessful) {
             val code = resp.code
             val err = try {
-                resp.body?.string()
+                resp.body.string()
             } catch (_: Throwable) {
                 null
             } finally {
@@ -736,10 +736,7 @@ class LlmPostProcessor(private val client: OkHttpClient? = null) {
         }
 
         val text = try {
-            val body = resp.body ?: run {
-                Log.w(TAG, "Response body is null")
-                return RawCallResult(false, error = "Empty body")
-            }
+            val body = resp.body
 
             val contentType =
                 resp.header("Content-Type") ?: body.contentType()?.toString().orEmpty()
@@ -901,7 +898,7 @@ class LlmPostProcessor(private val client: OkHttpClient? = null) {
         val code = resp.code
         val isSuccessful = resp.isSuccessful
         val rawBody = try {
-            resp.body?.string().orEmpty()
+            resp.body.string().orEmpty()
         } catch (t: Throwable) {
             Log.w(TAG, "Read /models response failed", t)
             ""

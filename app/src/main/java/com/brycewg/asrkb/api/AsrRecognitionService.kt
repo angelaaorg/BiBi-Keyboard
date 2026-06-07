@@ -526,13 +526,13 @@ class AsrRecognitionService : RecognitionService() {
                             }
                         }
                         if (typewriter != null && aiUsed && finalOut.isNotEmpty()) {
-                            typewriter?.submit(finalOut, rush = true)
+                            typewriter.submit(finalOut, rush = true)
                             val finalLen = finalOut.length
                             val t0 = SystemClock.uptimeMillis()
                             while (!canceled &&
                                 !finished &&
                                 (SystemClock.uptimeMillis() - t0) < 2_000L &&
-                                typewriter?.currentText()?.length != finalLen
+                                typewriter.currentText().length != finalLen
                             ) {
                                 delay(20)
                             }

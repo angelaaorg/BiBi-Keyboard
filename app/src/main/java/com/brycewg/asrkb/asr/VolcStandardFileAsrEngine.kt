@@ -212,7 +212,7 @@ class VolcStandardFileAsrEngine(
                     )
                 }
                 val message = resp.header("X-Api-Message") ?: resp.message
-                val bodyStr = resp.body?.string().orEmpty()
+                val bodyStr = resp.body.string().orEmpty()
                 when (status) {
                     20000000L -> {
                         val text = extractText(bodyStr)

@@ -213,7 +213,7 @@ class DashscopeFileAsrEngine(
             val t0 = System.nanoTime()
             val response = http.newCall(request).execute()
             response.use { r ->
-                val bodyStr = r.body?.string().orEmpty()
+                val bodyStr = r.body.string().orEmpty()
                 if (!r.isSuccessful) {
                     val detail = formatHttpDetail(r.message, extractErrorHint(bodyStr))
                     listener.onError(

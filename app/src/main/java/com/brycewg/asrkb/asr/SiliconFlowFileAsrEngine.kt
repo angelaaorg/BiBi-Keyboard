@@ -149,7 +149,7 @@ class SiliconFlowFileAsrEngine(
 
             val resp = http.newCall(request).execute()
             resp.use { r ->
-                val bodyStr = r.body?.string().orEmpty()
+                val bodyStr = r.body.string().orEmpty()
                 if (!r.isSuccessful) {
                     val detail = formatHttpDetail(r.message, null)
                     listener.onError(
@@ -218,7 +218,7 @@ class SiliconFlowFileAsrEngine(
                 .build()
             val resp = http.newCall(request).execute()
             resp.use { r ->
-                val str = r.body?.string().orEmpty()
+                val str = r.body.string().orEmpty()
                 if (!r.isSuccessful) {
                     val detail = formatHttpDetail(r.message, null)
                     listener.onError(
@@ -274,7 +274,7 @@ class SiliconFlowFileAsrEngine(
                         )
                         return
                     }
-                    val bodyStr = r.body?.string().orEmpty()
+                    val bodyStr = r.body.string().orEmpty()
                     val text = try {
                         val obj = JSONObject(bodyStr)
                         obj.optString("text", "")

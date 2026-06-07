@@ -340,7 +340,7 @@ class ApkDownloadService : Service() {
                     throw Exception("HTTP ${resp.code}")
                 }
 
-                val body = resp.body ?: throw Exception("Empty response body")
+                val body = resp.body
                 val totalBytes = body.contentLength()
 
                 apkFile.outputStream().use { outputStream ->

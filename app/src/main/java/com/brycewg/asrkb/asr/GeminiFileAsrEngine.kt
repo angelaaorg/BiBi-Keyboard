@@ -94,7 +94,7 @@ class GeminiFileAsrEngine(
             val t0 = System.nanoTime()
             val resp = http.newCall(req).execute()
             resp.use { r ->
-                val str = r.body?.string().orEmpty()
+                val str = r.body.string().orEmpty()
                 if (!r.isSuccessful) {
                     val hint = extractGeminiError(str)
                     val detail = formatHttpDetail(r.message, hint)

@@ -136,7 +136,7 @@ class SonioxFileAsrEngine(
             .build()
         val resp = http.newCall(req).execute()
         resp.use { r ->
-            val body = r.body?.string().orEmpty()
+            val body = r.body.string().orEmpty()
             if (!r.isSuccessful) {
                 val detail = formatHttpDetail(r.message, extractErrorHint(body))
                 throw RuntimeException(
@@ -186,7 +186,7 @@ class SonioxFileAsrEngine(
             .build()
         val resp = http.newCall(req).execute()
         resp.use { r ->
-            val body = r.body?.string().orEmpty()
+            val body = r.body.string().orEmpty()
             if (!r.isSuccessful) {
                 val detail = formatHttpDetail(r.message, extractErrorHint(body))
                 throw RuntimeException(
@@ -221,7 +221,7 @@ class SonioxFileAsrEngine(
                 .build()
             val resp = http.newCall(req).execute()
             resp.use { r ->
-                val body = r.body?.string().orEmpty()
+                val body = r.body.string().orEmpty()
                 if (!r.isSuccessful) {
                     val detail = formatHttpDetail(r.message, extractErrorHint(body))
                     throw RuntimeException(
@@ -270,7 +270,7 @@ class SonioxFileAsrEngine(
             .build()
         val resp = http.newCall(req).execute()
         resp.use { r ->
-            val body = r.body?.string().orEmpty()
+            val body = r.body.string().orEmpty()
             if (!r.isSuccessful) {
                 val detail = formatHttpDetail(r.message, extractErrorHint(body))
                 throw RuntimeException(

@@ -100,7 +100,7 @@ class VolcFileAsrEngine(
                     )
                     return
                 }
-                val bodyStr = resp.body?.string().orEmpty()
+                val bodyStr = resp.body.string().orEmpty()
                 val text = try {
                     val obj = JSONObject(bodyStr)
                     if (obj.has("result")) {

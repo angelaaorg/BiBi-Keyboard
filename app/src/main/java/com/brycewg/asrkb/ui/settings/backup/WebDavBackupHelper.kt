@@ -139,7 +139,7 @@ object WebDavBackupHelper {
         webDavClient.newCall(requestBuilder.build()).execute().use { response ->
             return when {
                 response.code == 404 -> throw WebDavHttpException(response.code, response.message)
-                response.isSuccessful -> response.body?.string().orEmpty()
+                response.isSuccessful -> response.body.string().orEmpty()
                 else -> throw WebDavHttpException(response.code, response.message)
             }
         }

@@ -5,9 +5,9 @@ import androidx.annotation.StringRes
 import com.brycewg.asrkb.R
 
 enum class AsrVendorTag(
-    @StringRes val labelResId: Int,
-    @ColorRes val bgColorResId: Int,
-    @ColorRes val textColorResId: Int
+    @param:StringRes val labelResId: Int,
+    @param:ColorRes val bgColorResId: Int,
+    @param:ColorRes val textColorResId: Int
 ) {
     Online(
         labelResId = R.string.asr_vendor_tag_online,

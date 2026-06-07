@@ -602,7 +602,7 @@ class ModelDownloadService : Service() {
                     throw IllegalStateException("HTTP ${resp.code}")
                 }
 
-                val body = resp.body ?: throw IllegalStateException("empty body")
+                val body = resp.body
                 val total = body.contentLength()
 
                 cacheFile.outputStream().use { out ->

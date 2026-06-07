@@ -1,6 +1,5 @@
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose") version "2.3.21"
     id("org.jetbrains.kotlin.plugin.serialization") version "2.3.21"
 }
@@ -79,13 +78,7 @@ android {
         viewBinding = true
         buildConfig = true
         compose = true
-    }
-
-    // 确保识别 AIDL 源目录
-    sourceSets {
-        getByName("main") {
-            aidl.srcDirs("src/main/aidl")
-        }
+        resValues = true
     }
 
     // 安装包不分语言 split，便于手动切换

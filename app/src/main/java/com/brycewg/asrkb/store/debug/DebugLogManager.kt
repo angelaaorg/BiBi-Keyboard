@@ -475,7 +475,8 @@ object DebugLogManager {
     private fun appendLineDirect(context: Context, line: String) {
         try {
             val file = activeLogFile(context)
-            if (!file.parentFile.exists()) file.parentFile.mkdirs()
+            val parent = file.parentFile
+            if (parent != null && !parent.exists()) parent.mkdirs()
             if (!file.exists()) file.createNewFile()
             if (file.length() > MAX_BYTES) {
                 truncateKeepTail(file, KEEP_BYTES)

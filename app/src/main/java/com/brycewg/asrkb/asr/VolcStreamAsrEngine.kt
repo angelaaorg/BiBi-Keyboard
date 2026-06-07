@@ -454,7 +454,7 @@ class VolcStreamAsrEngine(
             if (prebuffer.isNotEmpty()) {
                 flushed = prebuffer.toTypedArray()
                 prebuffer.clear()
-                Log.d(TAG, "Flushing ${flushed!!.size} prebuffered frames")
+                Log.d(TAG, "Flushing ${flushed.size} prebuffered frames")
             }
         }
         flushed?.forEach { b ->

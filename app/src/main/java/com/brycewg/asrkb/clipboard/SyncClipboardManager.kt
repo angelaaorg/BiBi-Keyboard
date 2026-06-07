@@ -329,7 +329,7 @@ class SyncClipboardManager(
                         .build()
                 },
                 responseHandler = { resp ->
-                    val body = resp.body?.string()?.takeIf { it.isNotEmpty() }
+                    val body = resp.body.string().takeIf { it.isNotEmpty() }
                     if (body == null) {
                         Log.w(TAG, "Pull response body is empty")
                         return@executeRequestWithAuth null
@@ -452,8 +452,8 @@ class SyncClipboardManager(
                     .build()
             },
             responseHandler = { resp ->
-                val text = resp.body?.string()
-                if (text.isNullOrEmpty()) {
+                val text = resp.body.string()
+                if (text.isEmpty()) {
                     Log.w(TAG, "Downloaded text data is empty: $dataName")
                     return@executeRequestWithAuth null
                 }
@@ -581,13 +581,14 @@ class SyncClipboardManager(
      * @return 是否下载成功
      */
     fun downloadFile(entryId: String, progressCallback: ((Long, Long) -> Unit)? = null): Boolean {
-        val entry = clipboardStore?.getEntryById(entryId) ?: return false
+        val store = clipboardStore ?: return false
+        val entry = store.getEntryById(entryId) ?: return false
         val serverFileName = entry.serverFileName ?: entry.fileName ?: return false
 
         // 检查是否已下载
         if (fileManager.fileExists(serverFileName, entry.fileSize)) {
             Log.d(TAG, "File already downloaded: $serverFileName")
-            clipboardStore?.updateFileEntry(
+            store.updateFileEntry(
                 entryId,
                 fileManager.getFile(serverFileName).absolutePath,
                 DownloadStatus.COMPLETED
@@ -596,7 +597,7 @@ class SyncClipboardManager(
         }
 
         // 更新状态为下载中
-        clipboardStore?.updateFileEntry(entryId, null, DownloadStatus.DOWNLOADING)
+        store.updateFileEntry(entryId, null, DownloadStatus.DOWNLOADING)
 
         val (ok, localPath) = downloadFileDirectInternal(
             serverFileName = serverFileName,
@@ -605,11 +606,11 @@ class SyncClipboardManager(
         )
 
         if (ok && localPath != null) {
-            clipboardStore?.updateFileEntry(entryId, localPath, DownloadStatus.COMPLETED)
+            store.updateFileEntry(entryId, localPath, DownloadStatus.COMPLETED)
             return true
         }
 
-        clipboardStore?.updateFileEntry(entryId, null, DownloadStatus.FAILED)
+        store.updateFileEntry(entryId, null, DownloadStatus.FAILED)
         return false
     }
 
@@ -680,10 +681,7 @@ class SyncClipboardManager(
                     return false to null
                 }
 
-                val body = resp.body ?: run {
-                    Log.w(TAG, "Download body is null for: $serverFileName")
-                    return false to null
-                }
+                val body = resp.body
 
                 val totalBytes = body.contentLength()
                 val localPath = fileManager.saveFile(

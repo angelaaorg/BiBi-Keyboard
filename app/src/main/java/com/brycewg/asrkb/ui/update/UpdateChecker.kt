@@ -180,7 +180,7 @@ class UpdateChecker(private val context: Context) {
                 throw Exception("HTTP ${response.code}")
             }
 
-            val body = response.body?.string()
+            val body = response.body.string()
                 ?: throw Exception("Empty response body")
 
             val json = JSONObject(body)

@@ -160,11 +160,12 @@ object BluetoothRouteManager {
             scoStarted = false
         }
         if (audioModeChanged) {
+            val mode = previousAudioMode
             try {
-                if (previousAudioMode !=
+                if (mode !=
                     null
                 ) {
-                    am.mode = previousAudioMode!!
+                    am.mode = mode
                 }
             } catch (t: Throwable) {
                 Log.w(TAG, "restore audio mode", t)

@@ -227,9 +227,9 @@ object ApiLogRecorder {
 
     private fun buildResponseSummary(response: Response?): String {
         if (response == null) return ""
-        val type = response.body?.contentType()?.toString().orEmpty()
+        val type = response.body.contentType()?.toString().orEmpty()
         val length = try {
-            response.body?.contentLength() ?: -1L
+            response.body.contentLength()
         } catch (_: Throwable) {
             -1L
         }

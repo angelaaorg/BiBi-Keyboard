@@ -69,10 +69,11 @@ internal class ClipboardPanelController(
     fun hide() {
         if (!isVisible) return
         views.layoutClipboardPanel?.visibility = View.GONE
-        val lp = views.layoutClipboardPanel?.layoutParams
+        val clipboardPanel = views.layoutClipboardPanel
+        val lp = clipboardPanel?.layoutParams
         if (lp != null) {
             lp.height = ViewGroup.LayoutParams.WRAP_CONTENT
-            views.layoutClipboardPanel?.layoutParams = lp
+            clipboardPanel.layoutParams = lp
         }
         views.layoutMainKeyboard?.visibility = View.VISIBLE
         views.groupMicStatus?.visibility = View.VISIBLE

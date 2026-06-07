@@ -213,7 +213,7 @@ internal class ImeLayoutController(
             }
         }
         refs?.btnMic?.let { mic ->
-            val group = refs?.groupMicStatus
+            val group = refs.groupMicStatus
             val groupSize = listOfNotNull(
                 group?.dimensionOrLayoutParam(isWidth = true),
                 group?.dimensionOrLayoutParam(isWidth = false)

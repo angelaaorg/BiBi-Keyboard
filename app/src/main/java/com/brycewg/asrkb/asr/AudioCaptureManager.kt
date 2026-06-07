@@ -229,7 +229,7 @@ class AudioCaptureManager(
                     if (preferredInputDevice != null) {
                         Log.i(
                             TAG,
-                            "Preferred input device: ${preferredInputDevice!!.productName} (type=${preferredInputDevice!!.type})"
+                            "Preferred input device: ${preferredInputDevice.productName} (type=${preferredInputDevice.type})"
                         )
                     }
 
@@ -466,9 +466,10 @@ class AudioCaptureManager(
             if (scoStarted && !scoWasOnBefore) {
                 stopScoCompat(audioManager)
             }
-            if (audioModeChanged && previousAudioMode != null) {
+            val mode = previousAudioMode
+            if (audioModeChanged && mode != null) {
                 try {
-                    audioManager.mode = previousAudioMode!!
+                    audioManager.mode = mode
                 } catch (t: Throwable) {
                     Log.w(TAG, "Failed to restore audio mode", t)
                 }
@@ -757,7 +758,7 @@ class AudioCaptureManager(
                         }
                     }
                     val l = AudioManager.OnCommunicationDeviceChangedListener { dev ->
-                        selected?.let { sel ->
+                        selected.let { sel ->
                             if (dev != null && dev.id == sel.id) {
                                 val dt = if (t0 >
                                     0
@@ -896,7 +897,8 @@ class AudioCaptureManager(
                     }
                     cont.invokeOnCancellation {
                         try {
-                            receiver?.let { context.unregisterReceiver(it) }
+                            val registeredReceiver = receiver
+                            if (registeredReceiver != null) context.unregisterReceiver(registeredReceiver)
                         } catch (
                             _: Throwable
                         ) {}

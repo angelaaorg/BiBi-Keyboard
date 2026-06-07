@@ -311,7 +311,7 @@ class InputConnectionHelper(private val tag: String = "InputConnectionHelper") {
             Log.e(tag, "sendBackspace failed, trying fallback", e)
             // 兜底：删除光标前一个字符
             try {
-                ic?.deleteSurroundingText(1, 0)
+                ic.deleteSurroundingText(1, 0)
                 true
             } catch (e2: Throwable) {
                 Log.e(tag, "sendBackspace fallback failed", e2)
