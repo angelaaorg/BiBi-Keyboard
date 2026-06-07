@@ -11,6 +11,15 @@ val packagedAbiFilters = (findProperty("abiFilters") as String?)
     ?.takeIf { it.isNotEmpty() }
     ?: listOf("arm64-v8a")
 
+configurations.matching { it.name == "composeMappingProducerClasspath" }.configureEach {
+    resolutionStrategy.eachDependency {
+        if (requested.group == "org.jetbrains.kotlin" && requested.name == "compose-group-mapping") {
+            useVersion("2.3.21")
+            because("AGP 9.2.1 requests 2.2.10, but compose-group-mapping is published from Kotlin 2.3.0.")
+        }
+    }
+}
+
 android {
     namespace = "com.brycewg.asrkb"
     compileSdk = 37
@@ -19,7 +28,7 @@ android {
         applicationId = "com.brycewg.asrkb"
         minSdk = 26
         targetSdk = 35
-        versionCode = 156
+        versionCode = 157
         versionName = "4.0.0"
 
         // 默认仅构建 arm64-v8a 以减小包体体积；CI 可通过 -PabiFilters=armeabi-v7a 单独出包。
