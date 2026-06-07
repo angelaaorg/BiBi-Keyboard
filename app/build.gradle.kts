@@ -19,8 +19,8 @@ android {
         applicationId = "com.brycewg.asrkb"
         minSdk = 26
         targetSdk = 35
-        versionCode = 155
-        versionName = "3.16.1"
+        versionCode = 156
+        versionName = "4.0.0"
 
         // 默认仅构建 arm64-v8a 以减小包体体积；CI 可通过 -PabiFilters=armeabi-v7a 单独出包。
         ndk {

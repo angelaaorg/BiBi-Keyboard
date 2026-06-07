@@ -1,5 +1,43 @@
 # Changelog
 
+## v4.0.0 (2026-06-07)
+
+### Major Changes
+
+- **Settings Compose Migration**: Migrated all settings pages from traditional XML layouts to Jetpack Compose
+- **Keyboard and Floating Ball UI Refactor**: Refactored keyboard and floating ball UI using Compose for improved maintainability and rendering performance
+- **Custom Keyboard Layout**: Support for customizing keyboard layout and content on canvas
+- **[Pro] Theme Color System Refactor**: Refactored the theme color system with added AMOLED mode and multiple Monet dynamic color support
+
+### New Features
+
+- **MiMo ASR Online Recognition**: Added MiMo online ASR vendor support with multimodal and ASR models
+- **X-ASR Local Streaming Engine**: Introduced X-ASR engine to replace Paraformer, supporting local streaming recognition
+- **Volume Key Recording Control**: Support for volume key recording start/stop via accessibility permission
+- **Recording Test and Analysis Page**: Added recording test and analysis page
+- **Recording Mode Switch Extension Button**: Added microphone recording mode switch extension button
+- **Miuix Library Integration**: Integrated the Miuix component library to enhance settings page UI experience
+- **Trailing Punctuation Removal Threshold**: Added configurable character count threshold for removing trailing punctuation and emoji
+- **OpenAI Completions API**: OpenAI ASR channel supports calling multimodal models via the completions interface for transcription
+- **[Pro] Hotword Enhancement Mode**: Added phoneme-based hotword enhancement mode, dynamically replacing recognition results based on phoneme matching
+- **[Pro] MiMo Context Injection**: Added context injection support for MiMo multimodal models
+- **[Pro] Regex Post-Processing Order Option**: Added option to run regex before AI post-processing, with feature description dialog
+
+### Improvements
+
+- **Local ITN Algorithm Refactoring**: Refactored the local model Chinese ITN module, covering more use cases
+- Upgraded sherpa-onnx to 1.13.2
+- Implemented hash integrity check for local models
+- Improved numerous component UI details and copy
+- Optimized accessibility permission detection and handling
+
+### Bug Fixes
+
+- Fixed mimo-v2.5 request body construction and response parsing
+- Optimized accessibility event processing and settings page recomposition performance
+
+---
+
 ## v3.16.1 (2026-05-23)
 
 ### New Features
