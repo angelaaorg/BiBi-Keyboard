@@ -33,7 +33,7 @@ class SonioxFileAsrEngine(
 
     companion object {
         private const val TAG = "SonioxFileAsrEngine"
-        private const val MODEL = "stt-async-v4"
+        private const val MODEL = "stt-async-v5"
     }
 
     // Soniox：未明确限制，本地限制为 1 小时
