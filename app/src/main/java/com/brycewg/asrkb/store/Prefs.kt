@@ -94,8 +94,22 @@ class Prefs(context: Context) {
         set(value) = sp.edit { putBoolean(KEY_TRIM_FINAL_TRAILING_PUNCT, value) }
 
     var trimFinalTrailingPunctThreshold: Int
-        get() = sp.getInt(KEY_TRIM_FINAL_TRAILING_PUNCT_THRESHOLD, 100).coerceIn(1, 100)
-        set(value) = sp.edit { putInt(KEY_TRIM_FINAL_TRAILING_PUNCT_THRESHOLD, value.coerceIn(1, 100)) }
+        get() = sp.getInt(
+            KEY_TRIM_FINAL_TRAILING_PUNCT_THRESHOLD,
+            DEFAULT_TRIM_FINAL_TRAILING_PUNCT_THRESHOLD
+        ).coerceIn(
+            TRIM_FINAL_TRAILING_PUNCT_THRESHOLD_MIN,
+            TRIM_FINAL_TRAILING_PUNCT_THRESHOLD_UNLIMITED
+        )
+        set(value) = sp.edit {
+            putInt(
+                KEY_TRIM_FINAL_TRAILING_PUNCT_THRESHOLD,
+                value.coerceIn(
+                    TRIM_FINAL_TRAILING_PUNCT_THRESHOLD_MIN,
+                    TRIM_FINAL_TRAILING_PUNCT_THRESHOLD_UNLIMITED
+                )
+            )
+        }
 
     // 移除：键盘内“切换输入法”按钮显示开关（按钮始终显示）
 
@@ -1653,6 +1667,11 @@ class Prefs(context: Context) {
         const val DEFAULT_HAPTIC_FEEDBACK_LEVEL = HAPTIC_FEEDBACK_LEVEL_SYSTEM
         private const val IME_FLOATING_KEYBOARD_WIDTH_SCALE_MIN = 0.6f
         // SharedPreferences keys 见 PrefsKeys.kt
+
+        const val TRIM_FINAL_TRAILING_PUNCT_THRESHOLD_MIN = 0
+        const val TRIM_FINAL_TRAILING_PUNCT_THRESHOLD_MAX_FINITE = 99
+        const val TRIM_FINAL_TRAILING_PUNCT_THRESHOLD_UNLIMITED = 100
+        const val DEFAULT_TRIM_FINAL_TRAILING_PUNCT_THRESHOLD = TRIM_FINAL_TRAILING_PUNCT_THRESHOLD_UNLIMITED
 
         const val DEFAULT_ENDPOINT = "https://openspeech.bytedance.com/api/v3/auc/bigmodel/recognize/flash"
         const val SF_ENDPOINT = "https://api.siliconflow.cn/v1/audio/transcriptions"

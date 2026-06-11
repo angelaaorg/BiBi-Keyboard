@@ -163,6 +163,7 @@
   <string name="label_trim_trailing_punct">Remove trailing punctuation and emoji</string>
   <string name="label_trim_trailing_punct_threshold">Removal threshold</string>
   <string name="trim_trailing_punct_threshold_value">Within %1$d words/chars</string>
+  <string name="trim_trailing_punct_threshold_unlimited">Unlimited</string>
   <string name="label_mic_haptic">Haptic feedback for keys and floating ball</string>
   <string name="label_mic_tap_toggle">Tap to start/stop recording</string>
   <string name="label_test_input">Try the IME</string>
@@ -318,7 +319,7 @@
   <!-- ============================================== -->
   <!-- Trim trailing punctuation -->
   <string name="feature_trim_trailing_punct_off_desc">Recognition results will keep all content as is.</string>
-  <string name="feature_trim_trailing_punct_on_desc">Short recognition results will remove trailing punctuation and emoji; longer results keep their ending punctuation and emoji.</string>
+  <string name="feature_trim_trailing_punct_on_desc">Recognition results within the threshold will remove trailing punctuation and emoji. Set the threshold to Unlimited to apply it to any length.</string>
 
   <!-- Mic haptic -->
   <string name="feature_mic_haptic_off_desc">No haptic feedback when pressing keys or interacting with the floating ball.</string>

@@ -161,6 +161,7 @@
   <string name="label_trim_trailing_punct">去除句末標點與 emoji</string>
   <string name="label_trim_trailing_punct_threshold">去除閾值</string>
   <string name="trim_trailing_punct_threshold_value">%1$d 字詞以內</string>
+  <string name="trim_trailing_punct_threshold_unlimited">無限制</string>
   <string name="label_mic_haptic">按鍵與懸浮球震動回饋</string>
   <string name="label_mic_tap_toggle">鍵盤錄音使用點按啟停</string>
   <string name="label_test_input">體驗輸入</string>
@@ -316,7 +317,7 @@
   <!-- ============================================== -->
   <!-- 去除句末標點 -->
   <string name="feature_trim_trailing_punct_off_desc">識別結果保留所有內容。</string>
-  <string name="feature_trim_trailing_punct_on_desc">短識別結果將自動去除句末標點和 emoji，超過閾值的長文字保留句末標點和 emoji。</string>
+  <string name="feature_trim_trailing_punct_on_desc">閾值以內的辨識結果將自動去除句末標點和 emoji。將閾值設為無限制時，任意長度都會處理。</string>
 
   <!-- 按鍵震動 -->
   <string name="feature_mic_haptic_off_desc">按下按鍵或操作懸浮球時沒有震動回饋。</string>

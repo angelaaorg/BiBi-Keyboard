@@ -12,8 +12,25 @@ object AsrFinalFilters {
     private const val TAG = "AsrFinalFilters"
 
     fun shouldTrimTrailingPunctAndEmoji(prefs: Prefs, text: String): Boolean {
-        if (!prefs.trimFinalTrailingPunct) return false
-        return TextSanitizer.countEffectiveChars(text) <= prefs.trimFinalTrailingPunctThreshold
+        return shouldTrimTrailingPunctAndEmoji(
+            enabled = prefs.trimFinalTrailingPunct,
+            effectiveCharCount = TextSanitizer.countEffectiveChars(text),
+            threshold = prefs.trimFinalTrailingPunctThreshold
+        )
+    }
+
+    internal fun shouldTrimTrailingPunctAndEmoji(
+        enabled: Boolean,
+        effectiveCharCount: Int,
+        threshold: Int
+    ): Boolean {
+        if (!enabled) return false
+        val normalizedThreshold = threshold.coerceIn(
+            Prefs.TRIM_FINAL_TRAILING_PUNCT_THRESHOLD_MIN,
+            Prefs.TRIM_FINAL_TRAILING_PUNCT_THRESHOLD_UNLIMITED
+        )
+        return normalizedThreshold == Prefs.TRIM_FINAL_TRAILING_PUNCT_THRESHOLD_UNLIMITED ||
+            effectiveCharCount <= normalizedThreshold
     }
 
     /**

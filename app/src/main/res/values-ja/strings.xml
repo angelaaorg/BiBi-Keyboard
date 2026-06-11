@@ -162,6 +162,7 @@
   <string name="label_trim_trailing_punct">末尾の句読点と絵文字を削除</string>
   <string name="label_trim_trailing_punct_threshold">削除しきい値</string>
   <string name="trim_trailing_punct_threshold_value">%1$d 文字/単語以内</string>
+  <string name="trim_trailing_punct_threshold_unlimited">制限なし</string>
   <string name="label_mic_haptic">キーとフローティングボールのバイブレーション</string>
   <string name="label_mic_tap_toggle">タップで録音開始/停止</string>
   <string name="label_test_input">IMEを試す</string>
@@ -317,7 +318,7 @@
   <!-- ============================================== -->
   <!-- 末尾の句読点を削除 -->
   <string name="feature_trim_trailing_punct_off_desc">認識結果はすべての内容を保持します。</string>
-  <string name="feature_trim_trailing_punct_on_desc">短い認識結果では末尾の句読点と絵文字を削除し、しきい値を超える長い結果では末尾の句読点と絵文字を保持します。</string>
+  <string name="feature_trim_trailing_punct_on_desc">しきい値以内の認識結果では末尾の句読点と絵文字を削除します。しきい値を制限なしにすると、任意の長さに適用されます。</string>
 
   <!-- キーのバイブレーション -->
   <string name="feature_mic_haptic_off_desc">キーを押したりフローティングボールを操作してもバイブレーションはありません。</string>

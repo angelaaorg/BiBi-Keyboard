@@ -95,21 +95,32 @@ internal fun InputSettingsRouteContent(
                     count = behaviorItemCount
                 )
                 if (uiState.trimTrailingPunct) {
+                    val trimTrailingPunctThresholdLabel =
+                        if (uiState.trimTrailingPunctThreshold == Prefs.TRIM_FINAL_TRAILING_PUNCT_THRESHOLD_UNLIMITED) {
+                            stringResource(R.string.trim_trailing_punct_threshold_unlimited)
+                        } else {
+                            stringResource(
+                                R.string.trim_trailing_punct_threshold_value,
+                                uiState.trimTrailingPunctThreshold
+                            )
+                        }
                     InputSliderPreference(
                         titleRes = R.string.label_trim_trailing_punct_threshold,
-                        valueLabel = stringResource(
-                            R.string.trim_trailing_punct_threshold_value,
-                            uiState.trimTrailingPunctThreshold
-                        ),
+                        valueLabel = trimTrailingPunctThresholdLabel,
                         value = uiState.trimTrailingPunctThreshold.toFloat(),
-                        valueRange = 1f..100f,
-                        steps = 98,
+                        valueRange = Prefs.TRIM_FINAL_TRAILING_PUNCT_THRESHOLD_MIN.toFloat()..
+                            Prefs.TRIM_FINAL_TRAILING_PUNCT_THRESHOLD_UNLIMITED.toFloat(),
+                        steps = Prefs.TRIM_FINAL_TRAILING_PUNCT_THRESHOLD_UNLIMITED -
+                            Prefs.TRIM_FINAL_TRAILING_PUNCT_THRESHOLD_MIN - 1,
                         uiMode = uiMode,
                         showKeyPoints = false,
                         index = 1,
                         count = behaviorItemCount,
                         onValueChange = { value ->
-                            val next = value.roundToStep(step = 1).toInt().coerceIn(1, 100)
+                            val next = value.roundToStep(step = 1).toInt().coerceIn(
+                                Prefs.TRIM_FINAL_TRAILING_PUNCT_THRESHOLD_MIN,
+                                Prefs.TRIM_FINAL_TRAILING_PUNCT_THRESHOLD_UNLIMITED
+                            )
                             if (next != uiState.trimTrailingPunctThreshold) {
                                 onUiStateChange(uiState.copy(trimTrailingPunctThreshold = next))
                             }
