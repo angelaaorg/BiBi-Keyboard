@@ -12,6 +12,8 @@
     <string name="cd_hide">收起键盘</string>
     <string name="cd_prompt_picker">切换后处理 Prompt</string>
     <string name="cd_vendor_picker">切换 ASR 供应商</string>
+    <string name="cd_floating_keyboard_drag">移动悬浮键盘</string>
+    <string name="cd_floating_keyboard_resize">调整悬浮键盘大小</string>
     <string name="cd_punct_btn_1">自定义按键 1</string>
     <string name="cd_punct_btn_2">自定义按键 2</string>
     <string name="cd_punct_btn_3">自定义按键 3</string>
@@ -48,6 +50,7 @@
 
     <!-- Keyboard height -->
     <string name="label_keyboard_height">键盘比例</string>
+    <string name="label_ime_tablet_floating_keyboard">平板设备悬浮键盘</string>
     <string name="keyboard_height_small">小</string>
     <string name="keyboard_height_medium">中</string>
     <string name="keyboard_height_large">大</string>

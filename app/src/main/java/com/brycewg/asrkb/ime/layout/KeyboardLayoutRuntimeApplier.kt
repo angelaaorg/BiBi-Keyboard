@@ -122,6 +122,7 @@ object KeyboardLayoutRuntimeApplier {
     }
 
     private fun resolveFrameWidth(frame: FrameLayout, root: View): Int? {
+        ancestorContentWidth(frame, R.id.keyboardFloatingPanel)?.let { return it }
         frame.width.takeIf { it > 0 }?.let { return it }
         val parentView = frame.parent as? View
         val parentContentWidth = parentView?.let { parent ->
@@ -130,6 +131,23 @@ object KeyboardLayoutRuntimeApplier {
         parentContentWidth.takeIf { it > 0 }?.let { return it }
         val rootContentWidth = root.width - root.paddingStart - root.paddingEnd
         return rootContentWidth.takeIf { it > 0 }
+    }
+
+    private fun ancestorContentWidth(view: View, ancestorId: Int): Int? {
+        var parent = view.parent as? View
+        while (parent != null) {
+            if (parent.id == ancestorId) {
+                val lpWidth = parent.layoutParams?.width ?: 0
+                if (lpWidth > 0) {
+                    return (lpWidth - parent.paddingStart - parent.paddingEnd).coerceAtLeast(1)
+                }
+                val measured = parent.width - parent.paddingStart - parent.paddingEnd
+                if (measured > 0) return measured
+                return null
+            }
+            parent = parent.parent as? View
+        }
+        return null
     }
 
     private fun placeView(

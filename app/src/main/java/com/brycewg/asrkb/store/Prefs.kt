@@ -217,6 +217,27 @@ class Prefs(context: Context) {
         get() = sp.getInt(KEY_KEYBOARD_BOTTOM_PADDING_DP, 0).coerceIn(0, 100)
         set(value) = sp.edit { putInt(KEY_KEYBOARD_BOTTOM_PADDING_DP, value.coerceIn(0, 100)) }
 
+    // 平板/宽屏设备自动使用悬浮键盘，默认开启。
+    var imeTabletFloatingKeyboardEnabled: Boolean
+        get() = sp.getBoolean(KEY_IME_TABLET_FLOATING_KEYBOARD_ENABLED, true)
+        set(value) = sp.edit { putBoolean(KEY_IME_TABLET_FLOATING_KEYBOARD_ENABLED, value) }
+
+    // 宽屏悬浮键盘位置比例（0..1），横向默认居中，纵向默认靠底。
+    var imeFloatingKeyboardXFraction: Float
+        get() = sp.getFloat(KEY_IME_FLOATING_KEYBOARD_X_FRACTION, 0.5f).coerceIn(0f, 1f)
+        set(value) = sp.edit { putFloat(KEY_IME_FLOATING_KEYBOARD_X_FRACTION, value.coerceIn(0f, 1f)) }
+
+    var imeFloatingKeyboardYFraction: Float
+        get() = sp.getFloat(KEY_IME_FLOATING_KEYBOARD_Y_FRACTION, 1.0f).coerceIn(0f, 1f)
+        set(value) = sp.edit { putFloat(KEY_IME_FLOATING_KEYBOARD_Y_FRACTION, value.coerceIn(0f, 1f)) }
+
+    // 宽屏悬浮键盘宽度缩放比例，底角长按拖动调整。
+    var imeFloatingKeyboardWidthScale: Float
+        get() = normalizeImeFloatingKeyboardWidthScale(sp.getFloat(KEY_IME_FLOATING_KEYBOARD_WIDTH_SCALE, 1.0f))
+        set(value) = sp.edit {
+            putFloat(KEY_IME_FLOATING_KEYBOARD_WIDTH_SCALE, normalizeImeFloatingKeyboardWidthScale(value))
+        }
+
     // 波形灵敏度（1-10，数值越大响应越明显），默认 5
     var waveformSensitivity: Int
         get() = sp.getInt(KEY_WAVEFORM_SENSITIVITY, 5).coerceIn(1, 10)
@@ -1630,6 +1651,7 @@ class Prefs(context: Context) {
         const val HAPTIC_FEEDBACK_LEVEL_STRONG = 5
         const val HAPTIC_FEEDBACK_LEVEL_HEAVY = 6
         const val DEFAULT_HAPTIC_FEEDBACK_LEVEL = HAPTIC_FEEDBACK_LEVEL_SYSTEM
+        private const val IME_FLOATING_KEYBOARD_WIDTH_SCALE_MIN = 0.6f
         // SharedPreferences keys 见 PrefsKeys.kt
 
         const val DEFAULT_ENDPOINT = "https://openspeech.bytedance.com/api/v3/auc/bigmodel/recognize/flash"
@@ -1771,6 +1793,10 @@ class Prefs(context: Context) {
         val mode = value?.trim().orEmpty()
         return if (mode in VOLUME_KEY_RECORDING_MODES) mode else VOLUME_KEY_MODE_UP_TOGGLE
     }
+
+    // 上限由 IME 窗口按当前屏幕计算，避免超宽屏拖拽宽度被持久化层回缩。
+    private fun normalizeImeFloatingKeyboardWidthScale(value: Float): Float =
+        if (value.isFinite()) value.coerceAtLeast(IME_FLOATING_KEYBOARD_WIDTH_SCALE_MIN) else 1.0f
 
     private fun normalizeOpenAiAsrProvider(provider: OpenAiAsrProvider): OpenAiAsrProvider = provider.copy(
         name = provider.name.trim(),

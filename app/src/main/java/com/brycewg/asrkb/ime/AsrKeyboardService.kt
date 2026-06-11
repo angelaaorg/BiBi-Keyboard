@@ -111,7 +111,12 @@ class AsrKeyboardService :
         super.onCreate()
         prefs = Prefs(this)
         themeStyler = ImeThemeStyler(prefs)
-        layoutController = ImeLayoutController(prefs, themeStyler) { viewRefs }
+        layoutController = ImeLayoutController(
+            prefs = prefs,
+            themeStyler = themeStyler,
+            windowProvider = { window?.window },
+            viewRefsProvider = { viewRefs }
+        )
 
         // 初始化组件
         inputHelper = InputConnectionHelper("AsrKeyboardService")
@@ -259,6 +264,7 @@ class AsrKeyboardService :
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting)
         imeViewVisible = true
+        layoutController?.onInputViewStarted()
         refreshCurrentInputViewTheme(recreateVisibleInputView = false)
         // 每次键盘视图启动时应用一次高度/底部间距等缩放
         if (layoutController?.applyKeyboardHeightScale() == true) {
@@ -363,8 +369,9 @@ class AsrKeyboardService :
     }
 
     override fun onFinishInputView(finishingInput: Boolean) {
-        super.onFinishInputView(finishingInput)
         imeViewVisible = false
+        layoutController?.onInputViewFinished()
+        super.onFinishInputView(finishingInput)
         DebugLogManager.log("ime", "finish_input_view")
         clipboardCoordinator?.stopClipboardSyncSafely()
 

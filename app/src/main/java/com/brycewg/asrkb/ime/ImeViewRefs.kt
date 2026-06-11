@@ -17,6 +17,9 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 
 internal class ImeViewRefs private constructor(
     val rootView: View,
+    val keyboardFloatingPanel: View?,
+    val keyboardDragHandleRow: View?,
+    val keyboardDragHandle: View?,
 
     // Panels
     val layoutMainKeyboard: View?,
@@ -94,6 +97,9 @@ internal class ImeViewRefs private constructor(
     companion object {
         fun bind(rootView: View): ImeViewRefs = ImeViewRefs(
             rootView = rootView,
+            keyboardFloatingPanel = rootView.findViewById(R.id.keyboardFloatingPanel),
+            keyboardDragHandleRow = rootView.findViewById(R.id.keyboardDragHandleRow),
+            keyboardDragHandle = rootView.findViewById(R.id.keyboardDragHandle),
 
             layoutMainKeyboard = rootView.findViewById(R.id.layoutMainKeyboard),
             layoutAiEditPanel = rootView.findViewById(R.id.layoutAiEditPanel),

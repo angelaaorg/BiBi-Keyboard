@@ -8,6 +8,8 @@ package com.brycewg.asrkb.ime
 import android.animation.AnimatorInflater
 import android.content.Context
 import android.content.res.ColorStateList
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.graphics.Typeface
 import android.text.TextUtils
 import android.util.TypedValue
@@ -47,26 +49,65 @@ internal object ImeKeyboardViewFactory {
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.WRAP_CONTENT
             )
-            clipToPadding = true
+            clipToPadding = false
+            clipChildren = false
+            alpha = 0f
+            setBackgroundColor(Color.TRANSPARENT)
+        }
+
+        val contentPanel = createKeyboardContentPanel(context).apply {
+            addView(createMainKeyboard(context, prefs))
+            addView(createAiEditPanel(context, prefs))
+            addView(createNumpadPanel(context))
+            addView(createClipboardPanel(context))
+            addView(createMicStatusGroup(context))
+        }
+        val panel = createKeyboardPanel(context).apply {
+            addView(contentPanel)
+            addView(createDragHandleRow(context))
+            addView(createResizeHandle(context, R.id.keyboardResizeHandleLeft, Gravity.BOTTOM or Gravity.START))
+            addView(createResizeHandle(context, R.id.keyboardResizeHandleRight, Gravity.BOTTOM or Gravity.END))
+        }
+        root.addView(panel)
+        applyTheme(root, prefs)
+        return root
+    }
+
+    private fun createKeyboardPanel(context: Context): FrameLayout =
+        FrameLayout(context).apply {
+            id = R.id.keyboardFloatingPanel
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            )
+            clipToPadding = false
             clipChildren = true
             background = ContextCompat.getDrawable(context, R.drawable.bg_keyboard_container)
             setPadding(dp(context, 12), dp(context, 8), dp(context, 12), dp(context, 12))
         }
 
-        root.addView(createMainKeyboard(context, prefs))
-        root.addView(createAiEditPanel(context, prefs))
-        root.addView(createNumpadPanel(context))
-        root.addView(createClipboardPanel(context))
-        root.addView(createMicStatusGroup(context))
-        applyTheme(root, prefs)
-        return root
-    }
+    private fun createKeyboardContentPanel(context: Context): FrameLayout =
+        FrameLayout(context).apply {
+            id = R.id.keyboardContentPanel
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            )
+            clipToPadding = false
+            clipChildren = false
+        }
 
     fun applyTheme(root: View, prefs: Prefs) {
         val context = root.context
         val theme = BibiViewThemes.resolve(context, prefs)
-        root.setBackgroundColor(theme.keyboardBackground)
+        applyKeyboardPanelBackground(root, prefs, floating = false)
         root.findViewById<View>(R.id.layoutClipboardPanel)?.setBackgroundColor(theme.keyboardBackground)
+        root.findViewById<View>(R.id.keyboardDragHandle)?.background =
+            GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dp(context, 9).toFloat()
+                setColor(theme.panelSummary)
+            }
 
         iconKeyIds.forEach { id ->
             root.findViewById<ImageButton>(id)?.apply {
@@ -112,6 +153,27 @@ internal object ImeKeyboardViewFactory {
         root.findViewById<TextView>(R.id.txtStatusText)?.setTextColor(theme.panelContent)
         root.findViewById<TextView>(R.id.txtAiEditInfo)?.setTextColor(theme.panelContent)
         root.findViewById<TextView>(R.id.clip_txtCount)?.setTextColor(theme.panelSummary)
+    }
+
+    fun applyKeyboardPanelBackground(root: View, prefs: Prefs, floating: Boolean) {
+        val context = root.context
+        val theme = BibiViewThemes.resolve(context, prefs)
+        val panel = root.findViewById<View>(R.id.keyboardFloatingPanel)
+        root.setBackgroundColor(Color.TRANSPARENT)
+        if (panel == null) {
+            root.setBackgroundColor(theme.keyboardBackground)
+            return
+        }
+        panel.background = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = if (floating) {
+                dp(context, FLOATING_PANEL_RADIUS_DP).toFloat()
+            } else {
+                0f
+            }
+            setColor(theme.keyboardBackground)
+        }
+        panel.clipToOutline = floating
     }
 
     private fun createMainKeyboard(context: Context, prefs: Prefs): View {
@@ -277,6 +339,43 @@ internal object ImeKeyboardViewFactory {
         }
         return panel
     }
+
+    private fun createDragHandleRow(context: Context): View = FrameLayout(context).apply {
+        id = R.id.keyboardDragHandleRow
+        visibility = View.GONE
+        layoutParams = FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT,
+            dp(context, 12)
+        ).apply {
+            gravity = Gravity.BOTTOM
+        }
+        addView(
+            View(context).apply {
+                id = R.id.keyboardDragHandle
+                alpha = 0.62f
+                contentDescription = context.getString(R.string.cd_floating_keyboard_drag)
+                isClickable = true
+                isFocusable = true
+                layoutParams = FrameLayout.LayoutParams(dp(context, 72), dp(context, 6)).apply {
+                    gravity = Gravity.CENTER
+                }
+            }
+        )
+    }
+
+    private fun createResizeHandle(context: Context, handleId: Int, handleGravity: Int): View =
+        View(context).apply {
+            id = handleId
+            visibility = View.GONE
+            alpha = 0f
+            contentDescription = context.getString(R.string.cd_floating_keyboard_resize)
+            isClickable = true
+            isFocusable = true
+            setBackgroundColor(Color.TRANSPARENT)
+            layoutParams = FrameLayout.LayoutParams(dp(context, 56), dp(context, 32)).apply {
+                gravity = handleGravity
+            }
+        }
 
     internal fun createLayoutBlockButton(
         context: Context,
@@ -765,4 +864,6 @@ internal object ImeKeyboardViewFactory {
             .mapNotNull { it.viewId }
             .filter { it != R.id.groupMicStatus && it != R.id.btnAiPanelMic }
     }
+
+    private const val FLOATING_PANEL_RADIUS_DP = 18
 }

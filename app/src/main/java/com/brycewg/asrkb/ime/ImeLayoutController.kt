@@ -1,5 +1,5 @@
 /**
- * IME 面板布局缩放与 inset 协调器。
+ * IME 面板布局缩放、宽屏悬浮键盘与 inset 协调器。
  *
  * 归属模块：ime
  */
@@ -7,7 +7,8 @@ package com.brycewg.asrkb.ime
 
 import android.inputmethodservice.InputMethodService
 import android.view.View
-import android.widget.FrameLayout
+import android.view.ViewGroup
+import android.view.Window
 import android.widget.LinearLayout
 import androidx.core.view.ViewCompat
 import com.brycewg.asrkb.R
@@ -21,14 +22,22 @@ import com.brycewg.asrkb.store.debug.DebugLogManager
 internal class ImeLayoutController(
     private val prefs: Prefs,
     private val themeStyler: ImeThemeStyler,
+    private val windowProvider: () -> Window?,
     private val viewRefsProvider: () -> ImeViewRefs?
 ) {
+    private val floatingKeyboardController = ImeFloatingKeyboardController(
+        prefs = prefs,
+        windowProvider = windowProvider,
+        onResizeFrameChanged = ::postFloatingResizeLayoutPass
+    )
     private var rootView: View? = null
     private var systemNavBarBottomInset: Int = 0
     private var lastAppliedHeightScale: Float = 1.0f
+    private var floatingResizeLayoutPassPosted: Boolean = false
 
     fun installKeyboardInsetsListener(rootView: View) {
         this.rootView = rootView
+        floatingKeyboardController.install(rootView)
         themeStyler.installKeyboardInsetsListener(rootView) { bottom ->
             systemNavBarBottomInset = bottom
             applyKeyboardHeightScale()
@@ -39,9 +48,31 @@ internal class ImeLayoutController(
         views.btnMic?.translationY = 0f
     }
 
+    fun onInputViewStarted() {
+        floatingKeyboardController.onInputViewStarted()
+    }
+
+    fun onInputViewFinished() {
+        floatingResizeLayoutPassPosted = false
+        floatingKeyboardController.onInputViewFinished()
+    }
+
+    private fun postFloatingResizeLayoutPass() {
+        val root = rootView ?: viewRefsProvider()?.rootView ?: return
+        if (floatingResizeLayoutPassPosted) return
+        floatingResizeLayoutPassPosted = true
+        ViewCompat.postOnAnimation(root) {
+            floatingResizeLayoutPassPosted = false
+            if (applyKeyboardHeightScale()) {
+                root.requestLayout()
+            }
+        }
+    }
+
     fun applyKeyboardHeightScale(): Boolean {
         val root = rootView ?: viewRefsProvider()?.rootView ?: return false
         val refs = viewRefsProvider()
+        if (floatingKeyboardController.isDragging) return false
         var layoutChanged = false
 
         val tier = prefs.keyboardHeightTier
@@ -55,6 +86,7 @@ internal class ImeLayoutController(
             val d = root.resources.displayMetrics.density
             return (v * d + 0.5f).toInt()
         }
+        layoutChanged = floatingKeyboardController.applyFrame(root) || layoutChanged
 
         // 麦克风现在由容器居中；缩放变化时清掉旧版本可能留下的位移。
         if (kotlin.math.abs(lastAppliedHeightScale - scale) > 1e-3f) {
@@ -80,7 +112,7 @@ internal class ImeLayoutController(
             }
         }
 
-        // 同步一次当前 RootWindowInsets，避免首次缩放时 bottom inset 尚未写入导致底部裁剪
+        // 同步一次当前 RootWindowInsets，避免首次缩放时 bottom inset 尚未写入导致底部裁剪。
         run {
             val rw = ViewCompat.getRootWindowInsets(root)
             var b = if (rw != null) ImeInsetsResolver.resolveBottomInset(rw, root.resources) else 0
@@ -93,16 +125,18 @@ internal class ImeLayoutController(
             }
         }
 
-        // 应用底部间距（无论是否缩放都需要）
-        val fl = root as? FrameLayout
-        if (fl != null) {
+        val fl = root.findViewById<View>(R.id.keyboardFloatingPanel) ?: root
+        run {
             val ps = fl.paddingStart
             val pe = fl.paddingEnd
-            val pt = dp(8f * scale)
-            val basePb = dp(12f * scale)
-            // 添加用户设置的底部间距
+            val pt = if (floatingKeyboardController.isActive) dp(12f) else dp(8f * scale)
+            val scaledBasePb = dp(12f * scale)
+            val basePb = if (floatingKeyboardController.isActive) {
+                scaledBasePb.coerceAtLeast(dp(12f))
+            } else {
+                scaledBasePb
+            }
             val extraPadding = dp(prefs.keyboardBottomPaddingDp.toFloat())
-            // 添加系统导航栏高度以适配 Android 15 边缘到边缘显示
             val pb = basePb + extraPadding + systemNavBarBottomInset
             if (fl.paddingTop != pt || fl.paddingBottom != pb) {
                 fl.setPaddingRelative(ps, pt, pe, pb)
@@ -122,7 +156,7 @@ internal class ImeLayoutController(
 
         fun scaleChildrenByTag(root: View?, tag: String, height: Int) {
             if (root == null) return
-            if (root is android.view.ViewGroup) {
+            if (root is ViewGroup) {
                 for (i in 0 until root.childCount) {
                     scaleChildrenByTag(root.getChildAt(i), tag, height)
                 }
@@ -145,7 +179,6 @@ internal class ImeLayoutController(
         scaleGestureButton(refs?.btnGestureCancel)
         scaleGestureButton(refs?.btnGestureSend)
 
-        // 缩放中央按钮（仅高度，宽度由约束控制）
         run {
             val v1: View? = refs?.btnExtCenter1 ?: root.findViewById(R.id.btnExtCenter1)
             updateLayoutSize(v1, height = dp(40f * scale))
@@ -160,7 +193,6 @@ internal class ImeLayoutController(
             layoutChanged = true
         }
 
-        // 数字/符号面板：总高度对齐主键盘画布，通过调整按钮高度避免切换跳变
         run {
             val panel: View? = refs?.layoutNumpadPanel ?: root.findViewById(R.id.layoutNumpadPanel)
             if (panel != null) {
@@ -206,7 +238,6 @@ internal class ImeLayoutController(
             }
         }
 
-        // 麦克风容器需要和 AI 面板麦克风同一基线，避免面板切换时出现几像素跳动。
         refs?.groupMicStatus?.let { group ->
             if (group.translationY != 0f) {
                 group.translationY = 0f
@@ -229,11 +260,11 @@ internal class ImeLayoutController(
             }
             mic.setMaxImageSize((size * MIC_ICON_SIZE_RATIO).toInt().coerceAtLeast(1))
         }
-        // 确保主键盘麦克风仅在主键盘可见时参与层级排序。
         refs
             ?.takeIf { it.layoutMainKeyboard?.visibility == View.VISIBLE }
             ?.groupMicStatus
             ?.bringToFront()
+        layoutChanged = floatingKeyboardController.applyFrame(root) || layoutChanged
         return layoutChanged
     }
 
@@ -263,6 +294,10 @@ internal class ImeLayoutController(
         val decorH = decor.height
         val decorW = decor.width
         if (decorH <= 0 || decorW <= 0) return
+        if (floatingKeyboardController.isActive) {
+            floatingKeyboardController.fixInsets(input, decor, outInsets)
+            return
+        }
 
         var inputH = input.height
         if (inputH <= 0) {
@@ -315,7 +350,7 @@ internal class ImeLayoutController(
         outInsets.contentTopInsets = top
         outInsets.visibleTopInsets = top
         outInsets.touchableInsets = InputMethodService.Insets.TOUCHABLE_INSETS_REGION
-        // 触摸区域限定为键盘区域，避免空白区域吞触摸
+        // 触摸区域限定为键盘区域，避免空白区域吞触摸。
         outInsets.touchableRegion.set(0, top, decorW, decorH)
 
         DebugLogManager.log(

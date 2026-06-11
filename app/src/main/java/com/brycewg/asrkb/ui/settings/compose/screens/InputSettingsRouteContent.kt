@@ -400,13 +400,28 @@ internal fun InputSettingsRouteContent(
                     selectedTier = uiState.keyboardHeightTier,
                     uiMode = uiMode,
                     index = 0,
-                    count = 6,
+                    count = 7,
                     onSelected = { tier ->
                         actions.hapticTap()
                         prefs.keyboardHeightTier = tier
                         onUiStateChange(uiState.copy(keyboardHeightTier = prefs.keyboardHeightTier))
                         context.sendImeRefreshBroadcast()
                     }
+                )
+                SettingsPreference(
+                    entry = SettingsEntry.Switch(
+                        id = "ime_tablet_floating_keyboard",
+                        titleRes = R.string.label_ime_tablet_floating_keyboard,
+                        checked = uiState.imeTabletFloatingKeyboard,
+                        onCheckedChange = { enabled ->
+                            actions.hapticTap()
+                            prefs.imeTabletFloatingKeyboardEnabled = enabled
+                            onUiStateChange(uiState.copy(imeTabletFloatingKeyboard = enabled))
+                            context.sendImeRefreshBroadcast()
+                        }
+                    ),
+                    index = 1,
+                    count = 7
                 )
                 InputSliderPreference(
                     titleRes = R.string.label_haptic_feedback_strength,
@@ -415,8 +430,8 @@ internal fun InputSettingsRouteContent(
                     valueRange = Prefs.HAPTIC_FEEDBACK_LEVEL_OFF.toFloat()..Prefs.HAPTIC_FEEDBACK_LEVEL_HEAVY.toFloat(),
                     steps = 5,
                     uiMode = uiMode,
-                    index = 1,
-                    count = 6,
+                    index = 2,
+                    count = 7,
                     onValueChange = { value ->
                         val level = value.toInt().coerceIn(
                             Prefs.HAPTIC_FEEDBACK_LEVEL_OFF,
@@ -443,8 +458,8 @@ internal fun InputSettingsRouteContent(
                     valueRange = 0f..100f,
                     steps = 19,
                     uiMode = uiMode,
-                    index = 2,
-                    count = 6,
+                    index = 3,
+                    count = 7,
                     onValueChange = { value ->
                         val next = value.roundToStep(step = 5).toInt().coerceIn(0, 100)
                         if (next != uiState.keyboardBottomPaddingDp) {
@@ -465,8 +480,8 @@ internal fun InputSettingsRouteContent(
                     valueRange = 1f..10f,
                     steps = 8,
                     uiMode = uiMode,
-                    index = 3,
-                    count = 6,
+                    index = 4,
+                    count = 7,
                     onValueChange = { value ->
                         val next = value.roundToStep(step = 1).toInt().coerceIn(1, 10)
                         if (next != uiState.waveformSensitivity) {
@@ -500,15 +515,15 @@ internal fun InputSettingsRouteContent(
                             onRefreshState()
                         }
                     ),
-                    index = 4,
-                    count = 6
+                    index = 5,
+                    count = 7
                 )
                 InputValuePreference(
                     titleRes = R.string.label_extension_buttons,
                     value = uiState.extensionButtonsLabel,
                     uiMode = uiMode,
-                    index = 5,
-                    count = 6,
+                    index = 6,
+                    count = 7,
                     onClick = {
                         actions.hapticTap()
                         onShowExtensionButtonsPicker()

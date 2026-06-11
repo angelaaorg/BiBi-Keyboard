@@ -12,6 +12,8 @@
     <string name="cd_hide">Hide keyboard</string>
     <string name="cd_prompt_picker">Switch post-processing prompt</string>
     <string name="cd_vendor_picker">Switch ASR provider</string>
+    <string name="cd_floating_keyboard_drag">Move floating keyboard</string>
+    <string name="cd_floating_keyboard_resize">Resize floating keyboard</string>
     <string name="cd_punct_btn_1">Custom key 1</string>
     <string name="cd_punct_btn_2">Custom key 2</string>
     <string name="cd_punct_btn_3">Custom key 3</string>
@@ -48,6 +50,7 @@
 
     <!-- Keyboard height -->
     <string name="label_keyboard_height">Keyboard scale</string>
+    <string name="label_ime_tablet_floating_keyboard">Tablet floating keyboard</string>
     <string name="keyboard_height_small">Small</string>
     <string name="keyboard_height_medium">Medium</string>
     <string name="keyboard_height_large">Large</string>

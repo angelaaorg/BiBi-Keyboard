@@ -17,7 +17,7 @@ import com.brycewg.asrkb.ui.BibiViewThemes
 internal class ImeThemeStyler(private val prefs: Prefs) {
 
     fun applyKeyboardBackgroundColor(root: View) {
-        root.setBackgroundColor(resolveKeyboardBackgroundColor(root.context))
+        ImeKeyboardViewFactory.applyKeyboardPanelBackground(root, prefs, floating = false)
     }
 
     fun resolveKeyboardBackgroundColor(ctx: Context): Int = BibiViewThemes.resolve(ctx, prefs).keyboardBackground

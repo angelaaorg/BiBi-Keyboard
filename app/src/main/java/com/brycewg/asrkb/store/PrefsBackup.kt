@@ -41,6 +41,10 @@ internal object PrefsBackup {
         o.put(KEY_AUTO_STOP_SILENCE_SENSITIVITY, autoStopSilenceSensitivity)
         o.put(KEY_KEYBOARD_HEIGHT_TIER, keyboardHeightTier)
         o.put(KEY_KEYBOARD_BOTTOM_PADDING_DP, keyboardBottomPaddingDp)
+        o.put(KEY_IME_TABLET_FLOATING_KEYBOARD_ENABLED, imeTabletFloatingKeyboardEnabled)
+        o.put(KEY_IME_FLOATING_KEYBOARD_X_FRACTION, imeFloatingKeyboardXFraction.toDouble())
+        o.put(KEY_IME_FLOATING_KEYBOARD_Y_FRACTION, imeFloatingKeyboardYFraction.toDouble())
+        o.put(KEY_IME_FLOATING_KEYBOARD_WIDTH_SCALE, imeFloatingKeyboardWidthScale.toDouble())
         o.put(KEY_WAVEFORM_SENSITIVITY, waveformSensitivity)
         o.put(KEY_SWAP_AI_EDIT_IME_SWITCHER, swapAiEditWithImeSwitcher)
         o.put(KEY_FCITX5_RETURN_ON_SWITCHER, fcitx5ReturnOnImeSwitch)
@@ -326,6 +330,10 @@ internal object PrefsBackup {
             optInt(KEY_AUTO_STOP_SILENCE_SENSITIVITY)?.let { autoStopSilenceSensitivity = it }
             optInt(KEY_KEYBOARD_HEIGHT_TIER)?.let { keyboardHeightTier = it }
             optInt(KEY_KEYBOARD_BOTTOM_PADDING_DP)?.let { keyboardBottomPaddingDp = it }
+            optBool(KEY_IME_TABLET_FLOATING_KEYBOARD_ENABLED)?.let { imeTabletFloatingKeyboardEnabled = it }
+            optFloat(KEY_IME_FLOATING_KEYBOARD_X_FRACTION)?.let { imeFloatingKeyboardXFraction = it }
+            optFloat(KEY_IME_FLOATING_KEYBOARD_Y_FRACTION)?.let { imeFloatingKeyboardYFraction = it }
+            optFloat(KEY_IME_FLOATING_KEYBOARD_WIDTH_SCALE)?.let { imeFloatingKeyboardWidthScale = it }
             optInt(KEY_WAVEFORM_SENSITIVITY)?.let { waveformSensitivity = it }
             optBool(KEY_SWAP_AI_EDIT_IME_SWITCHER)?.let { swapAiEditWithImeSwitcher = it }
             optBool(KEY_FCITX5_RETURN_ON_SWITCHER)?.let { fcitx5ReturnOnImeSwitch = it }
