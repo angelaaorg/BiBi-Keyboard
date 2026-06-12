@@ -12,6 +12,8 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import android.util.Log
 import android.view.inputmethod.InputMethodManager
@@ -49,10 +51,14 @@ class OnboardingGuideActivity : BaseActivity() {
 
     companion object {
         private const val TAG = "OnboardingGuideActivity"
+        private const val IME_PICKER_REFRESH_DELAY_MS = 200L
+        private const val IME_PICKER_POLL_INTERVAL_MS = 300L
+        private const val IME_PICKER_POLL_TIMEOUT_MS = 4000L
     }
 
     private lateinit var prefs: Prefs
     private lateinit var actionExecutor: OnboardingActionExecutor
+    private val handler = Handler(Looper.getMainLooper())
 
     private var refreshKeyState = mutableIntStateOf(0)
     private var asrChoiceState = mutableStateOf(OnboardingAsrChoice.SiliconFlowFree)
@@ -62,6 +68,10 @@ class OnboardingGuideActivity : BaseActivity() {
     private var messageDismissAction: (() -> Unit)? = null
     private var proPromoDialogState = mutableStateOf<ProPromoDialogUiState>(ProPromoDialogUiState.Hidden)
     private var isCompletingOnboarding: Boolean = false
+    private var imePickerShown = false
+    private var imePickerLostFocusOnce = false
+    private var imePickerPollingStartedAt = 0L
+    private var imePickerPollingRunnable: Runnable? = null
 
     private val requestNotificationPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) {
@@ -134,6 +144,17 @@ class OnboardingGuideActivity : BaseActivity() {
     override fun onResume() {
         super.onResume()
         refreshPermissionPage()
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        handleImePickerFocusChanged(hasFocus)
+    }
+
+    override fun onDestroy() {
+        stopImePickerPolling()
+        handler.removeCallbacksAndMessages(null)
+        super.onDestroy()
     }
 
     private fun buildPermissionGroups(): List<OnboardingPermissionGroup> {
@@ -297,10 +318,75 @@ class OnboardingGuideActivity : BaseActivity() {
     private fun requestSwitchIme() {
         try {
             val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+            imePickerShown = true
+            imePickerLostFocusOnce = false
             imm.showInputMethodPicker()
+            startImePickerPolling()
         } catch (e: Exception) {
+            imePickerShown = false
+            imePickerLostFocusOnce = false
+            stopImePickerPolling()
             Log.e(TAG, "Failed to show input method picker", e)
         }
+    }
+
+    private fun handleImePickerFocusChanged(hasFocus: Boolean) {
+        if (!imePickerShown) return
+
+        if (!hasFocus) {
+            imePickerLostFocusOnce = true
+            Log.d(TAG, "Onboarding IME picker shown, activity lost focus")
+            return
+        }
+
+        if (imePickerLostFocusOnce) {
+            Log.d(TAG, "Onboarding IME picker closed, refreshing permissions")
+            handler.postDelayed({
+                if (!isFinishing && !isDestroyed) {
+                    refreshPermissionPage()
+                }
+            }, IME_PICKER_REFRESH_DELAY_MS)
+            imePickerShown = false
+            imePickerLostFocusOnce = false
+        }
+    }
+
+    private fun startImePickerPolling() {
+        stopImePickerPolling()
+        imePickerPollingStartedAt = System.currentTimeMillis()
+
+        val runnable = object : Runnable {
+            override fun run() {
+                if (isFinishing || isDestroyed) {
+                    stopImePickerPolling()
+                    return
+                }
+
+                if (isOurImeCurrent()) {
+                    refreshPermissionPage()
+                    imePickerShown = false
+                    imePickerLostFocusOnce = false
+                    stopImePickerPolling()
+                    return
+                }
+
+                val elapsed = System.currentTimeMillis() - imePickerPollingStartedAt
+                if (elapsed >= IME_PICKER_POLL_TIMEOUT_MS) {
+                    stopImePickerPolling()
+                    return
+                }
+
+                handler.postDelayed(this, IME_PICKER_POLL_INTERVAL_MS)
+            }
+        }
+
+        imePickerPollingRunnable = runnable
+        handler.postDelayed(runnable, IME_PICKER_POLL_INTERVAL_MS)
+    }
+
+    private fun stopImePickerPolling() {
+        imePickerPollingRunnable?.let { handler.removeCallbacks(it) }
+        imePickerPollingRunnable = null
     }
 
     private fun openUrl(url: String) {
