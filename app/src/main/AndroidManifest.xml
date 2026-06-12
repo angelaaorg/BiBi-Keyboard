@@ -172,6 +172,21 @@
             android:name=".api.ExternalSpeechService"
             android:exported="true" />
 
+        <service
+            android:name=".api.FxliangFcitxVoiceInputProviderService"
+            android:label="@string/fxliang_fcitx_voice_input_provider_label"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="${applicationId}.plugin.VOICE_INPUT" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="org.fcitx.fcitx5.android.plugin.VOICE_INPUT" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="org.fcitx.fcitx5.android.debug.plugin.VOICE_INPUT" />
+            </intent-filter>
+        </service>
+
         <!-- Android 标准语音识别服务 (RecognitionService) -->
         <service
             android:name=".api.AsrRecognitionService"
