@@ -33,6 +33,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.ui.settings.compose.core.BibiUiMode
+import com.brycewg.asrkb.ui.settings.compose.core.LocalSettingsHapticTap
 import com.brycewg.asrkb.ui.settings.compose.core.SettingsLayoutMetrics
 import top.yukonga.miuix.kmp.basic.Icon as MiuixIcon
 import top.yukonga.miuix.kmp.basic.IconButton as MiuixIconButton
@@ -51,6 +52,11 @@ internal fun SettingsDetailScaffold(
     content: @Composable (PaddingValues, Modifier) -> Unit
 ) {
     val backLabel = stringResource(R.string.cd_clipboard_back)
+    val hapticTap = LocalSettingsHapticTap.current
+    val backWithHaptic = {
+        hapticTap()
+        onBack()
+    }
     val insets = WindowInsets.safeDrawing
         .only(WindowInsetsSides.Horizontal)
         .union(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
@@ -65,7 +71,7 @@ internal fun SettingsDetailScaffold(
                     TopAppBar(
                         title = { Text(stringResource(titleRes)) },
                         navigationIcon = {
-                            IconButton(onClick = onBack) {
+                            IconButton(onClick = backWithHaptic) {
                                 Icon(
                                     Icons.AutoMirrored.Rounded.ArrowBack,
                                     contentDescription = backLabel
@@ -96,7 +102,7 @@ internal fun SettingsDetailScaffold(
                         title = stringResource(titleRes),
                         scrollBehavior = scrollBehavior,
                         navigationIcon = {
-                            MiuixIconButton(onClick = onBack) {
+                            MiuixIconButton(onClick = backWithHaptic) {
                                 MiuixIcon(
                                     imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
                                     contentDescription = backLabel

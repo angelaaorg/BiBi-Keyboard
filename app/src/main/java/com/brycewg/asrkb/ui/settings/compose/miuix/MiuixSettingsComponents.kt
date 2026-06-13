@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.brycewg.asrkb.ui.settings.compose.core.LocalSettingsHapticTap
 import com.brycewg.asrkb.ui.settings.compose.model.SettingsEntry
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.preference.ArrowPreference
@@ -21,13 +22,17 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 fun MiuixSettingsEntry(entry: SettingsEntry) {
+    val hapticTap = LocalSettingsHapticTap.current
     when (entry) {
         is SettingsEntry.Action -> ArrowPreference(
             title = stringResource(entry.titleRes),
             summary = settingsEntrySummary(entry),
             enabled = entry.enabled,
             startAction = entry.icon?.let { icon -> { SettingsEntryIcon(icon) } },
-            onClick = entry.onClick
+            onClick = {
+                hapticTap()
+                entry.onClick()
+            }
         )
 
         is SettingsEntry.Switch -> SwitchPreference(
@@ -36,7 +41,10 @@ fun MiuixSettingsEntry(entry: SettingsEntry) {
             enabled = entry.enabled,
             checked = entry.checked,
             startAction = entry.icon?.let { icon -> { SettingsEntryIcon(icon) } },
-            onCheckedChange = entry.onCheckedChange
+            onCheckedChange = { checked ->
+                hapticTap()
+                entry.onCheckedChange(checked)
+            }
         )
 
         is SettingsEntry.Dropdown -> {
@@ -52,6 +60,7 @@ fun MiuixSettingsEntry(entry: SettingsEntry) {
                 startAction = entry.icon?.let { icon -> { SettingsEntryIcon(icon) } },
                 onSelectedIndexChange = { index ->
                     entry.options.getOrNull(index)?.let { option ->
+                        hapticTap()
                         entry.onSelectedOptionChange(option.id)
                     }
                 }

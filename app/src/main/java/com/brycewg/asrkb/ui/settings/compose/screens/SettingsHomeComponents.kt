@@ -55,6 +55,7 @@ import com.brycewg.asrkb.ui.settings.compose.components.SettingsLazyColumn
 import com.brycewg.asrkb.ui.settings.compose.components.SettingsPreference
 import com.brycewg.asrkb.ui.settings.compose.components.SettingsSectionContainer
 import com.brycewg.asrkb.ui.settings.compose.core.BibiUiMode
+import com.brycewg.asrkb.ui.settings.compose.core.LocalSettingsHapticTap
 import com.brycewg.asrkb.ui.settings.compose.core.SettingsLayoutMetrics
 import com.brycewg.asrkb.ui.settings.compose.model.SettingsSection
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
@@ -71,9 +72,14 @@ internal fun SettingsHomeScaffold(
     onSelectTab: (Int) -> Unit,
     content: @Composable (PaddingValues, Modifier) -> Unit
 ) {
+    val hapticTap = LocalSettingsHapticTap.current
+    val selectTabWithHaptic = { index: Int ->
+        hapticTap()
+        onSelectTab(index)
+    }
     when (uiMode) {
-        BibiUiMode.Material -> MaterialHomeScaffold(tabs, selectedTab, onSelectTab, content)
-        BibiUiMode.Miuix -> MiuixHomeScaffold(tabs, selectedTab, onSelectTab, content)
+        BibiUiMode.Material -> MaterialHomeScaffold(tabs, selectedTab, selectTabWithHaptic, content)
+        BibiUiMode.Miuix -> MiuixHomeScaffold(tabs, selectedTab, selectTabWithHaptic, content)
     }
 }
 

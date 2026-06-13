@@ -139,7 +139,6 @@ internal class AsrOnlineSettingsFields(
 
     fun toRouteState(
         viewModel: AsrSettingsViewModel,
-        hapticTap: () -> Unit,
         applyDashSemanticPunctSwitch: (Boolean) -> Unit,
         applyElevenStreamingSwitch: (Boolean) -> Unit,
         applyGeminiThinkingSwitch: (Boolean) -> Unit,
@@ -184,7 +183,6 @@ internal class AsrOnlineSettingsFields(
         onDashSemanticPunctChange = applyDashSemanticPunctSwitch,
         sfFreeAsrEnabled = sfFreeAsrEnabled,
         onSfFreeAsrEnabledChange = { checked ->
-            hapticTap()
             sfFreeAsrEnabled = checked
             prefs.sfFreeAsrEnabled = checked
         },
@@ -202,7 +200,6 @@ internal class AsrOnlineSettingsFields(
         },
         elevenStreaming = elevenStreaming,
         onElevenStreamingChange = { checked ->
-            hapticTap()
             applyElevenStreamingSwitch(checked)
         },
         elevenLanguageCode = elevenLanguageCode,
@@ -223,7 +220,6 @@ internal class AsrOnlineSettingsFields(
         },
         stepAudioUseItn = stepAudioUseItn,
         onStepAudioUseItnChange = { checked ->
-            hapticTap()
             stepAudioUseItn = checked
             prefs.stepAudioUseItn = checked
         },
@@ -260,7 +256,6 @@ internal class AsrOnlineSettingsFields(
         },
         geminiDisableThinking = geminiDisableThinking,
         onGeminiDisableThinkingChange = { checked ->
-            hapticTap()
             applyGeminiThinkingSwitch(checked)
         },
         openRouterEndpoint = openRouterEndpoint,
@@ -321,7 +316,6 @@ internal class AsrOnlineSettingsFields(
         mimoPromptEnabled = shouldShowMimoPrompt(mimoModel),
         mimoDisableThinking = mimoDisableThinking,
         onMimoDisableThinkingChange = { checked ->
-            hapticTap()
             mimoDisableThinking = checked
             prefs.mimoAsrDisableThinking = checked
         },
@@ -398,19 +392,16 @@ internal class AsrOnlineSettingsFields(
         },
         openAiStreaming = openAiStreaming,
         onOpenAiStreamingChange = { checked ->
-            hapticTap()
             applyOpenAiStreamingSwitch(checked)
         },
         openAiUseCompletions = openAiUseCompletions,
         onOpenAiUseCompletionsChange = { checked ->
-            hapticTap()
             openAiUseCompletions = checked
             prefs.oaAsrUseCompletions = checked
             viewModel.refreshOpenAiProfileState()
         },
         openAiUsePrompt = openAiUsePrompt,
         onOpenAiUsePromptChange = { checked ->
-            hapticTap()
             applyOpenAiUsePromptSwitch(checked)
         },
         openAiPrompt = openAiPrompt,
@@ -430,13 +421,11 @@ internal class AsrOnlineSettingsFields(
         },
         sonioxStreaming = sonioxStreaming,
         onSonioxStreamingChange = { checked ->
-            hapticTap()
             applySonioxStreamingSwitch(checked)
         },
         sonioxLanguages = sonioxLanguages,
         sonioxLanguageStrict = sonioxLanguageStrict,
         onSonioxLanguageStrictChange = { checked ->
-            hapticTap()
             applySonioxLanguageStrictSwitch(checked)
         }
     )

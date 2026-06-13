@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import com.brycewg.asrkb.ui.settings.compose.core.BibiUiMode
+import com.brycewg.asrkb.ui.settings.compose.core.LocalSettingsHapticTap
 import com.brycewg.asrkb.ui.settings.compose.core.SettingsLayoutMetrics
 import top.yukonga.miuix.kmp.basic.TextButton as MiuixTextButton
 
@@ -36,6 +37,11 @@ internal fun SettingsSheetActionRow(
         vertical = SettingsLayoutMetrics.SheetBottomPadding
     )
 ) {
+    val hapticTap = LocalSettingsHapticTap.current
+    val dismissWithHaptic = {
+        hapticTap()
+        onDismiss()
+    }
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -44,7 +50,7 @@ internal fun SettingsSheetActionRow(
     ) {
         when (uiMode) {
             BibiUiMode.Material -> TextButton(
-                onClick = onDismiss,
+                onClick = dismissWithHaptic,
                 modifier = Modifier
                     .weight(1f)
                     .heightIn(min = SettingsLayoutMetrics.ActionButtonMinHeight),
@@ -63,7 +69,7 @@ internal fun SettingsSheetActionRow(
 
             BibiUiMode.Miuix -> MiuixTextButton(
                 text = cancelText,
-                onClick = onDismiss,
+                onClick = dismissWithHaptic,
                 modifier = Modifier.weight(1f)
             )
         }

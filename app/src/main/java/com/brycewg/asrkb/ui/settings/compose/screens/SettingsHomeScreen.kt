@@ -254,7 +254,6 @@ private fun inputSections(
                 titleRes = R.string.btn_settings_search,
                 icon = Icons.Rounded.Search,
                 onClick = {
-                    actions.hapticTap()
                     onPushRoute(BibiSettingsRoute.Search)
                 }
             ),
@@ -269,7 +268,6 @@ private fun inputSections(
                 titleRes = R.string.title_recording_test,
                 icon = Icons.Rounded.Mic,
                 onClick = {
-                    actions.hapticTap()
                     onPushRoute(BibiSettingsRoute.RecordingTest)
                 }
             ),
@@ -320,7 +318,6 @@ private fun smartSections(
                 summary = apiErrorsSummary,
                 icon = Icons.Rounded.History,
                 onClick = {
-                    actions.hapticTap()
                     onPushRoute(BibiSettingsRoute.History)
                 }
             )
@@ -351,7 +348,6 @@ private fun systemSections(
                 options = uiModeOptions,
                 selectedOptionId = uiMode.id,
                 onSelectedOptionChange = {
-                    actions.hapticTap()
                     onSetUiMode(BibiUiMode.fromId(it))
                 }
             ),
@@ -362,7 +358,6 @@ private fun systemSections(
                 options = themeModeOptions,
                 selectedOptionId = themeMode,
                 onSelectedOptionChange = {
-                    actions.hapticTap()
                     onSetThemeMode(it)
                 }
             )

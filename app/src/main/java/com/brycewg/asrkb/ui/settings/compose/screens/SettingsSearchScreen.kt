@@ -45,6 +45,7 @@ import com.brycewg.asrkb.ui.settings.compose.components.SettingsDetailScaffold
 import com.brycewg.asrkb.ui.settings.compose.components.SettingsLazyColumn
 import com.brycewg.asrkb.ui.settings.compose.components.SettingsSearchField
 import com.brycewg.asrkb.ui.settings.compose.core.BibiUiMode
+import com.brycewg.asrkb.ui.settings.compose.core.LocalSettingsHapticTap
 import com.brycewg.asrkb.ui.settings.compose.core.SettingsLayoutMetrics
 import com.brycewg.asrkb.ui.settings.search.SettingsSearchEntry
 import com.brycewg.asrkb.ui.settings.search.SettingsSearchIndex
@@ -175,6 +176,11 @@ private fun SearchResultItem(
     onClick: () -> Unit
 ) {
     val context = LocalContext.current
+    val hapticTap = LocalSettingsHapticTap.current
+    val clickWithHaptic = {
+        hapticTap()
+        onClick()
+    }
     val subtitle = remember(entry, context) {
         SettingsSearchMatcher.subtitle(entry, context::getString)
     }
@@ -182,7 +188,7 @@ private fun SearchResultItem(
         BibiUiMode.Material -> Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onClick),
+                .clickable(onClick = clickWithHaptic),
             shape = RoundedCornerShape(SettingsLayoutMetrics.MaterialSectionShape),
             color = MaterialTheme.colorScheme.surfaceColorAtElevation(SettingsLayoutMetrics.SearchResultElevation),
             contentColor = MaterialTheme.colorScheme.onSurface
@@ -193,7 +199,7 @@ private fun SearchResultItem(
         BibiUiMode.Miuix -> MiuixCard(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onClick)
+                .clickable(onClick = clickWithHaptic)
         ) {
             SearchResultText(entry.title, subtitle, uiMode)
         }

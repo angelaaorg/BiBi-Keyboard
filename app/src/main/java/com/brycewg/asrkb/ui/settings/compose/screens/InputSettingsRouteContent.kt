@@ -79,7 +79,6 @@ internal fun InputSettingsRouteContent(
                     titleRes = R.string.label_trim_trailing_punct,
                     checked = uiState.trimTrailingPunct,
                     onToggle = { target ->
-                        actions.hapticTap()
                         onApplyExplainedSwitch(
                             uiState.trimTrailingPunct,
                             target,
@@ -127,7 +126,6 @@ internal fun InputSettingsRouteContent(
                         },
                         onValueChangeFinished = {
                             prefs.trimFinalTrailingPunctThreshold = uiState.trimTrailingPunctThreshold
-                            actions.hapticTap()
                             onRefreshState()
                         }
                     )
@@ -137,7 +135,6 @@ internal fun InputSettingsRouteContent(
                     titleRes = R.string.label_mic_tap_toggle,
                     checked = uiState.micTapToggle,
                     onToggle = { target ->
-                        actions.hapticTap()
                         onApplyExplainedSwitch(
                             uiState.micTapToggle,
                             target,
@@ -157,7 +154,6 @@ internal fun InputSettingsRouteContent(
                     titleRes = R.string.label_auto_start_recording_on_show,
                     checked = uiState.autoStartRecordingOnShow,
                     onToggle = { target ->
-                        actions.hapticTap()
                         onApplyExplainedSwitch(
                             uiState.autoStartRecordingOnShow,
                             target,
@@ -177,7 +173,6 @@ internal fun InputSettingsRouteContent(
                     titleRes = R.string.label_hide_recent_task_card,
                     checked = uiState.hideRecentTasks,
                     onToggle = { target ->
-                        actions.hapticTap()
                         onApplyExplainedSwitch(
                             uiState.hideRecentTasks,
                             target,
@@ -197,7 +192,6 @@ internal fun InputSettingsRouteContent(
                     titleRes = R.string.label_fcitx5_return_on_switcher,
                     checked = uiState.fcitx5ReturnOnSwitcher,
                     onToggle = { target ->
-                        actions.hapticTap()
                         onApplyExplainedSwitch(
                             uiState.fcitx5ReturnOnSwitcher,
                             target,
@@ -217,7 +211,6 @@ internal fun InputSettingsRouteContent(
                     titleRes = R.string.label_return_prev_ime_on_hide,
                     checked = uiState.returnPrevImeOnHide,
                     onToggle = { target ->
-                        actions.hapticTap()
                         onApplyExplainedSwitch(
                             uiState.returnPrevImeOnHide,
                             target,
@@ -241,7 +234,6 @@ internal fun InputSettingsRouteContent(
                             imeOptions.any { it.id == targetId }
                         }.orEmpty(),
                         onSelectedOptionChange = { id ->
-                            actions.hapticTap()
                             prefs.imeSwitchTargetId = id
                             onRefreshState()
                         }
@@ -259,7 +251,6 @@ internal fun InputSettingsRouteContent(
                     titleRes = R.string.label_audio_ducking_on_record,
                     checked = uiState.duckMediaOnRecord,
                     onToggle = { target ->
-                        actions.hapticTap()
                         onApplyExplainedSwitch(
                             uiState.duckMediaOnRecord,
                             target,
@@ -279,7 +270,6 @@ internal fun InputSettingsRouteContent(
                     titleRes = R.string.label_offline_denoise,
                     checked = uiState.offlineDenoise,
                     onToggle = { target ->
-                        actions.hapticTap()
                         onApplyExplainedSwitch(
                             uiState.offlineDenoise,
                             target,
@@ -299,7 +289,6 @@ internal fun InputSettingsRouteContent(
                     titleRes = R.string.label_auto_cancel_empty_audio_input,
                     checked = uiState.autoCancelEmptyAudioInput,
                     onToggle = { target ->
-                        actions.hapticTap()
                         onApplyExplainedSwitch(
                             uiState.autoCancelEmptyAudioInput,
                             target,
@@ -319,7 +308,6 @@ internal fun InputSettingsRouteContent(
                     titleRes = R.string.label_auto_filter_silent_audio_segments,
                     checked = uiState.autoFilterSilentAudioSegments,
                     onToggle = { target ->
-                        actions.hapticTap()
                         onApplyExplainedSwitch(
                             uiState.autoFilterSilentAudioSegments,
                             target,
@@ -339,7 +327,6 @@ internal fun InputSettingsRouteContent(
                     titleRes = R.string.label_upload_audio_compression,
                     checked = uiState.uploadAudioCompression,
                     onToggle = { target ->
-                        actions.hapticTap()
                         onApplyExplainedSwitch(
                             uiState.uploadAudioCompression,
                             target,
@@ -359,7 +346,6 @@ internal fun InputSettingsRouteContent(
                     titleRes = R.string.label_headset_mic_priority,
                     checked = uiState.headsetMicPriority,
                     onToggle = { target ->
-                        actions.hapticTap()
                         onApplyExplainedSwitch(
                             uiState.headsetMicPriority,
                             target,
@@ -393,7 +379,6 @@ internal fun InputSettingsRouteContent(
                         titleRes = R.string.label_external_ime_link_aidl,
                         checked = uiState.externalAidl,
                         onCheckedChange = { enabled ->
-                            actions.hapticTap()
                             prefs.externalAidlEnabled = enabled
                             onUiStateChange(uiState.copy(externalAidl = enabled))
                             if (enabled) onShowExternalAidlGuideDialog()
@@ -413,7 +398,6 @@ internal fun InputSettingsRouteContent(
                     index = 0,
                     count = 7,
                     onSelected = { tier ->
-                        actions.hapticTap()
                         prefs.keyboardHeightTier = tier
                         onUiStateChange(uiState.copy(keyboardHeightTier = prefs.keyboardHeightTier))
                         context.sendImeRefreshBroadcast()
@@ -425,7 +409,6 @@ internal fun InputSettingsRouteContent(
                         titleRes = R.string.label_ime_tablet_floating_keyboard,
                         checked = uiState.imeTabletFloatingKeyboard,
                         onCheckedChange = { enabled ->
-                            actions.hapticTap()
                             prefs.imeTabletFloatingKeyboardEnabled = enabled
                             onUiStateChange(uiState.copy(imeTabletFloatingKeyboard = enabled))
                             context.sendImeRefreshBroadcast()
@@ -455,7 +438,6 @@ internal fun InputSettingsRouteContent(
                     },
                     onValueChangeFinished = {
                         prefs.hapticFeedbackLevel = uiState.hapticFeedbackLevel
-                        actions.hapticTap()
                         onRefreshState()
                     }
                 )
@@ -480,7 +462,6 @@ internal fun InputSettingsRouteContent(
                     onValueChangeFinished = {
                         prefs.keyboardBottomPaddingDp = uiState.keyboardBottomPaddingDp
                         context.sendImeRefreshBroadcast()
-                        actions.hapticTap()
                         onRefreshState()
                     }
                 )
@@ -502,7 +483,6 @@ internal fun InputSettingsRouteContent(
                     onValueChangeFinished = {
                         prefs.waveformSensitivity = uiState.waveformSensitivity
                         context.sendImeRefreshBroadcast()
-                        actions.hapticTap()
                         onRefreshState()
                     }
                 )
@@ -513,7 +493,6 @@ internal fun InputSettingsRouteContent(
                         options = languageOptions,
                         selectedOptionId = normalizeLanguageTag(prefs.appLanguageTag),
                         onSelectedOptionChange = { tag ->
-                            actions.hapticTap()
                             if (tag != prefs.appLanguageTag) {
                                 prefs.appLanguageTag = tag
                                 val locales = if (tag.isBlank()) {
@@ -536,7 +515,6 @@ internal fun InputSettingsRouteContent(
                     index = 6,
                     count = 7,
                     onClick = {
-                        actions.hapticTap()
                         onShowExtensionButtonsPicker()
                     }
                 )

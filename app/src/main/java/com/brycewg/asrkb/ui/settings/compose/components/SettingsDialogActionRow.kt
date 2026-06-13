@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import com.brycewg.asrkb.ui.settings.compose.core.BibiUiMode
+import com.brycewg.asrkb.ui.settings.compose.core.LocalSettingsHapticTap
 import com.brycewg.asrkb.ui.settings.compose.core.SettingsLayoutMetrics
 import top.yukonga.miuix.kmp.basic.ButtonDefaults as MiuixButtonDefaults
 import top.yukonga.miuix.kmp.basic.TextButton as MiuixTextButton
@@ -83,12 +84,17 @@ private fun SettingsDialogActionButton(
     action: SettingsDialogAction,
     modifier: Modifier
 ) {
+    val hapticTap = LocalSettingsHapticTap.current
+    val clickWithHaptic = {
+        hapticTap()
+        action.onClick()
+    }
     when (uiMode) {
-        BibiUiMode.Material -> MaterialDialogActionButton(action, modifier)
+        BibiUiMode.Material -> MaterialDialogActionButton(action, modifier, clickWithHaptic)
 
         BibiUiMode.Miuix -> MiuixTextButton(
             text = action.text,
-            onClick = action.onClick,
+            onClick = clickWithHaptic,
             enabled = action.enabled,
             modifier = modifier,
             colors = if (action.primary) {
@@ -103,7 +109,8 @@ private fun SettingsDialogActionButton(
 @Composable
 private fun MaterialDialogActionButton(
     action: SettingsDialogAction,
-    modifier: Modifier
+    modifier: Modifier,
+    onClick: () -> Unit
 ) {
     val buttonModifier = modifier.heightIn(min = SettingsLayoutMetrics.ActionButtonMinHeight)
     val shape = RoundedCornerShape(SettingsLayoutMetrics.ActionButtonCorner)
@@ -125,7 +132,7 @@ private fun MaterialDialogActionButton(
     }
     if (action.primary) {
         Button(
-            onClick = action.onClick,
+            onClick = onClick,
             enabled = action.enabled,
             modifier = buttonModifier,
             shape = shape,
@@ -135,7 +142,7 @@ private fun MaterialDialogActionButton(
         }
     } else {
         TextButton(
-            onClick = action.onClick,
+            onClick = onClick,
             enabled = action.enabled,
             modifier = buttonModifier,
             shape = shape,

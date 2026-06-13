@@ -52,18 +52,16 @@ internal fun AsrSettingsRouteContent(
                     silenceWindowMs = uiState.silenceWindowMs,
                     silenceSensitivity = uiState.silenceSensitivity,
                     onEnabledChange = { checked ->
-                        hapticTap()
                         applyAutoStopSwitch(checked)
                     },
                     onWindowChange = { value ->
                         viewModel.updateSilenceWindow(value.coerceIn(300, 5000))
                     },
-                    onWindowFinished = { hapticTap() },
+                    onWindowFinished = {},
                     onSensitivityChange = { value ->
                         viewModel.updateSilenceSensitivity(value.coerceIn(1, 10))
                     },
                     onSensitivityFinished = {
-                        hapticTap()
                         rebuildVadIfNeeded()
                     }
                 )
@@ -85,7 +83,6 @@ internal fun AsrSettingsRouteContent(
                         index = 0,
                         count = vendorGroupCount,
                         onClick = {
-                            hapticTap()
                             showVendorPicker(
                                 R.string.label_asr_vendor,
                                 uiState.selectedVendor,
@@ -109,7 +106,6 @@ internal fun AsrSettingsRouteContent(
                             onUpdateDdc = viewModel::updateVolcDdc,
                             onUpdateVad = viewModel::updateVolcVad,
                             applySwitch = applyVolcSwitch,
-                            hapticTap = hapticTap,
                             onLanguageSelected = viewModel::updateVolcLanguage,
                             primaryIndexOffset = 1,
                             primaryGroupCount = vendorGroupCount
@@ -122,7 +118,6 @@ internal fun AsrSettingsRouteContent(
                             onApiKeyChange = onlineState.onDashApiKeyChange,
                             modelLabel = dashModelLabel(context, onlineState.dashModel),
                             onChooseModel = {
-                                hapticTap()
                                 showDashModelPicker()
                             },
                             prompt = onlineState.dashPrompt,
@@ -130,19 +125,16 @@ internal fun AsrSettingsRouteContent(
                             promptVisible = isDashPromptSupported(onlineState.dashModel),
                             selectedLanguage = onlineState.dashLanguage,
                             onLanguageSelected = { language ->
-                                hapticTap()
                                 onlineState.onDashLanguageChange(language)
                             },
                             languageVisible = isDashLanguageSupported(onlineState.dashModel),
                             selectedRegion = onlineState.dashRegion,
                             onRegionSelected = { region ->
-                                hapticTap()
                                 onlineState.onDashRegionChange(region)
                             },
                             semanticPunct = onlineState.dashSemanticPunct,
                             semanticPunctVisible = isDashFunAsrModel(onlineState.dashModel),
                             onSemanticPunctChange = { checked ->
-                                hapticTap()
                                 onlineState.onDashSemanticPunctChange(checked)
                             },
                             onOpenGuide = {
@@ -159,14 +151,12 @@ internal fun AsrSettingsRouteContent(
                         onSfFreeAsrEnabledChange = onlineState.onSfFreeAsrEnabledChange,
                         sfFreeAsrModel = onlineState.sfFreeAsrModel,
                         onChooseSfFreeAsrModel = {
-                            hapticTap()
                             showSfFreeModelPicker()
                         },
                         sfApiKey = onlineState.sfApiKey,
                         onSfApiKeyChange = onlineState.onSfApiKeyChange,
                         sfModel = onlineState.sfModel,
                         onChooseSfModel = {
-                            hapticTap()
                             showSfPaidModelPicker()
                         },
                         elevenApiKey = onlineState.elevenApiKey,
@@ -175,19 +165,16 @@ internal fun AsrSettingsRouteContent(
                         onElevenStreamingChange = onlineState.onElevenStreamingChange,
                         elevenLanguageCode = onlineState.elevenLanguageCode,
                         onElevenLanguageSelected = { language ->
-                            hapticTap()
                             onlineState.onElevenLanguageChange(language)
                         },
                         stepAudioApiKey = onlineState.stepAudioApiKey,
                         onStepAudioApiKeyChange = onlineState.onStepAudioApiKeyChange,
                         stepAudioModel = onlineState.stepAudioModel,
                         onChooseStepAudioModel = {
-                            hapticTap()
                             showStepAudioModelPicker()
                         },
                         stepAudioLanguage = onlineState.stepAudioLanguage,
                         onStepAudioLanguageSelected = { language ->
-                            hapticTap()
                             onlineState.onStepAudioLanguageChange(language)
                         },
                         stepAudioUseItn = onlineState.stepAudioUseItn,
@@ -196,7 +183,7 @@ internal fun AsrSettingsRouteContent(
                         onZhipuApiKeyChange = onlineState.onZhipuApiKeyChange,
                         zhipuTemperature = onlineState.zhipuTemperature,
                         onZhipuTemperatureChange = onlineState.onZhipuTemperatureChange,
-                        onZhipuTemperatureFinished = { hapticTap() },
+                        onZhipuTemperatureFinished = {},
                         geminiApiKey = onlineState.geminiApiKey,
                         onGeminiApiKeyChange = onlineState.onGeminiApiKeyChange,
                         geminiEndpoint = onlineState.geminiEndpoint,
@@ -269,7 +256,6 @@ internal fun AsrSettingsRouteContent(
                         uiState = uiState,
                         localModelState = localModelState,
                         viewModel = viewModel,
-                        hapticTap = hapticTap,
                         onOpenGuide = {
                             onOpenUrl(context.getString(R.string.local_model_guide_config_doc_url))
                         },
@@ -292,7 +278,6 @@ internal fun AsrSettingsRouteContent(
                     sensitivity = backupState.sensitivity,
                     onEnabledChange = backupState.onEnabledChange,
                     onVendorChange = backupState.onVendorChange,
-                    hapticTap = hapticTap,
                     showVendorPicker = showVendorPicker,
                     showSensitivityPicker = showBackupSensitivityPicker
                 )

@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.ui.settings.compose.core.BibiUiMode
+import com.brycewg.asrkb.ui.settings.compose.core.LocalSettingsHapticTap
 import com.brycewg.asrkb.ui.settings.compose.core.SettingsLayoutMetrics
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -85,6 +86,11 @@ internal fun SettingsTextField(
     )
 ) {
     var passwordVisible by remember(password) { mutableStateOf(false) }
+    val hapticTap = LocalSettingsHapticTap.current
+    val togglePasswordVisibility = {
+        hapticTap()
+        passwordVisible = !passwordVisible
+    }
     val showPasswordToggle = password && enabled
     val passwordToggleLabel = stringResource(
         if (passwordVisible) {
@@ -169,7 +175,7 @@ internal fun SettingsTextField(
                     keyboardActions = keyboardActions,
                     trailingIcon = if (showPasswordToggle) {
                         {
-                            IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                            IconButton(onClick = togglePasswordVisibility) {
                                 Icon(
                                     imageVector = passwordToggleIcon,
                                     contentDescription = passwordToggleLabel
@@ -214,7 +220,7 @@ internal fun SettingsTextField(
                 keyboardActions = keyboardActions,
                 trailingIcon = if (showPasswordToggle) {
                     {
-                        MiuixIconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        MiuixIconButton(onClick = togglePasswordVisibility) {
                             MiuixIcon(
                                 imageVector = passwordToggleIcon,
                                 contentDescription = passwordToggleLabel,

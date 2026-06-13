@@ -37,6 +37,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.ui.settings.compose.core.BibiUiMode
+import com.brycewg.asrkb.ui.settings.compose.core.LocalSettingsHapticTap
 import com.brycewg.asrkb.ui.settings.compose.core.SettingsLayoutMetrics
 import top.yukonga.miuix.kmp.basic.TextButton as MiuixTextButton
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -150,11 +151,16 @@ private fun EmailCopyBlock(
     onCopyEmail: () -> Unit
 ) {
     val shape = RoundedCornerShape(SettingsLayoutMetrics.PaymentEmailCardCorner)
+    val hapticTap = LocalSettingsHapticTap.current
+    val copyWithHaptic = {
+        hapticTap()
+        onCopyEmail()
+    }
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .clip(shape)
-            .clickable(onClick = onCopyEmail)
+            .clickable(onClick = copyWithHaptic)
             .background(
                 when (uiMode) {
                     BibiUiMode.Material -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
@@ -185,8 +191,13 @@ private fun EmailCopyBlock(
 
 @Composable
 private fun SaveQrButton(uiMode: BibiUiMode, onClick: () -> Unit) {
+    val hapticTap = LocalSettingsHapticTap.current
+    val clickWithHaptic = {
+        hapticTap()
+        onClick()
+    }
     when (uiMode) {
-        BibiUiMode.Material -> MaterialTextButton(onClick = onClick) {
+        BibiUiMode.Material -> MaterialTextButton(onClick = clickWithHaptic) {
             Icon(
                 Icons.Rounded.Download,
                 contentDescription = null,
@@ -197,7 +208,7 @@ private fun SaveQrButton(uiMode: BibiUiMode, onClick: () -> Unit) {
 
         BibiUiMode.Miuix -> MiuixTextButton(
             text = stringResource(R.string.payment_qr_save),
-            onClick = onClick
+            onClick = clickWithHaptic
         )
     }
 }

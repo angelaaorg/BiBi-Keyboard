@@ -26,7 +26,6 @@ internal class AiSettingsPickerActions(
     private val promptPresets: List<PromptPreset>,
     private val onChoiceSheetChange: (SettingsChoiceSheetState?) -> Unit,
     private val onMultiChoiceSheetChange: (SettingsMultiChoiceSheetState?) -> Unit,
-    private val onChoiceClick: () -> Unit,
     private val onMessage: (Int) -> Unit,
     private val onFetchFailed: (String) -> Unit
 ) {
@@ -36,7 +35,6 @@ internal class AiSettingsPickerActions(
                 context = context,
                 prefs = prefs,
                 selectedVendor = selectedVendor,
-                onChoiceClick = onChoiceClick,
                 onSelected = { vendor -> viewModel.selectVendor(prefs, vendor) }
             )
         )
@@ -51,7 +49,6 @@ internal class AiSettingsPickerActions(
                 presetModels = presetModels,
                 currentModel = localState.sfModel,
                 blankAsCustom = false,
-                onChoiceClick = onChoiceClick,
                 onCustomSelected = { customModel ->
                     localState.sfCustomModelInputVisible = true
                     localState.sfModel = customModel
@@ -80,7 +77,6 @@ internal class AiSettingsPickerActions(
                 titleRes = R.string.label_llm_model_select,
                 presetModels = localState.builtinPresetModels,
                 currentModel = currentModel,
-                onChoiceClick = onChoiceClick,
                 onCustomSelected = {
                     localState.builtinCustomModelInputVisible = true
                 },
@@ -98,7 +94,6 @@ internal class AiSettingsPickerActions(
                 context = context,
                 profiles = profiles,
                 selectedIndex = viewModel.getActiveLlmProviderIndex(),
-                onChoiceClick = onChoiceClick,
                 onSelected = { profile -> viewModel.selectLlmProvider(prefs, profile.id) }
             )
         )
@@ -114,7 +109,6 @@ internal class AiSettingsPickerActions(
                 titleRes = R.string.label_llm_model_select,
                 presetModels = presetModels,
                 currentModel = currentModel,
-                onChoiceClick = onChoiceClick,
                 onCustomSelected = { customModel ->
                     localState.customModelInputVisible = true
                     viewModel.updateActiveLlmProvider(prefs) { it.copy(model = customModel) }
@@ -133,7 +127,6 @@ internal class AiSettingsPickerActions(
                 context = context,
                 promptPresets = promptPresets,
                 selectedIndex = viewModel.getActivePromptPresetIndex(),
-                onChoiceClick = onChoiceClick,
                 onSelected = { preset -> viewModel.selectPromptPreset(prefs, preset.id) }
             )
         )
@@ -144,8 +137,7 @@ internal class AiSettingsPickerActions(
         val sheetState = aiModelsMultiChoiceSheetState(
             context = context,
             models = models,
-            currentModels = currentModels,
-            onChoiceClick = onChoiceClick
+            currentModels = currentModels
         ) { selected ->
             if (selected.isEmpty()) {
                 onMessage(R.string.toast_llm_models_none_selected)
@@ -179,8 +171,7 @@ internal class AiSettingsPickerActions(
         val sheetState = aiModelsMultiChoiceSheetState(
             context = context,
             models = models,
-            currentModels = currentModels,
-            onChoiceClick = onChoiceClick
+            currentModels = currentModels
         ) { selected ->
             if (selected.isEmpty()) {
                 onMessage(R.string.toast_llm_models_none_selected)

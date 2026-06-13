@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.brycewg.asrkb.ui.settings.compose.core.BibiUiMode
+import com.brycewg.asrkb.ui.settings.compose.core.LocalSettingsHapticTap
 import top.yukonga.miuix.kmp.basic.Icon as MiuixIcon
 import top.yukonga.miuix.kmp.basic.Text as MiuixText
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -48,11 +49,18 @@ internal fun SettingsAssistChip(
     icon: ImageVector? = null,
     onClick: (() -> Unit)? = null
 ) {
+    val hapticTap = LocalSettingsHapticTap.current
+    val clickWithHaptic = onClick?.let { action ->
+        {
+            hapticTap()
+            action()
+        }
+    }
     when (uiMode) {
         BibiUiMode.Material -> {
-            if (onClick != null) {
+            if (clickWithHaptic != null) {
                 AssistChip(
-                    onClick = onClick,
+                    onClick = clickWithHaptic,
                     label = { SettingsChipMaterialText(label) },
                     modifier = modifier,
                     leadingIcon = icon?.let {
@@ -79,7 +87,7 @@ internal fun SettingsAssistChip(
             label = label,
             modifier = modifier,
             icon = icon,
-            onClick = onClick
+            onClick = clickWithHaptic
         )
     }
 }
@@ -92,10 +100,15 @@ internal fun SettingsFilterChip(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
+    val hapticTap = LocalSettingsHapticTap.current
+    val clickWithHaptic = {
+        hapticTap()
+        onClick()
+    }
     when (uiMode) {
         BibiUiMode.Material -> FilterChip(
             selected = selected,
-            onClick = onClick,
+            onClick = clickWithHaptic,
             label = { SettingsChipMaterialText(label) },
             modifier = modifier,
             shape = SettingsChipShape
@@ -105,7 +118,7 @@ internal fun SettingsFilterChip(
             label = label,
             selected = selected,
             modifier = modifier,
-            onClick = onClick
+            onClick = clickWithHaptic
         )
     }
 }

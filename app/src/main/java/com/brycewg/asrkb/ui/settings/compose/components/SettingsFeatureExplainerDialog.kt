@@ -38,6 +38,7 @@ import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.font.FontWeight
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.ui.settings.compose.core.BibiUiMode
+import com.brycewg.asrkb.ui.settings.compose.core.LocalSettingsHapticTap
 import com.brycewg.asrkb.ui.settings.compose.core.SettingsLayoutMetrics
 import top.yukonga.miuix.kmp.basic.Checkbox as MiuixCheckbox
 import top.yukonga.miuix.kmp.basic.Text as MiuixText
@@ -293,21 +294,26 @@ private fun DontShowAgainRow(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit
 ) {
+    val hapticTap = LocalSettingsHapticTap.current
+    fun changeWithHaptic(value: Boolean) {
+        hapticTap()
+        onCheckedChange(value)
+    }
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(role = Role.Checkbox) { onCheckedChange(!checked) },
+            .clickable(role = Role.Checkbox) { changeWithHaptic(!checked) },
         verticalAlignment = Alignment.CenterVertically
     ) {
         when (uiMode) {
             BibiUiMode.Material -> MaterialCheckbox(
                 checked = checked,
-                onCheckedChange = onCheckedChange
+                onCheckedChange = ::changeWithHaptic
             )
 
             BibiUiMode.Miuix -> MiuixCheckbox(
                 state = if (checked) ToggleableState.On else ToggleableState.Off,
-                onClick = { onCheckedChange(!checked) }
+                onClick = { changeWithHaptic(!checked) }
             )
         }
         Spacer(modifier = Modifier.width(SettingsLayoutMetrics.FeatureExplainerLabelSpacing))

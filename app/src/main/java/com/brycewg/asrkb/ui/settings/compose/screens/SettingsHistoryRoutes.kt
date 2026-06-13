@@ -24,7 +24,6 @@ import com.brycewg.asrkb.R
 import com.brycewg.asrkb.asr.AsrVendor
 import com.brycewg.asrkb.store.ApiLogStore
 import com.brycewg.asrkb.store.AsrHistoryStore
-import com.brycewg.asrkb.store.Prefs
 import com.brycewg.asrkb.ui.AsrVendorUi
 import com.brycewg.asrkb.ui.history.compose.apilog.ApiLogScreen
 import com.brycewg.asrkb.ui.history.compose.apilog.formatApiLogDetail
@@ -34,7 +33,7 @@ import com.brycewg.asrkb.ui.history.compose.history.HistoryVendorOption
 import com.brycewg.asrkb.ui.settings.compose.components.SettingsMessageDialog
 import com.brycewg.asrkb.ui.settings.compose.components.SettingsMessageDialogState
 import com.brycewg.asrkb.ui.settings.compose.core.BibiUiMode
-import com.brycewg.asrkb.util.HapticFeedbackHelper
+import com.brycewg.asrkb.ui.settings.compose.core.LocalSettingsHapticTap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -51,7 +50,7 @@ internal fun SettingsHistoryRoute(
     val context = LocalContext.current
     val appContext = context.applicationContext
     val store = remember(appContext) { AsrHistoryStore(appContext) }
-    val prefs = remember(appContext) { Prefs(appContext) }
+    val hapticTap = LocalSettingsHapticTap.current
     val scope = rememberCoroutineScope()
     val vendors = remember(context) {
         AsrVendor.entries.map { vendor ->
@@ -133,7 +132,7 @@ internal fun SettingsHistoryRoute(
         },
         onOpenApiLog = onOpenApiLog,
         hasRecentApiErrors = hasRecentApiErrors,
-        onHapticTap = { HapticFeedbackHelper.performTap(context, prefs, null) }
+        onHapticTap = hapticTap
     )
 }
 

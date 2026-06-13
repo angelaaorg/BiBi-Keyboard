@@ -23,7 +23,6 @@ internal fun AsrBackupRouteSection(
     sensitivity: Int,
     onEnabledChange: (Boolean) -> Unit,
     onVendorChange: (AsrVendor) -> Unit,
-    hapticTap: () -> Unit,
     showVendorPicker: (Int, AsrVendor, (AsrVendor) -> Unit) -> Unit,
     showSensitivityPicker: () -> Unit
 ) {
@@ -33,19 +32,16 @@ internal fun AsrBackupRouteSection(
         vendorName = vendorName,
         sensitivity = sensitivity,
         onEnabledChange = { checked ->
-            hapticTap()
             onEnabledChange(checked)
             prefs.backupAsrEnabled = checked
         },
         onVendorClick = {
-            hapticTap()
             showVendorPicker(R.string.label_backup_asr_vendor, vendor) { selected ->
                 onVendorChange(selected)
                 prefs.backupAsrVendor = selected
             }
         },
         onSensitivityClick = {
-            hapticTap()
             showSensitivityPicker()
         }
     )

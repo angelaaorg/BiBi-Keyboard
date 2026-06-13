@@ -40,12 +40,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import com.brycewg.asrkb.ui.settings.compose.components.SettingsMaterialItemSurface
+import com.brycewg.asrkb.ui.settings.compose.core.LocalSettingsHapticTap
 import com.brycewg.asrkb.ui.settings.compose.core.SettingsLayoutMetrics
 import com.brycewg.asrkb.ui.settings.compose.core.settingsSegmentedItemShape
 import com.brycewg.asrkb.ui.settings.compose.model.SettingsEntry
@@ -69,12 +68,16 @@ private fun MaterialActionEntry(
     entry: SettingsEntry.Action,
     shape: Shape
 ) {
+    val hapticTap = LocalSettingsHapticTap.current
     MaterialSegmentedSurface(
         shape = shape,
         modifier = Modifier.clickable(
             enabled = entry.enabled,
             role = Role.Button,
-            onClick = entry.onClick
+            onClick = {
+                hapticTap()
+                entry.onClick()
+            }
         )
     ) {
         MaterialEntryListItem(entry)
@@ -86,7 +89,7 @@ private fun MaterialSwitchEntry(
     entry: SettingsEntry.Switch,
     shape: Shape
 ) {
-    val haptic = LocalHapticFeedback.current
+    val hapticTap = LocalSettingsHapticTap.current
     val interactionSource = remember { MutableInteractionSource() }
     MaterialSegmentedSurface(
         shape = shape,
@@ -97,7 +100,7 @@ private fun MaterialSwitchEntry(
             enabled = entry.enabled,
             role = Role.Switch,
             onValueChange = { checked ->
-                haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
+                hapticTap()
                 entry.onCheckedChange(checked)
             }
         )
@@ -122,13 +125,17 @@ private fun MaterialDropdownEntry(
     shape: Shape
 ) {
     var expanded by remember { mutableStateOf(false) }
+    val hapticTap = LocalSettingsHapticTap.current
 
     MaterialSegmentedSurface(
         shape = shape,
         modifier = Modifier.clickable(
             enabled = entry.enabled && entry.options.isNotEmpty(),
             role = Role.Button,
-            onClick = { expanded = true }
+            onClick = {
+                hapticTap()
+                expanded = true
+            }
         )
     ) {
         MaterialEntryListItem(
@@ -230,6 +237,7 @@ private fun MaterialDropdownTrailingContent(
     expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit
 ) {
+    val hapticTap = LocalSettingsHapticTap.current
     val selectedOption = entry.options.firstOrNull { it.id == entry.selectedOptionId }
     Box(modifier = Modifier.wrapContentSize(Alignment.TopEnd)) {
         Text(
@@ -256,6 +264,7 @@ private fun MaterialDropdownTrailingContent(
                         )
                     },
                     onClick = {
+                        hapticTap()
                         onExpandedChange(false)
                         entry.onSelectedOptionChange(option.id)
                     }

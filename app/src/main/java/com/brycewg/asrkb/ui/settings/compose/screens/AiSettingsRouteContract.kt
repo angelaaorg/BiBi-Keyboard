@@ -67,7 +67,6 @@ internal data class AiSettingsRouteActions(
     val onBuiltinReasoningOffJsonChange: (String) -> Unit,
     val onFocusProfileNameAfterAddChange: (Boolean) -> Unit,
     val onFocusPromptTitleAfterAddChange: (Boolean) -> Unit,
-    val onHapticTap: () -> Unit,
     val onMessage: (Int) -> Unit,
     val onRefreshSfState: () -> Unit,
     val onSendRefreshBroadcast: () -> Unit,

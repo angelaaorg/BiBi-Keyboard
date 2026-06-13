@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.ui.settings.compose.core.BibiUiMode
 import com.brycewg.asrkb.ui.settings.compose.core.LocalBibiSettingsDark
+import com.brycewg.asrkb.ui.settings.compose.core.LocalSettingsHapticTap
 import com.brycewg.asrkb.ui.settings.compose.core.SettingsLayoutMetrics
 import com.brycewg.asrkb.ui.settings.compose.core.settingsSegmentedItemShape
 import top.yukonga.miuix.kmp.basic.Text as MiuixText
@@ -67,7 +68,6 @@ internal data class SettingsChoiceSheetState(
     val title: String,
     val groups: List<SettingsChoiceGroup>,
     val selectedIndex: Int,
-    val onChoiceClick: (() -> Unit)? = null,
     val onSelected: (Int) -> Unit
 )
 
@@ -75,7 +75,6 @@ internal fun settingsChoiceSheetState(
     title: String,
     items: List<String>,
     selectedIndex: Int,
-    onChoiceClick: (() -> Unit)? = null,
     onSelected: (Int) -> Unit
 ): SettingsChoiceSheetState? {
     if (items.isEmpty()) return null
@@ -93,7 +92,6 @@ internal fun settingsChoiceSheetState(
             )
         ),
         selectedIndex = selectedIndex.takeIf { it in items.indices } ?: -1,
-        onChoiceClick = onChoiceClick,
         onSelected = onSelected
     )
 }
@@ -175,6 +173,7 @@ private fun ChoiceSheetList(
     onDismiss: (afterDismiss: () -> Unit) -> Unit
 ) {
     var selectionHandled by remember(state) { mutableStateOf(false) }
+    val hapticTap = LocalSettingsHapticTap.current
     val visibleGroups = state.groups.filter { it.items.isNotEmpty() }
     if (visibleGroups.isEmpty()) return
     SettingsSheetLazyColumn(
@@ -200,7 +199,7 @@ private fun ChoiceSheetList(
                     onClick = {
                         if (selectionHandled) return@ChoiceItemRow
                         selectionHandled = true
-                        state.onChoiceClick?.invoke()
+                        hapticTap()
                         onDismiss { state.onSelected(item.originalIndex) }
                     }
                 )

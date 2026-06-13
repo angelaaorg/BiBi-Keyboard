@@ -103,7 +103,6 @@ fun InputSettingsScreen(
                 )
             ),
             selectedIndex = -1,
-            onChoiceClick = actions::hapticTap,
             onSelected = { index ->
                 urls.getOrNull(index)?.let { url ->
                     if (!context.openExternalAidlReleaseUrl(url)) {

@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import com.brycewg.asrkb.ui.settings.compose.core.BibiUiMode
+import com.brycewg.asrkb.ui.settings.compose.core.LocalSettingsHapticTap
 import com.brycewg.asrkb.ui.settings.compose.core.SettingsLayoutMetrics
 import top.yukonga.miuix.kmp.basic.Slider as MiuixSlider
 import top.yukonga.miuix.kmp.basic.Text as MiuixText
@@ -40,6 +41,11 @@ internal fun SettingsSliderPreference(
     onValueChange: (Float) -> Unit,
     onValueChangeFinished: () -> Unit
 ) {
+    val hapticTap = LocalSettingsHapticTap.current
+    val finishWithHaptic = {
+        onValueChangeFinished()
+        hapticTap()
+    }
     val content: @Composable () -> Unit = {
         when (uiMode) {
             BibiUiMode.Material -> SettingsMaterialItemSurface(index = index, count = count) {
@@ -51,7 +57,7 @@ internal fun SettingsSliderPreference(
                 Slider(
                     value = value,
                     onValueChange = onValueChange,
-                    onValueChangeFinished = onValueChangeFinished,
+                    onValueChangeFinished = finishWithHaptic,
                     valueRange = valueRange,
                     steps = if (showKeyPoints) steps else 0,
                     modifier = Modifier
@@ -70,7 +76,7 @@ internal fun SettingsSliderPreference(
                 MiuixSlider(
                     value = value,
                     onValueChange = onValueChange,
-                    onValueChangeFinished = onValueChangeFinished,
+                    onValueChangeFinished = finishWithHaptic,
                     valueRange = valueRange,
                     steps = if (showKeyPoints) steps else 0,
                     showKeyPoints = showKeyPoints,

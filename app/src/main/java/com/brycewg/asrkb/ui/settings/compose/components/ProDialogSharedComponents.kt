@@ -25,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.brycewg.asrkb.ui.settings.compose.core.BibiUiMode
+import com.brycewg.asrkb.ui.settings.compose.core.LocalSettingsHapticTap
 import com.brycewg.asrkb.ui.settings.compose.core.SettingsLayoutMetrics
 import com.brycewg.asrkb.ui.settings.compose.core.settingsDialogShape
 import top.yukonga.miuix.kmp.basic.Button as MiuixButton
@@ -149,16 +150,17 @@ internal fun DialogPrimaryAction(
     uiMode: BibiUiMode,
     onClick: () -> Unit
 ) {
+    val clickWithHaptic = dialogClickWithHaptic(onClick)
     when (uiMode) {
         BibiUiMode.Material -> Button(
-            onClick = onClick,
+            onClick = clickWithHaptic,
             modifier = Modifier.fillMaxWidth()
         ) {
             MaterialText(text)
         }
 
         BibiUiMode.Miuix -> MiuixButton(
-            onClick = onClick,
+            onClick = clickWithHaptic,
             modifier = Modifier.fillMaxWidth(),
             colors = MiuixButtonDefaults.buttonColorsPrimary()
         ) {
@@ -173,9 +175,10 @@ internal fun DialogTonalAction(
     uiMode: BibiUiMode,
     onClick: () -> Unit
 ) {
+    val clickWithHaptic = dialogClickWithHaptic(onClick)
     when (uiMode) {
         BibiUiMode.Material -> Button(
-            onClick = onClick,
+            onClick = clickWithHaptic,
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.filledTonalButtonColors()
         ) {
@@ -183,7 +186,7 @@ internal fun DialogTonalAction(
         }
 
         BibiUiMode.Miuix -> MiuixButton(
-            onClick = onClick,
+            onClick = clickWithHaptic,
             modifier = Modifier.fillMaxWidth()
         ) {
             MiuixText(text)
@@ -197,9 +200,10 @@ internal fun DialogTextAction(
     uiMode: BibiUiMode,
     onClick: () -> Unit
 ) {
+    val clickWithHaptic = dialogClickWithHaptic(onClick)
     when (uiMode) {
         BibiUiMode.Material -> MaterialTextButton(
-            onClick = onClick,
+            onClick = clickWithHaptic,
             modifier = Modifier.fillMaxWidth()
         ) {
             MaterialText(text)
@@ -207,8 +211,17 @@ internal fun DialogTextAction(
 
         BibiUiMode.Miuix -> MiuixTextButton(
             text = text,
-            onClick = onClick,
+            onClick = clickWithHaptic,
             modifier = Modifier.fillMaxWidth()
         )
+    }
+}
+
+@Composable
+private fun dialogClickWithHaptic(onClick: () -> Unit): () -> Unit {
+    val hapticTap = LocalSettingsHapticTap.current
+    return {
+        hapticTap()
+        onClick()
     }
 }

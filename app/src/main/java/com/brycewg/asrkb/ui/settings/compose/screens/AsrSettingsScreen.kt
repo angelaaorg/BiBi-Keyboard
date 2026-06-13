@@ -222,10 +222,6 @@ fun AsrSettingsScreen(
         }
     }
 
-    fun hapticTap() {
-        actions.hapticTap()
-    }
-
     fun showAsrMessage(messageRes: Int) {
         messageDialog = SettingsMessageDialogState(
             title = context.getString(R.string.title_asr_settings),
@@ -244,7 +240,6 @@ fun AsrSettingsScreen(
             prefs = prefs,
             titleResId = titleResId,
             selectedVendor = selectedVendor,
-            onChoiceClick = ::hapticTap,
             onSelected = onSelected
         )
     }
@@ -253,7 +248,6 @@ fun AsrSettingsScreen(
         choiceSheet = backupSensitivityChoiceSheetState(
             context = context,
             selectedIndex = backupSensitivity,
-            onChoiceClick = ::hapticTap
         ) { selectedIdx ->
             backupSensitivity = selectedIdx.coerceIn(0, 2)
             prefs.backupAsrTimeoutSensitivity = backupSensitivity
@@ -264,7 +258,6 @@ fun AsrSettingsScreen(
         choiceSheet = sfFreeAsrModelChoiceSheetState(
             context = context,
             selectedModel = onlineFields.sfFreeAsrModel,
-            onChoiceClick = ::hapticTap
         ) { model ->
             onlineFields.sfFreeAsrModel = model
             prefs.sfFreeAsrModel = model
@@ -275,7 +268,6 @@ fun AsrSettingsScreen(
         choiceSheet = sfPaidAsrModelChoiceSheetState(
             context = context,
             selectedModel = onlineFields.sfModel,
-            onChoiceClick = ::hapticTap
         ) { model ->
             onlineFields.sfModel = model
             prefs.sfModel = model
@@ -287,7 +279,6 @@ fun AsrSettingsScreen(
         choiceSheet = dashModelChoiceSheetState(
             context = context,
             selectedModel = onlineFields.dashModel,
-            onChoiceClick = ::hapticTap
         ) { model ->
             onlineFields.dashModel = model
             prefs.dashAsrModel = model
@@ -298,7 +289,6 @@ fun AsrSettingsScreen(
         choiceSheet = stepAudioModelChoiceSheetState(
             context = context,
             selectedModel = onlineFields.stepAudioModel,
-            onChoiceClick = ::hapticTap
         ) { model ->
             onlineFields.stepAudioModel = model
             prefs.stepAudioModel = model
@@ -483,7 +473,6 @@ fun AsrSettingsScreen(
             checkedIndices = checked,
             confirmText = context.getString(R.string.btn_confirm),
             cancelText = context.getString(R.string.btn_cancel),
-            onChoiceClick = ::hapticTap,
             onConfirm = { selectedIndices ->
                 val selectedCodes = selectedIndices
                     .sorted()
@@ -497,7 +486,6 @@ fun AsrSettingsScreen(
     }
 
     fun showLocalModelDownloadSource(spec: AsrLocalModelSpec, variant: String) {
-        hapticTap()
         val url = spec.downloadUrl(variant)
         downloadSourceRequest = AsrLocalDownloadRequest(
             spec = spec,
@@ -507,13 +495,11 @@ fun AsrSettingsScreen(
     }
 
     fun importLocalModel(spec: AsrLocalModelSpec, variant: String) {
-        hapticTap()
         pendingImport = spec to variant
         localModelImportLauncher.launch("application/zip")
     }
 
     fun confirmClearLocalModel(spec: AsrLocalModelSpec) {
-        hapticTap()
         messageDialog = SettingsMessageDialogState(
             title = context.getString(spec.clearTitleRes),
             message = context.getString(spec.clearMessageRes),
@@ -585,7 +571,6 @@ fun AsrSettingsScreen(
             scrollModifier = scrollModifier,
             onlineState = onlineFields.toRouteState(
                 viewModel = viewModel,
-                hapticTap = ::hapticTap,
                 applyDashSemanticPunctSwitch = ::applyDashSemanticPunctSwitch,
                 applyElevenStreamingSwitch = ::applyElevenStreamingSwitch,
                 applyGeminiThinkingSwitch = ::applyGeminiThinkingSwitch,
@@ -614,7 +599,6 @@ fun AsrSettingsScreen(
                 sensitivity = backupSensitivity
             ),
             routeActions = AsrSettingsRouteActions(
-                hapticTap = ::hapticTap,
                 showVendorPicker = ::showVendorPicker,
                 showBackupSensitivityPicker = ::showBackupSensitivityPicker,
                 showSfFreeModelPicker = ::showSfFreeModelPicker,

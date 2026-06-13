@@ -99,6 +99,7 @@ import com.brycewg.asrkb.ui.settings.compose.components.SettingsPreference
 import com.brycewg.asrkb.ui.settings.compose.components.SettingsSheetActionRow
 import com.brycewg.asrkb.ui.settings.compose.components.SettingsTextField
 import com.brycewg.asrkb.ui.settings.compose.core.BibiUiMode
+import com.brycewg.asrkb.ui.settings.compose.core.LocalSettingsHapticTap
 import com.brycewg.asrkb.ui.settings.compose.core.SettingsLayoutMetrics
 import com.brycewg.asrkb.ui.settings.compose.model.DropdownOption
 import com.brycewg.asrkb.ui.settings.compose.model.SettingsEntry
@@ -367,6 +368,11 @@ private fun KeyboardLayoutPanelTopSelector(
 ) {
     val panels = KeyboardLayoutPanel.values()
     var expanded by remember { mutableStateOf(false) }
+    val hapticTap = LocalSettingsHapticTap.current
+    val expandWithHaptic = {
+        hapticTap()
+        expanded = true
+    }
     val selectedColor = when (uiMode) {
         BibiUiMode.Material -> MaterialTheme.colorScheme.primary
         BibiUiMode.Miuix -> MiuixTheme.colorScheme.primary
@@ -377,7 +383,7 @@ private fun KeyboardLayoutPanelTopSelector(
     }
     Box(modifier = Modifier.wrapContentSize(Alignment.TopEnd)) {
         when (uiMode) {
-            BibiUiMode.Material -> MaterialTextButton(onClick = { expanded = true }) {
+            BibiUiMode.Material -> MaterialTextButton(onClick = expandWithHaptic) {
                 Text(
                     text = stringResource(selectedPanel.titleRes()),
                     modifier = Modifier.widthIn(max = 104.dp),
@@ -388,7 +394,7 @@ private fun KeyboardLayoutPanelTopSelector(
 
             BibiUiMode.Miuix -> MiuixTextButton(
                 text = stringResource(selectedPanel.titleRes()),
-                onClick = { expanded = true }
+                onClick = expandWithHaptic
             )
         }
         when (uiMode) {
@@ -405,6 +411,7 @@ private fun KeyboardLayoutPanelTopSelector(
                             )
                         },
                         onClick = {
+                            hapticTap()
                             expanded = false
                             if (option != selectedPanel) onSelected(option)
                         }
@@ -419,6 +426,7 @@ private fun KeyboardLayoutPanelTopSelector(
                             text = stringResource(option.titleRes()),
                             selected = option == selectedPanel,
                             onClick = {
+                                hapticTap()
                                 expanded = false
                                 if (option != selectedPanel) onSelected(option)
                             }
@@ -563,10 +571,15 @@ private fun KeyboardLayoutNeutralAction(
     onClick: () -> Unit
 ) {
     val shape = RoundedCornerShape(SettingsLayoutMetrics.ActionButtonCorner)
+    val hapticTap = LocalSettingsHapticTap.current
+    val clickWithHaptic = {
+        hapticTap()
+        onClick()
+    }
     val actionModifier = modifier
         .heightIn(min = SettingsLayoutMetrics.ActionButtonMinHeight)
         .clip(shape)
-        .clickable(enabled = enabled, onClick = onClick)
+        .clickable(enabled = enabled, onClick = clickWithHaptic)
         .alpha(if (enabled) 1f else 0.38f)
     when (uiMode) {
         BibiUiMode.Material -> Surface(
@@ -739,6 +752,15 @@ private fun Stepper(
     onMinus: () -> Unit,
     onPlus: () -> Unit
 ) {
+    val hapticTap = LocalSettingsHapticTap.current
+    val minusWithHaptic = {
+        hapticTap()
+        onMinus()
+    }
+    val plusWithHaptic = {
+        hapticTap()
+        onPlus()
+    }
     KeyboardLayoutControlSurface(uiMode = uiMode, modifier = modifier) {
         Row(
             modifier = Modifier
@@ -750,11 +772,11 @@ private fun Stepper(
             when (uiMode) {
                 BibiUiMode.Material -> {
                     Text(label, style = MaterialTheme.typography.labelLarge)
-                    IconButton(onClick = onMinus, modifier = Modifier.size(34.dp)) {
+                    IconButton(onClick = minusWithHaptic, modifier = Modifier.size(34.dp)) {
                         Text("-")
                     }
                     Text(value.toString(), modifier = Modifier.width(24.dp), textAlign = TextAlign.Center)
-                    IconButton(onClick = onPlus, modifier = Modifier.size(34.dp)) {
+                    IconButton(onClick = plusWithHaptic, modifier = Modifier.size(34.dp)) {
                         Text("+")
                     }
                 }
@@ -762,7 +784,7 @@ private fun Stepper(
                 BibiUiMode.Miuix -> {
                     MiuixText(text = label, style = MiuixTheme.textStyles.body1)
                     MiuixIconButton(
-                        onClick = onMinus,
+                        onClick = minusWithHaptic,
                         modifier = Modifier.size(34.dp),
                         minWidth = 34.dp,
                         minHeight = 34.dp
@@ -779,7 +801,7 @@ private fun Stepper(
                         )
                     }
                     MiuixIconButton(
-                        onClick = onPlus,
+                        onClick = plusWithHaptic,
                         modifier = Modifier.size(34.dp),
                         minWidth = 34.dp,
                         minHeight = 34.dp
@@ -899,6 +921,7 @@ private fun KeyboardLayoutGrid(
     onMove: (Int, BlockPlacement) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val hapticTap = LocalSettingsHapticTap.current
     BoxWithConstraints(
         modifier = modifier
             .aspectRatio(layout.gridSize.cols.toFloat() / layout.gridSize.rows.toFloat())
@@ -980,7 +1003,10 @@ private fun KeyboardLayoutGrid(
                             }
                         )
                     }
-                    .clickable { onSelect(index) }
+                    .clickable {
+                        hapticTap()
+                        onSelect(index)
+                    }
             )
         }
         dragPreview?.let { preview ->
@@ -1199,6 +1225,11 @@ private fun KeyboardLayoutDeleteIconButton(
 ) {
     val bg = KeyboardLayoutFloatingBarBackground(uiMode)
     val fg = KeyboardLayoutFloatingBarContent(uiMode).copy(alpha = if (enabled) 1f else 0.38f)
+    val hapticTap = LocalSettingsHapticTap.current
+    val clickWithHaptic = {
+        hapticTap()
+        onClick()
+    }
     when (uiMode) {
         BibiUiMode.Material -> Surface(
             shape = RoundedCornerShape(18.dp),
@@ -1209,7 +1240,7 @@ private fun KeyboardLayoutDeleteIconButton(
         ) {
             IconButton(
                 enabled = enabled,
-                onClick = onClick,
+                onClick = clickWithHaptic,
                 modifier = Modifier.size(56.dp)
             ) {
                 Icon(
@@ -1228,7 +1259,7 @@ private fun KeyboardLayoutDeleteIconButton(
             contentAlignment = Alignment.Center
         ) {
             MiuixIconButton(
-                onClick = { if (enabled) onClick() },
+                onClick = { if (enabled) clickWithHaptic() },
                 modifier = Modifier.size(56.dp),
                 minWidth = 56.dp,
                 minHeight = 56.dp
@@ -1295,10 +1326,15 @@ private fun KeyboardLayoutTrayChip(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
+    val hapticTap = LocalSettingsHapticTap.current
+    val clickWithHaptic = {
+        hapticTap()
+        onClick()
+    }
     val chipModifier = modifier
         .height(56.dp)
         .clip(RoundedCornerShape(14.dp))
-        .clickable(enabled = enabled, onClick = onClick)
+        .clickable(enabled = enabled, onClick = clickWithHaptic)
         .alpha(if (enabled) 1f else 0.38f)
 
     when (uiMode) {

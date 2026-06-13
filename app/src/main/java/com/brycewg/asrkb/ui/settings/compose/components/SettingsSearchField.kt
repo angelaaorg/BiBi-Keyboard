@@ -31,6 +31,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.brycewg.asrkb.R
 import com.brycewg.asrkb.ui.settings.compose.core.BibiUiMode
+import com.brycewg.asrkb.ui.settings.compose.core.LocalSettingsHapticTap
 import com.brycewg.asrkb.ui.settings.compose.core.SettingsLayoutMetrics
 import kotlinx.coroutines.delay
 import top.yukonga.miuix.kmp.basic.Icon as MiuixIcon
@@ -100,12 +101,17 @@ private fun clearSearchAction(
     uiMode: BibiUiMode
 ): (@Composable () -> Unit)? = if (value.isNotEmpty()) {
     {
+        val hapticTap = LocalSettingsHapticTap.current
+        val clearWithHaptic = {
+            hapticTap()
+            onValueChange("")
+        }
         when (uiMode) {
-            BibiUiMode.Material -> IconButton(onClick = { onValueChange("") }) {
+            BibiUiMode.Material -> IconButton(onClick = clearWithHaptic) {
                 Icon(Icons.Rounded.Close, contentDescription = clearLabel)
             }
 
-            BibiUiMode.Miuix -> MiuixIconButton(onClick = { onValueChange("") }) {
+            BibiUiMode.Miuix -> MiuixIconButton(onClick = clearWithHaptic) {
                 MiuixIcon(
                     imageVector = Icons.Rounded.Close,
                     contentDescription = clearLabel,

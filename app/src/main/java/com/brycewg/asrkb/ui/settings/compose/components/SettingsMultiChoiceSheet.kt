@@ -30,6 +30,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.brycewg.asrkb.ui.settings.compose.core.BibiUiMode
+import com.brycewg.asrkb.ui.settings.compose.core.LocalSettingsHapticTap
 import com.brycewg.asrkb.ui.settings.compose.core.SettingsLayoutMetrics
 import com.brycewg.asrkb.ui.settings.compose.core.settingsSegmentedItemShape
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
@@ -47,7 +48,6 @@ internal data class SettingsMultiChoiceSheetState(
     val maxSelectionCount: Int? = null,
     val maxSelectionMessage: String? = null,
     val showSelectionOrder: Boolean = false,
-    val onChoiceClick: (() -> Unit)? = null,
     val onSelectionRejected: ((String) -> Unit)? = null,
     val onConfirm: (List<Int>) -> Boolean
 )
@@ -78,6 +78,7 @@ private fun MaterialMultiChoiceSheet(
     onDismiss: () -> Unit
 ) {
     var selectedOrder by remember(state) { mutableStateOf(state.normalizedSelectedOrder()) }
+    val hapticTap = LocalSettingsHapticTap.current
     MaterialSettingsSheetScaffold(
         title = state.title,
         onDismiss = onDismiss,
@@ -95,7 +96,7 @@ private fun MaterialMultiChoiceSheet(
                     index = index,
                     checked = checked
                 )?.let { nextOrder ->
-                    state.onChoiceClick?.invoke()
+                    hapticTap()
                     selectedOrder = nextOrder
                 }
             }
@@ -123,6 +124,7 @@ private fun MiuixMultiChoiceSheet(
 ) {
     var selectedOrder by remember(state) { mutableStateOf(state.normalizedSelectedOrder()) }
     var show by remember(state) { mutableStateOf(true) }
+    val hapticTap = LocalSettingsHapticTap.current
     OverlayDialog(
         show = show,
         title = state.title,
@@ -141,9 +143,9 @@ private fun MiuixMultiChoiceSheet(
                         selectedOrder = selectedOrder,
                         index = index,
                         checked = checked
-                    )?.let { nextOrder ->
-                        state.onChoiceClick?.invoke()
-                        selectedOrder = nextOrder
+                )?.let { nextOrder ->
+                    hapticTap()
+                    selectedOrder = nextOrder
                     }
                 }
             )

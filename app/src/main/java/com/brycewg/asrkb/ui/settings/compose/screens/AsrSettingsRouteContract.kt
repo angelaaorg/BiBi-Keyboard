@@ -145,7 +145,6 @@ internal data class AsrLocalModelRouteState(
 )
 
 internal data class AsrSettingsRouteActions(
-    val hapticTap: () -> Unit,
     val showVendorPicker: AsrVendorPicker,
     val showBackupSensitivityPicker: () -> Unit,
     val showSfFreeModelPicker: () -> Unit,

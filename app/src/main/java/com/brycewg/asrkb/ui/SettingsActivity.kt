@@ -18,6 +18,7 @@ import android.view.inputmethod.InputMethodManager
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -38,6 +39,7 @@ import com.brycewg.asrkb.ui.settings.compose.components.SettingsUpdateUiState
 import com.brycewg.asrkb.ui.settings.compose.core.BibiSettingsRoute
 import com.brycewg.asrkb.ui.settings.compose.core.BibiSettingsTheme
 import com.brycewg.asrkb.ui.settings.compose.core.BibiUiMode
+import com.brycewg.asrkb.ui.settings.compose.core.LocalSettingsHapticTap
 import com.brycewg.asrkb.ui.settings.compose.core.SettingsActionController
 import com.brycewg.asrkb.ui.settings.compose.screens.SettingsRootScreen
 import com.brycewg.asrkb.ui.settings.compose.state.SettingsEntryEffectsCoordinator
@@ -135,18 +137,20 @@ class SettingsActivity : BaseActivity() {
                 val hasUpdateAvailable by remember {
                     derivedStateOf { updateCoordinator.uiState.value is SettingsUpdateUiState.UpdateAvailable }
                 }
-                SettingsRootScreen(
-                    uiState = uiState,
-                    hasUpdateAvailable = hasUpdateAvailable,
-                    onSelectTab = viewModel::selectHomeTab,
-                    onPushRoute = viewModel::push,
-                    onOpenRoute = viewModel::openRoute,
-                    onPopRoute = viewModel::pop,
-                    onSetUiMode = viewModel::setUiMode,
-                    onSetThemeMode = viewModel::setThemeMode,
-                    actions = actionController
-                )
-                settingsOverlayHosts(uiMode = uiState.uiMode)
+                CompositionLocalProvider(LocalSettingsHapticTap provides actionController::hapticTap) {
+                    SettingsRootScreen(
+                        uiState = uiState,
+                        hasUpdateAvailable = hasUpdateAvailable,
+                        onSelectTab = viewModel::selectHomeTab,
+                        onPushRoute = viewModel::push,
+                        onOpenRoute = viewModel::openRoute,
+                        onPopRoute = viewModel::pop,
+                        onSetUiMode = viewModel::setUiMode,
+                        onSetThemeMode = viewModel::setThemeMode,
+                        actions = actionController
+                    )
+                    settingsOverlayHosts(uiMode = uiState.uiMode)
+                }
             }
         }
 

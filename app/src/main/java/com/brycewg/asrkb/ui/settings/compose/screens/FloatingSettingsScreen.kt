@@ -350,8 +350,7 @@ fun FloatingSettingsScreen(
         choiceSheet = settingsChoiceSheetState(
             title = context.getString(R.string.label_volume_key_recording_mode),
             items = modes.map { volumeKeyModeLabel(it) },
-            selectedIndex = selectedIndex,
-            onChoiceClick = actions::hapticTap
+            selectedIndex = selectedIndex
         ) { index ->
             prefs.volumeKeyRecordingMode = modes.getOrElse(index) { Prefs.VOLUME_KEY_MODE_UP_TOGGLE }
             refreshState()
@@ -398,7 +397,6 @@ fun FloatingSettingsScreen(
                         titleRes = R.string.label_floating_asr,
                         checked = uiState.asrEnabled,
                         onToggle = { target ->
-                            actions.hapticTap()
                             applyExplainedSwitch(
                                 current = uiState.asrEnabled,
                                 target = target,
@@ -417,7 +415,6 @@ fun FloatingSettingsScreen(
                             titleRes = R.string.label_floating_only_when_ime_visible,
                             checked = uiState.onlyWhenImeVisible,
                             onToggle = { target ->
-                                actions.hapticTap()
                                 applyExplainedSwitch(
                                     current = uiState.onlyWhenImeVisible,
                                     target = target,
@@ -443,7 +440,6 @@ fun FloatingSettingsScreen(
                             titleRes = R.string.label_floating_direct_drag,
                             checked = uiState.directDragEnabled,
                             onToggle = { target ->
-                                actions.hapticTap()
                                 applyExplainedSwitch(
                                     current = uiState.directDragEnabled,
                                     target = target,
@@ -469,7 +465,6 @@ fun FloatingSettingsScreen(
                                 uiState = uiState.copy(alphaPercent = value.roundFloatingToStep(5))
                             },
                             onValueChangeFinished = {
-                                actions.hapticTap()
                                 prefs.floatingSwitcherAlpha = (uiState.alphaPercent / 100f).coerceIn(0.2f, 1.0f)
                                 serviceManager.refreshAsrService(uiState.asrEnabled)
                                 refreshState()
@@ -488,7 +483,6 @@ fun FloatingSettingsScreen(
                                 uiState = uiState.copy(sizeDp = value.roundFloatingToStep(4).toInt().coerceIn(28, 96))
                             },
                             onValueChangeFinished = {
-                                actions.hapticTap()
                                 prefs.floatingBallSizeDp = uiState.sizeDp
                                 if (uiState.asrEnabled) {
                                     serviceManager.showAsrService()
@@ -499,7 +493,6 @@ fun FloatingSettingsScreen(
                         FloatingResetButton(
                             uiMode = uiMode,
                             onClick = {
-                                actions.hapticTap()
                                 val messageRes = if (resetFloatingPosition(context, prefs, serviceManager)) {
                                     R.string.toast_floating_position_reset
                                 } else {
@@ -520,7 +513,6 @@ fun FloatingSettingsScreen(
                         titleRes = R.string.label_volume_key_recording,
                         checked = uiState.volumeKeyRecordingEnabled,
                         onToggle = { target ->
-                            actions.hapticTap()
                             applyExplainedSwitch(
                                 current = uiState.volumeKeyRecordingEnabled,
                                 target = target,
@@ -541,7 +533,6 @@ fun FloatingSettingsScreen(
                             index = 1,
                             count = volumeItemCount,
                             onClick = {
-                                actions.hapticTap()
                                 showVolumeKeyModeSheet()
                             }
                         )
@@ -550,7 +541,6 @@ fun FloatingSettingsScreen(
                             titleRes = R.string.label_volume_key_status_toast,
                             checked = uiState.volumeKeyStatusToastEnabled,
                             onToggle = { target ->
-                                actions.hapticTap()
                                 applyExplainedSwitch(
                                     current = uiState.volumeKeyStatusToastEnabled,
                                     target = target,
@@ -568,7 +558,6 @@ fun FloatingSettingsScreen(
                             titleRes = R.string.label_volume_key_stop_on_ime_hidden,
                             checked = uiState.volumeKeyStopOnImeHidden,
                             onToggle = { target ->
-                                actions.hapticTap()
                                 applyExplainedSwitch(
                                     current = uiState.volumeKeyStopOnImeHidden,
                                     target = target,
@@ -592,7 +581,6 @@ fun FloatingSettingsScreen(
                         titleRes = R.string.label_floating_write_compat,
                         checked = uiState.writeCompatEnabled,
                         onToggle = { target ->
-                            actions.hapticTap()
                             applyExplainedSwitch(
                                 current = uiState.writeCompatEnabled,
                                 target = target,
@@ -622,7 +610,6 @@ fun FloatingSettingsScreen(
                         titleRes = R.string.label_floating_write_paste,
                         checked = uiState.writePasteEnabled,
                         onToggle = { target ->
-                            actions.hapticTap()
                             applyExplainedSwitch(
                                 current = uiState.writePasteEnabled,
                                 target = target,

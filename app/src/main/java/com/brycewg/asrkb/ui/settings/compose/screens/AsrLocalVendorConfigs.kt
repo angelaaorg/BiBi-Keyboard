@@ -36,7 +36,6 @@ internal fun CurrentLocalAsrVendorConfig(
     uiState: AsrSettingsUiState,
     localModelState: AsrLocalModelRouteState,
     viewModel: AsrSettingsViewModel,
-    hapticTap: () -> Unit,
     onOpenGuide: () -> Unit,
     onOpenPunctuationGuide: () -> Unit,
     primaryIndexOffset: Int = 0,
@@ -48,7 +47,6 @@ internal fun CurrentLocalAsrVendorConfig(
             uiState = uiState,
             localModelState = localModelState,
             viewModel = viewModel,
-            hapticTap = hapticTap,
             onOpenGuide = onOpenGuide,
             primaryIndexOffset = primaryIndexOffset,
             primaryGroupCount = primaryGroupCount
@@ -59,7 +57,6 @@ internal fun CurrentLocalAsrVendorConfig(
             uiState = uiState,
             localModelState = localModelState,
             viewModel = viewModel,
-            hapticTap = hapticTap,
             onOpenGuide = onOpenGuide,
             primaryIndexOffset = primaryIndexOffset,
             primaryGroupCount = primaryGroupCount
@@ -70,7 +67,6 @@ internal fun CurrentLocalAsrVendorConfig(
             uiState = uiState,
             localModelState = localModelState,
             viewModel = viewModel,
-            hapticTap = hapticTap,
             onOpenGuide = onOpenGuide,
             primaryIndexOffset = primaryIndexOffset,
             primaryGroupCount = primaryGroupCount
@@ -81,7 +77,6 @@ internal fun CurrentLocalAsrVendorConfig(
             uiState = uiState,
             localModelState = localModelState,
             viewModel = viewModel,
-            hapticTap = hapticTap,
             onOpenGuide = onOpenGuide,
             primaryIndexOffset = primaryIndexOffset,
             primaryGroupCount = primaryGroupCount
@@ -92,7 +87,6 @@ internal fun CurrentLocalAsrVendorConfig(
             uiState = uiState,
             localModelState = localModelState,
             viewModel = viewModel,
-            hapticTap = hapticTap,
             onOpenGuide = onOpenGuide,
             onOpenPunctuationGuide = onOpenPunctuationGuide,
             primaryIndexOffset = primaryIndexOffset,
@@ -104,7 +98,6 @@ internal fun CurrentLocalAsrVendorConfig(
             uiState = uiState,
             localModelState = localModelState,
             viewModel = viewModel,
-            hapticTap = hapticTap,
             onOpenGuide = onOpenGuide,
             primaryIndexOffset = primaryIndexOffset,
             primaryGroupCount = primaryGroupCount
@@ -120,7 +113,6 @@ private fun SenseVoiceConfig(
     uiState: AsrSettingsUiState,
     localModelState: AsrLocalModelRouteState,
     viewModel: AsrSettingsViewModel,
-    hapticTap: () -> Unit,
     onOpenGuide: () -> Unit,
     primaryIndexOffset: Int = 0,
     primaryGroupCount: Int? = null
@@ -135,7 +127,6 @@ private fun SenseVoiceConfig(
         index = itemIndex++,
         count = itemCount,
         onVariantChange = {
-            hapticTap()
             viewModel.updateSvModelVariant(it)
             localModelState.onRefresh()
         }
@@ -147,7 +138,6 @@ private fun SenseVoiceConfig(
         index = itemIndex++,
         count = itemCount,
         onSelectedOptionChange = {
-            hapticTap()
             viewModel.updateSvLanguage(it)
         }
     )
@@ -161,7 +151,7 @@ private fun SenseVoiceConfig(
         index = itemIndex++,
         count = itemCount,
         onValueChange = { viewModel.updateSvNumThreads(it.toInt()) },
-        onValueChangeFinished = hapticTap
+        onValueChangeFinished = {}
     )
     AsrSwitchPreference(
         id = "sv_use_itn",
@@ -170,7 +160,6 @@ private fun SenseVoiceConfig(
         index = itemIndex++,
         count = itemCount,
         onCheckedChange = {
-            hapticTap()
             viewModel.updateSvUseItn(it)
         }
     )
@@ -181,7 +170,6 @@ private fun SenseVoiceConfig(
         index = itemIndex++,
         count = itemCount,
         onCheckedChange = {
-            hapticTap()
             viewModel.updateSvPreload(it)
         }
     )
@@ -192,7 +180,6 @@ private fun SenseVoiceConfig(
         index = itemIndex++,
         count = itemCount,
         onCheckedChange = {
-            hapticTap()
             viewModel.updateSvPseudoStream(it)
         }
     )
@@ -202,7 +189,6 @@ private fun SenseVoiceConfig(
         index = itemIndex,
         count = itemCount,
         onSelected = {
-            hapticTap()
             viewModel.updateSvKeepAlive(it)
         }
     )
@@ -221,7 +207,6 @@ private fun FunAsrNanoConfig(
     uiState: AsrSettingsUiState,
     localModelState: AsrLocalModelRouteState,
     viewModel: AsrSettingsViewModel,
-    hapticTap: () -> Unit,
     onOpenGuide: () -> Unit,
     primaryIndexOffset: Int = 0,
     primaryGroupCount: Int? = null
@@ -237,7 +222,6 @@ private fun FunAsrNanoConfig(
         index = itemIndex++,
         count = itemCount,
         onVariantChange = {
-            hapticTap()
             viewModel.updateFnModelVariant(it)
             val allowed = funAsrLanguageOptions(context, it).map { option -> option.id }
             if (uiState.fnLanguage.isNotBlank() && uiState.fnLanguage !in allowed) {
@@ -253,7 +237,6 @@ private fun FunAsrNanoConfig(
         index = itemIndex++,
         count = itemCount,
         onSelectedOptionChange = {
-            hapticTap()
             viewModel.updateFnLanguage(it)
         }
     )
@@ -267,7 +250,7 @@ private fun FunAsrNanoConfig(
         index = itemIndex++,
         count = itemCount,
         onValueChange = { viewModel.updateFnNumThreads(it.toInt()) },
-        onValueChangeFinished = hapticTap
+        onValueChangeFinished = {}
     )
     AsrSwitchPreference(
         id = "fn_use_itn",
@@ -276,7 +259,6 @@ private fun FunAsrNanoConfig(
         index = itemIndex++,
         count = itemCount,
         onCheckedChange = {
-            hapticTap()
             viewModel.updateFnUseItn(it)
         }
     )
@@ -287,7 +269,6 @@ private fun FunAsrNanoConfig(
         index = itemIndex++,
         count = itemCount,
         onCheckedChange = {
-            hapticTap()
             viewModel.updateFnPreload(it)
         }
     )
@@ -297,7 +278,6 @@ private fun FunAsrNanoConfig(
         index = itemIndex++,
         count = itemCount,
         onSelected = {
-            hapticTap()
             viewModel.updateFnKeepAlive(it)
         }
     )
@@ -327,7 +307,6 @@ private fun Qwen3AsrConfig(
     uiState: AsrSettingsUiState,
     localModelState: AsrLocalModelRouteState,
     viewModel: AsrSettingsViewModel,
-    hapticTap: () -> Unit,
     onOpenGuide: () -> Unit,
     primaryIndexOffset: Int = 0,
     primaryGroupCount: Int? = null
@@ -342,7 +321,6 @@ private fun Qwen3AsrConfig(
         index = itemIndex++,
         count = itemCount,
         onVariantChange = {
-            hapticTap()
             viewModel.updateQwModelVariant(it)
             localModelState.onRefresh()
         }
@@ -357,7 +335,7 @@ private fun Qwen3AsrConfig(
         index = itemIndex++,
         count = itemCount,
         onValueChange = { viewModel.updateQwNumThreads(it.toInt()) },
-        onValueChangeFinished = hapticTap
+        onValueChangeFinished = {}
     )
     AsrSwitchPreference(
         id = "qw_preload",
@@ -366,7 +344,6 @@ private fun Qwen3AsrConfig(
         index = itemIndex++,
         count = itemCount,
         onCheckedChange = {
-            hapticTap()
             viewModel.updateQwPreload(it)
         }
     )
@@ -377,7 +354,6 @@ private fun Qwen3AsrConfig(
         index = itemIndex++,
         count = itemCount,
         onCheckedChange = {
-            hapticTap()
             viewModel.updateQwUseItn(it)
         }
     )
@@ -387,7 +363,6 @@ private fun Qwen3AsrConfig(
         index = itemIndex,
         count = itemCount,
         onSelected = {
-            hapticTap()
             viewModel.updateQwKeepAlive(it)
         }
     )
@@ -406,7 +381,6 @@ private fun ParakeetConfig(
     uiState: AsrSettingsUiState,
     localModelState: AsrLocalModelRouteState,
     viewModel: AsrSettingsViewModel,
-    hapticTap: () -> Unit,
     onOpenGuide: () -> Unit,
     primaryIndexOffset: Int = 0,
     primaryGroupCount: Int? = null
@@ -421,7 +395,6 @@ private fun ParakeetConfig(
         index = itemIndex++,
         count = itemCount,
         onVariantChange = {
-            hapticTap()
             viewModel.updatePkModelVariant(it)
             localModelState.onRefresh()
         }
@@ -436,7 +409,7 @@ private fun ParakeetConfig(
         index = itemIndex++,
         count = itemCount,
         onValueChange = { viewModel.updatePkNumThreads(it.toInt()) },
-        onValueChangeFinished = hapticTap
+        onValueChangeFinished = {}
     )
     AsrSwitchPreference(
         id = "pk_preload",
@@ -445,7 +418,6 @@ private fun ParakeetConfig(
         index = itemIndex++,
         count = itemCount,
         onCheckedChange = {
-            hapticTap()
             viewModel.updatePkPreload(it)
         }
     )
@@ -455,7 +427,6 @@ private fun ParakeetConfig(
         index = itemIndex,
         count = itemCount,
         onSelected = {
-            hapticTap()
             viewModel.updatePkKeepAlive(it)
         }
     )
@@ -474,7 +445,6 @@ private fun FireRedAsrConfig(
     uiState: AsrSettingsUiState,
     localModelState: AsrLocalModelRouteState,
     viewModel: AsrSettingsViewModel,
-    hapticTap: () -> Unit,
     onOpenGuide: () -> Unit,
     onOpenPunctuationGuide: () -> Unit,
     primaryIndexOffset: Int = 0,
@@ -490,7 +460,6 @@ private fun FireRedAsrConfig(
         index = itemIndex++,
         count = itemCount,
         onVariantChange = {
-            hapticTap()
             viewModel.updateFrModelVariant(it)
             localModelState.onRefresh()
         }
@@ -505,7 +474,7 @@ private fun FireRedAsrConfig(
         index = itemIndex++,
         count = itemCount,
         onValueChange = { viewModel.updateFrNumThreads(it.toInt()) },
-        onValueChangeFinished = hapticTap
+        onValueChangeFinished = {}
     )
     AsrSwitchPreference(
         id = "fr_preload",
@@ -514,7 +483,6 @@ private fun FireRedAsrConfig(
         index = itemIndex++,
         count = itemCount,
         onCheckedChange = {
-            hapticTap()
             viewModel.updateFrPreload(it)
         }
     )
@@ -525,7 +493,6 @@ private fun FireRedAsrConfig(
         index = itemIndex++,
         count = itemCount,
         onCheckedChange = {
-            hapticTap()
             viewModel.updateFrUseItn(it)
         }
     )
@@ -536,7 +503,6 @@ private fun FireRedAsrConfig(
         index = itemIndex++,
         count = itemCount,
         onCheckedChange = {
-            hapticTap()
             viewModel.updateFrPseudoStream(it)
         }
     )
@@ -546,7 +512,6 @@ private fun FireRedAsrConfig(
         index = itemIndex,
         count = itemCount,
         onSelected = {
-            hapticTap()
             viewModel.updateFrKeepAlive(it)
         }
     )
@@ -566,7 +531,6 @@ private fun XAsrConfig(
     uiState: AsrSettingsUiState,
     localModelState: AsrLocalModelRouteState,
     viewModel: AsrSettingsViewModel,
-    hapticTap: () -> Unit,
     onOpenGuide: () -> Unit,
     primaryIndexOffset: Int = 0,
     primaryGroupCount: Int? = null
@@ -581,7 +545,6 @@ private fun XAsrConfig(
         index = itemIndex++,
         count = itemCount,
         onVariantChange = {
-            hapticTap()
             viewModel.updateXAsrModelVariant(it)
             localModelState.onRefresh()
         }
@@ -596,7 +559,7 @@ private fun XAsrConfig(
         index = itemIndex++,
         count = itemCount,
         onValueChange = { viewModel.updateXAsrNumThreads(it.toInt()) },
-        onValueChangeFinished = hapticTap
+        onValueChangeFinished = {}
     )
     AsrSwitchPreference(
         id = "x_asr_preload",
@@ -605,7 +568,6 @@ private fun XAsrConfig(
         index = itemIndex++,
         count = itemCount,
         onCheckedChange = {
-            hapticTap()
             viewModel.updateXAsrPreload(it)
         }
     )
@@ -616,7 +578,6 @@ private fun XAsrConfig(
         index = itemIndex++,
         count = itemCount,
         onCheckedChange = {
-            hapticTap()
             viewModel.updateXAsrUseItn(it)
         }
     )
@@ -626,7 +587,6 @@ private fun XAsrConfig(
         index = itemIndex,
         count = itemCount,
         onSelected = {
-            hapticTap()
             viewModel.updateXAsrKeepAlive(it)
         }
     )

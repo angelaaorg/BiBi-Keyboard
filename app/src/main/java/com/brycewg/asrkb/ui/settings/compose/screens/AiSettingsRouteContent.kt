@@ -51,7 +51,6 @@ internal fun AiSettingsRouteContent(
                         aiEditPreferLastAsr = aiEditPreferLastAsr,
                         skipUnderChars = skipUnderChars,
                         onPostProcessChange = { checked ->
-                            onHapticTap()
                             onShowExplainedSwitch(
                                 postProcessEnabled,
                                 checked,
@@ -67,7 +66,6 @@ internal fun AiSettingsRouteContent(
                             )
                         },
                         onTypewriterChange = { checked ->
-                            onHapticTap()
                             onShowExplainedSwitch(
                                 typewriterEnabled,
                                 checked,
@@ -83,7 +81,6 @@ internal fun AiSettingsRouteContent(
                             )
                         },
                         onAiEditPreferLastAsrChange = { checked ->
-                            onHapticTap()
                             onShowExplainedSwitch(
                                 aiEditPreferLastAsr,
                                 checked,
@@ -102,7 +99,7 @@ internal fun AiSettingsRouteContent(
                             onSkipUnderCharsChange(next)
                             prefs.postprocSkipUnderChars = next
                         },
-                        onSkipUnderCharsFinished = { onHapticTap() }
+                        onSkipUnderCharsFinished = {}
                     )
                 }
 
@@ -132,7 +129,6 @@ internal fun AiSettingsRouteContent(
                         llmTestRunning = llmTestRunning,
                         sfActions = AiVendorActions(
                             onToggleSfFree = { checked ->
-                                onHapticTap()
                                 prefs.sfFreeLlmUsePaidKey = !checked
                                 onRefreshSfState()
                             },
@@ -141,7 +137,6 @@ internal fun AiSettingsRouteContent(
                                 prefs.setLlmVendorApiKey(LlmVendor.SF_FREE, value)
                             },
                             onShowModelDialog = {
-                                onHapticTap()
                                 onShowSfModelDialog()
                             },
                             onCustomModelChange = { value ->
@@ -156,7 +151,6 @@ internal fun AiSettingsRouteContent(
                                 }
                             },
                             onFetchModels = {
-                                onHapticTap()
                                 if (prefs.sfFreeLlmUsePaidKey) {
                                     onFetchModels(
                                         LlmVendor.SF_FREE.endpoint,
@@ -165,7 +159,6 @@ internal fun AiSettingsRouteContent(
                                 }
                             },
                             onReasoningChange = { checked ->
-                                onHapticTap()
                                 onSfReasoningEnabledChange(checked)
                                 prefs.setLlmVendorReasoningEnabled(LlmVendor.SF_FREE, checked)
                             },
@@ -183,21 +176,17 @@ internal fun AiSettingsRouteContent(
                                 prefs.setLlmVendorTemperature(LlmVendor.SF_FREE, next)
                             },
                             onOpenRegister = {
-                                onHapticTap()
                                 onOpenUrl(LlmVendor.SF_FREE.registerUrl)
                             },
                             onTestCall = {
-                                onHapticTap()
                                 onTestLlmCall()
                             }
                         ),
                         onChooseVendor = {
-                            onHapticTap()
                             onShowVendorSelectionDialog()
                         },
                         onFocusedProfileName = { onFocusProfileNameAfterAddChange(false) },
                         onChooseProfile = {
-                            onHapticTap()
                             onShowProfileDialog()
                         },
                         onProfileNameChange = { value ->
@@ -210,14 +199,12 @@ internal fun AiSettingsRouteContent(
                             viewModel.updateActiveLlmProvider(prefs) { it.copy(apiKey = value) }
                         },
                         onChooseCustomModel = {
-                            onHapticTap()
                             onShowCustomModelDialog()
                         },
                         onCustomModelChange = { value ->
                             viewModel.updateActiveLlmProvider(prefs) { it.copy(model = value) }
                         },
                         onFetchCustomModels = {
-                            onHapticTap()
                             val provider = activeProfile
                             onFetchModels(
                                 provider?.endpoint?.ifBlank { prefs.llmEndpoint } ?: prefs.llmEndpoint,
@@ -225,7 +212,6 @@ internal fun AiSettingsRouteContent(
                             ) { models -> onShowCustomModelsPicker(models) }
                         },
                         onCustomReasoningChange = { checked ->
-                            onHapticTap()
                             viewModel.updateActiveLlmProvider(prefs) {
                                 it.copy(enableReasoning = checked)
                             }
@@ -247,21 +233,18 @@ internal fun AiSettingsRouteContent(
                             }
                         },
                         onAddProfile = {
-                            onHapticTap()
                             if (viewModel.addLlmProvider(prefs, untitledProfile)) {
                                 onFocusProfileNameAfterAddChange(true)
                                 onMessage(R.string.toast_llm_profile_added)
                             }
                         },
                         onDeleteProfile = {
-                            onHapticTap()
                             if (viewModel.deleteActiveLlmProvider(prefs)) {
                                 onMessage(R.string.toast_llm_profile_deleted)
                             }
                         },
                         onBuiltinApiKeyChange = { value -> viewModel.updateBuiltinApiKey(prefs, value) },
                         onChooseBuiltinModel = {
-                            onHapticTap()
                             onShowBuiltinModelDialog()
                         },
                         onBuiltinCustomModelChange = { value ->
@@ -269,14 +252,12 @@ internal fun AiSettingsRouteContent(
                             viewModel.updateBuiltinModel(prefs, value)
                         },
                         onFetchBuiltinModels = {
-                            onHapticTap()
                             onFetchModels(
                                 selectedVendor.endpoint,
                                 prefs.getLlmVendorApiKey(selectedVendor)
                             ) { models -> onShowBuiltinModelsPicker(selectedVendor, models) }
                         },
                         onBuiltinReasoningChange = { checked ->
-                            onHapticTap()
                             viewModel.updateBuiltinReasoningEnabled(prefs, checked)
                         },
                         onBuiltinReasoningOnJsonChange = { value ->
@@ -295,11 +276,9 @@ internal fun AiSettingsRouteContent(
                             viewModel.updateBuiltinTemperature(prefs, next)
                         },
                         onOpenBuiltinRegister = {
-                            onHapticTap()
                             onOpenUrl(selectedVendor.registerUrl)
                         },
                         onTestCall = {
-                            onHapticTap()
                             onTestLlmCall()
                         }
                     )
@@ -312,7 +291,6 @@ internal fun AiSettingsRouteContent(
                         focusTitleAfterAdd = focusPromptTitleAfterAdd,
                         onFocusedTitle = { onFocusPromptTitleAfterAddChange(false) },
                         onChoosePreset = {
-                            onHapticTap()
                             onShowPromptPresetDialog()
                         },
                         onTitleChange = { value ->
@@ -322,14 +300,12 @@ internal fun AiSettingsRouteContent(
                             viewModel.updateActivePromptPreset(prefs) { it.copy(content = value) }
                         },
                         onAddPreset = {
-                            onHapticTap()
                             if (viewModel.addPromptPreset(prefs, untitledPreset, "")) {
                                 onFocusPromptTitleAfterAddChange(true)
                                 onMessage(R.string.toast_preset_added)
                             }
                         },
                         onDeletePreset = {
-                            onHapticTap()
                             if (viewModel.deleteActivePromptPreset(prefs)) {
                                 onMessage(R.string.toast_preset_deleted)
                             }

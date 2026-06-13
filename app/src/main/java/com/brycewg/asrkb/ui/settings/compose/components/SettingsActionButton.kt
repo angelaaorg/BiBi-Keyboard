@@ -24,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.brycewg.asrkb.ui.settings.compose.core.BibiUiMode
+import com.brycewg.asrkb.ui.settings.compose.core.LocalSettingsHapticTap
 import com.brycewg.asrkb.ui.settings.compose.core.SettingsLayoutMetrics
 import top.yukonga.miuix.kmp.basic.Button as MiuixButton
 import top.yukonga.miuix.kmp.basic.ButtonDefaults as MiuixButtonDefaults
@@ -67,9 +68,14 @@ internal fun SettingsActionButton(
     leadingContent: @Composable (() -> Unit)? = null
 ) {
     val buttonModifier = modifier.heightIn(min = SettingsLayoutMetrics.ActionButtonMinHeight)
+    val hapticTap = LocalSettingsHapticTap.current
+    val clickWithHaptic = {
+        hapticTap()
+        onClick()
+    }
     when (uiMode) {
         BibiUiMode.Material -> Button(
-            onClick = onClick,
+            onClick = clickWithHaptic,
             enabled = enabled,
             modifier = buttonModifier,
             shape = RoundedCornerShape(SettingsLayoutMetrics.ActionButtonCorner),
@@ -95,7 +101,7 @@ internal fun SettingsActionButton(
         }
 
         BibiUiMode.Miuix -> MiuixButton(
-            onClick = onClick,
+            onClick = clickWithHaptic,
             enabled = enabled,
             modifier = buttonModifier,
             cornerRadius = SettingsLayoutMetrics.ActionButtonCorner,

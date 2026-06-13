@@ -93,7 +93,6 @@ fun AboutSettingsScreen(
                             titleRes = R.string.about_auto_update_check,
                             checked = autoUpdateCheck,
                             onCheckedChange = {
-                                actions.hapticTap()
                                 autoUpdateCheck = it
                                 prefs.autoUpdateCheckEnabled = it
                             }

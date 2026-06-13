@@ -32,38 +32,31 @@ class SettingsActionController(
     }
 
     fun startOneClickSetup() {
-        hapticTap()
         activity.startOneClickSetupFromCompose()
     }
 
     fun checkForUpdates() {
-        hapticTap()
         activity.checkForUpdatesFromCompose()
     }
 
     fun showTestInput() {
-        hapticTap()
         activity.showTestInputFromCompose()
     }
 
     fun showImePicker() {
-        hapticTap()
         activity.showImePickerFromCompose()
     }
 
     fun openOnboardingGuide() {
-        hapticTap()
         activity.startActivity(Intent(activity, OnboardingGuideActivity::class.java))
     }
 
     fun applySearchEntry(entry: SettingsSearchEntry) {
-        hapticTap()
         entry.forceAsrVendorId?.let { prefs.asrVendor = AsrVendor.fromId(it) }
         entry.forceLlmVendorId?.let { prefs.llmVendor = LlmVendor.fromId(it) }
     }
 
     fun openUrl(@StringRes urlRes: Int) {
-        hapticTap()
         try {
             activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(activity.getString(urlRes))))
         } catch (e: ActivityNotFoundException) {
@@ -76,7 +69,6 @@ class SettingsActionController(
     }
 
     fun openUrl(url: String) {
-        hapticTap()
         try {
             activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
         } catch (e: ActivityNotFoundException) {
@@ -89,7 +81,6 @@ class SettingsActionController(
     }
 
     fun showProPromo() {
-        hapticTap()
         try {
             activity.showProPromoFromCompose()
         } catch (e: Throwable) {
@@ -98,7 +89,6 @@ class SettingsActionController(
     }
 
     fun setDebugRecording(enabled: Boolean): Boolean {
-        hapticTap()
         try {
             if (enabled) {
                 DebugLogManager.start(activity)
@@ -116,7 +106,6 @@ class SettingsActionController(
     }
 
     fun exportDebugLog() {
-        hapticTap()
         try {
             when (val result = DebugLogManager.buildShareIntent(activity)) {
                 is DebugLogManager.ShareIntentResult.Success -> {
@@ -149,7 +138,6 @@ class SettingsActionController(
     }
 
     fun buildLicensesText(): String? {
-        hapticTap()
         return try {
             buildString {
                 append(activity.readAssetFile("licenses/sherpa-onnx-LICENSE"))

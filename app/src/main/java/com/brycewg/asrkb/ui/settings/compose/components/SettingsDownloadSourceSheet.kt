@@ -37,6 +37,7 @@ import com.brycewg.asrkb.ui.DownloadSourceOption
 import com.brycewg.asrkb.ui.buildDownloadSourceAddressDisplay
 import com.brycewg.asrkb.ui.measureDownloadSourceLatency
 import com.brycewg.asrkb.ui.settings.compose.core.BibiUiMode
+import com.brycewg.asrkb.ui.settings.compose.core.LocalSettingsHapticTap
 import com.brycewg.asrkb.ui.settings.compose.core.SettingsLayoutMetrics
 import com.brycewg.asrkb.ui.settings.compose.core.settingsSegmentedItemShape
 import kotlinx.coroutines.launch
@@ -99,6 +100,7 @@ private fun DownloadSourceContent(
     modifier: Modifier = Modifier
 ) {
     val latencyResults = remember(options) { mutableStateMapOf<String, DownloadSourceLatencyResult>() }
+    val hapticTap = LocalSettingsHapticTap.current
 
     LaunchedEffect(options) {
         options.forEach { option ->
@@ -122,7 +124,10 @@ private fun DownloadSourceContent(
                     count = options.size,
                     latency = latencyResults[option.url]
                         ?: DownloadSourceLatencyResult(DownloadSourceLatencyStatus.Pending),
-                    onClick = { onSelect(option) }
+                    onClick = {
+                        hapticTap()
+                        onSelect(option)
+                    }
                 )
             }
             item("latency-note") {

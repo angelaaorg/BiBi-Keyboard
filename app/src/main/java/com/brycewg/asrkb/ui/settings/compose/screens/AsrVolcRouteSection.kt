@@ -39,7 +39,6 @@ internal fun AsrVolcRouteSection(
     onUpdateDdc: (Boolean) -> Unit,
     onUpdateVad: (Boolean) -> Unit,
     applySwitch: AsrExplainedSwitchApplier,
-    hapticTap: () -> Unit,
     onLanguageSelected: (String) -> Unit,
     primaryIndexOffset: Int = 0,
     primaryGroupCount: Int? = null
@@ -52,7 +51,6 @@ internal fun AsrVolcRouteSection(
         onAccessKeyChange = onAccessKeyChange,
         streaming = uiState.volcStreamingEnabled,
         onStreamingChange = { checked ->
-            hapticTap()
             applySwitch(
                 checked,
                 R.string.label_volc_streaming,
@@ -65,7 +63,6 @@ internal fun AsrVolcRouteSection(
         },
         fileStandard = uiState.volcFileStandardEnabled,
         onFileStandardChange = { checked ->
-            hapticTap()
             applySwitch(
                 checked,
                 R.string.label_volc_file_standard,
@@ -78,7 +75,6 @@ internal fun AsrVolcRouteSection(
         },
         modelV2 = uiState.volcModelV2Enabled,
         onModelV2Change = { checked ->
-            hapticTap()
             applySwitch(
                 checked,
                 R.string.label_volc_model_v2,
@@ -91,7 +87,6 @@ internal fun AsrVolcRouteSection(
         },
         nonstream = uiState.volcNonstreamEnabled,
         onNonstreamChange = { checked ->
-            hapticTap()
             applySwitch(
                 checked,
                 R.string.label_volc_nonstream,
@@ -104,7 +99,6 @@ internal fun AsrVolcRouteSection(
         },
         ddc = uiState.volcDdcEnabled,
         onDdcChange = { checked ->
-            hapticTap()
             applySwitch(
                 checked,
                 R.string.label_volc_ddc,
@@ -117,7 +111,6 @@ internal fun AsrVolcRouteSection(
         },
         vad = uiState.volcVadEnabled,
         onVadChange = { checked ->
-            hapticTap()
             applySwitch(
                 checked,
                 R.string.label_volc_vad,
@@ -130,7 +123,6 @@ internal fun AsrVolcRouteSection(
         },
         selectedLanguage = uiState.volcLanguage,
         onLanguageSelected = { language ->
-            hapticTap()
             onLanguageSelected(language)
         },
         primaryIndexOffset = primaryIndexOffset,

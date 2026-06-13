@@ -22,13 +22,11 @@ internal fun asrSimpleChoiceSheetState(
     titleResId: Int,
     items: List<String>,
     selectedIndex: Int,
-    onChoiceClick: (() -> Unit)?,
     onSelected: (Int) -> Unit
 ): SettingsChoiceSheetState? = settingsChoiceSheetState(
     title = context.getString(titleResId),
     items = items,
     selectedIndex = selectedIndex,
-    onChoiceClick = onChoiceClick,
     onSelected = onSelected
 )
 
@@ -38,14 +36,12 @@ internal fun asrStringChoiceSheetState(
     items: List<String>,
     selectedItem: String,
     fallbackItem: String,
-    onChoiceClick: (() -> Unit)?,
     onSelected: (String) -> Unit
 ): SettingsChoiceSheetState? = asrSimpleChoiceSheetState(
     context = context,
     titleResId = titleResId,
     items = items,
     selectedIndex = items.indexOf(selectedItem).coerceAtLeast(0),
-    onChoiceClick = onChoiceClick
 ) { selectedIdx ->
     onSelected(items.getOrElse(selectedIdx) { fallbackItem })
 }
@@ -58,14 +54,12 @@ internal fun <T> asrValueChoiceSheetState(
     fallbackValue: String,
     valueOf: (T) -> String,
     labelOf: (T) -> String,
-    onChoiceClick: (() -> Unit)?,
     onSelected: (String) -> Unit
 ): SettingsChoiceSheetState? = asrSimpleChoiceSheetState(
     context = context,
     titleResId = titleResId,
     items = options.map(labelOf),
     selectedIndex = options.indexOfFirst { valueOf(it) == selectedValue }.coerceAtLeast(0),
-    onChoiceClick = onChoiceClick
 ) { selectedIdx ->
     onSelected(options.getOrNull(selectedIdx)?.let(valueOf) ?: fallbackValue)
 }
@@ -73,7 +67,6 @@ internal fun <T> asrValueChoiceSheetState(
 internal fun backupSensitivityChoiceSheetState(
     context: Context,
     selectedIndex: Int,
-    onChoiceClick: (() -> Unit)?,
     onSelected: (Int) -> Unit
 ): SettingsChoiceSheetState? = asrSimpleChoiceSheetState(
     context = context,
@@ -84,14 +77,12 @@ internal fun backupSensitivityChoiceSheetState(
         context.getString(R.string.option_backup_asr_timeout_sensitivity_sensitive)
     ),
     selectedIndex = selectedIndex,
-    onChoiceClick = onChoiceClick,
     onSelected = onSelected
 )
 
 internal fun sfFreeAsrModelChoiceSheetState(
     context: Context,
     selectedModel: String,
-    onChoiceClick: (() -> Unit)?,
     onSelected: (String) -> Unit
 ): SettingsChoiceSheetState? = asrStringChoiceSheetState(
     context = context,
@@ -99,14 +90,12 @@ internal fun sfFreeAsrModelChoiceSheetState(
     items = Prefs.SF_FREE_ASR_MODELS,
     selectedItem = selectedModel,
     fallbackItem = Prefs.DEFAULT_SF_FREE_ASR_MODEL,
-    onChoiceClick = onChoiceClick,
     onSelected = onSelected
 )
 
 internal fun sfPaidAsrModelChoiceSheetState(
     context: Context,
     selectedModel: String,
-    onChoiceClick: (() -> Unit)?,
     onSelected: (String) -> Unit
 ): SettingsChoiceSheetState? = asrStringChoiceSheetState(
     context = context,
@@ -114,14 +103,12 @@ internal fun sfPaidAsrModelChoiceSheetState(
     items = sfPaidAsrModels(),
     selectedItem = selectedModel,
     fallbackItem = Prefs.DEFAULT_SF_MODEL,
-    onChoiceClick = onChoiceClick,
     onSelected = onSelected
 )
 
 internal fun volcLanguageChoiceSheetState(
     context: Context,
     selectedLanguage: String,
-    onChoiceClick: (() -> Unit)?,
     onSelected: (String) -> Unit
 ): SettingsChoiceSheetState? = asrValueChoiceSheetState(
     context = context,
@@ -131,14 +118,12 @@ internal fun volcLanguageChoiceSheetState(
     fallbackValue = "",
     valueOf = { it.value },
     labelOf = { it.label },
-    onChoiceClick = onChoiceClick,
     onSelected = onSelected
 )
 
 internal fun dashModelChoiceSheetState(
     context: Context,
     selectedModel: String,
-    onChoiceClick: (() -> Unit)?,
     onSelected: (String) -> Unit
 ): SettingsChoiceSheetState? = asrValueChoiceSheetState(
     context = context,
@@ -148,14 +133,12 @@ internal fun dashModelChoiceSheetState(
     fallbackValue = Prefs.DEFAULT_DASH_MODEL,
     valueOf = { it.value },
     labelOf = { it.label },
-    onChoiceClick = onChoiceClick,
     onSelected = onSelected
 )
 
 internal fun dashLanguageChoiceSheetState(
     context: Context,
     selectedLanguage: String,
-    onChoiceClick: (() -> Unit)?,
     onSelected: (String) -> Unit
 ): SettingsChoiceSheetState? = asrValueChoiceSheetState(
     context = context,
@@ -165,14 +148,12 @@ internal fun dashLanguageChoiceSheetState(
     fallbackValue = "",
     valueOf = { it.value },
     labelOf = { it.label },
-    onChoiceClick = onChoiceClick,
     onSelected = onSelected
 )
 
 internal fun dashRegionChoiceSheetState(
     context: Context,
     selectedRegion: String,
-    onChoiceClick: (() -> Unit)?,
     onSelected: (String) -> Unit
 ): SettingsChoiceSheetState? = asrValueChoiceSheetState(
     context = context,
@@ -182,14 +163,12 @@ internal fun dashRegionChoiceSheetState(
     fallbackValue = "cn",
     valueOf = { it.value },
     labelOf = { it.label },
-    onChoiceClick = onChoiceClick,
     onSelected = onSelected
 )
 
 internal fun elevenLanguageChoiceSheetState(
     context: Context,
     selectedLanguage: String,
-    onChoiceClick: (() -> Unit)?,
     onSelected: (String) -> Unit
 ): SettingsChoiceSheetState? = asrValueChoiceSheetState(
     context = context,
@@ -199,14 +178,12 @@ internal fun elevenLanguageChoiceSheetState(
     fallbackValue = "",
     valueOf = { it.value },
     labelOf = { it.label },
-    onChoiceClick = onChoiceClick,
     onSelected = onSelected
 )
 
 internal fun stepAudioModelChoiceSheetState(
     context: Context,
     selectedModel: String,
-    onChoiceClick: (() -> Unit)?,
     onSelected: (String) -> Unit
 ): SettingsChoiceSheetState? = asrStringChoiceSheetState(
     context = context,
@@ -214,14 +191,12 @@ internal fun stepAudioModelChoiceSheetState(
     items = Prefs.STEPAUDIO_ASR_MODELS,
     selectedItem = selectedModel,
     fallbackItem = Prefs.DEFAULT_STEPAUDIO_ASR_MODEL,
-    onChoiceClick = onChoiceClick,
     onSelected = onSelected
 )
 
 internal fun stepAudioLanguageChoiceSheetState(
     context: Context,
     selectedLanguage: String,
-    onChoiceClick: (() -> Unit)?,
     onSelected: (String) -> Unit
 ): SettingsChoiceSheetState? = asrValueChoiceSheetState(
     context = context,
@@ -231,7 +206,6 @@ internal fun stepAudioLanguageChoiceSheetState(
     fallbackValue = "zh",
     valueOf = { it.value },
     labelOf = { it.label },
-    onChoiceClick = onChoiceClick,
     onSelected = onSelected
 )
 
@@ -240,7 +214,6 @@ internal fun asrVendorChoiceSheetState(
     prefs: Prefs,
     titleResId: Int,
     selectedVendor: AsrVendor,
-    onChoiceClick: (() -> Unit)?,
     onSelected: (AsrVendor) -> Unit
 ): SettingsChoiceSheetState {
     val vendorOrder = AsrVendorUi.ordered()
@@ -280,7 +253,6 @@ internal fun asrVendorChoiceSheetState(
             )
         ),
         selectedIndex = vendorOrder.indexOf(selectedVendor).coerceAtLeast(0),
-        onChoiceClick = onChoiceClick,
         onSelected = { selectedIdx ->
             onSelected(vendorOrder.getOrNull(selectedIdx) ?: AsrVendor.Volc)
         }

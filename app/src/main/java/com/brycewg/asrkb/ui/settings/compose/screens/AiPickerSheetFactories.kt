@@ -22,13 +22,11 @@ internal fun aiSimpleChoiceSheetState(
     titleRes: Int,
     items: List<String>,
     selectedIndex: Int,
-    onChoiceClick: (() -> Unit)?,
     onSelected: (Int) -> Unit
 ): SettingsChoiceSheetState? = settingsChoiceSheetState(
     title = context.getString(titleRes),
     items = items,
     selectedIndex = selectedIndex,
-    onChoiceClick = onChoiceClick,
     onSelected = onSelected
 )
 
@@ -36,7 +34,6 @@ internal fun llmVendorChoiceSheetState(
     context: Context,
     prefs: Prefs,
     selectedVendor: LlmVendor,
-    onChoiceClick: (() -> Unit)?,
     onSelected: (LlmVendor) -> Unit
 ): SettingsChoiceSheetState {
     val vendors = LlmVendor.allVendors()
@@ -66,7 +63,6 @@ internal fun llmVendorChoiceSheetState(
             )
         ),
         selectedIndex = vendors.indexOf(selectedVendor).coerceAtLeast(0),
-        onChoiceClick = onChoiceClick,
         onSelected = { which ->
             vendors.getOrNull(which)?.let(onSelected)
         }
@@ -79,7 +75,6 @@ internal fun aiModelChoiceSheetState(
     presetModels: List<String>,
     currentModel: String,
     blankAsCustom: Boolean = true,
-    onChoiceClick: (() -> Unit)?,
     onCustomSelected: (String) -> Unit,
     onModelSelected: (String) -> Unit,
     onAfterSelected: () -> Unit = {}
@@ -98,7 +93,6 @@ internal fun aiModelChoiceSheetState(
         titleRes = titleRes,
         items = models,
         selectedIndex = selectedIndex,
-        onChoiceClick = onChoiceClick
     ) { which ->
         if (which == models.lastIndex) {
             onCustomSelected(currentModel.takeIf { it.isNotBlank() && !presetModels.contains(it) }.orEmpty())
@@ -113,7 +107,6 @@ internal fun aiProfileChoiceSheetState(
     context: Context,
     profiles: List<Prefs.LlmProvider>,
     selectedIndex: Int,
-    onChoiceClick: (() -> Unit)?,
     onSelected: (Prefs.LlmProvider) -> Unit
 ): SettingsChoiceSheetState? {
     if (profiles.isEmpty()) return null
@@ -122,7 +115,6 @@ internal fun aiProfileChoiceSheetState(
         titleRes = R.string.label_llm_choose_profile,
         items = profiles.map { it.name.ifBlank { context.getString(R.string.untitled_profile) } },
         selectedIndex = selectedIndex,
-        onChoiceClick = onChoiceClick
     ) { which ->
         profiles.getOrNull(which)?.let(onSelected)
     }
@@ -132,7 +124,6 @@ internal fun aiPromptPresetChoiceSheetState(
     context: Context,
     promptPresets: List<PromptPreset>,
     selectedIndex: Int,
-    onChoiceClick: (() -> Unit)?,
     onSelected: (PromptPreset) -> Unit
 ): SettingsChoiceSheetState? {
     if (promptPresets.isEmpty()) return null
@@ -141,7 +132,6 @@ internal fun aiPromptPresetChoiceSheetState(
         titleRes = R.string.label_llm_prompt_presets,
         items = promptPresets.map { it.title.ifBlank { context.getString(R.string.untitled_preset) } },
         selectedIndex = selectedIndex,
-        onChoiceClick = onChoiceClick
     ) { which ->
         promptPresets.getOrNull(which)?.let(onSelected)
     }
@@ -151,7 +141,6 @@ internal fun aiModelsMultiChoiceSheetState(
     context: Context,
     models: List<String>,
     currentModels: List<String>,
-    onChoiceClick: (() -> Unit)?,
     onConfirmModels: (List<String>) -> Boolean
 ): SettingsMultiChoiceSheetState? {
     val uniqueModels = models.map { it.trim() }.filter { it.isNotBlank() }.distinct()
@@ -165,7 +154,6 @@ internal fun aiModelsMultiChoiceSheetState(
             .toSet(),
         confirmText = context.getString(R.string.btn_llm_models_add),
         cancelText = context.getString(R.string.btn_cancel),
-        onChoiceClick = onChoiceClick,
         onConfirm = { selectedIndices ->
             onConfirmModels(
                 uniqueModels.filterIndexed { index, _ -> selectedIndices.contains(index) }

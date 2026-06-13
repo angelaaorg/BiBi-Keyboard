@@ -93,10 +93,6 @@ fun AiSettingsScreen(
         }
     }
 
-    fun hapticTap() {
-        actions.hapticTap()
-    }
-
     fun sendRefreshBroadcast() {
         context.sendBroadcast(
             Intent(AsrKeyboardService.ACTION_REFRESH_IME_UI).apply {
@@ -164,7 +160,6 @@ fun AiSettingsScreen(
         promptPresets = promptPresets,
         onChoiceSheetChange = { choiceSheet = it },
         onMultiChoiceSheetChange = { multiChoiceSheet = it },
-        onChoiceClick = ::hapticTap,
         onMessage = ::showAiMessage,
         onFetchFailed = ::showFetchFailedDialog
     )
@@ -282,7 +277,6 @@ fun AiSettingsScreen(
                 onBuiltinReasoningOffJsonChange = { localState.builtinReasoningOffJson = it },
                 onFocusProfileNameAfterAddChange = { localState.focusProfileNameAfterAdd = it },
                 onFocusPromptTitleAfterAddChange = { localState.focusPromptTitleAfterAdd = it },
-                onHapticTap = ::hapticTap,
                 onMessage = ::showAiMessage,
                 onRefreshSfState = localState::refreshSfState,
                 onSendRefreshBroadcast = ::sendRefreshBroadcast,

@@ -195,7 +195,6 @@ fun OtherSettingsScreen(
 
     fun showSpeechPresetPicker() {
         if (speechState.presets.isEmpty()) return
-        actions.hapticTap()
         val displayNames = speechState.presets.map {
             it.name.ifBlank { context.getString(R.string.speech_preset_untitled) }
         }
@@ -205,7 +204,6 @@ fun OtherSettingsScreen(
             title = context.getString(R.string.label_speech_preset_section),
             items = displayNames,
             selectedIndex = selectedIndex,
-            onChoiceClick = actions::hapticTap,
             onSelected = { which ->
                 speechState.presets.getOrNull(which)?.let { preset ->
                     viewModel.setActivePreset(preset.id)
@@ -241,7 +239,6 @@ fun OtherSettingsScreen(
             focusNameAfterAdd = focusNameAfterAdd,
             onFocusNameHandled = { focusNameAfterAdd = false },
             onKeepAliveToggle = { target ->
-                actions.hapticTap()
                 applyExplainedSwitch(
                     current = uiState.keepAliveEnabled,
                     target = target,
@@ -260,7 +257,6 @@ fun OtherSettingsScreen(
                 ) { prefs.floatingKeepAliveEnabled = it }
             },
             onPrivilegedKeepAliveToggle = { target ->
-                actions.hapticTap()
                 applyExplainedSwitch(
                     current = uiState.privilegedKeepAliveEnabled,
                     target = target,
@@ -284,11 +280,9 @@ fun OtherSettingsScreen(
                 ) { prefs.floatingKeepAlivePrivilegedEnabled = it }
             },
             onRequestBatteryWhitelist = {
-                actions.hapticTap()
                 requestBatteryOptimizationWhitelist(context, ::showOtherMessage)
             },
             onDisableAsrHistoryToggle = { target ->
-                actions.hapticTap()
                 applyExplainedSwitch(
                     current = uiState.disableAsrHistory,
                     target = target,
@@ -302,7 +296,6 @@ fun OtherSettingsScreen(
                 ) { prefs.disableAsrHistory = it }
             },
             onDisableUsageStatsToggle = { target ->
-                actions.hapticTap()
                 applyExplainedSwitch(
                     current = uiState.disableUsageStats,
                     target = target,
@@ -316,7 +309,6 @@ fun OtherSettingsScreen(
                 ) { prefs.disableUsageStats = it }
             },
             onDataCollectionToggle = { target ->
-                actions.hapticTap()
                 applyExplainedSwitch(
                     current = uiState.dataCollectionEnabled,
                     target = target,
@@ -337,7 +329,6 @@ fun OtherSettingsScreen(
             onUpdateSpeechPresetName = viewModel::updateActivePresetName,
             onUpdateSpeechPresetContent = viewModel::updateActivePresetContent,
             onAddSpeechPreset = {
-                actions.hapticTap()
                 val defaultName = context.getString(
                     R.string.speech_preset_default_name,
                     speechState.presets.size + 1
@@ -347,7 +338,6 @@ fun OtherSettingsScreen(
                 showOtherMessage(R.string.toast_speech_preset_added)
             },
             onDeleteSpeechPreset = {
-                actions.hapticTap()
                 speechState.currentPreset?.let { preset ->
                     messageDialog = SettingsMessageDialogState(
                         title = context.getString(R.string.dialog_speech_preset_delete_title),
@@ -373,11 +363,9 @@ fun OtherSettingsScreen(
             onSyncClipboardAutoPullChange = viewModel::updateSyncClipboardAutoPullEnabled,
             onSyncClipboardIntervalChange = viewModel::updateSyncClipboardPullIntervalSec,
             onTestClipboardSync = {
-                actions.hapticTap()
                 testClipboardSync(context, prefs, coroutineScope, ::showOtherMessage)
             },
             onOpenSyncClipboardProject = {
-                actions.hapticTap()
                 openSyncClipboardProjectHome(context, ::showOtherMessage)
             }
         )

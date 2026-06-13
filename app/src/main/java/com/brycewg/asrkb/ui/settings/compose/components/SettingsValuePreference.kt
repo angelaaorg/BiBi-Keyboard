@@ -25,6 +25,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.brycewg.asrkb.ui.settings.compose.core.BibiUiMode
+import com.brycewg.asrkb.ui.settings.compose.core.LocalSettingsHapticTap
 import com.brycewg.asrkb.ui.settings.compose.core.SettingsLayoutMetrics
 import top.yukonga.miuix.kmp.basic.Icon as MiuixIcon
 import top.yukonga.miuix.kmp.basic.IconButton as MiuixIconButton
@@ -44,16 +45,27 @@ internal fun SettingsValuePreference(
     onTrailingActionClick: (() -> Unit)? = null,
     onClick: () -> Unit
 ) {
+    val hapticTap = LocalSettingsHapticTap.current
+    val clickWithHaptic = {
+        hapticTap()
+        onClick()
+    }
+    val trailingClickWithHaptic = onTrailingActionClick?.let { action ->
+        {
+            hapticTap()
+            action()
+        }
+    }
     when (uiMode) {
         BibiUiMode.Material -> SettingsMaterialItemSurface(
             index = index,
             count = count,
-            modifier = modifier.clickable(role = Role.Button, onClick = onClick)
+            modifier = modifier.clickable(role = Role.Button, onClick = clickWithHaptic)
         ) {
             val materialTrailingContent: (@Composable () -> Unit)? =
-                if (trailingActionIcon != null && onTrailingActionClick != null) {
+                if (trailingActionIcon != null && trailingClickWithHaptic != null) {
                     {
-                        MaterialIconButton(onClick = onTrailingActionClick) {
+                        MaterialIconButton(onClick = trailingClickWithHaptic) {
                             MaterialIcon(
                                 imageVector = trailingActionIcon,
                                 contentDescription = trailingActionContentDescriptionRes?.let { stringResource(it) },
@@ -78,9 +90,9 @@ internal fun SettingsValuePreference(
             title = stringResource(titleRes),
             summary = value,
             endActions = {
-                if (trailingActionIcon != null && onTrailingActionClick != null) {
+                if (trailingActionIcon != null && trailingClickWithHaptic != null) {
                     MiuixIconButton(
-                        onClick = onTrailingActionClick,
+                        onClick = trailingClickWithHaptic,
                         modifier = Modifier.size(36.dp),
                         minWidth = 36.dp,
                         minHeight = 36.dp
@@ -94,7 +106,7 @@ internal fun SettingsValuePreference(
                     }
                 }
             },
-            onClick = onClick
+            onClick = clickWithHaptic
         )
     }
 }

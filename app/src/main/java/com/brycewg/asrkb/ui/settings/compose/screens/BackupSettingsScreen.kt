@@ -126,7 +126,6 @@ fun BackupSettingsScreen(
                         index = 0,
                         count = 2,
                         onClick = {
-                            actions.hapticTap()
                             exportLauncher.launch(buildBackupFileName())
                         }
                     )
@@ -138,7 +137,6 @@ fun BackupSettingsScreen(
                         index = 1,
                         count = 2,
                         onClick = {
-                            actions.hapticTap()
                             importLauncher.launch(arrayOf("application/json", "text/plain"))
                         }
                     )
@@ -192,7 +190,6 @@ fun BackupSettingsScreen(
                         index = 3,
                         count = 5,
                         onClick = {
-                            actions.hapticTap()
                             scope.launch {
                                 busyAction = BackupBusyAction.WebdavUpload
                                 showBackupMessage(uploadToWebdav(context, prefs).message)
@@ -208,7 +205,6 @@ fun BackupSettingsScreen(
                         index = 4,
                         count = 5,
                         onClick = {
-                            actions.hapticTap()
                             scope.launch {
                                 busyAction = BackupBusyAction.WebdavDownload
                                 val result = downloadFromWebdav(context, prefs)
