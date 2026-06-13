@@ -32,7 +32,6 @@ import com.brycewg.asrkb.asr.GeminiFileAsrEngine
 import com.brycewg.asrkb.asr.GenericPushFileAsrAdapter
 import com.brycewg.asrkb.asr.LlmPostProcessor
 import com.brycewg.asrkb.asr.MiMoFileAsrEngine
-import com.brycewg.asrkb.asr.NetworkWarmupCoordinator
 import com.brycewg.asrkb.asr.OfflineSpeechDenoiserManager
 import com.brycewg.asrkb.asr.OpenAiFileAsrEngine
 import com.brycewg.asrkb.asr.OpenAiRealtimeAsrEngine
@@ -387,9 +386,8 @@ internal class RecordingTestViewModel(
         try {
             BluetoothRouteManager.onRecordingStarted(appContext)
             preloadLocalAsrForImmediateUse(appContext, prefs)
-            NetworkWarmupCoordinator.warmupForRecordingStart(prefs)
         } catch (t: Throwable) {
-            Log.w(TAG, "Recording test warmup failed", t)
+            Log.w(TAG, "Recording test preparation failed", t)
         }
 
         captureJob = viewModelScope.launch(Dispatchers.IO) {

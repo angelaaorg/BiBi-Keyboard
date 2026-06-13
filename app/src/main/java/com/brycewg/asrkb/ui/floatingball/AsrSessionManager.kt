@@ -283,7 +283,6 @@ class AsrSessionManager(
         // 启动引擎
         listener.onSessionStateChanged(FloatingBallState.Recording)
         asrEngine?.let { engine ->
-            NetworkWarmupCoordinator.warmupForRecordingStart(prefs)
             preloadLocalAsrForImmediateUse(context, prefs)
             engine.start()
         }

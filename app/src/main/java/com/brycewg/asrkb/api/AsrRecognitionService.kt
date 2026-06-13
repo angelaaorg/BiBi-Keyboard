@@ -407,7 +407,6 @@ class AsrRecognitionService : RecognitionService() {
             cancelProcessingTimeout()
             ensureAutoStopSuppressed()
             engine?.let { startedEngine ->
-                NetworkWarmupCoordinator.warmupForRecordingStart(prefs)
                 preloadLocalAsrForImmediateUse(this@AsrRecognitionService, prefs)
                 startedEngine.start()
             }

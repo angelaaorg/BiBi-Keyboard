@@ -713,7 +713,6 @@ class AsrSessionManager(
             Log.e(TAG, "Local model preload guard failed", t)
         }
         asrEngine?.let { engine ->
-            NetworkWarmupCoordinator.warmupForRecordingStart(prefs)
             engine.start()
         }
         try {
