@@ -1,6 +1,7 @@
 package com.brycewg.asrkb.ime
 
 import android.content.Context
+import android.content.Intent
 import android.util.Log
 import android.view.inputmethod.InputConnection
 import com.brycewg.asrkb.R
@@ -31,6 +32,7 @@ internal class ExtensionButtonActionDispatcher(
         ExtensionButtonAction.CLIPBOARD -> KeyboardActionHandler.ExtensionButtonActionResult.NEED_SHOW_CLIPBOARD
         ExtensionButtonAction.SILENCE_AUTOSTOP_TOGGLE -> toggleSilenceAutoStop()
         ExtensionButtonAction.MIC_TAP_TOGGLE -> toggleMicTapMode()
+        ExtensionButtonAction.FLOATING_KEYBOARD_TOGGLE -> toggleFloatingKeyboard()
         ExtensionButtonAction.UNDO -> undo(ic)
         ExtensionButtonAction.HIDE_KEYBOARD -> KeyboardActionHandler.ExtensionButtonActionResult.NEED_HIDE_KEYBOARD
     }
@@ -119,6 +121,23 @@ internal class ExtensionButtonActionDispatcher(
             R.string.toast_mic_tap_mode_off
         }
         uiListenerProvider()?.onStatusMessage(context.getString(msgRes))
+        return KeyboardActionHandler.ExtensionButtonActionResult.SUCCESS
+    }
+
+    private fun toggleFloatingKeyboard(): KeyboardActionHandler.ExtensionButtonActionResult {
+        val newValue = !prefs.imeTabletFloatingKeyboardEnabled
+        prefs.imeTabletFloatingKeyboardEnabled = newValue
+        val msgRes = if (newValue) {
+            R.string.toast_floating_keyboard_on
+        } else {
+            R.string.toast_floating_keyboard_off
+        }
+        uiListenerProvider()?.onStatusMessage(context.getString(msgRes))
+        context.sendBroadcast(
+            Intent(AsrKeyboardService.ACTION_REFRESH_IME_UI).apply {
+                setPackage(context.packageName)
+            }
+        )
         return KeyboardActionHandler.ExtensionButtonActionResult.SUCCESS
     }
 

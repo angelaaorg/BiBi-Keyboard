@@ -50,8 +50,10 @@
     <item name="keyboardDragHandleRow" type="id" />
     <item name="keyboardDockButtonLeft" type="id" />
     <item name="keyboardDockButtonRight" type="id" />
-    <item name="keyboardResizeHandleLeft" type="id" />
-    <item name="keyboardResizeHandleRight" type="id" />
+    <item name="keyboardResizeHandleBottomLeft" type="id" />
+    <item name="keyboardResizeHandleBottomRight" type="id" />
+    <item name="keyboardResizeHandleTopLeft" type="id" />
+    <item name="keyboardResizeHandleTopRight" type="id" />
     <item name="keyboardContentPanel" type="id" />
     <item name="keyboardFloatingPanel" type="id" />
     <item name="keyboardLayoutCanvas" type="id" />

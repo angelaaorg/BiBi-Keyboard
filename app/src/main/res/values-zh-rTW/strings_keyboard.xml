@@ -52,7 +52,7 @@
 
     <!-- Keyboard height -->
     <string name="label_keyboard_height">鍵盤縮放</string>
-    <string name="label_ime_tablet_floating_keyboard">平板裝置懸浮鍵盤</string>
+    <string name="label_ime_tablet_floating_keyboard">懸浮鍵盤</string>
     <string name="keyboard_height_small">小</string>
     <string name="keyboard_height_medium">中</string>
     <string name="keyboard_height_large">大</string>

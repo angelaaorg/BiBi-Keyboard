@@ -213,6 +213,7 @@
   <string name="ext_btn_hide">隱藏鍵盤</string>
   <string name="ext_btn_silence_autostop">錄音判停</string>
   <string name="ext_btn_mic_tap_toggle">錄音模式切換</string>
+  <string name="ext_btn_floating_keyboard">懸浮鍵盤</string>
   <string name="status_copied">已複製</string>
   <string name="status_pasted">已貼上</string>
   <string name="status_nothing_to_undo">無可復原的操作</string>
@@ -302,6 +303,8 @@
   <string name="toast_silence_autostop_off">已關閉錄音判停</string>
   <string name="toast_mic_tap_mode_on">已切換為點按啟停</string>
   <string name="toast_mic_tap_mode_off">已切換為長按說話</string>
+  <string name="toast_floating_keyboard_on">已開啟懸浮鍵盤</string>
+  <string name="toast_floating_keyboard_off">已關閉懸浮鍵盤</string>
 
   <!-- ============================================== -->
   <!-- 功能說明彈窗 -->

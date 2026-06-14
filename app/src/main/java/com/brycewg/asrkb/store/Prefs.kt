@@ -231,12 +231,12 @@ class Prefs(context: Context) {
         get() = sp.getInt(KEY_KEYBOARD_BOTTOM_PADDING_DP, 0).coerceIn(0, 100)
         set(value) = sp.edit { putInt(KEY_KEYBOARD_BOTTOM_PADDING_DP, value.coerceIn(0, 100)) }
 
-    // 平板/宽屏设备自动使用悬浮键盘，默认开启。
+    // IME 悬浮键盘，默认关闭。
     var imeTabletFloatingKeyboardEnabled: Boolean
-        get() = sp.getBoolean(KEY_IME_TABLET_FLOATING_KEYBOARD_ENABLED, true)
+        get() = sp.getBoolean(KEY_IME_TABLET_FLOATING_KEYBOARD_ENABLED, false)
         set(value) = sp.edit { putBoolean(KEY_IME_TABLET_FLOATING_KEYBOARD_ENABLED, value) }
 
-    // 宽屏悬浮键盘位置比例（0..1），横向默认居中，纵向默认靠底。
+    // 悬浮键盘位置比例（0..1），横向默认居中，纵向默认靠底。
     var imeFloatingKeyboardXFraction: Float
         get() = sp.getFloat(KEY_IME_FLOATING_KEYBOARD_X_FRACTION, 0.5f).coerceIn(0f, 1f)
         set(value) = sp.edit { putFloat(KEY_IME_FLOATING_KEYBOARD_X_FRACTION, value.coerceIn(0f, 1f)) }
@@ -245,7 +245,7 @@ class Prefs(context: Context) {
         get() = sp.getFloat(KEY_IME_FLOATING_KEYBOARD_Y_FRACTION, 1.0f).coerceIn(0f, 1f)
         set(value) = sp.edit { putFloat(KEY_IME_FLOATING_KEYBOARD_Y_FRACTION, value.coerceIn(0f, 1f)) }
 
-    // 宽屏悬浮键盘宽度缩放比例，底角长按拖动调整。
+    // 悬浮键盘宽度缩放比例，四角长按拖动调整。
     var imeFloatingKeyboardWidthScale: Float
         get() = normalizeImeFloatingKeyboardWidthScale(sp.getFloat(KEY_IME_FLOATING_KEYBOARD_WIDTH_SCALE, 1.0f))
         set(value) = sp.edit {

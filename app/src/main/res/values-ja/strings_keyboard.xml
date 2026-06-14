@@ -53,7 +53,7 @@
 
     <!-- Keyboard height -->
     <string name="label_keyboard_height">キーボードスケール</string>
-    <string name="label_ime_tablet_floating_keyboard">タブレットのフローティングキーボード</string>
+    <string name="label_ime_tablet_floating_keyboard">フローティングキーボード</string>
     <string name="keyboard_height_small">小</string>
     <string name="keyboard_height_medium">中</string>
     <string name="keyboard_height_large">大</string>

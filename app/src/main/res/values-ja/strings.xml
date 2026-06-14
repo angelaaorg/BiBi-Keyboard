@@ -214,6 +214,7 @@
   <string name="ext_btn_hide">キーボードを非表示</string>
   <string name="ext_btn_silence_autostop">無音時自動停止</string>
   <string name="ext_btn_mic_tap_toggle">録音モード</string>
+  <string name="ext_btn_floating_keyboard">フローティングキーボード</string>
   <string name="status_copied">コピーしました</string>
   <string name="status_pasted">貼り付けました</string>
   <string name="status_nothing_to_undo">取り消す操作がありません</string>
@@ -303,6 +304,8 @@
   <string name="toast_silence_autostop_off">無音時自動停止が無効になりました</string>
   <string name="toast_mic_tap_mode_on">タップで録音開始/停止に切り替えました</string>
   <string name="toast_mic_tap_mode_off">長押し録音に切り替えました</string>
+  <string name="toast_floating_keyboard_on">フローティングキーボードを有効にしました</string>
+  <string name="toast_floating_keyboard_off">フローティングキーボードを無効にしました</string>
 
   <!-- ============================================== -->
   <!-- 機能説明ダイアログ -->

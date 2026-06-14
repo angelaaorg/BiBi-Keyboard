@@ -1,11 +1,10 @@
 /**
- * 宽屏设备上的 IME 悬浮键盘窗口、拖动与 inset 协调。
+ * IME 悬浮键盘窗口、拖动、缩放与 inset 协调。
  *
  * 归属模块：ime
  */
 package com.brycewg.asrkb.ime
 
-import android.content.res.Configuration
 import android.inputmethodservice.InputMethodService
 import android.view.Gravity
 import android.view.HapticFeedbackConstants
@@ -47,10 +46,11 @@ internal class ImeFloatingKeyboardController(
     private var hasPendingDragMove: Boolean = false
     private var pendingDragWindowX: Int = 0
     private var pendingDragWindowY: Int = 0
-    private var resizeEdge: ResizeEdge? = null
+    private var resizeCorner: ResizeCorner? = null
     private var resizeStartRawX: Float = 0f
     private var resizeStartRawY: Float = 0f
     private var resizeStartWindowX: Int = 0
+    private var resizeStartWindowY: Int = 0
     private var resizeStartWidth: Int = 0
     private var resizeStartHeight: Int = 0
     private var resizeLongPressTriggered: Boolean = false
@@ -59,7 +59,9 @@ internal class ImeFloatingKeyboardController(
     private var resizeFramePosted: Boolean = false
     private var hasPendingResizeFrame: Boolean = false
     private var pendingResizeWindowX: Int = 0
+    private var pendingResizeWindowY: Int = 0
     private var pendingResizeWidth: Int = 0
+    private var pendingResizeHeight: Int = 0
     private var activeResizeWindowX: Int? = null
     private var activeResizeWindowY: Int? = null
     private var activeResizeWidth: Int? = null
@@ -157,8 +159,10 @@ internal class ImeFloatingKeyboardController(
     }
 
     private fun installDrag(root: View) {
-        val handle = root.findViewById<View>(R.id.keyboardDragHandle) ?: return
-        handle.setOnTouchListener { v, event ->
+        val touchTarget = root.findViewById<View>(R.id.keyboardDragHandleRow)
+            ?: root.findViewById(R.id.keyboardDragHandle)
+            ?: return
+        touchTarget.setOnTouchListener { v, event ->
             if (!isActive) return@setOnTouchListener false
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
@@ -213,23 +217,25 @@ internal class ImeFloatingKeyboardController(
     }
 
     private fun installResizeHandles(root: View) {
-        root.findViewById<View>(R.id.keyboardResizeHandleLeft)?.installResizeHandle(root, ResizeEdge.LEFT)
-        root.findViewById<View>(R.id.keyboardResizeHandleRight)?.installResizeHandle(root, ResizeEdge.RIGHT)
+        root.findViewById<View>(R.id.keyboardResizeHandleBottomLeft)?.installResizeHandle(root, ResizeCorner.BOTTOM_LEFT)
+        root.findViewById<View>(R.id.keyboardResizeHandleBottomRight)?.installResizeHandle(root, ResizeCorner.BOTTOM_RIGHT)
+        root.findViewById<View>(R.id.keyboardResizeHandleTopLeft)?.installResizeHandle(root, ResizeCorner.TOP_LEFT)
+        root.findViewById<View>(R.id.keyboardResizeHandleTopRight)?.installResizeHandle(root, ResizeCorner.TOP_RIGHT)
     }
 
-    private fun View.installResizeHandle(root: View, edge: ResizeEdge) {
+    private fun View.installResizeHandle(root: View, corner: ResizeCorner) {
         setOnTouchListener { v, event ->
             if (!isActive) return@setOnTouchListener false
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
                     resizeStartRawX = event.rawX
                     resizeStartRawY = event.rawY
-                    resizeEdge = edge
+                    resizeCorner = corner
                     resizeLongPressTriggered = false
                     cancelResizeLongPress()
                     resizeLongPressView = v
                     resizeLongPressRunnable = Runnable {
-                        beginResize(root, v, edge)
+                        beginResize(root, v, corner)
                     }.also { runnable ->
                         v.postDelayed(runnable, ViewConfiguration.getLongPressTimeout().toLong())
                     }
@@ -238,15 +244,17 @@ internal class ImeFloatingKeyboardController(
                 }
 
                 MotionEvent.ACTION_MOVE -> {
-                    val dx = event.rawX - resizeStartRawX
-                    val dy = event.rawY - resizeStartRawY
                     if (!resizeLongPressTriggered) {
+                        val dx = event.rawX - resizeStartRawX
+                        val dy = event.rawY - resizeStartRawY
                         if (kotlin.math.hypot(dx.toDouble(), dy.toDouble()) > touchSlop) {
                             cancelResizeLongPress()
+                            beginResize(root, v, corner)
+                            resizeFloatingKeyboard(root, event.rawX, event.rawY)
                         }
                         return@setOnTouchListener true
                     }
-                    resizeFloatingKeyboard(root, event.rawX)
+                    resizeFloatingKeyboard(root, event.rawX, event.rawY)
                     true
                 }
 
@@ -280,8 +288,8 @@ internal class ImeFloatingKeyboardController(
         }
     }
 
-    private fun beginResize(root: View, handle: View, edge: ResizeEdge) {
-        if (!isActive || resizeEdge != edge) return
+    private fun beginResize(root: View, handle: View, corner: ResizeCorner) {
+        if (!isActive || resizeCorner != corner) return
         val window = windowProvider() ?: return
         val attrs = window.attributes
         val panel = keyboardPanel(root)
@@ -294,6 +302,7 @@ internal class ImeFloatingKeyboardController(
             ?: root.height.takeIf { it > 0 }
             ?: 1
         resizeStartWindowX = attrs.x
+        resizeStartWindowY = attrs.y
         resizeStartWidth = currentWidth
         resizeStartHeight = currentHeight
         resizeLongPressTriggered = true
@@ -301,31 +310,79 @@ internal class ImeFloatingKeyboardController(
         handle.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
     }
 
-    private fun resizeFloatingKeyboard(root: View, rawX: Float) {
+    private fun resizeFloatingKeyboard(root: View, rawX: Float, rawY: Float) {
         if (!isResizing) return
-        val edge = resizeEdge ?: return
+        val corner = resizeCorner ?: return
         val dx = rawX - resizeStartRawX
+        val dy = rawY - resizeStartRawY
         val minWidth = floatingMinResizableWidth(root, screenWidth(root))
         val maxWidth = floatingMaxResizableWidth(root, screenWidth(root))
-        val edgeMaxWidth = when (edge) {
+        val horizontalMaxWidth = when (corner.horizontalEdge) {
             ResizeEdge.LEFT -> resizeStartWindowX + resizeStartWidth
             ResizeEdge.RIGHT -> screenWidth(root) - resizeStartWindowX
+            else -> maxWidth
         }.coerceAtLeast(minWidth)
-        val nextWidth = when (edge) {
-            ResizeEdge.LEFT -> resizeStartWidth - dx.toInt()
-            ResizeEdge.RIGHT -> resizeStartWidth + dx.toInt()
-        }.coerceIn(minWidth, minOf(maxWidth, edgeMaxWidth))
-        val nextX = when (edge) {
+        val verticalMaxHeight = when (corner.verticalEdge) {
+            ResizeEdge.TOP -> resizeStartWindowY + resizeStartHeight
+            ResizeEdge.BOTTOM -> screenHeight(root) - resizeStartWindowY
+            else -> resizeStartHeight
+        }.coerceAtLeast(1)
+        val verticalMaxWidth = widthForEstimatedResizeHeight(verticalMaxHeight).coerceAtLeast(minWidth)
+        val nextWidth = (resizeStartWidth + dominantResizeDeltaWidth(corner, dx, dy).toInt())
+            .coerceIn(minWidth, minOf(maxWidth, horizontalMaxWidth, verticalMaxWidth))
+        val nextHeight = estimatedResizeHeight(nextWidth)
+        val nextX = when (corner.horizontalEdge) {
             ResizeEdge.LEFT -> resizeStartWindowX + resizeStartWidth - nextWidth
             ResizeEdge.RIGHT -> resizeStartWindowX
+            else -> resizeStartWindowX
         }
-        scheduleResizeFrame(root, nextX, nextWidth)
+        val nextY = when (corner.verticalEdge) {
+            ResizeEdge.TOP -> resizeStartWindowY + resizeStartHeight - nextHeight
+            ResizeEdge.BOTTOM -> resizeStartWindowY
+            else -> resizeStartWindowY
+        }
+        scheduleResizeFrame(root, nextX, nextY, nextWidth, nextHeight)
+    }
+
+    private fun dominantResizeDeltaWidth(corner: ResizeCorner, dx: Float, dy: Float): Float {
+        val horizontalDelta = when (corner.horizontalEdge) {
+            ResizeEdge.LEFT -> -dx
+            ResizeEdge.RIGHT -> dx
+            else -> 0f
+        }
+        val aspect = resizeStartHeight.toFloat()
+            .div(resizeStartWidth.toFloat().coerceAtLeast(1f))
+            .coerceAtLeast(0.1f)
+        val verticalDelta = when (corner.verticalEdge) {
+            ResizeEdge.TOP -> -dy / aspect
+            ResizeEdge.BOTTOM -> dy / aspect
+            else -> 0f
+        }
+        return if (kotlin.math.abs(horizontalDelta) >= kotlin.math.abs(verticalDelta)) {
+            horizontalDelta
+        } else {
+            verticalDelta
+        }
+    }
+
+    private fun estimatedResizeHeight(width: Int): Int {
+        if (resizeStartWidth <= 0 || resizeStartHeight <= 0) return resizeStartHeight.coerceAtLeast(1)
+        return (resizeStartHeight.toFloat() * width.toFloat() / resizeStartWidth.toFloat())
+            .toInt()
+            .coerceAtLeast(1)
+    }
+
+    private fun widthForEstimatedResizeHeight(height: Int): Int {
+        if (resizeStartWidth <= 0 || resizeStartHeight <= 0) return resizeStartWidth.coerceAtLeast(1)
+        return (resizeStartWidth.toFloat() * height.toFloat() / resizeStartHeight.toFloat())
+            .toInt()
+            .coerceAtLeast(1)
     }
 
     private fun finishResize(handle: View) {
         isResizing = false
         resizeLongPressTriggered = false
-        resizeEdge = null
+        resizeCorner = null
         clearActiveResizeFrame()
         handle.parent?.requestDisallowInterceptTouchEvent(false)
     }
@@ -348,8 +405,9 @@ internal class ImeFloatingKeyboardController(
         val resizeHandlesChanged = setResizeHandlesVisible(root, visible = true)
         changed = dragHandleChanged || resizeHandlesChanged || changed
         handle?.bringToFront()
-        root.findViewById<View>(R.id.keyboardResizeHandleLeft)?.bringToFront()
-        root.findViewById<View>(R.id.keyboardResizeHandleRight)?.bringToFront()
+        resizeHandleIds.forEach { id ->
+            root.findViewById<View>(id)?.bringToFront()
+        }
 
         val targetWidth = floatingTargetWidth(root, availableWidth)
 
@@ -415,7 +473,7 @@ internal class ImeFloatingKeyboardController(
     private fun setResizeHandlesVisible(root: View, visible: Boolean): Boolean {
         var changed = false
         val target = if (visible) View.VISIBLE else View.GONE
-        listOf(R.id.keyboardResizeHandleLeft, R.id.keyboardResizeHandleRight).forEach { id ->
+        resizeHandleIds.forEach { id ->
             root.findViewById<View>(id)?.let { handle ->
                 if (handle.visibility != target) {
                     handle.visibility = target
@@ -432,18 +490,23 @@ internal class ImeFloatingKeyboardController(
         val handleHeight = lp.height.takeIf { it > 0 }
             ?: handle.height.takeIf { it > 0 }
             ?: dp(root, RESIZE_HANDLE_HEIGHT_DP)
-        val bottomPadding = if (visible) {
-            keyboardPanel(root).paddingBottom
+        val topHandle = (lp.gravity and Gravity.TOP) == Gravity.TOP
+        val panel = keyboardPanel(root)
+        val paddingBand = if (topHandle) panel.paddingTop else panel.paddingBottom
+        val targetMargin = if (visible && paddingBand > 0) {
+            -((paddingBand + handleHeight) / 2)
         } else {
             0
         }
-        val targetBottomMargin = if (visible && bottomPadding > 0) {
-            -((bottomPadding + handleHeight) / 2)
+        if (topHandle) {
+            if (lp.topMargin == targetMargin && lp.bottomMargin == 0) return false
+            lp.topMargin = targetMargin
+            lp.bottomMargin = 0
         } else {
-            0
+            if (lp.bottomMargin == targetMargin && lp.topMargin == 0) return false
+            lp.topMargin = 0
+            lp.bottomMargin = targetMargin
         }
-        if (lp.bottomMargin == targetBottomMargin) return false
-        lp.bottomMargin = targetBottomMargin
         handle.layoutParams = lp
         return true
     }
@@ -528,19 +591,7 @@ internal class ImeFloatingKeyboardController(
     }
 
     private fun shouldUseFloatingKeyboard(root: View, availableWidth: Int): Boolean {
-        if (!prefs.imeTabletFloatingKeyboardEnabled) return false
-        val density = root.resources.displayMetrics.density.coerceAtLeast(1f)
-        val availableWidthDp = (availableWidth / density).toInt()
-        val config = root.resources.configuration
-        val configWidthDp = config.screenWidthDp.takeIf {
-            it > 0 && it != Configuration.SCREEN_WIDTH_DP_UNDEFINED
-        } ?: 0
-        val smallestDp = config.smallestScreenWidthDp.takeIf {
-            it > 0 && it != Configuration.SMALLEST_SCREEN_WIDTH_DP_UNDEFINED
-        } ?: 0
-        return smallestDp >= TABLET_SMALLEST_WIDTH_DP ||
-            configWidthDp >= EXPANDED_WINDOW_WIDTH_DP ||
-            availableWidthDp >= EXPANDED_WINDOW_WIDTH_DP
+        return prefs.imeTabletFloatingKeyboardEnabled && availableWidth > 0
     }
 
     private fun keyboardPanel(root: View): View =
@@ -675,9 +726,11 @@ internal class ImeFloatingKeyboardController(
         moveWindow(root, pendingDragWindowX, pendingDragWindowY)
     }
 
-    private fun scheduleResizeFrame(root: View, x: Int, width: Int) {
+    private fun scheduleResizeFrame(root: View, x: Int, y: Int, width: Int, height: Int) {
         pendingResizeWindowX = x
+        pendingResizeWindowY = y
         pendingResizeWidth = width
+        pendingResizeHeight = height
         hasPendingResizeFrame = true
         if (resizeFramePosted) return
         resizeFramePosted = true
@@ -690,22 +743,23 @@ internal class ImeFloatingKeyboardController(
     private fun applyPendingResizeFrame(root: View) {
         if (!hasPendingResizeFrame) return
         hasPendingResizeFrame = false
-        if (applyResizeFrame(root, pendingResizeWindowX, pendingResizeWidth)) {
+        if (applyResizeFrame(root, pendingResizeWindowX, pendingResizeWindowY, pendingResizeWidth, pendingResizeHeight)) {
             onResizeFrameChanged()
         }
     }
 
-    private fun applyResizeFrame(root: View, x: Int, width: Int): Boolean {
+    private fun applyResizeFrame(root: View, x: Int, y: Int, width: Int, height: Int): Boolean {
         val window = windowProvider() ?: return false
         val panel = keyboardPanel(root)
-        val targetHeight = window.decorView.height.takeIf { it > 0 }
+        val targetHeight = height.takeIf { it > 0 }
+            ?: window.decorView.height.takeIf { it > 0 }
             ?: panel.height.takeIf { it > 0 }
             ?: resizeStartHeight.takeIf { it > 0 }
             ?: root.height.takeIf { it > 0 }
             ?: 1
         val (maxX, maxY) = floatingWindowMaxOffsets(root, width, targetHeight)
         val nextX = x.coerceIn(0, maxX)
-        val nextY = window.attributes.y.coerceIn(0, maxY)
+        val nextY = y.coerceIn(0, maxY)
         activeResizeWindowX = nextX
         activeResizeWindowY = nextY
         activeResizeWidth = width
@@ -850,21 +904,37 @@ internal class ImeFloatingKeyboardController(
     }
 
     private companion object {
-        private const val TABLET_SMALLEST_WIDTH_DP = 600
-        private const val EXPANDED_WINDOW_WIDTH_DP = 840
-        private const val FLOATING_MAX_WIDTH_DP = 560f
-        private const val FLOATING_MIN_WIDTH_DP = 360f
-        private const val FLOATING_RESIZE_MIN_WIDTH_DP = 320f
-        private const val FLOATING_SIDE_MARGIN_DP = 24f
-        private const val DRAG_HANDLE_ROW_HEIGHT_DP = 12f
-        private const val RESIZE_HANDLE_HEIGHT_DP = 32f
+        private const val FLOATING_MAX_WIDTH_DP = 600f
+        private const val FLOATING_MIN_WIDTH_DP = 320f
+        private const val FLOATING_RESIZE_MIN_WIDTH_DP = 260f
+        private const val FLOATING_SIDE_MARGIN_DP = 20f
+        private const val DRAG_HANDLE_ROW_HEIGHT_DP = 24f
+        private const val RESIZE_HANDLE_HEIGHT_DP = 24f
         private val FLOATING_WINDOW_FLAGS =
             WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
                 WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
+        private val resizeHandleIds = intArrayOf(
+            R.id.keyboardResizeHandleBottomLeft,
+            R.id.keyboardResizeHandleBottomRight,
+            R.id.keyboardResizeHandleTopLeft,
+            R.id.keyboardResizeHandleTopRight
+        )
     }
 
     private enum class ResizeEdge {
         LEFT,
-        RIGHT
+        RIGHT,
+        TOP,
+        BOTTOM
+    }
+
+    private enum class ResizeCorner(
+        val horizontalEdge: ResizeEdge,
+        val verticalEdge: ResizeEdge
+    ) {
+        TOP_LEFT(ResizeEdge.LEFT, ResizeEdge.TOP),
+        TOP_RIGHT(ResizeEdge.RIGHT, ResizeEdge.TOP),
+        BOTTOM_LEFT(ResizeEdge.LEFT, ResizeEdge.BOTTOM),
+        BOTTOM_RIGHT(ResizeEdge.RIGHT, ResizeEdge.BOTTOM)
     }
 }

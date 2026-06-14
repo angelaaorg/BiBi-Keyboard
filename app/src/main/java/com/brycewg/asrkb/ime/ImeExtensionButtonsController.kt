@@ -58,6 +58,7 @@ internal class ImeExtensionButtonsController(
         updateDynamicSelectButtons()
         updateSilenceAutoStopExtButtonsUi()
         updateMicTapToggleExtButtonsUi()
+        updateFloatingKeyboardExtButtonsUi()
     }
 
     private fun bindDynamicLayoutActionButtons(root: View) {
@@ -225,6 +226,11 @@ internal class ImeExtensionButtonsController(
         ) {
             updateMicTapToggleExtButtonsUi()
         }
+        if (action == ExtensionButtonAction.FLOATING_KEYBOARD_TOGGLE &&
+            result == KeyboardActionHandler.ExtensionButtonActionResult.SUCCESS
+        ) {
+            updateFloatingKeyboardExtButtonsUi()
+        }
     }
 
     private fun setupCursorButtonRepeat(btn: View, action: ExtensionButtonAction) {
@@ -275,6 +281,12 @@ internal class ImeExtensionButtonsController(
         }
     }
 
+    private fun updateFloatingKeyboardExtButtonsUi() {
+        updateDynamicToggleButtons(ExtensionButtonAction.FLOATING_KEYBOARD_TOGGLE) { enabled ->
+            if (enabled) R.drawable.arrow_square_in_fill else R.drawable.arrow_square_in
+        }
+    }
+
     private fun updateDynamicSelectButtons() {
         updateDynamicButtons(views.rootView) { view, def ->
             val isSelect = def.extensionActionId == ExtensionButtonAction.SELECT.id || def.id == "ai_select"
@@ -294,6 +306,7 @@ internal class ImeExtensionButtonsController(
         val enabled = when (action) {
             ExtensionButtonAction.SILENCE_AUTOSTOP_TOGGLE -> prefs.autoStopOnSilenceEnabled
             ExtensionButtonAction.MIC_TAP_TOGGLE -> prefs.micTapToggleEnabled
+            ExtensionButtonAction.FLOATING_KEYBOARD_TOGGLE -> prefs.imeTabletFloatingKeyboardEnabled
             else -> return
         }
         updateDynamicButtons(views.rootView) { view, def ->

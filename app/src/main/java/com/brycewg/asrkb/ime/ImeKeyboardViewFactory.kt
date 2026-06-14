@@ -67,8 +67,10 @@ internal object ImeKeyboardViewFactory {
             addView(createDockButton(context, R.id.keyboardDockButtonLeft, R.string.cd_keyboard_dock_left, R.drawable.arrow_left_toggle))
             addView(createDockButton(context, R.id.keyboardDockButtonRight, R.string.cd_keyboard_dock_right, R.drawable.arrow_right_toggle))
             addView(createDragHandleRow(context))
-            addView(createResizeHandle(context, R.id.keyboardResizeHandleLeft, Gravity.BOTTOM or Gravity.START))
-            addView(createResizeHandle(context, R.id.keyboardResizeHandleRight, Gravity.BOTTOM or Gravity.END))
+            addView(createResizeHandle(context, R.id.keyboardResizeHandleBottomLeft, Gravity.BOTTOM or Gravity.START))
+            addView(createResizeHandle(context, R.id.keyboardResizeHandleBottomRight, Gravity.BOTTOM or Gravity.END))
+            addView(createResizeHandle(context, R.id.keyboardResizeHandleTopLeft, Gravity.TOP or Gravity.START))
+            addView(createResizeHandle(context, R.id.keyboardResizeHandleTopRight, Gravity.TOP or Gravity.END))
         }
         root.addView(panel)
         applyTheme(root, prefs)
@@ -345,20 +347,20 @@ internal object ImeKeyboardViewFactory {
     private fun createDragHandleRow(context: Context): View = FrameLayout(context).apply {
         id = R.id.keyboardDragHandleRow
         visibility = View.GONE
+        contentDescription = context.getString(R.string.cd_floating_keyboard_drag)
+        isClickable = true
+        isFocusable = true
         layoutParams = FrameLayout.LayoutParams(
-            FrameLayout.LayoutParams.MATCH_PARENT,
-            dp(context, 12)
+            dp(context, 176),
+            dp(context, 24)
         ).apply {
-            gravity = Gravity.BOTTOM
+            gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
         }
         addView(
             View(context).apply {
                 id = R.id.keyboardDragHandle
                 alpha = 0.62f
-                contentDescription = context.getString(R.string.cd_floating_keyboard_drag)
-                isClickable = true
-                isFocusable = true
-                layoutParams = FrameLayout.LayoutParams(dp(context, 72), dp(context, 6)).apply {
+                layoutParams = FrameLayout.LayoutParams(dp(context, 112), dp(context, 6)).apply {
                     gravity = Gravity.CENTER
                 }
             }
@@ -374,7 +376,7 @@ internal object ImeKeyboardViewFactory {
             isClickable = true
             isFocusable = true
             setBackgroundColor(Color.TRANSPARENT)
-            layoutParams = FrameLayout.LayoutParams(dp(context, 56), dp(context, 32)).apply {
+            layoutParams = FrameLayout.LayoutParams(dp(context, 96), dp(context, 24)).apply {
                 gravity = handleGravity
             }
         }

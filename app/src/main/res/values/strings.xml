@@ -215,6 +215,7 @@
   <string name="ext_btn_hide">Hide keyboard</string>
   <string name="ext_btn_silence_autostop">Auto-stop on silence</string>
   <string name="ext_btn_mic_tap_toggle">Recording mode</string>
+  <string name="ext_btn_floating_keyboard">Floating keyboard</string>
   <string name="status_copied">Copied</string>
   <string name="status_pasted">Pasted</string>
   <string name="status_nothing_to_undo">Nothing to undo</string>
@@ -304,6 +305,8 @@
   <string name="toast_silence_autostop_off">Auto-stop on silence disabled</string>
   <string name="toast_mic_tap_mode_on">Switched to tap-to-start</string>
   <string name="toast_mic_tap_mode_off">Switched to hold-to-talk</string>
+  <string name="toast_floating_keyboard_on">Floating keyboard enabled</string>
+  <string name="toast_floating_keyboard_off">Floating keyboard disabled</string>
 
   <!-- ============================================== -->
   <!-- Feature Explainer Dialog -->

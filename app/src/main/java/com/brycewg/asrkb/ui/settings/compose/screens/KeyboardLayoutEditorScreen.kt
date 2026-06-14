@@ -1583,6 +1583,7 @@ private val trayKeyOrder = listOf(
     "settings",
     "prompt_picker",
     "switch_ime",
+    "floating_keyboard_toggle",
     "return_main",
     "enter",
     "numpad",

@@ -88,6 +88,15 @@ enum class ExtensionButtonAction(val id: String, val titleResId: Int, val iconRe
     ),
 
     /**
+     * 悬浮键盘开关
+     */
+    FLOATING_KEYBOARD_TOGGLE(
+        id = "floating_keyboard_toggle",
+        titleResId = R.string.ext_btn_floating_keyboard,
+        iconResId = R.drawable.arrow_square_in
+    ),
+
+    /**
      * 光标左移一位（长按连发）
      */
     CURSOR_LEFT(

@@ -1,5 +1,5 @@
 /**
- * IME 面板布局缩放、宽屏悬浮键盘与 inset 协调器。
+ * IME 面板布局缩放、悬浮键盘与 inset 协调器。
  *
  * 归属模块：ime
  */
@@ -145,10 +145,14 @@ internal class ImeLayoutController(
         run {
             val ps = fl.paddingStart
             val pe = fl.paddingEnd
-            val pt = if (floatingKeyboardController.isActive) dp(12f) else dp(8f * scale)
+            val pt = if (floatingKeyboardController.isActive) {
+                dp(FLOATING_PANEL_TOP_PADDING_DP)
+            } else {
+                dp(8f * scale)
+            }
             val scaledBasePb = dp(12f * scale)
             val basePb = if (floatingKeyboardController.isActive) {
-                scaledBasePb.coerceAtLeast(dp(12f))
+                scaledBasePb.coerceAtLeast(dp(FLOATING_PANEL_BOTTOM_PADDING_DP))
             } else {
                 scaledBasePb
             }
@@ -507,6 +511,8 @@ internal class ImeLayoutController(
 
     private companion object {
         private const val TABLET_SMALLEST_WIDTH_DP = 600
+        private const val FLOATING_PANEL_TOP_PADDING_DP = 24f
+        private const val FLOATING_PANEL_BOTTOM_PADDING_DP = 24f
         private const val DOCKED_TABLET_MAX_HEIGHT_RATIO = 0.30f
         private const val DOCKED_TABLET_MAX_WIDTH_RATIO = 0.65f
         private const val DOCKED_TABLET_MIN_CONTENT_WIDTH_DP = 360f
