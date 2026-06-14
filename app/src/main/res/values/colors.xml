@@ -32,4 +32,12 @@
 
     <color name="asr_tag_bg_accurate">#E5E8EF</color>
     <color name="asr_tag_fg_accurate">#3B4557</color>
+
+    <!-- 录音测试延迟链路固定色（与动态主题无关） -->
+    <color name="recording_latency_green">#166B46</color>
+    <color name="recording_latency_on_green">#FFFFFF</color>
+    <color name="recording_latency_blue">#1565C0</color>
+    <color name="recording_latency_on_blue">#FFFFFF</color>
+    <color name="recording_latency_orange">#8F3F08</color>
+    <color name="recording_latency_on_orange">#FFFFFF</color>
 </resources>

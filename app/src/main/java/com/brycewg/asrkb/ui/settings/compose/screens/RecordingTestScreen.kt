@@ -46,6 +46,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -252,17 +253,17 @@ private fun LatencySegments(
         RecordingLatencySegment(
             label = stringResource(R.string.recording_test_segment_record),
             value = state.recordLatencyMs,
-            color = RecordingAccentColor.Primary
+            color = RecordingLatencyBandColor.Green
         ),
         RecordingLatencySegment(
             label = stringResource(R.string.recording_test_segment_asr),
             value = state.asrLatencyMs,
-            color = RecordingAccentColor.Tertiary
+            color = RecordingLatencyBandColor.Blue
         ),
         RecordingLatencySegment(
             label = stringResource(R.string.recording_test_segment_ai),
             value = state.aiLatencyMs,
-            color = RecordingAccentColor.Secondary
+            color = RecordingLatencyBandColor.Orange
         )
     )
     val knownTotal = segments.mapNotNull { it.value }.sum().coerceAtLeast(1L)
@@ -274,18 +275,11 @@ private fun LatencySegments(
     ) {
         segments.forEach { segment ->
             val value = segment.value
+            val hasLatency = value != null
             val weight = ((value ?: (knownTotal / 3L).coerceAtLeast(1L)).toFloat() / knownTotal)
                 .coerceAtLeast(0.24f)
-            val segmentColor = if (value == null || uiMode == BibiUiMode.Miuix) {
-                recordingAccentContainerColor(uiMode, segment.color)
-            } else {
-                recordingAccentSolidColor(uiMode, segment.color)
-            }
-            val contentColor = if (value == null || uiMode == BibiUiMode.Miuix) {
-                recordingAccentContentColor(uiMode, segment.color)
-            } else {
-                recordingAccentOnSolidColor(uiMode, segment.color)
-            }
+            val segmentColor = recordingLatencySegmentColor(uiMode, segment.color, hasLatency)
+            val contentColor = recordingLatencySegmentContentColor(uiMode, segment.color, hasLatency)
             Column(
                 modifier = Modifier
                     .weight(weight)
@@ -886,7 +880,7 @@ private fun RecordingText(
 private data class RecordingLatencySegment(
     val label: String,
     val value: Long?,
-    val color: RecordingAccentColor
+    val color: RecordingLatencyBandColor
 )
 
 private enum class RecordingTextStyle {
@@ -904,6 +898,44 @@ private enum class RecordingAccentColor {
     Secondary,
     Tertiary,
     Neutral
+}
+
+@Composable
+private fun recordingLatencySegmentColor(
+    uiMode: BibiUiMode,
+    bandColor: RecordingLatencyBandColor,
+    completed: Boolean
+): Color {
+    val solidColor = when (bandColor) {
+        RecordingLatencyBandColor.Green -> colorResource(R.color.recording_latency_green)
+        RecordingLatencyBandColor.Blue -> colorResource(R.color.recording_latency_blue)
+        RecordingLatencyBandColor.Orange -> colorResource(R.color.recording_latency_orange)
+    }
+    if (completed) return solidColor
+    return when (uiMode) {
+        BibiUiMode.Material -> solidColor.copy(alpha = 0.16f)
+        BibiUiMode.Miuix -> solidColor.copy(alpha = 0.18f)
+    }
+}
+
+@Composable
+private fun recordingLatencySegmentContentColor(
+    uiMode: BibiUiMode,
+    bandColor: RecordingLatencyBandColor,
+    completed: Boolean
+): Color {
+    if (!completed) return recordingSecondaryTextColor(uiMode)
+    return when (bandColor) {
+        RecordingLatencyBandColor.Green -> colorResource(R.color.recording_latency_on_green)
+        RecordingLatencyBandColor.Blue -> colorResource(R.color.recording_latency_on_blue)
+        RecordingLatencyBandColor.Orange -> colorResource(R.color.recording_latency_on_orange)
+    }
+}
+
+private enum class RecordingLatencyBandColor {
+    Green,
+    Blue,
+    Orange
 }
 
 @Composable
