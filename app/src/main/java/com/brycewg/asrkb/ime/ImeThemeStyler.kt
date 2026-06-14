@@ -6,11 +6,13 @@
 package com.brycewg.asrkb.ime
 
 import android.content.Context
+import android.os.Build
 import android.view.View
 import android.view.Window
 import androidx.core.graphics.ColorUtils
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.core.view.WindowCompat
 import com.brycewg.asrkb.store.Prefs
 import com.brycewg.asrkb.ui.BibiViewThemes
 
@@ -28,8 +30,12 @@ internal class ImeThemeStyler(private val prefs: Prefs) {
         ctx: Context = window.context
     ) {
         val color = resolveKeyboardBackgroundColor(ctx)
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         @Suppress("DEPRECATION")
         window.navigationBarColor = color
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.isNavigationBarContrastEnforced = false
+        }
         val isLight = ColorUtils.calculateLuminance(color) > 0.5
         val controller = WindowInsetsControllerCompat(window, anchorView ?: window.decorView)
         controller.isAppearanceLightNavigationBars = isLight

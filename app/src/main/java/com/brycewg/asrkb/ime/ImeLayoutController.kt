@@ -41,6 +41,7 @@ internal class ImeLayoutController(
 
     fun installKeyboardInsetsListener(rootView: View) {
         this.rootView = rootView
+        systemNavBarBottomInset = 0
         floatingKeyboardController.install(rootView)
         themeStyler.installKeyboardInsetsListener(rootView) { bottom ->
             systemNavBarBottomInset = bottom
@@ -131,13 +132,8 @@ internal class ImeLayoutController(
         // 同步一次当前 RootWindowInsets，避免首次缩放时 bottom inset 尚未写入导致底部裁剪。
         run {
             val rw = ViewCompat.getRootWindowInsets(root)
-            var b = if (rw != null) ImeInsetsResolver.resolveBottomInset(rw, root.resources) else 0
-            if (b <= 0) {
-                val decor = root.rootView
-                b = decor.findViewById<View>(android.R.id.navigationBarBackground)?.height ?: 0
-            }
-            if (b > 0) {
-                systemNavBarBottomInset = b
+            if (rw != null) {
+                systemNavBarBottomInset = ImeInsetsResolver.resolveBottomInset(rw, root.resources)
             }
         }
 
@@ -148,20 +144,29 @@ internal class ImeLayoutController(
             val pt = if (floatingKeyboardController.isActive) {
                 dp(FLOATING_PANEL_TOP_PADDING_DP)
             } else {
-                dp(8f * scale)
+                dp(DOCKED_PANEL_VERTICAL_PADDING_DP * scale)
             }
-            val scaledBasePb = dp(12f * scale)
+            val scaledBasePb = dp(DOCKED_PANEL_VERTICAL_PADDING_DP * scale)
             val basePb = if (floatingKeyboardController.isActive) {
                 scaledBasePb.coerceAtLeast(dp(FLOATING_PANEL_BOTTOM_PADDING_DP))
             } else {
                 scaledBasePb
             }
             val extraPadding = dp(prefs.keyboardBottomPaddingDp.toFloat())
-            val pb = basePb + extraPadding + systemNavBarBottomInset
+            // 对齐 Trime/fcitx 的分层：键盘内容不消费系统 inset，底部系统区域由独立 spacer 承接。
+            val outerSystemBottomMargin = if (floatingKeyboardController.isActive) {
+                0
+            } else {
+                systemNavBarBottomInset.coerceAtLeast(0)
+            }
+            val systemBottomSpace = root.findViewById<View>(R.id.keyboardSystemBottomSpace)
+            val pb = basePb + extraPadding
             if (fl.paddingTop != pt || fl.paddingBottom != pb) {
                 fl.setPaddingRelative(ps, pt, pe, pb)
                 layoutChanged = true
             }
+            layoutChanged = updatePanelBottomMargin(fl, outerSystemBottomMargin) || layoutChanged
+            layoutChanged = updateSystemBottomSpace(systemBottomSpace, outerSystemBottomMargin) || layoutChanged
         }
         layoutChanged = applyDockedTabletContentWidth(root, fl, scale) || layoutChanged
 
@@ -431,9 +436,10 @@ internal class ImeLayoutController(
             ?: root.height.takeIf { it > 0 }
             ?: return ViewGroup.LayoutParams.MATCH_PARENT
         val baseBottomPadding = if (floatingKeyboardController.isActive) {
-            dp(root, 12f * scale).coerceAtLeast(dp(root, 12f))
+            dp(root, DOCKED_PANEL_VERTICAL_PADDING_DP * scale)
+                .coerceAtLeast(dp(root, DOCKED_PANEL_VERTICAL_PADDING_DP))
         } else {
-            dp(root, 12f * scale)
+            dp(root, DOCKED_PANEL_VERTICAL_PADDING_DP * scale)
         }
         val maxContentHeight = screenHeight * DOCKED_TABLET_MAX_HEIGHT_RATIO -
             keyboardPanel.paddingTop -
@@ -499,6 +505,32 @@ internal class ImeLayoutController(
             ?.let { (it - paddingStart - paddingEnd).coerceAtLeast(1) }
     }
 
+    private fun updatePanelBottomMargin(panel: View, bottomMargin: Int): Boolean {
+        val lp = panel.layoutParams as? ViewGroup.MarginLayoutParams ?: return false
+        if (lp.bottomMargin == bottomMargin) return false
+        lp.bottomMargin = bottomMargin
+        panel.layoutParams = lp
+        return true
+    }
+
+    private fun updateSystemBottomSpace(space: View?, height: Int): Boolean {
+        if (space == null) return false
+        val targetHeight = height.coerceAtLeast(0)
+        var changed = false
+        val targetVisibility = if (targetHeight > 0) View.VISIBLE else View.GONE
+        if (space.visibility != targetVisibility) {
+            space.visibility = targetVisibility
+            changed = true
+        }
+        val lp = space.layoutParams ?: return changed
+        if (lp.height != targetHeight) {
+            lp.height = targetHeight
+            space.layoutParams = lp
+            changed = true
+        }
+        return changed
+    }
+
     private fun dp(view: View, value: Float): Int =
         (value * view.resources.displayMetrics.density + 0.5f).toInt()
 
@@ -511,6 +543,7 @@ internal class ImeLayoutController(
 
     private companion object {
         private const val TABLET_SMALLEST_WIDTH_DP = 600
+        private const val DOCKED_PANEL_VERTICAL_PADDING_DP = 8f
         private const val FLOATING_PANEL_TOP_PADDING_DP = 24f
         private const val FLOATING_PANEL_BOTTOM_PADDING_DP = 24f
         private const val DOCKED_TABLET_MAX_HEIGHT_RATIO = 0.30f

@@ -73,6 +73,7 @@ internal object ImeKeyboardViewFactory {
             addView(createResizeHandle(context, R.id.keyboardResizeHandleTopRight, Gravity.TOP or Gravity.END))
         }
         root.addView(panel)
+        root.addView(createSystemBottomSpace(context))
         applyTheme(root, prefs)
         return root
     }
@@ -87,7 +88,19 @@ internal object ImeKeyboardViewFactory {
             clipToPadding = false
             clipChildren = true
             background = ContextCompat.getDrawable(context, R.drawable.bg_keyboard_container)
-            setPadding(dp(context, 12), dp(context, 8), dp(context, 12), dp(context, 12))
+            setPadding(dp(context, 12), dp(context, 8), dp(context, 12), dp(context, 8))
+        }
+
+    private fun createSystemBottomSpace(context: Context): View =
+        View(context).apply {
+            id = R.id.keyboardSystemBottomSpace
+            visibility = View.GONE
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                0
+            ).apply {
+                gravity = Gravity.BOTTOM
+            }
         }
 
     private fun createKeyboardContentPanel(context: Context): FrameLayout =
@@ -106,6 +119,7 @@ internal object ImeKeyboardViewFactory {
         val theme = BibiViewThemes.resolve(context, prefs)
         applyKeyboardPanelBackground(root, prefs, floating = false)
         root.findViewById<View>(R.id.layoutClipboardPanel)?.setBackgroundColor(theme.keyboardBackground)
+        root.findViewById<View>(R.id.keyboardSystemBottomSpace)?.setBackgroundColor(theme.keyboardBackground)
         root.findViewById<View>(R.id.keyboardDragHandle)?.background =
             GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
@@ -163,7 +177,7 @@ internal object ImeKeyboardViewFactory {
         val context = root.context
         val theme = BibiViewThemes.resolve(context, prefs)
         val panel = root.findViewById<View>(R.id.keyboardFloatingPanel)
-        root.setBackgroundColor(Color.TRANSPARENT)
+        root.setBackgroundColor(if (floating) Color.TRANSPARENT else theme.keyboardBackground)
         if (panel == null) {
             root.setBackgroundColor(theme.keyboardBackground)
             return
