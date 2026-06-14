@@ -25,7 +25,7 @@ object ChineseItn {
             val head = match.groups[1]?.value.orEmpty()
             val original = match.groups[2]?.value.orEmpty()
             val converted = if (original.isEmpty() ||
-                idiomRanges.any { ChineseItnMappings.rangesOverlap(it, match.range) } ||
+                isWithinIdiomRange(match.range, idiomRanges) ||
                 isColloquialPriceTail(input, match.range, original) ||
                 isStandaloneChineseWordDigit(input, match.range, original)
             ) {
@@ -59,6 +59,13 @@ object ChineseItn {
         if (previous == '第') return true
         if (next == null || !isCjk(next)) return false
         return !ChineseItnMappings.startsWithKnownUnit(input, range.last + 1)
+    }
+
+    // 只保留固定词/成语本体，避免部分重叠的数字短语被误当成保护词。
+    private fun isWithinIdiomRange(range: IntRange, idiomRanges: List<IntRange>): Boolean {
+        return idiomRanges.any { idiomRange ->
+            idiomRange.first <= range.first && idiomRange.last >= range.last
+        }
     }
 
     private fun isCjk(ch: Char): Boolean = ch in '\u4E00'..'\u9FFF'

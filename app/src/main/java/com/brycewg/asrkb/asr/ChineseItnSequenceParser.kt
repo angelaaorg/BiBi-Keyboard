@@ -73,6 +73,7 @@ internal object ChineseItnSequenceParser {
                     decimal.append(tokens[k].value)
                     k++
                 }
+                if (k == dotIndex + 1) return null
                 valueText = if (decimal.isNotEmpty()) {
                     "${result.value}.$decimal"
                 } else {
