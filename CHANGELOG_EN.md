@@ -1,5 +1,31 @@
 # Changelog
 
+## v4.0.1 (2026-06-14)
+
+### New Features
+
+- **Floating Keyboard Mode**: Added floating keyboard support with a control toggle
+- **Widescreen Optimization**: Optimized display for landscape and tablet devices, with left/right docking support
+- **Punctuation Jump Button**: Added forward/backward jump buttons in the keyboard based on punctuation positions
+- **fxliang Fcitx5 Voice Integration**: Support for fxliang's Fcitx5 IME to invoke speech recognition via AIDL
+- **Trailing Punctuation Unlimited Option**: Added "Unlimited" option for trailing punctuation and emoji removal threshold
+
+### Improvements
+
+- **Soniox Model Upgrade**: Upgraded Soniox non-streaming recognition model to v5
+- **Haptic Feedback Refactor**: Refactored and centralized haptic feedback mechanism
+- **Recording Test Page Optimization**: Optimized latency color display on the recording test page
+- **[Pro] AMOLED Independent Toggle**: Refactored AMOLED mode as an independent toggle with automatic migration from old settings
+- **[Pro] Auto-Update Check Optimization**: Optimized auto-update checks; when disabled, no longer depends on Play Services
+
+### Bug Fixes
+
+- **Keyboard Bottom Spacing**: Optimized keyboard bottom spacing in certain scenarios
+- **ITN Optimization**: Improved ITN performance in certain scenarios
+- **[Pro] Hotword Statistics Fix**: Fixed hotword hit count statistics and color grading
+
+---
+
 ## v4.0.0 (2026-06-07)
 
 ### Major Changes
