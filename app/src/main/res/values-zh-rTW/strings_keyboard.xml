@@ -14,6 +14,8 @@
     <string name="cd_vendor_picker">切換 ASR 供應商</string>
     <string name="cd_floating_keyboard_drag">移動懸浮鍵盤</string>
     <string name="cd_floating_keyboard_resize">調整懸浮鍵盤大小</string>
+    <string name="cd_keyboard_dock_left">向左移動鍵盤</string>
+    <string name="cd_keyboard_dock_right">向右移動鍵盤</string>
     <string name="cd_punct_btn_1">自定義按鍵 1</string>
     <string name="cd_punct_btn_2">自定義按鍵 2</string>
     <string name="cd_punct_btn_3">自定義按鍵 3</string>

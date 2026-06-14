@@ -64,6 +64,8 @@ internal object ImeKeyboardViewFactory {
         }
         val panel = createKeyboardPanel(context).apply {
             addView(contentPanel)
+            addView(createDockButton(context, R.id.keyboardDockButtonLeft, R.string.cd_keyboard_dock_left, R.drawable.arrow_left_toggle))
+            addView(createDockButton(context, R.id.keyboardDockButtonRight, R.string.cd_keyboard_dock_right, R.drawable.arrow_right_toggle))
             addView(createDragHandleRow(context))
             addView(createResizeHandle(context, R.id.keyboardResizeHandleLeft, Gravity.BOTTOM or Gravity.START))
             addView(createResizeHandle(context, R.id.keyboardResizeHandleRight, Gravity.BOTTOM or Gravity.END))
@@ -374,6 +376,22 @@ internal object ImeKeyboardViewFactory {
             setBackgroundColor(Color.TRANSPARENT)
             layoutParams = FrameLayout.LayoutParams(dp(context, 56), dp(context, 32)).apply {
                 gravity = handleGravity
+            }
+        }
+
+    private fun createDockButton(context: Context, buttonId: Int, contentDescriptionRes: Int, iconRes: Int): ImageButton =
+        ImageButton(context).apply {
+            id = buttonId
+            visibility = View.GONE
+            contentDescription = context.getString(contentDescriptionRes)
+            isClickable = true
+            isFocusable = true
+            background = selectableBorderless(context)
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            setImageResource(iconRes)
+            setPadding(dp(context, 8), dp(context, 8), dp(context, 8), dp(context, 8))
+            layoutParams = FrameLayout.LayoutParams(dp(context, 48), dp(context, 48)).apply {
+                gravity = Gravity.CENTER_VERTICAL or Gravity.START
             }
         }
 
@@ -840,9 +858,14 @@ internal object ImeKeyboardViewFactory {
     }
 
     private val iconKeyIds: IntArray = (
-        keyboardButtonIds(ButtonViewKind.Icon) +
+            keyboardButtonIds(ButtonViewKind.Icon) +
             keyboardButtonIds(ButtonViewKind.External) +
-            listOf(R.id.clip_btnBack, R.id.clip_btnDelete)
+            listOf(
+                R.id.clip_btnBack,
+                R.id.clip_btnDelete,
+                R.id.keyboardDockButtonLeft,
+                R.id.keyboardDockButtonRight
+            )
         ).distinct().toIntArray()
 
     private val rectKeyIds: IntArray = (

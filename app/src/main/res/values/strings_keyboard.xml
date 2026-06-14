@@ -14,6 +14,8 @@
     <string name="cd_vendor_picker">Switch ASR provider</string>
     <string name="cd_floating_keyboard_drag">Move floating keyboard</string>
     <string name="cd_floating_keyboard_resize">Resize floating keyboard</string>
+    <string name="cd_keyboard_dock_left">Move keyboard left</string>
+    <string name="cd_keyboard_dock_right">Move keyboard right</string>
     <string name="cd_punct_btn_1">Custom key 1</string>
     <string name="cd_punct_btn_2">Custom key 2</string>
     <string name="cd_punct_btn_3">Custom key 3</string>

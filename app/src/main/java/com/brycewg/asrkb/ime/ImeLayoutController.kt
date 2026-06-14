@@ -5,10 +5,13 @@
  */
 package com.brycewg.asrkb.ime
 
+import android.content.res.Configuration
 import android.inputmethodservice.InputMethodService
+import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.view.Window
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import androidx.core.view.ViewCompat
 import com.brycewg.asrkb.R
@@ -34,6 +37,7 @@ internal class ImeLayoutController(
     private var systemNavBarBottomInset: Int = 0
     private var lastAppliedHeightScale: Float = 1.0f
     private var floatingResizeLayoutPassPosted: Boolean = false
+    private var dockedTabletAlignment: DockedTabletAlignment = DockedTabletAlignment.CENTER
 
     fun installKeyboardInsetsListener(rootView: View) {
         this.rootView = rootView
@@ -41,6 +45,14 @@ internal class ImeLayoutController(
         themeStyler.installKeyboardInsetsListener(rootView) { bottom ->
             systemNavBarBottomInset = bottom
             applyKeyboardHeightScale()
+        }
+        rootView.findViewById<View>(R.id.keyboardDockButtonLeft)?.setOnClickListener {
+            dockedTabletAlignment = dockedTabletAlignment.moveLeft()
+            applyKeyboardHeightScaleAndRequestLayout()
+        }
+        rootView.findViewById<View>(R.id.keyboardDockButtonRight)?.setOnClickListener {
+            dockedTabletAlignment = dockedTabletAlignment.moveRight()
+            applyKeyboardHeightScaleAndRequestLayout()
         }
     }
 
@@ -63,9 +75,14 @@ internal class ImeLayoutController(
         floatingResizeLayoutPassPosted = true
         ViewCompat.postOnAnimation(root) {
             floatingResizeLayoutPassPosted = false
-            if (applyKeyboardHeightScale()) {
-                root.requestLayout()
-            }
+            applyKeyboardHeightScaleAndRequestLayout()
+        }
+    }
+
+    private fun applyKeyboardHeightScaleAndRequestLayout() {
+        val root = rootView ?: viewRefsProvider()?.rootView ?: return
+        if (applyKeyboardHeightScale()) {
+            root.requestLayout()
         }
     }
 
@@ -83,8 +100,7 @@ internal class ImeLayoutController(
         }
 
         fun dp(v: Float): Int {
-            val d = root.resources.displayMetrics.density
-            return (v * d + 0.5f).toInt()
+            return dp(root, v)
         }
         layoutChanged = floatingKeyboardController.applyFrame(root) || layoutChanged
 
@@ -143,6 +159,7 @@ internal class ImeLayoutController(
                 layoutChanged = true
             }
         }
+        layoutChanged = applyDockedTabletContentWidth(root, fl, scale) || layoutChanged
 
         fun scaleSquareButton(id: Int) {
             val v = root.findViewById<View>(id) ?: return
@@ -268,6 +285,219 @@ internal class ImeLayoutController(
         return layoutChanged
     }
 
+    private fun applyDockedTabletContentWidth(root: View, keyboardPanel: View, scale: Float): Boolean {
+        val contentPanel = root.findViewById<View>(R.id.keyboardContentPanel) ?: return false
+        val availableWidth = keyboardPanel.contentWidth()
+            ?: (root.width - root.paddingStart - root.paddingEnd).takeIf { it > 0 }
+            ?: root.resources.displayMetrics.widthPixels
+        if (availableWidth <= 0) return false
+
+        val shouldConstrain = !floatingKeyboardController.isActive &&
+            !prefs.imeTabletFloatingKeyboardEnabled &&
+            shouldUseDockedTabletConstraint(root, availableWidth)
+        val targetWidth = if (shouldConstrain) {
+            resolveDockedTabletContentWidth(root, keyboardPanel, scale, availableWidth)
+        } else {
+            ViewGroup.LayoutParams.MATCH_PARENT
+        }
+        val constrained = targetWidth != ViewGroup.LayoutParams.MATCH_PARENT
+        if (!constrained) {
+            dockedTabletAlignment = DockedTabletAlignment.CENTER
+        }
+        val targetGravity = if (constrained) {
+            dockedTabletAlignment.gravity
+        } else {
+            Gravity.TOP
+        }
+        var changed = updateDockedTabletButtons(root, constrained, targetWidth, availableWidth)
+
+        val lp = (contentPanel.layoutParams as? FrameLayout.LayoutParams)
+            ?: FrameLayout.LayoutParams(targetWidth, ViewGroup.LayoutParams.WRAP_CONTENT)
+        if (lp.width == targetWidth &&
+            lp.height == ViewGroup.LayoutParams.WRAP_CONTENT &&
+            lp.gravity == targetGravity &&
+            lp.leftMargin == 0 &&
+            lp.topMargin == 0 &&
+            lp.rightMargin == 0
+        ) {
+            return changed
+        }
+        lp.width = targetWidth
+        lp.height = ViewGroup.LayoutParams.WRAP_CONTENT
+        lp.gravity = targetGravity
+        lp.leftMargin = 0
+        lp.topMargin = 0
+        lp.rightMargin = 0
+        contentPanel.layoutParams = lp
+        changed = true
+        return changed
+    }
+
+    private fun updateDockedTabletButtons(
+        root: View,
+        constrained: Boolean,
+        contentWidth: Int,
+        availableWidth: Int
+    ): Boolean {
+        val leftButton = root.findViewById<View>(R.id.keyboardDockButtonLeft)
+        val rightButton = root.findViewById<View>(R.id.keyboardDockButtonRight)
+        var changed = false
+        val leftVisible = constrained && dockedTabletAlignment.canMoveLeft
+        val rightVisible = constrained && dockedTabletAlignment.canMoveRight
+        changed = setDockButtonVisible(leftButton, leftVisible) || changed
+        changed = setDockButtonVisible(rightButton, rightVisible) || changed
+        if (constrained) {
+            val totalSideSpace = (availableWidth - contentWidth).coerceAtLeast(0)
+            val centeredSideSpace = totalSideSpace / 2
+            val leftSideSpace = if (dockedTabletAlignment == DockedTabletAlignment.RIGHT) {
+                totalSideSpace
+            } else {
+                centeredSideSpace
+            }
+            val rightSideSpace = if (dockedTabletAlignment == DockedTabletAlignment.LEFT) {
+                totalSideSpace
+            } else {
+                centeredSideSpace
+            }
+            changed = updateDockButtonFrame(
+                root = root,
+                button = leftButton,
+                sideSpace = leftSideSpace,
+                gravity = Gravity.CENTER_VERTICAL or Gravity.START
+            ) || changed
+            changed = updateDockButtonFrame(
+                root = root,
+                button = rightButton,
+                sideSpace = rightSideSpace,
+                gravity = Gravity.CENTER_VERTICAL or Gravity.END
+            ) || changed
+            leftButton?.bringToFront()
+            rightButton?.bringToFront()
+        }
+        return changed
+    }
+
+    private fun setDockButtonVisible(button: View?, visible: Boolean): Boolean {
+        val target = if (visible) View.VISIBLE else View.GONE
+        if (button == null || button.visibility == target) return false
+        button.visibility = target
+        return true
+    }
+
+    private fun updateDockButtonFrame(
+        root: View,
+        button: View?,
+        sideSpace: Int,
+        gravity: Int
+    ): Boolean {
+        if (button == null) return false
+        val lp = button.layoutParams as? FrameLayout.LayoutParams ?: return false
+        val minimumMargin = dp(root, DOCKED_TABLET_DOCK_BUTTON_SIDE_MARGIN_DP)
+        val buttonWidth = button.dimensionOrLayoutParam(isWidth = true)?.coerceAtLeast(1) ?: lp.width.coerceAtLeast(1)
+        val sideMargin = ((sideSpace - buttonWidth) / 2).coerceAtLeast(minimumMargin)
+        if (lp.gravity == gravity &&
+            lp.leftMargin == sideMargin &&
+            lp.rightMargin == sideMargin &&
+            lp.topMargin == 0 &&
+            lp.bottomMargin == 0
+        ) {
+            return false
+        }
+        lp.gravity = gravity
+        lp.leftMargin = sideMargin
+        lp.rightMargin = sideMargin
+        lp.topMargin = 0
+        lp.bottomMargin = 0
+        button.layoutParams = lp
+        return true
+    }
+
+    private fun resolveDockedTabletContentWidth(
+        root: View,
+        keyboardPanel: View,
+        scale: Float,
+        availableWidth: Int
+    ): Int {
+        val bundle = KeyboardLayoutStore.load(prefs)
+        val maxRowsColsRatio = listOf(bundle.main, bundle.aiEdit, bundle.recording)
+            .maxOf { layout -> layout.gridSize.rows.toFloat() / layout.gridSize.cols.toFloat() }
+            .coerceAtLeast(0.1f)
+        val screenHeight = root.resources.displayMetrics.heightPixels.takeIf { it > 0 }
+            ?: root.rootView?.height?.takeIf { it > 0 }
+            ?: root.height.takeIf { it > 0 }
+            ?: return ViewGroup.LayoutParams.MATCH_PARENT
+        val baseBottomPadding = if (floatingKeyboardController.isActive) {
+            dp(root, 12f * scale).coerceAtLeast(dp(root, 12f))
+        } else {
+            dp(root, 12f * scale)
+        }
+        val maxContentHeight = screenHeight * DOCKED_TABLET_MAX_HEIGHT_RATIO -
+            keyboardPanel.paddingTop -
+            baseBottomPadding
+
+        val minWidth = minOf(dp(root, DOCKED_TABLET_MIN_CONTENT_WIDTH_DP), availableWidth).coerceAtLeast(1)
+        val maxWidthByHeight = if (maxContentHeight > 0f) {
+            (maxContentHeight / scale.coerceAtLeast(0.1f) / maxRowsColsRatio).toInt()
+        } else {
+            availableWidth
+        }
+        val maxWidthByScreen = (availableWidth * DOCKED_TABLET_MAX_WIDTH_RATIO).toInt().coerceAtLeast(1)
+        val targetWidth = minOf(maxWidthByHeight, maxWidthByScreen)
+            .coerceIn(minWidth, availableWidth)
+        return if (targetWidth >= availableWidth) {
+            ViewGroup.LayoutParams.MATCH_PARENT
+        } else {
+            targetWidth
+        }
+    }
+
+    // Keep tall portrait phones full-width while covering tablets, unfolded foldables, and phone landscape.
+    private fun shouldUseDockedTabletConstraint(root: View, availableWidth: Int): Boolean {
+        val density = root.resources.displayMetrics.density.coerceAtLeast(1f)
+        val availableWidthDp = (availableWidth / density).toInt()
+        val config = root.resources.configuration
+        val configWidthDp = config.screenWidthDp.takeIf {
+            it > 0 && it != Configuration.SCREEN_WIDTH_DP_UNDEFINED
+        } ?: availableWidthDp
+        val configHeightDp = config.screenHeightDp.takeIf {
+            it > 0 && it != Configuration.SCREEN_HEIGHT_DP_UNDEFINED
+        } ?: (root.resources.displayMetrics.heightPixels / density).toInt()
+        val smallestDp = config.smallestScreenWidthDp.takeIf {
+            it > 0 && it != Configuration.SMALLEST_SCREEN_WIDTH_DP_UNDEFINED
+        } ?: 0
+        val shortSideDp = minOf(configWidthDp, configHeightDp)
+        val longSideDp = maxOf(configWidthDp, configHeightDp)
+        val aspectRatio = if (shortSideDp > 0) {
+            longSideDp.toFloat() / shortSideDp.toFloat()
+        } else {
+            Float.MAX_VALUE
+        }
+        val isLandscape = config.orientation == Configuration.ORIENTATION_LANDSCAPE ||
+            configWidthDp > configHeightDp
+        val tabletWindow = smallestDp >= TABLET_SMALLEST_WIDTH_DP ||
+            shortSideDp >= TABLET_SMALLEST_WIDTH_DP
+        val foldableLikeWindow = shortSideDp >= FOLDABLE_LIKE_MIN_SHORT_SIDE_DP &&
+            longSideDp >= FOLDABLE_LIKE_MIN_LONG_SIDE_DP &&
+            aspectRatio <= FOLDABLE_LIKE_MAX_ASPECT_RATIO
+        val phoneLandscapeWindow = isLandscape &&
+            availableWidthDp >= PHONE_LANDSCAPE_MIN_WIDTH_DP &&
+            shortSideDp >= PHONE_LANDSCAPE_MIN_SHORT_SIDE_DP
+        return tabletWindow || foldableLikeWindow || phoneLandscapeWindow
+    }
+
+    private fun View.contentWidth(): Int? {
+        val current = width - paddingStart - paddingEnd
+        if (current > 0) return current
+        val measured = measuredWidth - paddingStart - paddingEnd
+        if (measured > 0) return measured
+        return (layoutParams?.width ?: 0)
+            .takeIf { it > 0 }
+            ?.let { (it - paddingStart - paddingEnd).coerceAtLeast(1) }
+    }
+
+    private fun dp(view: View, value: Float): Int =
+        (value * view.resources.displayMetrics.density + 0.5f).toInt()
+
     private fun View.dimensionOrLayoutParam(isWidth: Boolean): Int? {
         val lpValue = if (isWidth) layoutParams?.width else layoutParams?.height
         if (lpValue != null && lpValue > 0) return lpValue
@@ -276,8 +506,42 @@ internal class ImeLayoutController(
     }
 
     private companion object {
+        private const val TABLET_SMALLEST_WIDTH_DP = 600
+        private const val DOCKED_TABLET_MAX_HEIGHT_RATIO = 0.30f
+        private const val DOCKED_TABLET_MAX_WIDTH_RATIO = 0.65f
+        private const val DOCKED_TABLET_MIN_CONTENT_WIDTH_DP = 360f
+        private const val DOCKED_TABLET_DOCK_BUTTON_SIDE_MARGIN_DP = 8f
+        private const val FOLDABLE_LIKE_MIN_SHORT_SIDE_DP = 520
+        private const val FOLDABLE_LIKE_MIN_LONG_SIDE_DP = 680
+        private const val FOLDABLE_LIKE_MAX_ASPECT_RATIO = 1.7f
+        private const val PHONE_LANDSCAPE_MIN_WIDTH_DP = 600
+        private const val PHONE_LANDSCAPE_MIN_SHORT_SIDE_DP = 320
         private const val MIC_SIZE_RATIO = 0.9f
         private const val MIC_ICON_SIZE_RATIO = 0.42f
+    }
+
+    private enum class DockedTabletAlignment(val gravity: Int) {
+        CENTER(Gravity.TOP or Gravity.CENTER_HORIZONTAL),
+        LEFT(Gravity.TOP or Gravity.START),
+        RIGHT(Gravity.TOP or Gravity.END);
+
+        val canMoveLeft: Boolean
+            get() = this != LEFT
+
+        val canMoveRight: Boolean
+            get() = this != RIGHT
+
+        fun moveLeft(): DockedTabletAlignment = when (this) {
+            LEFT -> LEFT
+            CENTER -> LEFT
+            RIGHT -> CENTER
+        }
+
+        fun moveRight(): DockedTabletAlignment = when (this) {
+            LEFT -> CENTER
+            CENTER -> RIGHT
+            RIGHT -> RIGHT
+        }
     }
 
     fun hasResolvedBottomInset(): Boolean = systemNavBarBottomInset > 0

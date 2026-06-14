@@ -122,6 +122,7 @@ object KeyboardLayoutRuntimeApplier {
     }
 
     private fun resolveFrameWidth(frame: FrameLayout, root: View): Int? {
+        ancestorExplicitContentWidth(frame, R.id.keyboardContentPanel)?.let { return it }
         ancestorContentWidth(frame, R.id.keyboardFloatingPanel)?.let { return it }
         frame.width.takeIf { it > 0 }?.let { return it }
         val parentView = frame.parent as? View
@@ -131,6 +132,20 @@ object KeyboardLayoutRuntimeApplier {
         parentContentWidth.takeIf { it > 0 }?.let { return it }
         val rootContentWidth = root.width - root.paddingStart - root.paddingEnd
         return rootContentWidth.takeIf { it > 0 }
+    }
+
+    private fun ancestorExplicitContentWidth(view: View, ancestorId: Int): Int? {
+        var parent = view.parent as? View
+        while (parent != null) {
+            if (parent.id == ancestorId) {
+                val lpWidth = parent.layoutParams?.width ?: 0
+                return lpWidth.takeIf { it > 0 }?.let {
+                    (it - parent.paddingStart - parent.paddingEnd).coerceAtLeast(1)
+                }
+            }
+            parent = parent.parent as? View
+        }
+        return null
     }
 
     private fun ancestorContentWidth(view: View, ancestorId: Int): Int? {

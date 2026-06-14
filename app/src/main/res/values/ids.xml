@@ -48,6 +48,8 @@
     <item name="groupMicStatus" type="id" />
     <item name="keyboardDragHandle" type="id" />
     <item name="keyboardDragHandleRow" type="id" />
+    <item name="keyboardDockButtonLeft" type="id" />
+    <item name="keyboardDockButtonRight" type="id" />
     <item name="keyboardResizeHandleLeft" type="id" />
     <item name="keyboardResizeHandleRight" type="id" />
     <item name="keyboardContentPanel" type="id" />
