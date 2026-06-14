@@ -1593,6 +1593,8 @@ private val trayKeyOrder = listOf(
     "paste",
     "cursor_left",
     "cursor_right",
+    "prev_punct",
+    "next_punct",
     "move_start",
     "move_end",
     "punct_left",

@@ -208,6 +208,8 @@
   <string name="ext_btn_paste">Paste</string>
   <string name="ext_btn_cursor_left">Move Left</string>
   <string name="ext_btn_cursor_right">Move Right</string>
+  <string name="ext_btn_prev_punct">Previous punctuation</string>
+  <string name="ext_btn_next_punct">Next punctuation</string>
   <string name="ext_btn_move_start">Move to Start</string>
   <string name="ext_btn_move_end">Move to End</string>
   <string name="ext_btn_numpad">Numpad</string>

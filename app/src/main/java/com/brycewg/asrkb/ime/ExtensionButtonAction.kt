@@ -1,3 +1,8 @@
+/**
+ * 扩展按钮动作类型定义。
+ *
+ * 归属模块：ime
+ */
 package com.brycewg.asrkb.ime
 
 import com.brycewg.asrkb.R
@@ -112,6 +117,24 @@ enum class ExtensionButtonAction(val id: String, val titleResId: Int, val iconRe
         id = "cursor_right",
         titleResId = R.string.ext_btn_cursor_right,
         iconResId = R.drawable.arrow_right_toggle
+    ),
+
+    /**
+     * 移动光标到上一个断句标点之后
+     */
+    MOVE_PREV_PUNCT(
+        id = "prev_punct",
+        titleResId = R.string.ext_btn_prev_punct,
+        iconResId = R.drawable.caret_line_left
+    ),
+
+    /**
+     * 移动光标到下一个断句标点之前
+     */
+    MOVE_NEXT_PUNCT(
+        id = "next_punct",
+        titleResId = R.string.ext_btn_next_punct,
+        iconResId = R.drawable.caret_line_right
     ),
 
     /**

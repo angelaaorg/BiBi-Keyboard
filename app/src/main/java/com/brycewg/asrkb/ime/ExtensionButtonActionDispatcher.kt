@@ -1,3 +1,8 @@
+/**
+ * 扩展按钮动作分发与处理。
+ *
+ * 归属模块：ime
+ */
 package com.brycewg.asrkb.ime
 
 import android.content.Context
@@ -26,6 +31,8 @@ internal class ExtensionButtonActionDispatcher(
         ExtensionButtonAction.PASTE -> paste(ic)
         ExtensionButtonAction.CURSOR_LEFT -> KeyboardActionHandler.ExtensionButtonActionResult.NEED_CURSOR_LEFT
         ExtensionButtonAction.CURSOR_RIGHT -> KeyboardActionHandler.ExtensionButtonActionResult.NEED_CURSOR_RIGHT
+        ExtensionButtonAction.MOVE_PREV_PUNCT -> moveToPunctuation(ic, PunctuationJumpDirection.Previous)
+        ExtensionButtonAction.MOVE_NEXT_PUNCT -> moveToPunctuation(ic, PunctuationJumpDirection.Next)
         ExtensionButtonAction.MOVE_START -> moveStart(ic)
         ExtensionButtonAction.MOVE_END -> moveEnd(ic)
         ExtensionButtonAction.NUMPAD -> KeyboardActionHandler.ExtensionButtonActionResult.NEED_SHOW_NUMPAD
@@ -96,6 +103,27 @@ internal class ExtensionButtonActionDispatcher(
             KeyboardActionHandler.ExtensionButtonActionResult.SUCCESS
         } catch (t: Throwable) {
             Log.w(logTag, "MOVE_END failed", t)
+            KeyboardActionHandler.ExtensionButtonActionResult.FAILED
+        }
+    }
+
+    private fun moveToPunctuation(
+        ic: InputConnection?,
+        direction: PunctuationJumpDirection
+    ): KeyboardActionHandler.ExtensionButtonActionResult {
+        if (ic == null) return KeyboardActionHandler.ExtensionButtonActionResult.FAILED
+        return try {
+            val before = inputHelper.getTextBeforeCursor(ic, 100000)?.toString() ?: ""
+            val after = inputHelper.getTextAfterCursor(ic, 100000)?.toString() ?: ""
+            val target = punctuationJumpTarget(before, after, direction)
+                ?: return KeyboardActionHandler.ExtensionButtonActionResult.FAILED
+            if (inputHelper.setSelection(ic, target, target)) {
+                KeyboardActionHandler.ExtensionButtonActionResult.SUCCESS
+            } else {
+                KeyboardActionHandler.ExtensionButtonActionResult.FAILED
+            }
+        } catch (t: Throwable) {
+            Log.w(logTag, "moveToPunctuation failed: direction=$direction", t)
             KeyboardActionHandler.ExtensionButtonActionResult.FAILED
         }
     }

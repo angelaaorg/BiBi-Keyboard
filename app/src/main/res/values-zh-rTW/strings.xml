@@ -206,6 +206,8 @@
   <string name="ext_btn_paste">貼上</string>
   <string name="ext_btn_cursor_left">左移</string>
   <string name="ext_btn_cursor_right">右移</string>
+  <string name="ext_btn_prev_punct">上個標點</string>
+  <string name="ext_btn_next_punct">下個標點</string>
   <string name="ext_btn_move_start">移至開頭</string>
   <string name="ext_btn_move_end">移至結尾</string>
   <string name="ext_btn_numpad">數字鍵盤</string>
