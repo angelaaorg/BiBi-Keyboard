@@ -152,7 +152,11 @@ internal class ImeLayoutController(
             } else {
                 scaledBasePb
             }
-            val extraPadding = dp(prefs.keyboardBottomPaddingDp.toFloat())
+            val extraPadding = if (floatingKeyboardController.isActive) {
+                0
+            } else {
+                dp(prefs.keyboardBottomPaddingDp.toFloat())
+            }
             // 对齐 Trime/fcitx 的分层：键盘内容不消费系统 inset，底部系统区域由独立 spacer 承接。
             val outerSystemBottomMargin = if (floatingKeyboardController.isActive) {
                 0
