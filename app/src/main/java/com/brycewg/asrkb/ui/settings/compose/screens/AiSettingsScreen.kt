@@ -265,6 +265,11 @@ fun AiSettingsScreen(
                 onTypewriterEnabledChange = { localState.typewriterEnabled = it },
                 onAiEditPreferLastAsrChange = { localState.aiEditPreferLastAsr = it },
                 onSkipUnderCharsChange = { localState.skipUnderChars = it },
+                onAiEditCustomSystemPromptEnabledChange = {
+                    localState.aiEditCustomSystemPromptEnabled =
+                        it
+                },
+                onAiEditSystemPromptChange = { localState.aiEditSystemPrompt = it },
                 onSfApiKeyChange = { localState.sfApiKey = it },
                 onSfModelChange = { localState.sfModel = it },
                 onSfReasoningEnabledChange = { localState.sfReasoningEnabled = it },

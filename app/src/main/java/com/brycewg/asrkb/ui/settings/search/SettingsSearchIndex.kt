@@ -168,8 +168,10 @@ object SettingsSearchIndex {
         }
         item(R.string.label_ai_post_process_enabled, R.string.section_post_process_scope)
         item(R.string.label_postproc_typewriter_enabled, R.string.section_post_process_scope)
-        item(R.string.label_ai_edit_default_use_last_asr, R.string.section_post_process_scope)
         item(R.string.title_ai_skip_under, R.string.section_post_process_scope)
+        item(R.string.label_ai_edit_default_use_last_asr, R.string.section_ai_edit)
+        item(R.string.label_ai_edit_custom_prompt_enabled, R.string.section_ai_edit, "prompt")
+        item(R.string.label_ai_edit_system_prompt, R.string.section_ai_edit, "prompt")
         item(R.string.label_llm_vendor, R.string.section_post_process_model, "llm")
         item(R.string.label_llm_choose_profile, R.string.section_post_process_model)
         item(R.string.label_llm_model_select, R.string.section_post_process_model)

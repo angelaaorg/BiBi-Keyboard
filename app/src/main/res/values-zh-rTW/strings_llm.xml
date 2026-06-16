@@ -55,11 +55,18 @@
     <string name="feature_postproc_typewriter_on_desc">將串流後處理結果以快速打字機效果平滑輸出，觀感更順滑。</string>
 
     <!-- AI 編輯預設使用上次識別結果 -->
-    <string name="feature_ai_edit_default_use_last_asr_off_desc">AI 編輯將預設針對整個輸入欄位進行操作。</string>
-    <string name="feature_ai_edit_default_use_last_asr_on_desc">AI 編輯將預設操作上次識別結果，方便在語音輸入後快速編輯。</string>
+    <string name="feature_ai_edit_default_use_last_asr_off_desc">沒有選取文字時，AI 編輯將針對整個輸入欄位生效。</string>
+    <string name="feature_ai_edit_default_use_last_asr_on_desc">沒有選取文字時，AI 編輯只對上次識別結果部分生效。</string>
+
+    <!-- AI 編輯自訂系統提示詞 -->
+    <string name="label_ai_edit_custom_prompt_enabled">使用自訂AI編輯Prompt</string>
+    <string name="label_ai_edit_system_prompt">AI 編輯系統提示詞</string>
+    <string name="helper_ai_edit_system_prompt">輸入框預設顯示內建提示詞；恢復預設會清空自訂值，並繼續跟隨內建預設提示詞。</string>
+    <string name="action_reset_to_default">恢復預設</string>
 
     <!-- 章節標題 - Section titles -->
     <string name="section_post_process_scope">後處理模式</string>
+    <string name="section_ai_edit">AI 編輯</string>
     <string name="section_post_process_model">後處理模型</string>
 
     <string name="label_ai_post_process_enabled">啟用 AI 後處理</string>

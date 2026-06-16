@@ -55,11 +55,18 @@
     <string name="feature_postproc_typewriter_on_desc">Animate streaming post-processing output with a fast typewriter effect for smoother visuals.</string>
 
     <!-- AI edit default use last ASR -->
-    <string name="feature_ai_edit_default_use_last_asr_off_desc">AI edit will target the entire input field by default.</string>
-    <string name="feature_ai_edit_default_use_last_asr_on_desc">AI edit will default to operating on the last recognition result, convenient for quick edits after voice input.</string>
+    <string name="feature_ai_edit_default_use_last_asr_off_desc">When no text is selected, AI edit targets the entire input field.</string>
+    <string name="feature_ai_edit_default_use_last_asr_on_desc">When no text is selected, AI edit only targets the last recognition result segment.</string>
+
+    <!-- AI edit custom system prompt -->
+    <string name="label_ai_edit_custom_prompt_enabled">Use custom AI edit prompt</string>
+    <string name="label_ai_edit_system_prompt">AI edit system prompt</string>
+    <string name="helper_ai_edit_system_prompt">The built-in prompt is shown by default. Reset clears the custom value and keeps following the built-in default.</string>
+    <string name="action_reset_to_default">Reset to default</string>
 
     <!-- Section titles -->
     <string name="section_post_process_scope">Post-processing Mode</string>
+    <string name="section_ai_edit">AI Edit</string>
     <string name="section_post_process_model">Post-processing Model</string>
 
     <string name="label_ai_post_process_enabled">Enable AI post-processing</string>

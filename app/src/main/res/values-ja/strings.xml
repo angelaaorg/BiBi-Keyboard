@@ -43,7 +43,7 @@
   <string name="hint_swipe_down_lock">下にスワイプしてロック</string>
   <string name="hint_tap_to_stop_recording">タップで録音停止</string>
 
-  <string name="label_ai_edit_default_use_last_asr">AI編集のデフォルト範囲を前回の音声認識結果にする</string>
+  <string name="label_ai_edit_default_use_last_asr">前回の認識結果部分のみに適用</string>
   <string name="label_auto_start_recording_on_show">キーボード表示時に自動的に録音を開始</string>
   <string name="btn_retry">接続に失敗しました。再試行しますか?</string>
 
