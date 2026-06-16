@@ -48,9 +48,7 @@ internal fun AiSettingsRouteContent(
                         uiMode = uiMode,
                         postProcessEnabled = postProcessEnabled,
                         typewriterEnabled = typewriterEnabled,
-                        aiEditPreferLastAsr = aiEditPreferLastAsr,
                         skipUnderChars = skipUnderChars,
-                        aiEditSystemPrompt = aiEditSystemPrompt,
                         onPostProcessChange = { checked ->
                             onShowExplainedSwitch(
                                 postProcessEnabled,
@@ -81,6 +79,23 @@ internal fun AiSettingsRouteContent(
                                 {}
                             )
                         },
+                        onSkipUnderCharsChange = { next ->
+                            onSkipUnderCharsChange(next)
+                            prefs.postprocSkipUnderChars = next
+                        },
+                        onSkipUnderCharsFinished = {}
+                    )
+                }
+
+                item("ai_edit") {
+                    AiEditSection(
+                        uiMode = uiMode,
+                        aiEditPreferLastAsr = aiEditPreferLastAsr,
+                        customSystemPromptEnabled = aiEditCustomSystemPromptEnabled,
+                        aiEditSystemPrompt = aiEditSystemPrompt,
+                        defaultSystemPrompt = prefs.getLocalizedString(
+                            R.string.llm_edit_system_prompt
+                        ),
                         onAiEditPreferLastAsrChange = { checked ->
                             onShowExplainedSwitch(
                                 aiEditPreferLastAsr,
@@ -96,11 +111,10 @@ internal fun AiSettingsRouteContent(
                                 {}
                             )
                         },
-                        onSkipUnderCharsChange = { next ->
-                            onSkipUnderCharsChange(next)
-                            prefs.postprocSkipUnderChars = next
+                        onCustomSystemPromptEnabledChange = { checked ->
+                            onAiEditCustomSystemPromptEnabledChange(checked)
+                            prefs.aiEditCustomSystemPromptEnabled = checked
                         },
-                        onSkipUnderCharsFinished = {},
                         onAiEditSystemPromptChange = { value ->
                             onAiEditSystemPromptChange(value)
                             prefs.aiEditSystemPrompt = value

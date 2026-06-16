@@ -1,5 +1,5 @@
 /**
- * Compose AI 设置页后处理范围设置区块。
+ * Compose AI 设置页后处理与 AI 编辑设置区块。
  *
  * 归属模块：ui/settings/compose/screens
  */
@@ -17,18 +17,14 @@ internal fun AiPostProcessSection(
     uiMode: BibiUiMode,
     postProcessEnabled: Boolean,
     typewriterEnabled: Boolean,
-    aiEditPreferLastAsr: Boolean,
     skipUnderChars: Int,
-    aiEditSystemPrompt: String,
     onPostProcessChange: (Boolean) -> Unit,
     onTypewriterChange: (Boolean) -> Unit,
-    onAiEditPreferLastAsrChange: (Boolean) -> Unit,
     onSkipUnderCharsChange: (Int) -> Unit,
-    onSkipUnderCharsFinished: () -> Unit,
-    onAiEditSystemPromptChange: (String) -> Unit
+    onSkipUnderCharsFinished: () -> Unit
 ) {
     AiSection(uiMode = uiMode, titleRes = R.string.section_post_process_scope) {
-        val itemCount = if (postProcessEnabled) 5 else 1
+        val itemCount = if (postProcessEnabled) 3 else 1
         AiSwitchPreference(
             id = "post_process_enabled",
             titleRes = R.string.label_ai_post_process_enabled,
@@ -46,14 +42,6 @@ internal fun AiPostProcessSection(
                 count = itemCount,
                 onCheckedChange = onTypewriterChange
             )
-            AiSwitchPreference(
-                id = "ai_edit_prefer_last_asr",
-                titleRes = R.string.label_ai_edit_default_use_last_asr,
-                checked = aiEditPreferLastAsr,
-                index = 2,
-                count = itemCount,
-                onCheckedChange = onAiEditPreferLastAsrChange
-            )
             AiSliderPreference(
                 titleRes = R.string.title_ai_skip_under,
                 valueLabel = skipUnderChars.toString(),
@@ -61,7 +49,7 @@ internal fun AiPostProcessSection(
                 valueRange = 0f..100f,
                 steps = 19,
                 uiMode = uiMode,
-                index = 3,
+                index = 2,
                 count = itemCount,
                 onValueChange = { value ->
                     onSkipUnderCharsChange(value.toInt().coerceIn(0, 100))
@@ -69,25 +57,59 @@ internal fun AiPostProcessSection(
                 onValueChangeFinished = onSkipUnderCharsFinished
             )
             AiBodyText(uiMode = uiMode, textRes = R.string.helper_ai_skip_under_chars)
+        }
+    }
+}
+
+@Composable
+internal fun AiEditSection(
+    uiMode: BibiUiMode,
+    aiEditPreferLastAsr: Boolean,
+    customSystemPromptEnabled: Boolean,
+    aiEditSystemPrompt: String,
+    defaultSystemPrompt: String,
+    onAiEditPreferLastAsrChange: (Boolean) -> Unit,
+    onCustomSystemPromptEnabledChange: (Boolean) -> Unit,
+    onAiEditSystemPromptChange: (String) -> Unit
+) {
+    AiSection(uiMode = uiMode, titleRes = R.string.section_ai_edit) {
+        val itemCount = if (customSystemPromptEnabled) 3 else 2
+        val displaySystemPrompt = aiEditSystemPrompt.ifBlank { defaultSystemPrompt }
+        AiSwitchPreference(
+            id = "ai_edit_prefer_last_asr",
+            titleRes = R.string.label_ai_edit_default_use_last_asr,
+            checked = aiEditPreferLastAsr,
+            index = 0,
+            count = itemCount,
+            onCheckedChange = onAiEditPreferLastAsrChange
+        )
+        AiSwitchPreference(
+            id = "ai_edit_custom_system_prompt_enabled",
+            titleRes = R.string.label_ai_edit_custom_prompt_enabled,
+            checked = customSystemPromptEnabled,
+            index = 1,
+            count = itemCount,
+            onCheckedChange = onCustomSystemPromptEnabledChange
+        )
+        if (customSystemPromptEnabled) {
             AiTextField(
                 uiMode = uiMode,
-                value = aiEditSystemPrompt,
+                value = displaySystemPrompt,
                 onValueChange = onAiEditSystemPromptChange,
                 label = stringResource(R.string.label_ai_edit_system_prompt),
                 singleLine = false,
                 minLines = 3,
-                index = 4,
+                index = 2,
                 count = itemCount
             )
             AiBodyText(uiMode = uiMode, textRes = R.string.helper_ai_edit_system_prompt)
-            if (aiEditSystemPrompt.isNotEmpty()) {
-                AiButtonRow(uiMode = uiMode) {
-                    AiButton(
-                        uiMode = uiMode,
-                        textRes = R.string.action_reset_to_default,
-                        onClick = { onAiEditSystemPromptChange("") }
-                    )
-                }
+            AiButtonRow(uiMode = uiMode) {
+                AiButton(
+                    uiMode = uiMode,
+                    textRes = R.string.action_reset_to_default,
+                    enabled = aiEditSystemPrompt.isNotBlank(),
+                    onClick = { onAiEditSystemPromptChange("") }
+                )
             }
         }
     }
