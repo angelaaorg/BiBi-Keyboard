@@ -10,6 +10,10 @@ internal object ImeBridgeContract {
 
     const val ACTION_QUERY_STATUS: String = "com.brycewg.asrkb.imebridge.action.QUERY_STATUS"
     const val ACTION_INSERT_TEXT: String = "com.brycewg.asrkb.imebridge.action.INSERT_TEXT"
+    const val ACTION_SET_COMPOSING_TEXT: String =
+        "com.brycewg.asrkb.imebridge.action.SET_COMPOSING_TEXT"
+    const val ACTION_FINISH_COMPOSING_TEXT: String =
+        "com.brycewg.asrkb.imebridge.action.FINISH_COMPOSING_TEXT"
     const val ACTION_IME_WINDOW_VISIBILITY_CHANGED: String =
         "com.brycewg.asrkb.imebridge.action.IME_WINDOW_VISIBILITY_CHANGED"
 
@@ -21,6 +25,7 @@ internal object ImeBridgeContract {
     const val EXTRA_HAS_INPUT_CONNECTION: String = "has_input_connection"
     const val EXTRA_IS_SENSITIVE_FIELD: String = "is_sensitive_field"
     const val EXTRA_IME_WINDOW_VISIBLE: String = "ime_window_visible"
+    const val EXTRA_SUPPORTS_COMPOSING_PREVIEW: String = "supports_composing_preview"
     const val EXTRA_MESSAGE: String = "message"
 
     const val RESULT_OK: Int = 1
@@ -31,6 +36,7 @@ internal object ImeBridgeContract {
     const val RESULT_SENSITIVE_FIELD: Int = -5
     const val RESULT_COMMIT_FAILED: Int = -6
     const val RESULT_BAD_REQUEST: Int = -7
+    const val RESULT_COMPOSING_FAILED: Int = -8
     const val RESULT_NO_CURRENT_IME: Int = -100
     const val RESULT_TIMEOUT: Int = -101
     const val RESULT_SEND_FAILED: Int = -102

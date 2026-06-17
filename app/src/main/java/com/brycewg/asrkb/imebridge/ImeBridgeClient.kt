@@ -23,7 +23,8 @@ data class ImeBridgeResult(
     val targetPackage: String?,
     val hasInputConnection: Boolean,
     val isSensitiveField: Boolean,
-    val isImeWindowVisible: Boolean
+    val isImeWindowVisible: Boolean,
+    val supportsComposingPreview: Boolean = false
 ) {
     val isSuccess: Boolean get() = code == ImeBridgeContract.RESULT_OK
     val isBridgePresent: Boolean
@@ -54,6 +55,21 @@ class ImeBridgeClient(private val context: Context) {
         }
         return sendBridgeRequest(ImeBridgeContract.ACTION_INSERT_TEXT, text, timeoutMs, cursorPosition)
     }
+
+    fun setComposingText(
+        text: String,
+        cursorPosition: Int = 1,
+        timeoutMs: Long = DEFAULT_COMPOSING_TIMEOUT_MS
+    ): ImeBridgeResult =
+        sendBridgeRequest(
+            ImeBridgeContract.ACTION_SET_COMPOSING_TEXT,
+            text,
+            timeoutMs,
+            cursorPosition
+        )
+
+    fun finishComposingText(timeoutMs: Long = DEFAULT_COMPOSING_TIMEOUT_MS): ImeBridgeResult =
+        sendBridgeRequest(ImeBridgeContract.ACTION_FINISH_COMPOSING_TEXT, null, timeoutMs)
 
     fun resolveCurrentImePackage(): String? = resolveCurrentImePackage(context)
 
@@ -95,6 +111,10 @@ class ImeBridgeClient(private val context: Context) {
                     ) == true,
                     isImeWindowVisible = extras?.getBoolean(
                         ImeBridgeContract.EXTRA_IME_WINDOW_VISIBLE,
+                        false
+                    ) == true,
+                    supportsComposingPreview = extras?.getBoolean(
+                        ImeBridgeContract.EXTRA_SUPPORTS_COMPOSING_PREVIEW,
                         false
                     ) == true
                 )
@@ -164,6 +184,7 @@ class ImeBridgeClient(private val context: Context) {
         private const val TAG = "ImeBridgeClient"
         private const val DEFAULT_STATUS_TIMEOUT_MS = 350L
         private const val DEFAULT_INSERT_TIMEOUT_MS = 700L
+        private const val DEFAULT_COMPOSING_TIMEOUT_MS = 120L
 
         fun resolveCurrentImePackage(context: Context): String? {
             val raw = try {
@@ -189,6 +210,7 @@ class ImeBridgeClient(private val context: Context) {
             ImeBridgeContract.RESULT_SENSITIVE_FIELD -> "sensitive field"
             ImeBridgeContract.RESULT_COMMIT_FAILED -> "commit failed"
             ImeBridgeContract.RESULT_BAD_REQUEST -> "bad request"
+            ImeBridgeContract.RESULT_COMPOSING_FAILED -> "composing failed"
             ImeBridgeContract.RESULT_NO_CURRENT_IME -> "no current ime"
             ImeBridgeContract.RESULT_TIMEOUT -> "timeout"
             ImeBridgeContract.RESULT_SEND_FAILED -> "send failed"
