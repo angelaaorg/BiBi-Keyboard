@@ -1,16 +1,24 @@
 package com.brycewg.asrkb.ui.floating
 
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.content.res.Configuration
+import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.util.Log
 import android.view.View
 import android.view.WindowManager
+import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import com.brycewg.asrkb.R
 import com.brycewg.asrkb.imebridge.ImeBridgeClient
 import com.brycewg.asrkb.imebridge.ImeBridgeContract
 import com.brycewg.asrkb.imebridge.ImeBridgeResult
@@ -19,11 +27,13 @@ import com.brycewg.asrkb.asr.AsrVendor
 import com.brycewg.asrkb.asr.BluetoothRouteManager
 import com.brycewg.asrkb.store.Prefs
 import com.brycewg.asrkb.store.debug.DebugLogManager
+import com.brycewg.asrkb.ui.SettingsActivity
 import com.brycewg.asrkb.ui.floatingball.AsrSessionManager
 import com.brycewg.asrkb.ui.floatingball.FloatingBallStateMachine
 import com.brycewg.asrkb.ui.floatingball.FloatingBallTouchHandler
 import com.brycewg.asrkb.ui.floatingball.FloatingBallViewManager
 import com.brycewg.asrkb.ui.floatingball.FloatingMenuHelper
+import com.brycewg.asrkb.ui.settings.compose.core.BibiSettingsRoute
 import com.brycewg.asrkb.util.HapticFeedbackHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -44,6 +54,8 @@ import kotlinx.coroutines.launch
 class FloatingAsrService : Service() {
     companion object {
         private const val TAG = "FloatingAsrService"
+        private const val RECORDING_CHANNEL_ID = "floating_recording"
+        private const val RECORDING_NOTIFICATION_ID = 4102
 
         const val ACTION_SHOW = "com.brycewg.asrkb.action.FLOATING_ASR_SHOW"
         const val ACTION_HIDE = "com.brycewg.asrkb.action.FLOATING_ASR_HIDE"
@@ -63,6 +75,7 @@ class FloatingAsrService : Service() {
     private lateinit var overlayPermissionGate: OverlayPermissionGate
     private lateinit var notifier: UserNotifier
     private lateinit var interactionController: FloatingAsrInteractionController
+    private lateinit var notificationManager: NotificationManager
 
     private val stateMachine = FloatingBallStateMachine()
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -71,6 +84,7 @@ class FloatingAsrService : Service() {
     private var imeVisible: Boolean = false
     private var bridgeImeVisible: Boolean? = null
     private var localPreloadTriggered: Boolean = false
+    private var recordingForegroundActive: Boolean = false
     private val imeBridgeClient by lazy { ImeBridgeClient(applicationContext) }
 
     private val hintReceiver = object : android.content.BroadcastReceiver() {
@@ -103,9 +117,11 @@ class FloatingAsrService : Service() {
         Log.d(TAG, "onCreate")
 
         windowManager = getSystemService(WindowManager::class.java)
+        notificationManager = getSystemService(NotificationManager::class.java)
         prefs = Prefs(this)
         notifier = UserNotifier(this, handler, TAG)
         overlayPermissionGate = OverlayPermissionGate(this, notifier, TAG)
+        ensureRecordingChannel()
 
         viewManager = FloatingBallViewManager(this, prefs, windowManager)
 
@@ -120,7 +136,9 @@ class FloatingAsrService : Service() {
             notifier = notifier,
             scope = serviceScope,
             tag = TAG,
-            isImeVisible = { isEffectiveImeVisible() }
+            isImeVisible = { isEffectiveImeVisible() },
+            startRecordingForeground = { startRecordingForeground() },
+            stopRecordingForeground = { stopRecordingForeground() }
         )
         asrSessionManager = AsrSessionManager(this, prefs, serviceScope, interactionController)
         interactionController.asrSessionManager = asrSessionManager
@@ -243,6 +261,7 @@ class FloatingAsrService : Service() {
         } catch (e: Throwable) {
             Log.w(TAG, "Failed to cancel notifier", e)
         }
+        stopRecordingForeground()
 
         hideBall()
         viewManager.cleanup()
@@ -267,6 +286,87 @@ class FloatingAsrService : Service() {
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
+
+    private fun startRecordingForeground(): Boolean {
+        if (recordingForegroundActive) return true
+        val notification = buildRecordingNotification()
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                startForeground(
+                    RECORDING_NOTIFICATION_ID,
+                    notification,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
+                )
+            } else {
+                startForeground(RECORDING_NOTIFICATION_ID, notification)
+            }
+            recordingForegroundActive = true
+            return true
+        } catch (t: RuntimeException) {
+            Log.w(TAG, "Failed to enter microphone foreground state", t)
+            try {
+                notificationManager.cancel(RECORDING_NOTIFICATION_ID)
+            } catch (cancelError: Throwable) {
+                Log.w(TAG, "Failed to cancel recording notification after start failure", cancelError)
+            }
+            return false
+        }
+    }
+
+    private fun stopRecordingForeground() {
+        if (!recordingForegroundActive) return
+        recordingForegroundActive = false
+        try {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+        } catch (e: Throwable) {
+            Log.w(TAG, "Failed to stop recording foreground state", e)
+        }
+        try {
+            notificationManager.cancel(RECORDING_NOTIFICATION_ID)
+        } catch (e: Throwable) {
+            Log.w(TAG, "Failed to cancel recording notification", e)
+        }
+    }
+
+    private fun buildRecordingNotification(): Notification {
+        val openIntent = Intent(this, SettingsActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            putExtra(SettingsActivity.EXTRA_INITIAL_ROUTE, BibiSettingsRoute.Floating.id)
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            0,
+            openIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val text = getString(R.string.notif_floating_recording_desc)
+        return NotificationCompat.Builder(this, RECORDING_CHANNEL_ID)
+            .setContentTitle(
+                getString(R.string.notif_floating_recording_title, getString(R.string.app_name))
+            )
+            .setContentText(text)
+            .setSmallIcon(R.drawable.microphone)
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .setCategory(NotificationCompat.CATEGORY_SERVICE)
+            .setContentIntent(pendingIntent)
+            .build()
+    }
+
+    private fun ensureRecordingChannel() {
+        val channel = NotificationChannel(
+            RECORDING_CHANNEL_ID,
+            getString(R.string.notif_channel_floating_recording),
+            NotificationManager.IMPORTANCE_LOW
+        )
+        channel.description = getString(R.string.notif_channel_floating_recording_desc)
+        try {
+            notificationManager.createNotificationChannel(channel)
+        } catch (e: Throwable) {
+            Log.w(TAG, "Failed to create recording channel", e)
+        }
+    }
 
     private fun showBall(src: String = "update_visibility") {
         Log.d(TAG, "showBall called: src=$src")

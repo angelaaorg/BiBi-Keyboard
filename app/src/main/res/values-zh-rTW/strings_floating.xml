@@ -57,6 +57,7 @@
     <string name="toast_shizuku_permission_request_failed">發起 Shizuku 授權失敗</string>
     <string name="toast_shizuku_or_root_unavailable">Shizuku 不可用且未偵測到 root</string>
     <string name="toast_floating_keep_alive_privileged_start_failed">透過 Shizuku / Root 啟動保活失敗</string>
+    <string name="toast_floating_recording_foreground_failed">無法啟動麥克風前台服務。請先開啟一次應用程式後重試。</string>
 
     <!-- Floating ASR status messages -->
     <string name="floating_asr_error">識別失敗：%1$s</string>
@@ -85,6 +86,10 @@
     <string name="notif_floating_keep_alive_desc">今日識別%1$d字·%2$s·後處理%3$s</string>
     <string name="notif_floating_keep_alive_postproc_enabled">啟用</string>
     <string name="notif_floating_keep_alive_postproc_disabled">未啟用</string>
+    <string name="notif_channel_floating_recording">懸浮球錄音</string>
+    <string name="notif_channel_floating_recording_desc">懸浮球使用麥克風時顯示錄音狀態。</string>
+    <string name="notif_floating_recording_title">%1$s正在錄音</string>
+    <string name="notif_floating_recording_desc">懸浮球語音識別正在收聽。</string>
 
     <!-- ============================================== -->
     <!-- 懸浮球設定 - 功能說明 -->

@@ -57,6 +57,7 @@
     <string name="toast_shizuku_permission_request_failed">Failed to request Shizuku permission</string>
     <string name="toast_shizuku_or_root_unavailable">Shizuku is unavailable and root is not detected</string>
     <string name="toast_floating_keep_alive_privileged_start_failed">Failed to start keep-alive via Shizuku / root</string>
+    <string name="toast_floating_recording_foreground_failed">Unable to start microphone foreground service. Open the app once, then try again.</string>
 
     <!-- Floating ASR status messages -->
     <string name="floating_asr_error">Recognition failed: %1$s</string>
@@ -85,6 +86,10 @@
     <string name="notif_floating_keep_alive_desc">Today %1$d chars · %2$s · Post-processing %3$s</string>
     <string name="notif_floating_keep_alive_postproc_enabled">enabled</string>
     <string name="notif_floating_keep_alive_postproc_disabled">disabled</string>
+    <string name="notif_channel_floating_recording">Floating recording</string>
+    <string name="notif_channel_floating_recording_desc">Shows recording status while the floating ball uses the microphone.</string>
+    <string name="notif_floating_recording_title">%1$s is recording</string>
+    <string name="notif_floating_recording_desc">Floating voice recognition is listening.</string>
 
     <!-- ============================================== -->
     <!-- Floating Settings - Feature Explanations -->

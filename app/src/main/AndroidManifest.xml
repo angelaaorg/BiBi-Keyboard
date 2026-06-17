@@ -22,6 +22,8 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <!-- Android 14+ 针对数据同步/下载类型前台服务权限（兼容不存在时忽略） -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" tools:ignore="NewApi" />
+    <!-- Android 14+ 针对悬浮球录音的麦克风前台服务权限（兼容不存在时忽略） -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" tools:ignore="NewApi" />
     <!-- Android 14+ 针对用户主动开启的悬浮球后台常驻服务用途（兼容不存在时忽略） -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" tools:ignore="NewApi" />
     <!-- 申请电池优化白名单 -->
@@ -100,7 +102,8 @@
         <!-- 悬浮球语音识别服务 -->
         <service
             android:name=".ui.floating.FloatingAsrService"
-            android:exported="false" />
+            android:exported="false"
+            android:foregroundServiceType="microphone" />
 
         <receiver
             android:name=".ui.floating.FloatingImeBridgeHintReceiver"

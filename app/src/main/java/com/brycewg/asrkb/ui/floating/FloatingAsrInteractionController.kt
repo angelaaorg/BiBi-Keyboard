@@ -14,6 +14,7 @@ import com.brycewg.asrkb.analytics.AnalyticsManager
 import com.brycewg.asrkb.asr.AsrErrorMessageMapper
 import com.brycewg.asrkb.asr.AsrVendor
 import com.brycewg.asrkb.store.Prefs
+import com.brycewg.asrkb.store.debug.DebugLogManager
 import com.brycewg.asrkb.ui.AsrAccessibilityService
 import com.brycewg.asrkb.ui.AsrVendorUi
 import com.brycewg.asrkb.ui.SettingsActivity
@@ -37,7 +38,9 @@ internal class FloatingAsrInteractionController(
     private val notifier: UserNotifier,
     private val scope: CoroutineScope,
     private val tag: String,
-    private val isImeVisible: () -> Boolean
+    private val isImeVisible: () -> Boolean,
+    private val startRecordingForeground: () -> Boolean,
+    private val stopRecordingForeground: () -> Unit
 ) : AsrSessionManager.AsrSessionListener,
     FloatingBallTouchHandler.TouchEventListener {
     companion object {
@@ -65,6 +68,7 @@ internal class FloatingAsrInteractionController(
         cancelPostCommitPartialHide()
         cancelPostErrorPartialHide()
         cancelPostErrorResetState()
+        stopRecordingForeground()
         try {
             menuController.hideAll()
         } catch (e: Throwable) {
@@ -111,6 +115,29 @@ internal class FloatingAsrInteractionController(
         Log.d(tag, "startRecording called")
         cancelEdgeHandleAutoHide()
 
+        if (!canStartRecording()) return false
+
+        if (!startRecordingForeground()) {
+            Log.w(tag, "Failed to enter microphone foreground state")
+            logRecordingStartPath(
+                event = "microphone_fgs_start_failed",
+                fromVolumeKey = fromVolumeKey,
+                success = false
+            )
+            showToast(context.getString(R.string.toast_floating_recording_foreground_failed))
+            return false
+        }
+
+        logRecordingStartPath(
+            event = "microphone_fgs_started",
+            fromVolumeKey = fromVolumeKey,
+            success = true
+        )
+
+        return startAsrRecording(fromVolumeKey)
+    }
+
+    private fun canStartRecording(): Boolean {
         if (!hasRecordAudioPermission()) {
             Log.w(tag, "No record audio permission")
             showToast(context.getString(R.string.asr_error_mic_permission_denied))
@@ -123,6 +150,10 @@ internal class FloatingAsrInteractionController(
             return false
         }
 
+        return true
+    }
+
+    private fun startAsrRecording(fromVolumeKey: Boolean): Boolean {
         // 开始录音前切换为激活态图标
         try {
             viewManager.getBallView()?.findViewById<android.widget.ImageView>(R.id.ballIcon)
@@ -132,9 +163,41 @@ internal class FloatingAsrInteractionController(
         }
 
         volumeKeySessionActive = fromVolumeKey
-        asrSessionManager.startRecording()
+        logRecordingStartPath(
+            event = "asr_start_requested",
+            fromVolumeKey = fromVolumeKey,
+            success = true
+        )
+        try {
+            asrSessionManager.startRecording()
+        } catch (t: Throwable) {
+            Log.e(tag, "Failed to start ASR recording", t)
+            volumeKeySessionActive = false
+            stopRecordingForeground()
+            showToast(
+                context.getString(
+                    R.string.floating_asr_error,
+                    t.message ?: t.javaClass.simpleName
+                )
+            )
+            return false
+        }
         updateVisibilityByPref("start_recording")
         return true
+    }
+
+    private fun logRecordingStartPath(
+        event: String,
+        fromVolumeKey: Boolean,
+        success: Boolean
+    ) {
+        val data = mapOf(
+            "method" to "service_microphone_fgs",
+            "fromVolumeKey" to fromVolumeKey,
+            "success" to success
+        )
+        Log.i(tag, "recording_start_path event=$event method=service_microphone_fgs fromVolumeKey=$fromVolumeKey success=$success")
+        DebugLogManager.logPersistent(context, "float", event, data)
     }
 
     private fun stopRecording() {
@@ -142,6 +205,7 @@ internal class FloatingAsrInteractionController(
         cancelEdgeHandleAutoHide()
         volumeKeySessionActive = false
         asrSessionManager.stopRecording()
+        stopRecordingForeground()
         updateVisibilityByPref("stop_recording")
     }
 
@@ -150,6 +214,7 @@ internal class FloatingAsrInteractionController(
         cancelEdgeHandleAutoHide()
         volumeKeySessionActive = false
         asrSessionManager.cancelSession()
+        stopRecordingForeground()
         updateVisibilityByPref("cancel_session")
     }
 
@@ -294,6 +359,9 @@ internal class FloatingAsrInteractionController(
 
     override fun onSessionStateChanged(state: FloatingBallState) {
         stateMachine.transitionTo(state)
+        if (state !is FloatingBallState.Recording) {
+            stopRecordingForeground()
+        }
         handler.post {
             viewManager.updateStateVisual(state)
             // 录音/处理态：保证浮现；Idle 半隐/显隐策略统一交由 visibilityCoordinator 处理
@@ -312,6 +380,9 @@ internal class FloatingAsrInteractionController(
 
     override fun onResultCommitted(text: String, success: Boolean) {
         volumeKeySessionActive = false
+        if (!stateMachine.isRecording) {
+            stopRecordingForeground()
+        }
         handler.post {
             if (success) {
                 viewManager.showCompletionTick()
@@ -400,6 +471,7 @@ internal class FloatingAsrInteractionController(
 
     override fun onError(message: String) {
         volumeKeySessionActive = false
+        stopRecordingForeground()
         handler.post {
             val mapped = AsrErrorMessageMapper.map(context, message)
             if (mapped != null) {

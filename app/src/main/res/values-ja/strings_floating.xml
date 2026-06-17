@@ -58,6 +58,7 @@
     <string name="toast_shizuku_permission_request_failed">Shizuku の権限要求に失敗しました</string>
     <string name="toast_shizuku_or_root_unavailable">Shizuku が利用できず、root も検出されません</string>
     <string name="toast_floating_keep_alive_privileged_start_failed">Shizuku / root による保活起動に失敗しました</string>
+    <string name="toast_floating_recording_foreground_failed">マイクのフォアグラウンドサービスを開始できません。アプリを一度開いてから再試行してください。</string>
 
     <!-- Floating ASR status messages -->
     <string name="floating_asr_error">認識失敗：%1$s</string>
@@ -86,6 +87,10 @@
     <string name="notif_floating_keep_alive_desc">今日%1$d文字・%2$s・後処理%3$s</string>
     <string name="notif_floating_keep_alive_postproc_enabled">有効</string>
     <string name="notif_floating_keep_alive_postproc_disabled">無効</string>
+    <string name="notif_channel_floating_recording">フローティング録音</string>
+    <string name="notif_channel_floating_recording_desc">フローティングボールがマイクを使用している間、録音状態を表示します。</string>
+    <string name="notif_floating_recording_title">%1$s が録音中</string>
+    <string name="notif_floating_recording_desc">フローティング音声認識が待機しています。</string>
 
     <!-- ============================================== -->
     <!-- フローティング設定 - 機能説明 -->
