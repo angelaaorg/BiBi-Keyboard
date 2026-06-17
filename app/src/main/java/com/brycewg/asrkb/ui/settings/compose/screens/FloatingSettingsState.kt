@@ -26,7 +26,8 @@ internal data class FloatingSettingsUiState(
     val volumeKeyStatusToastEnabled: Boolean,
     val volumeKeyStopOnImeHidden: Boolean,
     val writeCompatEnabled: Boolean,
-    val writePasteEnabled: Boolean
+    val writePasteEnabled: Boolean,
+    val imeBridgeEnabled: Boolean
 ) {
     companion object {
         val placeholder: FloatingSettingsUiState = FloatingSettingsUiState(
@@ -40,7 +41,8 @@ internal data class FloatingSettingsUiState(
             volumeKeyStatusToastEnabled = false,
             volumeKeyStopOnImeHidden = true,
             writeCompatEnabled = false,
-            writePasteEnabled = false
+            writePasteEnabled = false,
+            imeBridgeEnabled = false
         )
 
         fun fromPrefs(prefs: Prefs): FloatingSettingsUiState = FloatingSettingsUiState(
@@ -54,7 +56,8 @@ internal data class FloatingSettingsUiState(
             volumeKeyStatusToastEnabled = prefs.volumeKeyStatusToastEnabled,
             volumeKeyStopOnImeHidden = prefs.volumeKeyStopOnImeHidden,
             writeCompatEnabled = prefs.floatingWriteTextCompatEnabled,
-            writePasteEnabled = prefs.floatingWriteTextPasteEnabled
+            writePasteEnabled = prefs.floatingWriteTextPasteEnabled,
+            imeBridgeEnabled = prefs.floatingImeBridgeEnabled
         )
     }
 }

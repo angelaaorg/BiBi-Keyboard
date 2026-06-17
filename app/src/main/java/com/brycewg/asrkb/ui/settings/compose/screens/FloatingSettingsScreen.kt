@@ -28,6 +28,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.brycewg.asrkb.R
+import com.brycewg.asrkb.imebridge.ImeBridgeClient
 import com.brycewg.asrkb.store.Prefs
 import com.brycewg.asrkb.ui.floating.FloatingServiceManager
 import com.brycewg.asrkb.ui.settings.compose.components.SettingsChoiceSheet
@@ -72,10 +73,12 @@ fun FloatingSettingsScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     val prefs = remember(appContext) { Prefs(appContext) }
     val serviceManager = remember(appContext) { FloatingServiceManager(appContext) }
+    val imeBridgeClient = remember(appContext) { ImeBridgeClient(appContext) }
     val scope = rememberCoroutineScope()
     var uiState by remember(appContext) { mutableStateOf(FloatingSettingsUiState.placeholder) }
     var compatPackages by remember(appContext) { mutableStateOf("") }
     var pastePackages by remember(appContext) { mutableStateOf("") }
+    var imeBridgeStatusText by remember(appContext) { mutableStateOf("") }
     val persistedPackages = remember(appContext) { FloatingPackagePersistState() }
     var settingsLoaded by remember(appContext) { mutableStateOf(false) }
     var pendingAsrEnable by remember { mutableStateOf(false) }
@@ -176,13 +179,62 @@ fun FloatingSettingsScreen(
         showFloatingMessage(R.string.toast_need_accessibility_perm)
     }
 
-    fun floatingInputNeedsAccessibility(): Boolean = uiState.asrEnabled || uiState.volumeKeyRecordingEnabled
+    fun floatingAsrNeedsAccessibilityWhenEnabled(): Boolean =
+        !uiState.imeBridgeEnabled
 
-    LaunchedEffect(settingsLoaded, uiState.asrEnabled, uiState.volumeKeyRecordingEnabled) {
+    fun floatingAsrNeedsAccessibility(): Boolean =
+        uiState.asrEnabled && floatingAsrNeedsAccessibilityWhenEnabled()
+
+    fun floatingInputNeedsAccessibility(): Boolean =
+        floatingAsrNeedsAccessibility() || uiState.volumeKeyRecordingEnabled
+
+    fun formatImeBridgeStatus(result: com.brycewg.asrkb.imebridge.ImeBridgeResult): String {
+        val target = result.targetPackage ?: context.getString(R.string.status_floating_ime_bridge_unknown_target)
+        return when {
+            result.isSuccess && result.isSensitiveField ->
+                context.getString(R.string.status_floating_ime_bridge_sensitive, target)
+            result.isSuccess && result.hasInputConnection ->
+                context.getString(R.string.status_floating_ime_bridge_ready, target)
+            result.isSuccess && !result.isImeWindowVisible ->
+                context.getString(R.string.status_floating_ime_bridge_hidden, target)
+            result.isSuccess ->
+                context.getString(R.string.status_floating_ime_bridge_waiting, target)
+            !result.isBridgePresent ->
+                context.getString(R.string.status_floating_ime_bridge_not_found, target)
+            else ->
+                context.getString(R.string.status_floating_ime_bridge_error, target, result.message)
+        }
+    }
+
+    fun refreshImeBridgeStatus() {
+        scope.launch {
+            val result = withContext(Dispatchers.IO) {
+                imeBridgeClient.queryStatus()
+            }
+            imeBridgeStatusText = formatImeBridgeStatus(result)
+        }
+    }
+
+    LaunchedEffect(
+        settingsLoaded,
+        uiState.asrEnabled,
+        uiState.volumeKeyRecordingEnabled,
+        uiState.imeBridgeEnabled,
+        uiState.onlyWhenImeVisible
+    ) {
         if (!settingsLoaded || autoAccessibilityRequested) return@LaunchedEffect
         if (floatingInputNeedsAccessibility() && !isAccessibilityServiceEnabled(context)) {
             autoAccessibilityRequested = true
             requestAccessibilityPermission()
+        }
+    }
+
+    LaunchedEffect(settingsLoaded, uiState.imeBridgeEnabled) {
+        if (!settingsLoaded) return@LaunchedEffect
+        if (uiState.imeBridgeEnabled) {
+            refreshImeBridgeStatus()
+        } else {
+            imeBridgeStatusText = context.getString(R.string.status_floating_ime_bridge_disabled)
         }
     }
 
@@ -195,7 +247,7 @@ fun FloatingSettingsScreen(
                 requestOverlayPermission()
                 return false
             }
-            if (!isAccessibilityServiceEnabled(context)) {
+            if (floatingAsrNeedsAccessibilityWhenEnabled() && !isAccessibilityServiceEnabled(context)) {
                 pendingAsrEnable = true
                 pendingAsrPermission = FloatingPermissionRequest.Accessibility
                 showAccessibilityPermissionMessage()
@@ -238,12 +290,14 @@ fun FloatingSettingsScreen(
         if (pendingAsrEnable) {
             val hasOverlay = Settings.canDrawOverlays(context)
             val hasAccessibility = isAccessibilityServiceEnabled(context)
-            if (hasOverlay && hasAccessibility) {
+            val needsAccessibility = floatingAsrNeedsAccessibilityWhenEnabled()
+            if (hasOverlay && (!needsAccessibility || hasAccessibility)) {
                 setAsrEnabled(true)
                 return
             }
             if (
                 hasOverlay &&
+                needsAccessibility &&
                 !hasAccessibility &&
                 pendingAsrPermission == FloatingPermissionRequest.Overlay
             ) {
@@ -576,6 +630,44 @@ fun FloatingSettingsScreen(
 
             item("compat") {
                 FloatingSection(uiMode = uiMode, titleRes = R.string.section_floating_compat) {
+                    FloatingExplainedSwitch(
+                        id = "floating_ime_bridge",
+                        titleRes = R.string.label_floating_ime_bridge,
+                        checked = uiState.imeBridgeEnabled,
+                        onToggle = { target ->
+                            applyExplainedSwitch(
+                                current = uiState.imeBridgeEnabled,
+                                target = target,
+                                titleRes = R.string.label_floating_ime_bridge,
+                                offDescRes = R.string.feature_floating_ime_bridge_off_desc,
+                                onDescRes = R.string.feature_floating_ime_bridge_on_desc,
+                                preferenceKey = "floating_ime_bridge_explained"
+                            ) {
+                                prefs.floatingImeBridgeEnabled = it
+                                if (it) {
+                                    refreshImeBridgeStatus()
+                                } else {
+                                    imeBridgeStatusText =
+                                        context.getString(R.string.status_floating_ime_bridge_disabled)
+                                }
+                            }
+                        },
+                        index = 0,
+                        count = 2
+                    )
+                    FloatingValuePreference(
+                        titleRes = R.string.label_floating_ime_bridge_status,
+                        value = if (imeBridgeStatusText.isEmpty()) {
+                            stringResource(R.string.status_floating_ime_bridge_unknown)
+                        } else {
+                            imeBridgeStatusText
+                        },
+                        uiMode = uiMode,
+                        index = 1,
+                        count = 2,
+                        onClick = { refreshImeBridgeStatus() }
+                    )
+                    FloatingSubsectionGap()
                     FloatingExplainedSwitch(
                         id = "floating_write_compat",
                         titleRes = R.string.label_floating_write_compat,

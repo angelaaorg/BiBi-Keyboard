@@ -16,6 +16,9 @@ import android.util.Log
 import com.brycewg.asrkb.asr.*
 import com.brycewg.asrkb.asr.AsrTimeoutCalculator
 import com.brycewg.asrkb.asr.BluetoothRouteManager
+import com.brycewg.asrkb.imebridge.ImeBridgeClient
+import com.brycewg.asrkb.imebridge.ImeBridgeContract
+import com.brycewg.asrkb.imebridge.ImeBridgeResult
 import com.brycewg.asrkb.store.AsrHistoryStore
 import com.brycewg.asrkb.store.Prefs
 import com.brycewg.asrkb.ui.AsrAccessibilityService.FocusContext
@@ -51,10 +54,12 @@ class AsrSessionManager(
 
     private var asrEngine: StreamingAsrEngine? = null
     private val postproc = LlmPostProcessor()
+    private val imeBridgeClient by lazy { ImeBridgeClient(context.applicationContext) }
 
     // 会话上下文
     private var focusContext: FocusContext? = null
     private var lastPartialForPreview: String? = null
+    private var useImeBridgeForSession: Boolean = false
     private var markerInserted: Boolean = false
     private var markerChar: String? = null
     private var aiPostProcessingToken: Long = 0L
@@ -138,6 +143,7 @@ class AsrSessionManager(
     private fun clearPreviewSessionContext() {
         focusContext = null
         lastPartialForPreview = null
+        useImeBridgeForSession = false
         markerInserted = false
         markerChar = null
         aiPostProcessingToken = 0L
@@ -262,22 +268,31 @@ class AsrSessionManager(
         processingTimeoutJob = null
         hasCommittedResult = false
 
+        val useImeBridge = isImeBridgeEnabled()
+        useImeBridgeForSession = useImeBridge
         // 写入兼容模式：为命中包名注入占位符（粘贴方式），屏蔽原文本干扰
-        tryFixCompatPlaceholderIfNeeded()
+        if (!useImeBridge) {
+            tryFixCompatPlaceholderIfNeeded()
+        }
 
         // 构建引擎
         asrEngine = buildEngineForCurrentMode(sessionToken)
         Log.d(TAG, "ASR engine created: ${asrEngine?.javaClass?.simpleName}")
 
-        // 记录焦点上下文（占位后再取，保持与参考版本一致）
-        focusContext = com.brycewg.asrkb.ui.AsrAccessibilityService.getCurrentFocusContext()
-        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-            try {
-                focusContext = com.brycewg.asrkb.ui.AsrAccessibilityService.getCurrentFocusContext()
-            } catch (e: Throwable) {
-                Log.w(TAG, "Failed to refresh focus context", e)
-            }
-        }, 120)
+        // Bridge 模式直接通过 IME 的 InputConnection 提交最终文本，不做无障碍预览/整段重写。
+        if (useImeBridge) {
+            focusContext = null
+        } else {
+            // 记录焦点上下文（占位后再取，保持与参考版本一致）
+            focusContext = com.brycewg.asrkb.ui.AsrAccessibilityService.getCurrentFocusContext()
+            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                try {
+                    focusContext = com.brycewg.asrkb.ui.AsrAccessibilityService.getCurrentFocusContext()
+                } catch (e: Throwable) {
+                    Log.w(TAG, "Failed to refresh focus context", e)
+                }
+            }, 120)
+        }
         lastPartialForPreview = null
 
         // 启动引擎
@@ -1268,6 +1283,20 @@ class AsrSessionManager(
     }
 
     private fun insertTextToFocus(text: String): Boolean {
+        if (useImeBridgeForSession) {
+            val bridgeResult = imeBridgeClient.insertText(text)
+            if (bridgeResult.isSuccess) {
+                recordAsrUsage(text)
+                return true
+            }
+            Log.w(
+                TAG,
+                "IME bridge insert failed: code=${bridgeResult.code}, target=${bridgeResult.targetPackage}, message=${bridgeResult.message}"
+            )
+            showImeBridgeInsertFailure(bridgeResult)
+            return false
+        }
+
         val ctx =
             focusContext ?: com.brycewg.asrkb.ui.AsrAccessibilityService.getCurrentFocusContext()
         var toWrite = if (ctx != null) ctx.prefix + text + ctx.suffix else text
@@ -1307,13 +1336,7 @@ class AsrSessionManager(
         )
 
         if (wrote) {
-            try {
-                if (!prefs.disableUsageStats) {
-                    prefs.addAsrChars(TextSanitizer.countEffectiveChars(text))
-                }
-            } catch (e: Throwable) {
-                Log.e(TAG, "Failed to add ASR chars", e)
-            }
+            recordAsrUsage(text)
             // 光标应定位到“前缀 + 新文本”的末尾；占位符已从前缀中移除
             val prefixLenForCursor = stripMarkersIfAny(ctx?.prefix ?: "").length
             val desiredCursor = (prefixLenForCursor + text.length).coerceAtLeast(0)
@@ -1321,6 +1344,43 @@ class AsrSessionManager(
         }
 
         return wrote
+    }
+
+    private fun showImeBridgeInsertFailure(bridgeResult: ImeBridgeResult) {
+        val isSensitiveField = bridgeResult.isSensitiveField ||
+            bridgeResult.code == ImeBridgeContract.RESULT_SENSITIVE_FIELD
+        val message = if (isSensitiveField) {
+            context.getString(com.brycewg.asrkb.R.string.floating_ime_bridge_sensitive_field)
+        } else {
+            val detail = bridgeResult.message.ifBlank {
+                ImeBridgeClient.messageForCode(bridgeResult.code)
+            }
+            context.getString(com.brycewg.asrkb.R.string.floating_ime_bridge_insert_failed, detail)
+        }
+        android.os.Handler(android.os.Looper.getMainLooper()).post {
+            android.widget.Toast.makeText(
+                context,
+                message,
+                android.widget.Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+    private fun isImeBridgeEnabled(): Boolean = try {
+        prefs.floatingImeBridgeEnabled
+    } catch (e: Throwable) {
+        Log.w(TAG, "Failed to get IME bridge preference", e)
+        false
+    }
+
+    private fun recordAsrUsage(text: String) {
+        try {
+            if (!prefs.disableUsageStats) {
+                prefs.addAsrChars(TextSanitizer.countEffectiveChars(text))
+            }
+        } catch (e: Throwable) {
+            Log.e(TAG, "Failed to add ASR chars", e)
+        }
     }
 
     private fun isPackageInPasteTargets(pkg: String): Boolean {
@@ -1370,7 +1430,12 @@ class AsrSessionManager(
 
     private fun updatePreviewText(text: String) {
         if (text.isEmpty() || lastPartialForPreview == text) return
+        if (useImeBridgeForSession) {
+            lastPartialForPreview = text
+            return
+        }
         val ctx = focusContext ?: return
+        lastPartialForPreview = text
         val toWrite = ctx.prefix + text + ctx.suffix
         Log.d(TAG, "preview update: $text")
 
@@ -1380,7 +1445,6 @@ class AsrSessionManager(
             val desiredCursor = (prefixLenForCursor + text.length).coerceAtLeast(0)
             com.brycewg.asrkb.ui.AsrAccessibilityService.setSelectionSilent(desiredCursor)
         }
-        lastPartialForPreview = text
     }
 
     private fun isPackageInCompatTargets(pkg: String): Boolean {

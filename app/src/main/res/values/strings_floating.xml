@@ -15,6 +15,19 @@
     <string name="label_floating_keep_alive_foreground">Keep alive with a foreground service</string>
     <string name="label_floating_keep_alive_privileged">Keep alive via Shizuku / root</string>
     <string name="label_request_battery_whitelist">Request battery optimization whitelist</string>
+    <string name="label_floating_ime_bridge">输入法桥接模式</string>
+    <string name="label_floating_ime_bridge_status">IME bridge status</string>
+    <string name="status_floating_ime_bridge_unknown">Tap to refresh</string>
+    <string name="status_floating_ime_bridge_unknown_target">current keyboard</string>
+    <string name="status_floating_ime_bridge_disabled">Disabled</string>
+    <string name="status_floating_ime_bridge_ready">Ready: %1$s</string>
+    <string name="status_floating_ime_bridge_hidden">Detected, keyboard hidden: %1$s</string>
+    <string name="status_floating_ime_bridge_waiting">Detected, waiting for input field: %1$s</string>
+    <string name="status_floating_ime_bridge_not_found">No bridge response: %1$s</string>
+    <string name="status_floating_ime_bridge_sensitive">Sensitive field blocked: %1$s</string>
+    <string name="status_floating_ime_bridge_error">Bridge error in %1$s: %2$s</string>
+    <string name="floating_ime_bridge_sensitive_field">Sensitive input field blocked. Text was not inserted.</string>
+    <string name="floating_ime_bridge_insert_failed">IME bridge insertion failed: %1$s</string>
     <string name="label_floating_write_compat">Floating write-text compatibility mode</string>
     <string name="desc_floating_write_compat">Some apps expose background placeholder text to Accessibility, which contaminates final insertion. When enabled, in target apps the floating ball switches to Select-All + Paste with an invisible marker to avoid placeholder issues. The clipboard may be used temporarily (best-effort restore). Works for Telegram, Douyin, etc.</string>
     <string name="label_floating_write_compat_pkgs">Target package names (one per line)</string>
@@ -79,11 +92,11 @@
 
     <!-- Floating ASR -->
     <string name="feature_floating_asr_off_desc">The floating ball will not be displayed. Voice recognition can only be accessed through the keyboard.</string>
-    <string name="feature_floating_asr_on_desc">Enables the floating ball for voice recognition. You can use voice input from anywhere, even when the keyboard is hidden. Requires display overlay and accessibility permissions.</string>
+    <string name="feature_floating_asr_on_desc">Enables the floating ball for voice recognition. You can use voice input from anywhere, even when the keyboard is hidden. Requires display overlay permission. Accessibility is still required for volume-key recording, and for Accessibility insertion when the IME bridge is not active.</string>
 
     <!-- Floating only when IME visible -->
     <string name="feature_floating_only_when_ime_visible_off_desc">The floating ball remains visible even when the keyboard is hidden.</string>
-    <string name="feature_floating_only_when_ime_visible_on_desc">The floating ball is automatically hidden when the keyboard is hidden and shown when the keyboard appears. Requires accessibility permission to detect keyboard state.</string>
+    <string name="feature_floating_only_when_ime_visible_on_desc">The floating ball is automatically hidden when the keyboard is hidden and shown when the keyboard appears. Keyboard state can be detected by Accessibility or by an active IME bridge.</string>
 
     <!-- Floating direct drag -->
     <string name="feature_floating_direct_drag_off_desc">Moving the floating ball requires long-pressing to enter move mode or using the menu.</string>
@@ -98,6 +111,8 @@
     <string name="feature_volume_key_stop_on_ime_hidden_on_desc">If the keyboard disappears while volume-key recording is active, recording stops automatically.</string>
 
     <!-- Floating write compatibility mode -->
+    <string name="feature_floating_ime_bridge_off_desc">Floating results use the existing Accessibility insertion path or clipboard fallback.</string>
+    <string name="feature_floating_ime_bridge_on_desc">When a compatible LSPosed or LSPatch bridge is active in the current third-party keyboard, final recognition text is inserted through that keyboard\'s InputConnection, and keyboard panel visibility is reported by the keyboard itself. This is an advanced option and does not read existing input text.</string>
     <string name="feature_floating_write_compat_off_desc">Uses standard Accessibility API to insert text. Works for most apps.</string>
     <string name="feature_floating_write_compat_on_desc">For target apps, uses Select-All + Paste method to avoid background placeholder text contamination. The clipboard may be temporarily used (best-effort restore). Useful for apps like Telegram and Douyin.</string>
 

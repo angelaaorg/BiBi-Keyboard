@@ -469,7 +469,7 @@ internal class FloatingAsrInteractionController(
             return
         }
 
-        if (!AsrAccessibilityService.isEnabled()) {
+        if (!AsrAccessibilityService.isEnabled() && !isImeBridgeEnabled()) {
             Log.w(tag, "Accessibility service not enabled")
             showToast(context.getString(R.string.toast_need_accessibility_perm))
             try {
@@ -490,6 +490,13 @@ internal class FloatingAsrInteractionController(
         }
 
         startRecording()
+    }
+
+    private fun isImeBridgeEnabled(): Boolean = try {
+        prefs.floatingImeBridgeEnabled
+    } catch (e: Throwable) {
+        Log.w(tag, "Failed to read IME bridge preference", e)
+        false
     }
 
     override fun onLongPress() {

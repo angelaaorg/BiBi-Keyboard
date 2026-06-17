@@ -15,6 +15,19 @@
     <string name="label_floating_keep_alive_foreground">前台服务保活</string>
     <string name="label_floating_keep_alive_privileged">Shizuku / Root 增强保活</string>
     <string name="label_request_battery_whitelist">申请电池优化白名单</string>
+    <string name="label_floating_ime_bridge">输入法桥接模式</string>
+    <string name="label_floating_ime_bridge_status">输入法桥接状态</string>
+    <string name="status_floating_ime_bridge_unknown">点击刷新</string>
+    <string name="status_floating_ime_bridge_unknown_target">当前键盘</string>
+    <string name="status_floating_ime_bridge_disabled">已关闭</string>
+    <string name="status_floating_ime_bridge_ready">已就绪：%1$s</string>
+    <string name="status_floating_ime_bridge_hidden">已检测到，键盘已隐藏：%1$s</string>
+    <string name="status_floating_ime_bridge_waiting">已检测到，等待输入框：%1$s</string>
+    <string name="status_floating_ime_bridge_not_found">未收到桥接响应：%1$s</string>
+    <string name="status_floating_ime_bridge_sensitive">已阻止敏感输入框：%1$s</string>
+    <string name="status_floating_ime_bridge_error">%1$s 桥接错误：%2$s</string>
+    <string name="floating_ime_bridge_sensitive_field">已阻止敏感输入框，未写入文字。</string>
+    <string name="floating_ime_bridge_insert_failed">输入法桥接写入失败：%1$s</string>
     <string name="label_floating_write_compat">悬浮球写入文字兼容性模式</string>
     <string name="desc_floating_write_compat">在部分应用中文本框会出现背景文字被误识别，导致通过无障碍服务插入文字时会附带背景文字的情况。开启此模式后，在目标软件中使用悬浮球时会尝试"全选+粘贴"写入一个不可见字符，以屏蔽背景文字。</string>
     <string name="label_floating_write_compat_pkgs">兼容目标包名（每行一个）</string>
@@ -79,11 +92,11 @@
 
     <!-- 使用悬浮球进行语音识别 -->
     <string name="feature_floating_asr_off_desc">悬浮球将不会显示。语音识别只能通过键盘访问。</string>
-    <string name="feature_floating_asr_on_desc">启用语音识别悬浮球。你可以在任何地方使用语音输入，即使键盘处于隐藏状态。需要悬浮窗和无障碍权限。</string>
+    <string name="feature_floating_asr_on_desc">启用语音识别悬浮球。你可以在任何地方使用语音输入，即使键盘处于隐藏状态。需要悬浮窗权限；无障碍仍用于音量键录音，未启用输入法桥接时也用于无障碍写入。</string>
 
     <!-- 仅在键盘显示时显示悬浮球 -->
     <string name="feature_floating_only_when_ime_visible_off_desc">即使键盘隐藏，悬浮球仍保持可见。</string>
-    <string name="feature_floating_only_when_ime_visible_on_desc">键盘隐藏时悬浮球自动隐藏，键盘出现时自动显示。需要无障碍权限以检测键盘状态。</string>
+    <string name="feature_floating_only_when_ime_visible_on_desc">键盘隐藏时悬浮球自动隐藏，键盘出现时自动显示。键盘状态可通过无障碍或已激活的输入法桥接检测。</string>
 
     <!-- 直接拖动移动悬浮球 -->
     <string name="feature_floating_direct_drag_off_desc">移动悬浮球需要长按进入移动模式或通过菜单开启移动模式。</string>
@@ -98,6 +111,8 @@
     <string name="feature_volume_key_stop_on_ime_hidden_on_desc">音量键录音期间如果键盘消失，会自动停止录音。</string>
 
     <!-- 悬浮球写入文字兼容性模式 -->
+    <string name="feature_floating_ime_bridge_off_desc">悬浮球结果将使用现有无障碍写入路径或剪贴板兜底。</string>
+    <string name="feature_floating_ime_bridge_on_desc">当当前第三方输入法中存在兼容的 LSPosed 或 LSPatch 桥接模块时，最终识别文本会通过该输入法自己的 InputConnection 写入，并由输入法自身报告键盘面板是否显示。这是高级选项，不读取已有输入内容。</string>
     <string name="feature_floating_write_compat_off_desc">使用标准无障碍 API 插入文本。适用于大多数应用。</string>
     <string name="feature_floating_write_compat_on_desc">针对目标应用，使用"全选+粘贴"方法来避免背景占位符文本污染。可能会临时使用剪贴板（尽力恢复）。适用于 Telegram 和抖音等应用。</string>
 

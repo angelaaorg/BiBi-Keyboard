@@ -15,6 +15,19 @@
     <string name="label_floating_keep_alive_foreground">前台服務保活</string>
     <string name="label_floating_keep_alive_privileged">Shizuku / Root 增強保活</string>
     <string name="label_request_battery_whitelist">申請電池最佳化白名單</string>
+    <string name="label_floating_ime_bridge">输入法桥接模式</string>
+    <string name="label_floating_ime_bridge_status">輸入法橋接狀態</string>
+    <string name="status_floating_ime_bridge_unknown">點擊重新整理</string>
+    <string name="status_floating_ime_bridge_unknown_target">目前鍵盤</string>
+    <string name="status_floating_ime_bridge_disabled">已關閉</string>
+    <string name="status_floating_ime_bridge_ready">已就緒：%1$s</string>
+    <string name="status_floating_ime_bridge_hidden">已偵測到，鍵盤已隱藏：%1$s</string>
+    <string name="status_floating_ime_bridge_waiting">已偵測到，等待輸入欄位：%1$s</string>
+    <string name="status_floating_ime_bridge_not_found">未收到橋接回應：%1$s</string>
+    <string name="status_floating_ime_bridge_sensitive">已阻止敏感輸入欄位：%1$s</string>
+    <string name="status_floating_ime_bridge_error">%1$s 橋接錯誤：%2$s</string>
+    <string name="floating_ime_bridge_sensitive_field">已阻止敏感輸入欄位，未寫入文字。</string>
+    <string name="floating_ime_bridge_insert_failed">輸入法橋接寫入失敗：%1$s</string>
     <string name="label_floating_write_compat">懸浮球寫入文字相容性模式</string>
     <string name="desc_floating_write_compat">部分應用程式會向無障礙服務暴露背景預留位置文字，這會污染最終插入。啟用後，在目標應用程式中，懸浮球會切換為全選 + 貼上並使用不可見標記來避免預留位置問題。剪貼簿可能會暫時被使用（盡力恢復）。適用於 Telegram、抖音等。</string>
     <string name="label_floating_write_compat_pkgs">相容目標套件名稱（每行一個）</string>
@@ -79,11 +92,11 @@
 
     <!-- 使用懸浮球進行語音識別 -->
     <string name="feature_floating_asr_off_desc">懸浮球將不會顯示。語音識別只能透過鍵盤存取。</string>
-    <string name="feature_floating_asr_on_desc">啟用語音識別懸浮球。你可以在任何地方使用語音輸入，即使鍵盤處於隱藏狀態。需要懸浮窗和無障礙權限。</string>
+    <string name="feature_floating_asr_on_desc">啟用語音識別懸浮球。你可以在任何地方使用語音輸入，即使鍵盤處於隱藏狀態。需要懸浮窗權限；無障礙仍用於音量鍵錄音，未啟用輸入法橋接時也用於無障礙寫入。</string>
 
     <!-- 僅在鍵盤顯示時顯示懸浮球 -->
     <string name="feature_floating_only_when_ime_visible_off_desc">即使鍵盤隱藏，懸浮球仍保持可見。</string>
-    <string name="feature_floating_only_when_ime_visible_on_desc">鍵盤隱藏時懸浮球自動隱藏，鍵盤出現時自動顯示。需要無障礙權限以偵測鍵盤狀態。</string>
+    <string name="feature_floating_only_when_ime_visible_on_desc">鍵盤隱藏時懸浮球自動隱藏，鍵盤出現時自動顯示。鍵盤狀態可透過無障礙或已啟用的輸入法橋接偵測。</string>
 
     <!-- 直接拖動移動懸浮球 -->
     <string name="feature_floating_direct_drag_off_desc">移動懸浮球需要長按進入移動模式或透過選單開啟移動模式。</string>
@@ -98,6 +111,8 @@
     <string name="feature_volume_key_stop_on_ime_hidden_on_desc">音量鍵錄音期間如果鍵盤消失，會自動停止錄音。</string>
 
     <!-- 懸浮球寫入文字相容性模式 -->
+    <string name="feature_floating_ime_bridge_off_desc">懸浮球結果將使用現有無障礙寫入路徑或剪貼簿備援。</string>
+    <string name="feature_floating_ime_bridge_on_desc">當目前第三方輸入法中存在相容的 LSPosed 或 LSPatch 橋接模組時，最終識別文字會透過該輸入法自己的 InputConnection 寫入，並由輸入法自身回報鍵盤面板是否顯示。這是進階選項，不讀取既有輸入內容。</string>
     <string name="feature_floating_write_compat_off_desc">使用標準無障礙 API 插入文字。適用於大多數應用程式。</string>
     <string name="feature_floating_write_compat_on_desc">針對目標應用程式，使用「全選+貼上」方法來避免背景預留位置文字污染。可能會暫時使用剪貼簿（盡力恢復）。適用於 Telegram 和抖音等應用程式。</string>
 

@@ -16,6 +16,19 @@
     <string name="label_floating_keep_alive_foreground">フォアグラウンドサービスで保活する</string>
     <string name="label_floating_keep_alive_privileged">Shizuku / root で保活する</string>
     <string name="label_request_battery_whitelist">電池最適化の除外を申請</string>
+    <string name="label_floating_ime_bridge">输入法桥接模式</string>
+    <string name="label_floating_ime_bridge_status">IMEブリッジの状態</string>
+    <string name="status_floating_ime_bridge_unknown">タップして更新</string>
+    <string name="status_floating_ime_bridge_unknown_target">現在のキーボード</string>
+    <string name="status_floating_ime_bridge_disabled">無効</string>
+    <string name="status_floating_ime_bridge_ready">準備完了：%1$s</string>
+    <string name="status_floating_ime_bridge_hidden">検出済み、キーボードは非表示：%1$s</string>
+    <string name="status_floating_ime_bridge_waiting">検出済み、入力欄を待機中：%1$s</string>
+    <string name="status_floating_ime_bridge_not_found">ブリッジ応答なし：%1$s</string>
+    <string name="status_floating_ime_bridge_sensitive">機密入力欄をブロック：%1$s</string>
+    <string name="status_floating_ime_bridge_error">%1$s のブリッジエラー：%2$s</string>
+    <string name="floating_ime_bridge_sensitive_field">機密入力欄のため挿入をブロックしました。</string>
+    <string name="floating_ime_bridge_insert_failed">IMEブリッジで挿入できませんでした：%1$s</string>
     <string name="label_floating_write_compat">フローティングボールのテキスト挿入互換モード</string>
     <string name="desc_floating_write_compat">一部のアプリでは背景テキストが誤認識され、無障害サービス経由でテキストを挿入する際に背景テキストも含まれてしまう場合があります。このモードを有効にすると、対象アプリでフローティングボールを使用する際、「全選択+貼り付け」で不可視文字を挿入し、背景テキストの問題を回避します。</string>
     <string name="label_floating_write_compat_pkgs">ターゲットパッケージ名（1行に1つ）</string>
@@ -80,11 +93,11 @@
 
     <!-- フローティングASR -->
     <string name="feature_floating_asr_off_desc">フローティングボールは表示されません。音声認識はキーボードからのみアクセスできます。</string>
-    <string name="feature_floating_asr_on_desc">音声認識用のフローティングボールを有効にします。キーボードが非表示の状態でも、どこからでも音声入力を使用できます。表示オーバーレイとアクセシビリティ権限が必要です。</string>
+    <string name="feature_floating_asr_on_desc">音声認識用のフローティングボールを有効にします。キーボードが非表示の状態でも、どこからでも音声入力を使用できます。オーバーレイ権限が必要です。アクセシビリティは音量キー録音で引き続き必要で、IME ブリッジが有効でない場合はアクセシビリティ挿入にも使用されます。</string>
 
     <!-- キーボード表示時のみフローティングボールを表示 -->
     <string name="feature_floating_only_when_ime_visible_off_desc">キーボードが非表示でもフローティングボールは表示されたままになります。</string>
-    <string name="feature_floating_only_when_ime_visible_on_desc">キーボードが非表示のときにフローティングボールが自動的に非表示になり、キーボードが表示されると表示されます。キーボードの状態を検出するにはアクセシビリティ権限が必要です。</string>
+    <string name="feature_floating_only_when_ime_visible_on_desc">キーボードが非表示のときにフローティングボールが自動的に非表示になり、キーボードが表示されると表示されます。キーボードの状態は、アクセシビリティまたは有効な IME ブリッジで検出できます。</string>
 
     <!-- 直接ドラッグ移動 -->
     <string name="feature_floating_direct_drag_off_desc">移動するには長押しで移動モードに入るか、メニューから移動を選ぶ必要があります。</string>
@@ -99,6 +112,8 @@
     <string name="feature_volume_key_stop_on_ime_hidden_on_desc">音量キー録音中にキーボードが消えると、自動的に録音を停止します。</string>
 
     <!-- フローティング書き込み互換モード -->
+    <string name="feature_floating_ime_bridge_off_desc">フローティング結果は既存のアクセシビリティ挿入経路、またはクリップボードのフォールバックを使用します。</string>
+    <string name="feature_floating_ime_bridge_on_desc">現在のサードパーティ製キーボードで互換性のある LSPosed または LSPatch ブリッジが有効な場合、最終認識テキストはそのキーボード自身の InputConnection で挿入され、キーボードパネルの表示状態もキーボード自身から報告されます。これは上級者向けオプションで、既存の入力内容は読み取りません。</string>
     <string name="feature_floating_write_compat_off_desc">標準のアクセシビリティAPIを使用してテキストを挿入します。ほとんどのアプリで動作します。</string>
     <string name="feature_floating_write_compat_on_desc">対象アプリでは、背景プレースホルダーテキストの混入を避けるために「全選択+貼り付け」方式を使用します。クリップボードが一時的に使用される場合があります（最善努力で復元）。TelegramやDouyinなどのアプリに役立ちます。</string>
 

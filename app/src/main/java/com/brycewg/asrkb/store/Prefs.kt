@@ -470,6 +470,11 @@ class Prefs(context: Context) {
         get() = sp.getString(KEY_FLOATING_WRITE_PASTE_PACKAGES, "") ?: ""
         set(value) = sp.edit { putString(KEY_FLOATING_WRITE_PASTE_PACKAGES, value) }
 
+    // 悬浮球：优先通过 LSPosed/LSPatch 输入法桥接写入最终文本，默认关闭
+    var floatingImeBridgeEnabled: Boolean
+        get() = sp.getBoolean(KEY_FLOATING_IME_BRIDGE_ENABLED, false)
+        set(value) = sp.edit { putBoolean(KEY_FLOATING_IME_BRIDGE_ENABLED, value) }
+
     // LLM后处理设置（旧版单一字段；当存在多配置且已选择活动项时仅作回退）
     var postProcessEnabled: Boolean
         get() = sp.getBoolean(KEY_POSTPROC_ENABLED, false)

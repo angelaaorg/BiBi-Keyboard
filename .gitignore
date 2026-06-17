@@ -31,6 +31,7 @@ openspec/
 speechrecognizer-tester/
 analysis/
 sherpa-onnx/
+lsposed-ime-bridge/
 
 # Node modules for docs
 node_modules/

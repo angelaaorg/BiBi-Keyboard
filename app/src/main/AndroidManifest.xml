@@ -2,6 +2,10 @@
 <manifest xmlns:tools="http://schemas.android.com/tools"
     xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <permission
+        android:name="com.brycewg.asrkb.permission.IME_BRIDGE"
+        android:protectionLevel="signature" />
+    <uses-permission android:name="com.brycewg.asrkb.permission.IME_BRIDGE" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <!-- 经典蓝牙权限（仅在 Android 12 以下有效） -->
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
@@ -97,6 +101,14 @@
         <service
             android:name=".ui.floating.FloatingAsrService"
             android:exported="false" />
+
+        <receiver
+            android:name=".ui.floating.FloatingImeBridgeHintReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.brycewg.asrkb.imebridge.action.IME_WINDOW_VISIBILITY_CHANGED" />
+            </intent-filter>
+        </receiver>
 
         <!-- 悬浮球前台保活服务 -->
         <service
