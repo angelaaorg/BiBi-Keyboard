@@ -11,6 +11,7 @@ local.properties
 AGENTS.md 
 CLAUDE.md
 .agents/
+.claude/
 references/
 docs/
 app/build
