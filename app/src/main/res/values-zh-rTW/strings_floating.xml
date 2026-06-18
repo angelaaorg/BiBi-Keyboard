@@ -4,7 +4,7 @@
     <string name="title_floating_settings">更多輸入方式</string>
     <string name="section_floating_basic">懸浮球設定</string>
     <string name="section_volume_key_recording">音量鍵錄音模式</string>
-    <string name="section_floating_compat">相容性</string>
+    <string name="section_floating_compat">進階功能</string>
     <string name="section_floating_keep_alive">背景保活</string>
     <string name="label_floating_only_when_ime_visible">僅在鍵盤顯示時顯示懸浮球</string>
     <string name="label_floating_direct_drag">直接拖動移動懸浮球</string>
@@ -28,11 +28,11 @@
     <string name="status_floating_ime_bridge_error">%1$s 橋接錯誤：%2$s</string>
     <string name="floating_ime_bridge_sensitive_field">已阻止敏感輸入欄位，未寫入文字。</string>
     <string name="floating_ime_bridge_insert_failed">輸入法橋接寫入失敗：%1$s</string>
-    <string name="label_floating_write_compat">懸浮球寫入文字相容性模式</string>
+    <string name="label_floating_write_compat">無障礙寫入文字相容優化</string>
     <string name="desc_floating_write_compat">部分應用程式會向無障礙服務暴露背景預留位置文字，這會污染最終插入。啟用後，在目標應用程式中，懸浮球會切換為全選 + 貼上並使用不可見標記來避免預留位置問題。剪貼簿可能會暫時被使用（盡力恢復）。適用於 Telegram、抖音等。</string>
     <string name="label_floating_write_compat_pkgs">相容目標套件名稱（每行一個）</string>
     <string name="hint_floating_write_compat_pkgs">請填寫完整套件名稱，採用前綴匹配（例如 org.telegram.messenger）。</string>
-    <string name="label_floating_write_paste">懸浮球識別結果僅寫入剪貼簿</string>
+    <string name="label_floating_write_paste">無障礙識別結果僅寫入剪貼簿</string>
     <string name="desc_floating_write_paste">僅對下方指定的應用程式生效：在這些應用程式內，使用懸浮球語音輸入時將結果複製到剪貼簿，不嘗試透過無障礙 API 插入文字。若清單中包含 all，則全域生效。</string>
     <string name="label_floating_write_paste_pkgs">目標套件名稱（每行一個）</string>
     <string name="hint_floating_write_paste_pkgs">請填寫完整套件名稱進行精確匹配（例如 com.tencent.mm）。如需全域生效，單獨新增一行 all。</string>

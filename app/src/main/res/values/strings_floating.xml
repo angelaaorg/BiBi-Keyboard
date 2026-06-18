@@ -4,7 +4,7 @@
     <string name="title_floating_settings">More Input Methods</string>
     <string name="section_floating_basic">Floating Ball Settings</string>
     <string name="section_volume_key_recording">Volume Key Recording Mode</string>
-    <string name="section_floating_compat">Compatibility</string>
+    <string name="section_floating_compat">Advanced</string>
     <string name="section_floating_keep_alive">Background Keep-Alive</string>
     <string name="label_floating_only_when_ime_visible">Only show floating ball when keyboard is visible</string>
     <string name="label_floating_direct_drag">Drag to move the floating ball</string>
@@ -28,11 +28,11 @@
     <string name="status_floating_ime_bridge_error">Bridge error in %1$s: %2$s</string>
     <string name="floating_ime_bridge_sensitive_field">Sensitive input field blocked. Text was not inserted.</string>
     <string name="floating_ime_bridge_insert_failed">IME bridge insertion failed: %1$s</string>
-    <string name="label_floating_write_compat">Floating write-text compatibility mode</string>
+    <string name="label_floating_write_compat">Accessibility write compatibility optimization</string>
     <string name="desc_floating_write_compat">Some apps expose background placeholder text to Accessibility, which contaminates final insertion. When enabled, in target apps the floating ball switches to Select-All + Paste with an invisible marker to avoid placeholder issues. The clipboard may be used temporarily (best-effort restore). Works for Telegram, Douyin, etc.</string>
     <string name="label_floating_write_compat_pkgs">Target package names (one per line)</string>
     <string name="hint_floating_write_compat_pkgs">Enter package or prefix (e.g., org.telegram). A trailing * means prefix match (e.g., org.telegram.*).</string>
-    <string name="label_floating_write_paste">Copy recognition result to clipboard only</string>
+    <string name="label_floating_write_paste">Accessibility: copy result to clipboard only</string>
     <string name="desc_floating_write_paste">Applies only to the packages below: in these apps, when using floating voice input, copy the result to the clipboard instead of inserting via Accessibility APIs. If a line contains all, it applies globally.</string>
     <string name="label_floating_write_paste_pkgs">Target packages (one per line)</string>
     <string name="hint_floating_write_paste_pkgs">Enter exact package names (e.g., com.tencent.mm). To apply globally, add a single line with all.</string>
