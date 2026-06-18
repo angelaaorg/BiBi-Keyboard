@@ -24,6 +24,7 @@ import com.brycewg.asrkb.store.Prefs
 import com.brycewg.asrkb.ui.AsrAccessibilityService.FocusContext
 import com.brycewg.asrkb.util.TextSanitizer
 import com.brycewg.asrkb.util.TypewriterTextAnimator
+import java.util.UUID
 import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -64,6 +65,8 @@ class AsrSessionManager(
     private var useImeBridgeForSession: Boolean = false
     @Volatile
     private var useImeBridgeComposingPreviewForSession: Boolean = false
+    @Volatile
+    private var imeBridgeSessionId: String? = null
     private var markerInserted: Boolean = false
     private var markerChar: String? = null
     private var aiPostProcessingToken: Long = 0L
@@ -151,6 +154,7 @@ class AsrSessionManager(
         lastPartialForPreview = null
         useImeBridgeForSession = false
         useImeBridgeComposingPreviewForSession = false
+        imeBridgeSessionId = null
         markerInserted = false
         markerChar = null
         aiPostProcessingToken = 0L
@@ -277,8 +281,9 @@ class AsrSessionManager(
 
         val useImeBridge = isImeBridgeEnabled()
         useImeBridgeForSession = useImeBridge
+        imeBridgeSessionId = null
         useImeBridgeComposingPreviewForSession = if (useImeBridge) {
-            resolveImeBridgeComposingPreviewEnabled()
+            prepareImeBridgeSession()
         } else {
             false
         }
@@ -463,7 +468,11 @@ class AsrSessionManager(
         } catch (e: Throwable) {
             Log.w(TAG, "Failed to cancel timeout job", e)
         }
-        rollbackPreviewToSnapshotIfNeeded()
+        if (useImeBridgeForSession) {
+            clearImeBridgeComposingPreview("cleanup")
+        } else {
+            rollbackPreviewToSnapshotIfNeeded()
+        }
         asrEngine = null
         clearPreviewSessionContext()
     }
@@ -1304,20 +1313,12 @@ class AsrSessionManager(
 
     private fun insertTextToFocus(text: String): Boolean {
         if (useImeBridgeForSession) {
-            var finishResult: ImeBridgeResult? = null
             val bridgeResult = synchronized(bridgeOperationLock) {
                 bridgePreviewSequence.incrementAndGet()
-                val result = imeBridgeClient.insertText(text)
-                if (result.isSuccess &&
-                    useImeBridgeComposingPreviewForSession &&
-                    !lastPartialForPreview.isNullOrEmpty()
-                ) {
-                    finishResult = imeBridgeClient.finishComposingText()
-                }
-                result
+                imeBridgeClient.insertText(text, sessionId = imeBridgeSessionId)
             }
             if (bridgeResult.isSuccess) {
-                logImeBridgeFinishResult("final_commit", finishResult)
+                imeBridgeSessionId = null
                 recordAsrUsage(text)
                 return true
             }
@@ -1399,19 +1400,42 @@ class AsrSessionManager(
         }
     }
 
-    private fun resolveImeBridgeComposingPreviewEnabled(): Boolean {
+    private fun prepareImeBridgeSession(): Boolean {
         val result = try {
             imeBridgeClient.queryStatus(timeoutMs = 180L)
         } catch (t: Throwable) {
-            Log.w(TAG, "Failed to query IME bridge composing preview support", t)
+            Log.w(TAG, "Failed to query IME bridge session support", t)
             return false
         }
+        if (result.isSuccess && result.supportsSessions) {
+            val sessionId = UUID.randomUUID().toString()
+            val beginResult = try {
+                imeBridgeClient.beginSession(sessionId)
+            } catch (t: Throwable) {
+                Log.w(TAG, "Failed to begin IME bridge session", t)
+                null
+            }
+            if (beginResult?.isSuccess == true) {
+                imeBridgeSessionId = sessionId
+                return result.supportsComposingPreview
+            }
+            if (beginResult != null && beginResult.isBridgePresent) {
+                Log.d(
+                    TAG,
+                    "IME bridge session disabled: code=${beginResult.code}, " +
+                        "target=${beginResult.targetPackage}, message=${beginResult.message}"
+                )
+            }
+            return false
+        }
+
         val enabled = result.isSuccess && result.supportsComposingPreview
         if (!enabled && result.isBridgePresent) {
             Log.d(
                 TAG,
                 "IME bridge composing preview disabled: code=${result.code}, " +
-                    "supports=${result.supportsComposingPreview}, target=${result.targetPackage}"
+                    "supportsPreview=${result.supportsComposingPreview}, " +
+                    "supportsSessions=${result.supportsSessions}, target=${result.targetPackage}"
             )
         }
         return enabled
@@ -1511,7 +1535,7 @@ class AsrSessionManager(
                 ) {
                     null
                 } else {
-                    imeBridgeClient.setComposingText(text)
+                    imeBridgeClient.setComposingText(text, sessionId = imeBridgeSessionId)
                 }
             }
             if (result != null && !result.isSuccess && result.isBridgePresent) {
@@ -1524,43 +1548,42 @@ class AsrSessionManager(
     }
 
     private fun clearImeBridgeComposingPreview(reason: String) {
-        if (!useImeBridgeForSession ||
-            !useImeBridgeComposingPreviewForSession ||
-            lastPartialForPreview.isNullOrEmpty()
-        ) {
+        if (!useImeBridgeForSession) {
             return
         }
+        val sessionIdSnapshot = imeBridgeSessionId
+        if (!sessionIdSnapshot.isNullOrEmpty()) {
+            imeBridgeSessionId = null
+        }
+        val hadComposingPreview = useImeBridgeComposingPreviewForSession &&
+            !lastPartialForPreview.isNullOrEmpty()
         val clearSequence = bridgePreviewSequence.incrementAndGet()
         serviceScope.launch(Dispatchers.IO) {
-            val results = synchronized(bridgeOperationLock) {
+            val result = synchronized(bridgeOperationLock) {
                 if (clearSequence != bridgePreviewSequence.get()) {
                     null
                 } else {
-                    imeBridgeClient.setComposingText("") to imeBridgeClient.finishComposingText()
+                    if (!sessionIdSnapshot.isNullOrEmpty()) {
+                        imeBridgeClient.cancelSession(sessionIdSnapshot)
+                    } else if (hadComposingPreview) {
+                        val clearResult = imeBridgeClient.setComposingText("")
+                        if (clearResult.isSuccess) {
+                            imeBridgeClient.finishComposingText()
+                        } else {
+                            clearResult
+                        }
+                    } else {
+                        null
+                    }
                 }
             } ?: return@launch
-            val clearResult = results.first
-            val finishResult = results.second
-            if ((!clearResult.isSuccess && clearResult.isBridgePresent) ||
-                (!finishResult.isSuccess && finishResult.isBridgePresent)
-            ) {
+            if (!result.isSuccess && result.isBridgePresent) {
                 Log.d(
                     TAG,
                     "IME bridge clear composing preview failed: reason=$reason, " +
-                        "clear=${clearResult.code}/${clearResult.message}, " +
-                        "finish=${finishResult.code}/${finishResult.message}"
+                        "code=${result.code}, message=${result.message}"
                 )
             }
-        }
-    }
-
-    private fun logImeBridgeFinishResult(reason: String, result: ImeBridgeResult?) {
-        result ?: return
-        if (!result.isSuccess && result.isBridgePresent) {
-            Log.d(
-                TAG,
-                "IME bridge finish composing preview failed: reason=$reason, code=${result.code}, message=${result.message}"
-            )
         }
     }
 

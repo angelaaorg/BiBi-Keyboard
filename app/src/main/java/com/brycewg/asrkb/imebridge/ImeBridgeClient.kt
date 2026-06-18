@@ -11,8 +11,10 @@ import android.content.Context
 import android.content.Intent
 import android.os.Handler
 import android.os.HandlerThread
+import android.os.SystemClock
 import android.provider.Settings
 import android.util.Log
+import com.brycewg.asrkb.store.ApiLogStore
 import java.util.UUID
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
@@ -24,7 +26,15 @@ data class ImeBridgeResult(
     val hasInputConnection: Boolean,
     val isSensitiveField: Boolean,
     val isImeWindowVisible: Boolean,
-    val supportsComposingPreview: Boolean = false
+    val moduleVersion: String? = null,
+    val supportsInsertText: Boolean = false,
+    val supportsComposingPreview: Boolean = false,
+    val supportsFinishComposingText: Boolean = false,
+    val supportsSessions: Boolean = false,
+    val activeSessionId: String? = null,
+    val lastOperation: String? = null,
+    val lastResultCode: Int = 0,
+    val lastError: String? = null
 ) {
     val isSuccess: Boolean get() = code == ImeBridgeContract.RESULT_OK
     val isBridgePresent: Boolean
@@ -38,10 +48,33 @@ class ImeBridgeClient(private val context: Context) {
     fun queryStatus(timeoutMs: Long = DEFAULT_STATUS_TIMEOUT_MS): ImeBridgeResult =
         sendBridgeRequest(ImeBridgeContract.ACTION_QUERY_STATUS, null, timeoutMs)
 
+    fun beginSession(
+        sessionId: String,
+        timeoutMs: Long = DEFAULT_SESSION_TIMEOUT_MS
+    ): ImeBridgeResult =
+        sendBridgeRequest(
+            ImeBridgeContract.ACTION_BEGIN_SESSION,
+            null,
+            timeoutMs,
+            sessionId = sessionId
+        )
+
+    fun cancelSession(
+        sessionId: String,
+        timeoutMs: Long = DEFAULT_SESSION_TIMEOUT_MS
+    ): ImeBridgeResult =
+        sendBridgeRequest(
+            ImeBridgeContract.ACTION_CANCEL_SESSION,
+            null,
+            timeoutMs,
+            sessionId = sessionId
+        )
+
     fun insertText(
         text: String,
         cursorPosition: Int = 1,
-        timeoutMs: Long = DEFAULT_INSERT_TIMEOUT_MS
+        timeoutMs: Long = DEFAULT_INSERT_TIMEOUT_MS,
+        sessionId: String? = null
     ): ImeBridgeResult {
         if (text.isEmpty()) {
             return ImeBridgeResult(
@@ -53,23 +86,39 @@ class ImeBridgeClient(private val context: Context) {
                 isImeWindowVisible = false
             )
         }
-        return sendBridgeRequest(ImeBridgeContract.ACTION_INSERT_TEXT, text, timeoutMs, cursorPosition)
+        return sendBridgeRequest(
+            ImeBridgeContract.ACTION_INSERT_TEXT,
+            text,
+            timeoutMs,
+            cursorPosition,
+            sessionId
+        )
     }
 
     fun setComposingText(
         text: String,
         cursorPosition: Int = 1,
-        timeoutMs: Long = DEFAULT_COMPOSING_TIMEOUT_MS
+        timeoutMs: Long = DEFAULT_COMPOSING_TIMEOUT_MS,
+        sessionId: String? = null
     ): ImeBridgeResult =
         sendBridgeRequest(
             ImeBridgeContract.ACTION_SET_COMPOSING_TEXT,
             text,
             timeoutMs,
-            cursorPosition
+            cursorPosition,
+            sessionId
         )
 
-    fun finishComposingText(timeoutMs: Long = DEFAULT_COMPOSING_TIMEOUT_MS): ImeBridgeResult =
-        sendBridgeRequest(ImeBridgeContract.ACTION_FINISH_COMPOSING_TEXT, null, timeoutMs)
+    fun finishComposingText(
+        timeoutMs: Long = DEFAULT_COMPOSING_TIMEOUT_MS,
+        sessionId: String? = null
+    ): ImeBridgeResult =
+        sendBridgeRequest(
+            ImeBridgeContract.ACTION_FINISH_COMPOSING_TEXT,
+            null,
+            timeoutMs,
+            sessionId = sessionId
+        )
 
     fun resolveCurrentImePackage(): String? = resolveCurrentImePackage(context)
 
@@ -77,10 +126,14 @@ class ImeBridgeClient(private val context: Context) {
         action: String,
         text: String?,
         timeoutMs: Long,
-        cursorPosition: Int = 1
+        cursorPosition: Int = 1,
+        sessionId: String? = null
     ): ImeBridgeResult {
         val targetPackage = resolveCurrentImePackage()
-            ?: return ImeBridgeResult(
+        val requestId = UUID.randomUUID().toString()
+        val started = SystemClock.elapsedRealtime()
+        if (targetPackage == null) {
+            val noImeResult = ImeBridgeResult(
                 code = ImeBridgeContract.RESULT_NO_CURRENT_IME,
                 message = "no current ime",
                 targetPackage = null,
@@ -88,10 +141,12 @@ class ImeBridgeClient(private val context: Context) {
                 isSensitiveField = false,
                 isImeWindowVisible = false
             )
+            recordBridgeApiLog(action, requestId, null, text, cursorPosition, sessionId, started, noImeResult)
+            return noImeResult
+        }
 
         val latch = CountDownLatch(1)
         var result: ImeBridgeResult? = null
-        val requestId = UUID.randomUUID().toString()
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
                 val extras = getResultExtras(false)
@@ -113,10 +168,27 @@ class ImeBridgeClient(private val context: Context) {
                         ImeBridgeContract.EXTRA_IME_WINDOW_VISIBLE,
                         false
                     ) == true,
+                    moduleVersion = extras?.getString(ImeBridgeContract.EXTRA_MODULE_VERSION),
+                    supportsInsertText = extras?.getBoolean(
+                        ImeBridgeContract.EXTRA_SUPPORTS_INSERT_TEXT,
+                        resultCode == ImeBridgeContract.RESULT_OK
+                    ) == true,
                     supportsComposingPreview = extras?.getBoolean(
                         ImeBridgeContract.EXTRA_SUPPORTS_COMPOSING_PREVIEW,
                         false
-                    ) == true
+                    ) == true,
+                    supportsFinishComposingText = extras?.getBoolean(
+                        ImeBridgeContract.EXTRA_SUPPORTS_FINISH_COMPOSING_TEXT,
+                        false
+                    ) == true,
+                    supportsSessions = extras?.getBoolean(
+                        ImeBridgeContract.EXTRA_SUPPORTS_SESSIONS,
+                        false
+                    ) == true,
+                    activeSessionId = extras?.getString(ImeBridgeContract.EXTRA_ACTIVE_SESSION_ID),
+                    lastOperation = extras?.getString(ImeBridgeContract.EXTRA_LAST_OPERATION),
+                    lastResultCode = extras?.getInt(ImeBridgeContract.EXTRA_LAST_RESULT_CODE, 0) ?: 0,
+                    lastError = extras?.getString(ImeBridgeContract.EXTRA_LAST_ERROR)
                 )
                 latch.countDown()
             }
@@ -127,6 +199,7 @@ class ImeBridgeClient(private val context: Context) {
             putExtra(ImeBridgeContract.EXTRA_PROTOCOL_VERSION, ImeBridgeContract.PROTOCOL_VERSION)
             putExtra(ImeBridgeContract.EXTRA_REQUEST_ID, requestId)
             putExtra(ImeBridgeContract.EXTRA_CURSOR_POSITION, cursorPosition)
+            if (!sessionId.isNullOrEmpty()) putExtra(ImeBridgeContract.EXTRA_SESSION_ID, sessionId)
             if (text != null) putExtra(ImeBridgeContract.EXTRA_TEXT, text)
         }
 
@@ -142,7 +215,7 @@ class ImeBridgeClient(private val context: Context) {
             )
         } catch (t: Throwable) {
             Log.w(TAG, "sendBridgeRequest failed: action=$action target=$targetPackage", t)
-            return ImeBridgeResult(
+            val failedResult = ImeBridgeResult(
                 code = ImeBridgeContract.RESULT_SEND_FAILED,
                 message = t.message ?: "send failed",
                 targetPackage = targetPackage,
@@ -150,6 +223,8 @@ class ImeBridgeClient(private val context: Context) {
                 isSensitiveField = false,
                 isImeWindowVisible = false
             )
+            recordBridgeApiLog(action, requestId, targetPackage, text, cursorPosition, sessionId, started, failedResult)
+            return failedResult
         }
 
         val received = try {
@@ -159,7 +234,7 @@ class ImeBridgeClient(private val context: Context) {
             false
         }
 
-        return if (received) {
+        val finalResult = if (received) {
             result ?: ImeBridgeResult(
                 code = ImeBridgeContract.RESULT_NO_RECEIVER,
                 message = "no receiver",
@@ -178,13 +253,72 @@ class ImeBridgeClient(private val context: Context) {
                 isImeWindowVisible = false
             )
         }
+        recordBridgeApiLog(action, requestId, targetPackage, text, cursorPosition, sessionId, started, finalResult)
+        return finalResult
     }
+
+    private fun recordBridgeApiLog(
+        action: String,
+        requestId: String,
+        targetPackage: String?,
+        text: String?,
+        cursorPosition: Int,
+        sessionId: String?,
+        startedElapsedMs: Long,
+        result: ImeBridgeResult
+    ) {
+        if (!shouldRecordApiLog(action, result)) return
+        val durationMs = (SystemClock.elapsedRealtime() - startedElapsedMs).coerceAtLeast(0L)
+        val shortAction = shortActionName(action)
+        ApiLogStore.add(
+            ApiLogStore.ApiLogRecord(
+                category = "IME_BRIDGE",
+                vendor = result.targetPackage ?: targetPackage.orEmpty(),
+                model = result.moduleVersion.orEmpty(),
+                source = "floating",
+                protocol = "Broadcast",
+                method = shortAction,
+                host = targetPackage.orEmpty(),
+                path = "/$shortAction",
+                requestSummary = buildString {
+                    append("requestId=").append(requestId.take(8))
+                    append("; textChars=").append(text?.length ?: 0)
+                    append("; cursorPosition=").append(cursorPosition)
+                    if (!sessionId.isNullOrEmpty()) append("; session=").append(sessionId.take(8))
+                },
+                requestStructure = "action=$action",
+                responseSummary = buildString {
+                    append("code=").append(result.code)
+                    append("; message=").append(result.message)
+                    append("; hasInputConnection=").append(result.hasInputConnection)
+                    append("; imeWindowVisible=").append(result.isImeWindowVisible)
+                    append("; sensitive=").append(result.isSensitiveField)
+                    append("; supportsInsert=").append(result.supportsInsertText)
+                    append("; supportsPreview=").append(result.supportsComposingPreview)
+                    append("; supportsSessions=").append(result.supportsSessions)
+                },
+                success = result.isSuccess,
+                durationMs = durationMs,
+                errorSummary = if (result.isSuccess) "" else result.message.take(240)
+            )
+        )
+    }
+
+    private fun shouldRecordApiLog(action: String, result: ImeBridgeResult): Boolean {
+        if (action == ImeBridgeContract.ACTION_SET_COMPOSING_TEXT && result.isSuccess) return false
+        if (action == ImeBridgeContract.ACTION_FINISH_COMPOSING_TEXT && result.isSuccess) return false
+        return true
+    }
+
+    private fun shortActionName(action: String): String =
+        action.substringAfterLast('.').lowercase()
 
     companion object {
         private const val TAG = "ImeBridgeClient"
         private const val DEFAULT_STATUS_TIMEOUT_MS = 350L
         private const val DEFAULT_INSERT_TIMEOUT_MS = 700L
         private const val DEFAULT_COMPOSING_TIMEOUT_MS = 120L
+        private const val DEFAULT_SESSION_TIMEOUT_MS = 180L
 
         fun resolveCurrentImePackage(context: Context): String? {
             val raw = try {
@@ -211,6 +345,7 @@ class ImeBridgeClient(private val context: Context) {
             ImeBridgeContract.RESULT_COMMIT_FAILED -> "commit failed"
             ImeBridgeContract.RESULT_BAD_REQUEST -> "bad request"
             ImeBridgeContract.RESULT_COMPOSING_FAILED -> "composing failed"
+            ImeBridgeContract.RESULT_SESSION_MISMATCH -> "session mismatch"
             ImeBridgeContract.RESULT_NO_CURRENT_IME -> "no current ime"
             ImeBridgeContract.RESULT_TIMEOUT -> "timeout"
             ImeBridgeContract.RESULT_SEND_FAILED -> "send failed"
