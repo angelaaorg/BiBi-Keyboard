@@ -1,5 +1,20 @@
 # Changelog
 
+## v4.0.2 (2026-06-18)
+
+### New Features
+
+- **IME Bridge Mode**: Added IME bridge mode that communicates with LSPosed modules via broadcast, supporting keyboard state detection, text insertion, composing text preview, and session management
+- **Floating Ball Foreground Service**: Added microphone foreground service support required by Android 14 for floating ball recording
+- **AI Edit System Prompt Customization**: Allow users to customize the AI edit feature's system prompt; leaving it empty falls back to the default
+
+### Improvements
+
+- **Soniox Streaming Model Upgrade**: Upgraded Soniox streaming recognition model to stt-rt-v5
+- **Accessibility Copy Optimization**: Updated accessibility compatibility and advanced feature related string descriptions
+
+---
+
 ## v4.0.1 (2026-06-14)
 
 ### New Features
